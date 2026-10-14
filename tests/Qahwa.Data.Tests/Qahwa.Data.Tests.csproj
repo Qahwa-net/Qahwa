@@ -10,8 +10,10 @@
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="Testcontainers.PostgreSql" Version="4.16.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <PackageReference Include="Xunit.SkippableFact" Version="1.5.85" />
   </ItemGroup>
 
   <ItemGroup>
@@ -20,6 +22,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Qahwa.Data\Qahwa.Data.csproj" />
+    <ProjectReference Include="..\..\src\Qahwa.Data.Postgres\Qahwa.Data.Postgres.csproj" />
+    <ProjectReference Include="..\Qahwa.Testing\Qahwa.Testing.csproj" />
   </ItemGroup>
 
 </Project>

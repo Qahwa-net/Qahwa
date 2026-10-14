@@ -17,6 +17,8 @@ Build a **low-code, metadata-driven application framework on .NET** where a deve
 3. A rich web UI (list, form, report, kanban, calendar views)
 4. Permissions, audit trail, workflow, naming series, and attachments
 5. A plugin ("App") system so business modules (HR, CRM, Accounting) ship as installable packages
+6. **Built-in collaboration on every document**: comments, sharing, assignment, and following (see 5.10)
+7. **Dynamic filters and per-user list settings** like Frappe's list view: filter bar, saved filters, column picker, sidebar group-by counts (see 5.11)
 
 ### Non-goals (v1)
 - Not a full ERP (that is an app built *on* Qahwa, like ERPNext on Frappe)
@@ -45,6 +47,13 @@ Define a `Customer` DocType in JSON, run one command, and get a working table, A
 | frappe.client / REST | `/api/resource/*`, `/api/method/*` | Same convention, easy migration for Frappe users |
 | Role / DocPerm | `Role` / `DocPerm` | Row-level and field-level rules |
 | Workflow | `Workflow` DocType | State machine on any DocType |
+| Comment / timeline | `Comment` DocType + timeline API | Comments, mentions, and system events on every document |
+| ToDo (assign) | `ToDo` DocType (`reference_doctype`, `reference_name`, `allocated_to`) | Assign any document to one or more users |
+| DocShare | `DocShare` DocType | Per-document, per-user grants (read/write/share/submit) |
+| Document Follow | `DocumentFollow` DocType | Follow a document and get notified of changes |
+| List View Settings | `ListViewSettings` DocType (per DocType) | Admin-defined list defaults and toggles |
+| User Settings | `UserSettings` store (per user, per DocType) | Remembered columns, sort, filters, page size, view |
+| List Filter (saved filters) | `ListFilter` DocType | Named filter sets, private or shared |
 | Server Script | Roslyn C# script (sandboxed) | Phase 4 |
 | Redis queue + workers | Hangfire / Quartz + `IBackgroundJobClient` | Phase 3 |
 | Socket.IO realtime | SignalR | Phase 3 |
@@ -251,9 +260,71 @@ Views:
 
 Architecture: a **field control registry** (type → React component) that plugins can extend. Layout is rendered from `fields` ordering and break fields. All data flows through TanStack Query with the meta cache.
 
-### 5.10 Cross-cutting features (Phase 3+)
+### 5.10 Document collaboration: comments, share, assign, follow
 
-Workflow engine, assignment and ToDo, comments and mentions, tags, attachments (local/S3/Azure Blob), email (queue plus templates), notifications (in-app/email/webhook), print formats (Razor/Scriban to PDF), data import/export (CSV/Excel with validation), webhooks, audit log, scheduled jobs, localization (i18n with Arabic/RTL support, which is a first-class goal), and custom reports.
+Every DocType gets these four features automatically. No per-DocType configuration is needed, though a DocType can opt out with `"collaboration": false`. They are built as ordinary DocTypes on top of the Document engine, so they inherit permissions, audit, API, and UI for free.
+
+| Feature | Storage | Behavior |
+|---|---|---|
+| **Comments** | `Comment` (`reference_doctype`, `reference_name`, `comment_type`, `content`, `comment_by`) | Rich-text comments, `@mentions` (notify the user), edit/delete own comments. `comment_type` also records system events: Info, Edit, Label, Attachment, Assignment, Share |
+| **Assign** | `ToDo` (`reference_doctype`, `reference_name`, `allocated_to`, `assigned_by`, `status`, `priority`, `date`, `description`) | Assign to one or more users. Assignee is notified; status Open → Closed/Cancelled; "Assigned to me" filter and a My ToDos list. Auto-close on document submit/cancel via a rule |
+| **Share** | `DocShare` (`user`, `share_doctype`, `share_name`, `read`, `write`, `share`, `submit`) | Grants a user access to one document beyond their role. Evaluated by the permission layer (layer 5 in 5.5). Only users with `share` permission can grant |
+| **Follow** | `DocumentFollow` (`ref_doctype`, `ref_docname`, `user`, `frequency`) | Users follow a document manually, or automatically when they create, comment on, assign, or share it. Followers get a notification (in-app, then email digest) on update, comment, and status changes |
+
+**Timeline.** The form shows one merged, chronological timeline from `Version` (field changes), `Comment`, assignments, shares, and attachments.
+
+**API**
+```
+GET/POST   /api/resource/{doctype}/{name}/comments
+POST       /api/method/qahwa.desk.form.assign_to.add | remove | close
+POST       /api/method/qahwa.share.add | remove      GET /api/method/qahwa.share.get_users
+POST       /api/method/qahwa.follow.follow | unfollow GET /api/method/qahwa.follow.is_following
+GET        /api/resource/{doctype}/{name}/timeline
+```
+
+**Design rules**
+- Collaboration rows are linked by `(reference_doctype, reference_name)` with an index on that pair. They are cascaded or archived when the parent document is deleted.
+- Reading comments, assignments, and shares requires **read** permission on the parent document. Writing a comment requires read plus comment right. Sharing requires the `share` permission, so a user can never grant more than they hold.
+- All actions raise events on the event bus (`comment_added`, `assigned`, `shared`, `followed`). The notification system (Phase 3) subscribes to those events, so collaboration does not depend on the email subsystem.
+- Mentions and assignment are resolved against `User`, and disabled users are skipped.
+
+### 5.11 Dynamic filters and list settings (Frappe-style list view)
+
+**Dynamic filters.** Users build filters at runtime from the UI, and the same filter model is accepted by the API and by saved filters.
+
+- **Filter model**: `[field, operator, value]`, optionally with a child-table field (`[childDoctype, field, operator, value]`, Phase 3).
+- **Operators by field type**: text (`=`, `!=`, `like`, `not like`, `in`, `not in`, `is set / not set`), numeric and currency (`=`, `!=`, `>`, `<`, `>=`, `<=`, `between`), date/datetime (`=`, `>`, `<`, `between`, **timespan**: today, yesterday, this week, last 7 days, this month, last quarter, this year, ...), Link (`=`, `!=`, `in`, descendants for tree DocTypes), Check (`=`), Select (`=`, `!=`, `in`).
+- **Dynamic values**: tokens resolved on the server, such as `__user`, `__today`, `__me_and_my_team`, so saved filters stay current.
+- **Filter bar UI**: a standard filter row (fields marked `inStandardFilter` in the DocType), an "Add filter" popover with a field picker and the operator list for that type, filter chips with a clear button, and a "Filters (n)" counter.
+- **Sidebar group-by counts**: "Assigned to", "Created by", "Tags", "Liked by", plus any field marked `inGroupBy`. Clicking a value adds a filter. Counts come from a single aggregate query and can be turned off per DocType.
+- **Saved filters** (`ListFilter`: `reference_doctype`, `filter_name`, `filters` JSON, `for_user`, `shared`). Private by default; shared filters need a permission.
+- **Quick search**: a search box over the fields marked `inListView`/`searchable`, translated into `like` filters.
+
+**List settings.** Two layers, like Frappe:
+
+1. **DocType-level defaults** (admin): `ListViewSettings` / DocType metadata. Flags per field: `inListView`, `inStandardFilter`, `inPreview`, `bold`, `inGroupBy`, `listColumnWidth`. Toggles per DocType: `disableCount`, `disableSidebarStats`, `disableAutoRefresh`, `allowBulkEdit`, default `sortField` and `sortOrder`, default page size, `titleField`, and status indicators (a field → color mapping, such as `Open` = orange).
+2. **User-level settings** (`UserSettings`, keyed by user + DocType): chosen columns and their order and width, sort, page size, last used filters, last used view (List/Report/Kanban/Calendar), and sidebar collapse state. They are restored on the next visit, with a "Reset to default" action.
+
+**Report view** reuses the same filter and settings model, plus column picker, group-by, aggregate rows, and export.
+
+**API**
+```
+GET  /api/resource/{doctype}?filters=[...]&fields=[...]&order_by=...&limit_start=&limit_page_length=
+GET  /api/method/qahwa.desk.reportview.get_count?doctype=&filters=
+GET  /api/method/qahwa.desk.listview.get_group_by_count?doctype=&field=&filters=
+GET/PUT /api/user-settings/{doctype}
+GET/POST/DELETE /api/resource/ListFilter
+```
+
+**Engine changes needed (Phase 2)**
+- Extend `FilterOp` with `Between`, `NotIn`, `NotLike`, `Timespan`, and map dynamic tokens before validation.
+- Keep the security rule: field names whitelisted from metadata, all values parameterized, and filters on fields the user has no `permlevel` access to are rejected.
+- Add `inStandardFilter`, `inPreview`, `inGroupBy`, `bold`, and `listColumnWidth` to `DocFieldMeta`. Add `sortField`, `sortOrder`, and `disableCount` style flags to `DocTypeMeta`.
+- Add `GroupByCount` and `Count` operations to the repository.
+
+### 5.12 Cross-cutting features (Phase 3+)
+
+Workflow engine, tags and likes, attachments (local/S3/Azure Blob), email (queue plus templates), notifications (in-app/email/webhook), print formats (Razor/Scriban to PDF), data import/export (CSV/Excel with validation), webhooks, audit log, scheduled jobs, localization (i18n with Arabic/RTL support, which is a first-class goal), and custom reports.
 
 ---
 
@@ -302,7 +373,9 @@ Timeline assumes **1–2 full-time developers**. Scale it up or down accordingly
 - Submittable documents (docstatus, submit/cancel/amend)
 - Meta caching + invalidation, error envelope, OpenAPI generation
 - SQL Server dialect (proves the dialect abstraction)
-- Desk v1: child-table grid, link autocomplete, filters, bulk actions, form layout (sections/columns/tabs)
+- **Dynamic filters and list settings** (5.11): extended filter operators, dynamic value tokens, group-by counts, `ListFilter`, `UserSettings`, and `ListViewSettings`
+- **Document collaboration** (5.10): `Comment`, `ToDo` (assign), `DocShare`, `DocumentFollow`, timeline API, mention parsing, and the permission-layer hook for shares
+- Desk v1: child-table grid, link autocomplete, filter bar with saved filters, sidebar group-by counts, column picker, bulk actions, form layout (sections/columns/tabs), and a form sidebar with Assign / Share / Follow / Comments timeline
 
 ### Phase 3: Platform (Week 17–28)
 - App/plugin system with `AssemblyLoadContext`, `new-app`, `install-app`, dependency resolution

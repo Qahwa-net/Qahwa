@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Qahwa.Core\Qahwa.Core.csproj" />
+    <ProjectReference Include="..\Qahwa.Testing\Qahwa.Testing.csproj" />
   </ItemGroup>
 
 </Project>

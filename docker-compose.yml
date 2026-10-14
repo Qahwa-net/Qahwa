@@ -1,0 +1,15 @@
+# Local development database. The credentials are for local use only.
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: qahwa
+      POSTGRES_PASSWORD: qahwa_dev_only
+      POSTGRES_DB: qahwa
+    ports:
+      - "5432:5432"
+    volumes:
+      - qahwa-pgdata:/var/lib/postgresql/data
+
+volumes:
+  qahwa-pgdata:

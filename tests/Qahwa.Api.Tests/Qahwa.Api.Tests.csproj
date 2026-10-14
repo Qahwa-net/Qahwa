@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Qahwa.Server\Qahwa.Server.csproj" />
+    <ProjectReference Include="..\Qahwa.Testing\Qahwa.Testing.csproj" />
   </ItemGroup>
 
 </Project>
