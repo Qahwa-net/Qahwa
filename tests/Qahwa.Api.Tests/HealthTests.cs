@@ -90,4 +90,28 @@ public class HealthTests
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
+
+    [Fact]
+    public async Task Responses_carry_security_headers_and_api_responses_are_not_cached()
+    {
+        await using var factory = new QahwaFactory();
+
+        var response = await factory.CreateClient().GetAsync("/api/health");
+
+        Assert.Equal("nosniff", response.Headers.GetValues("X-Content-Type-Options").Single());
+        Assert.Equal("DENY", response.Headers.GetValues("X-Frame-Options").Single());
+        Assert.Contains("frame-ancestors 'none'", response.Headers.GetValues("Content-Security-Policy").Single());
+        Assert.Equal("no-store", response.Headers.CacheControl?.ToString());
+    }
+
+    [Fact]
+    public async Task Unknown_api_paths_return_the_json_envelope()
+    {
+        await using var factory = new QahwaFactory();
+
+        var response = await factory.CreateClient().GetAsync("/api/nope");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+        Assert.Contains("not_found", await response.Content.ReadAsStringAsync());
+    }
 }

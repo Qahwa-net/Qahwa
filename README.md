@@ -15,7 +15,9 @@ Working today:
 - Authentication: `User` / `Role` / `Has Role` DocTypes, cookie login, lockout, rate limiting, change password ([ADR-002](docs/adr/002-authentication.md))
 - PostgreSQL provider, `qahwa migrate` and `qahwa create-admin` CLI
 
-Not yet: child tables, submit/cancel, versions, comments/share/assign/follow, the Desk UI beyond the Vite skeleton.
+- Desk (React + TypeScript): login, DocType sidebar, generic list view (search, dynamic filters kept in the URL, sorting, paging) and form view (field controls per type, server-side validation errors inline, concurrent-edit detection, delete), account page with change password. Layout is right-to-left ready and works on phones.
+
+Not yet: child tables, submit/cancel, versions, comments/share/assign/follow, saved filters and per-user list settings, attachments, the Frappe-style form sidebar.
 
 ## Try it
 
@@ -28,15 +30,33 @@ dotnet run --project src/Qahwa.Cli -- create-admin --connection "Host=localhost;
 dotnet run --project src/Qahwa.Server        # Development: auto-migrates on start
 ```
 
-`create-admin` prompts for the password (10+ characters). Then log in and use the API with the session cookie:
+`create-admin` prompts for the password (10+ characters). The server listens on http://localhost:5101.
+
+### The Desk
+
+Build it once and the server serves it at http://localhost:5101 (sign in with the admin you just created):
 
 ```bash
-curl -c jar.txt -X POST http://localhost:5000/api/auth/login \
+cd src/Qahwa.Desk && npm install && npm run build
+```
+
+For Desk development run `npm run dev` instead (http://localhost:5173, proxies `/api` to the server) and keep the server running.
+
+### The API
+
+```bash
+curl -c jar.txt -X POST http://localhost:5101/api/auth/login \
   -H "Content-Type: application/json" -d '{"email":"you@example.com","password":"<your password>"}'
 
-curl -b jar.txt -X POST http://localhost:5000/api/resource/Customer \
+curl -b jar.txt -X POST http://localhost:5101/api/resource/Customer \
   -H "Content-Type: application/json" -d '{"customer_name":"Acme"}'
 ```
+
+### Deployment notes
+
+- Session cookies are encrypted with ASP.NET Data Protection keys. In containers or multiple instances, persist and share the key ring (`AddDataProtection().PersistKeysTo...`), or every restart signs everyone out.
+- Behind a reverse proxy configure forwarded headers, otherwise login rate limiting sees only the proxy's address.
+- Serve over HTTPS: outside Development the session cookie is marked `Secure`.
 
 Auth endpoints: `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`, `POST /api/auth/change-password`.
 

@@ -5,8 +5,8 @@
   "trackChanges": true,
   "fields": [
     { "name": "customer_name", "type": "Data", "label": "Customer Name", "required": true, "unique": true, "inListView": true },
-    { "name": "customer_type", "type": "Select", "options": "Company\nIndividual", "default": "Company" },
-    { "name": "credit_limit", "type": "Currency" }
+    { "name": "customer_type", "type": "Select", "options": "Company\nIndividual", "default": "Company", "inListView": true },
+    { "name": "credit_limit", "type": "Currency", "inListView": true }
   ],
   "permissions": [
     { "role": "Sales Manager", "read": true, "write": true, "create": true, "delete": true }

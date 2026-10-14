@@ -166,6 +166,13 @@ public sealed class ResourceApiTests : IAsyncDisposable
             .First(f => f.GetProperty("name").GetString() == "credit_limit").GetProperty("type");
         Assert.Equal("Currency", type.GetString());
 
+        var perms = (await JsonOf(await Manager.GetAsync("/api/meta/Customer"))).GetProperty("permissions");
+        Assert.True(perms.GetProperty("delete").GetBoolean());
+        var limited = (await JsonOf(await _factory.ClientFor("a@example.com", "Sales User").GetAsync("/api/meta/Customer")))
+            .GetProperty("permissions");
+        Assert.True(limited.GetProperty("create").GetBoolean());
+        Assert.False(limited.GetProperty("delete").GetBoolean());
+
         Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateClient().GetAsync("/api/meta/Customer")).StatusCode);
     }
 

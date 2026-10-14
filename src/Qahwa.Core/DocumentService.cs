@@ -41,6 +41,13 @@ public sealed class DocumentService(
         return meta;
     }
 
+    /// <summary>What the user may do with this DocType in general (owner-only rules count as allowed).</summary>
+    public EffectivePermissions GetPermissions(DocTypeMeta meta, IUserContext user) => new(
+        permissions.Evaluate(meta, user, PermAction.Read) != AccessLevel.None,
+        permissions.Evaluate(meta, user, PermAction.Write) != AccessLevel.None,
+        permissions.Evaluate(meta, user, PermAction.Create) != AccessLevel.None && !meta.IsChildTable,
+        permissions.Evaluate(meta, user, PermAction.Delete) != AccessLevel.None);
+
     public async Task<Dictionary<string, object?>> InsertAsync(
         string doctype,
         IReadOnlyDictionary<string, object?> input,

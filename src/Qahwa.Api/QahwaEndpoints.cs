@@ -20,7 +20,11 @@ public static class QahwaEndpoints
 
         api.MapGet("/meta/{doctype}", async (
             string doctype, HttpContext http, DocumentService docs, IUserContextResolver users, CancellationToken ct) =>
-            Results.Ok(new { data = docs.GetMeta(doctype, await users.ResolveAsync(http, ct)) }));
+        {
+            var user = await users.ResolveAsync(http, ct);
+            var meta = docs.GetMeta(doctype, user);
+            return Results.Ok(new { data = meta, permissions = docs.GetPermissions(meta, user) });
+        });
 
         var resource = api.MapGroup("/resource/{doctype}");
 

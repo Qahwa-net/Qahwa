@@ -33,6 +33,8 @@ public enum AccessLevel
     All,
 }
 
+public sealed record EffectivePermissions(bool Read, bool Write, bool Create, bool Delete);
+
 public sealed class PermissionService
 {
     public AccessLevel Evaluate(DocTypeMeta meta, IUserContext user, PermAction action)
