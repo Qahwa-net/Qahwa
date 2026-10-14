@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Qahwa.Core;
 using Qahwa.Core.Auth;
+using Qahwa.Core.Designer;
 using Qahwa.Data;
 
 namespace Qahwa.Hosting;
@@ -16,13 +17,16 @@ public sealed class QahwaOptions
 
 public sealed record MigrationResult(IReadOnlyList<SchemaPlan> Plans, bool Applied);
 
-public sealed class QahwaMigrator(IMetaRegistry registry, SchemaSync sync)
+public sealed class QahwaMigrator(IMetaRegistry registry, SchemaSync sync, CustomDocTypeLoader customLoader)
 {
     /// <summary>Plans (and unless <paramref name="planOnly"/>, applies) schema changes for every DocType.</summary>
     public async Task<MigrationResult> MigrateAsync(bool planOnly = false, CancellationToken ct = default)
     {
         if (!planOnly)
             await sync.EnsureSystemTablesAsync(ct);
+
+        // DocTypes created in the designer are part of the schema too.
+        await customLoader.LoadAsync(ct);
 
         var plans = new List<SchemaPlan>();
         foreach (var meta in registry.All.OrderBy(m => m.Name, StringComparer.Ordinal))
@@ -47,7 +51,7 @@ public static class HostingServiceCollectionExtensions
     {
         services.AddOptions<QahwaOptions>();
         services.AddOptions<AuthOptions>();
-        services.TryAddSingleton<IMetaRegistry>(sp =>
+        services.TryAddSingleton<MetaRegistry>(sp =>
         {
             var registry = new MetaRegistry();
             registry.AddCoreDocTypes();
@@ -56,6 +60,8 @@ public static class HostingServiceCollectionExtensions
             registry.ValidateReferences();
             return registry;
         });
+        services.TryAddSingleton<IMetaRegistry>(sp => sp.GetRequiredService<MetaRegistry>());
+        services.TryAddSingleton<IMutableMetaRegistry>(sp => sp.GetRequiredService<MetaRegistry>());
 
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<IPasswordHasher<string>>(sp => new PasswordHasher<string>(Options.Create(
@@ -68,6 +74,10 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<IDocumentRepository, DocumentRepository>();
         services.TryAddSingleton<IAuthStore, AuthStore>();
         services.TryAddSingleton<SchemaSync>();
+        services.TryAddSingleton<ISchemaManager, SchemaManager>();
+        services.TryAddSingleton<IDocTypeStore, DocTypeStore>();
+        services.TryAddSingleton<DocTypeDesigner>();
+        services.TryAddSingleton<CustomDocTypeLoader>();
         services.TryAddSingleton<QahwaMigrator>();
         return services;
     }

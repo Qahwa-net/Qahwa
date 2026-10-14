@@ -20,6 +20,13 @@ public interface ISqlDialect
 
     string CreateIndexSql(string indexName, string quotedTable, string column, bool unique);
 
+    string DropIndexSql(string indexName);
+
+    string DropTableSql(string quotedTable);
+
+    /// <summary>Table holding DocType definitions created in the designer.</summary>
+    string CreateDocTypeTableSql { get; }
+
     string CreateSeriesTableSql { get; }
 
     /// <summary>Table holding password hashes and login counters (see <c>IAuthStore</c>).</summary>

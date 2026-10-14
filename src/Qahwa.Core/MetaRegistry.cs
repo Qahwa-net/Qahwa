@@ -1,6 +1,20 @@
+using System.Collections.Immutable;
 using Qahwa.Abstractions;
 
 namespace Qahwa.Core;
+
+/// <summary>Where a DocType definition comes from, which decides whether it can be edited in the UI.</summary>
+public enum DocTypeSource
+{
+    /// <summary>Ships inside the framework (User, Role, ...). Read-only.</summary>
+    Core,
+
+    /// <summary>Loaded from an app's JSON files. Read-only in the UI; extend it with customisations instead.</summary>
+    App,
+
+    /// <summary>Created in the DocType Designer and stored in the database.</summary>
+    Custom,
+}
 
 public interface IMetaRegistry
 {
@@ -10,24 +24,81 @@ public interface IMetaRegistry
 
     /// <exception cref="NotFoundException">No such DocType.</exception>
     DocTypeMeta Get(string name);
+
+    DocTypeSource? SourceOf(string name);
+
+    /// <summary>Problems with the Link and Table targets of a definition, judged against the current registry.</summary>
+    IReadOnlyList<FieldError> CheckReferences(DocTypeMeta meta);
 }
 
-public sealed class MetaRegistry : IMetaRegistry
+/// <summary>A registry whose DocTypes can change while the application runs (used by the designer).</summary>
+public interface IMutableMetaRegistry : IMetaRegistry
 {
-    private readonly Dictionary<string, DocTypeMeta> _byName = new(StringComparer.OrdinalIgnoreCase);
+    void Upsert(DocTypeMeta meta, DocTypeSource source);
 
-    public IReadOnlyCollection<DocTypeMeta> All => _byName.Values;
+    bool Remove(string name);
+}
 
-    public bool TryGet(string name, out DocTypeMeta meta) => _byName.TryGetValue(name, out meta!);
+/// <summary>
+/// Thread-safe registry. Readers see an immutable snapshot, so a designer change can never
+/// expose a half-updated set of DocTypes to a request that is already running.
+/// </summary>
+public sealed class MetaRegistry : IMutableMetaRegistry
+{
+    private sealed record Snapshot(
+        ImmutableDictionary<string, (DocTypeMeta Meta, DocTypeSource Source)> ByName,
+        IReadOnlyCollection<DocTypeMeta> All);
+
+    private readonly object _gate = new();
+    private Snapshot _snapshot = Build(ImmutableDictionary.Create<string, (DocTypeMeta, DocTypeSource)>(StringComparer.OrdinalIgnoreCase));
+
+    public IReadOnlyCollection<DocTypeMeta> All => _snapshot.All;
+
+    public bool TryGet(string name, out DocTypeMeta meta)
+    {
+        if (_snapshot.ByName.TryGetValue(name, out var entry))
+        {
+            meta = entry.Meta;
+            return true;
+        }
+
+        meta = null!;
+        return false;
+    }
 
     public DocTypeMeta Get(string name) =>
-        _byName.TryGetValue(name, out var meta) ? meta : throw new NotFoundException($"DocType '{name}' was not found.");
+        TryGet(name, out var meta) ? meta : throw new NotFoundException($"DocType '{name}' was not found.");
 
-    public void Add(DocTypeMeta meta)
+    public DocTypeSource? SourceOf(string name) =>
+        _snapshot.ByName.TryGetValue(name, out var entry) ? entry.Source : null;
+
+    public void Add(DocTypeMeta meta, DocTypeSource source = DocTypeSource.App)
     {
         DocTypeLoader.Validate(meta);
-        if (!_byName.TryAdd(meta.Name, meta))
-            throw new DocTypeValidationException($"Duplicate DocType '{meta.Name}'.");
+        lock (_gate)
+        {
+            if (_snapshot.ByName.ContainsKey(meta.Name))
+                throw new DocTypeValidationException($"Duplicate DocType '{meta.Name}'.");
+            _snapshot = Build(_snapshot.ByName.Add(meta.Name, (meta, source)));
+        }
+    }
+
+    public void Upsert(DocTypeMeta meta, DocTypeSource source)
+    {
+        DocTypeLoader.Validate(meta);
+        lock (_gate)
+            _snapshot = Build(_snapshot.ByName.SetItem(meta.Name, (meta, source)));
+    }
+
+    public bool Remove(string name)
+    {
+        lock (_gate)
+        {
+            if (!_snapshot.ByName.ContainsKey(name))
+                return false;
+            _snapshot = Build(_snapshot.ByName.Remove(name));
+            return true;
+        }
     }
 
     /// <summary>Adds the framework's own DocTypes (User, Role, Has Role) that ship inside this assembly.</summary>
@@ -41,7 +112,7 @@ public sealed class MetaRegistry : IMetaRegistry
         foreach (var resource in resources)
         {
             using var reader = new StreamReader(assembly.GetManifestResourceStream(resource)!);
-            Add(DocTypeLoader.Parse(reader.ReadToEnd()));
+            Add(DocTypeLoader.Parse(reader.ReadToEnd()), DocTypeSource.Core);
         }
     }
 
@@ -57,17 +128,38 @@ public sealed class MetaRegistry : IMetaRegistry
     /// <summary>Checks cross-DocType references (Link and Table targets). Call after everything is loaded.</summary>
     public void ValidateReferences()
     {
-        foreach (var meta in _byName.Values)
+        foreach (var meta in All)
         {
-            foreach (var field in meta.Fields.Where(f => f.Type is FieldType.Link or FieldType.Table))
-            {
-                if (!_byName.TryGetValue(field.Options!, out var target))
-                    throw new DocTypeValidationException(
-                        $"{meta.Name}.{field.Name}: target DocType '{field.Options}' does not exist.");
-                if (field.Type == FieldType.Table && !target.IsChildTable)
-                    throw new DocTypeValidationException(
-                        $"{meta.Name}.{field.Name}: '{target.Name}' must be a child table (isChildTable).");
-            }
+            var errors = CheckReferences(meta);
+            if (errors.Count > 0)
+                throw new DocTypeValidationException($"{meta.Name}: {errors[0].Message}", errors);
         }
     }
+
+    /// <summary>Problems with the Link and Table targets of one definition, judged against the current registry.</summary>
+    public IReadOnlyList<FieldError> CheckReferences(DocTypeMeta meta)
+    {
+        var errors = new List<FieldError>();
+        for (var i = 0; i < meta.Fields.Count; i++)
+        {
+            var field = meta.Fields[i];
+            if (field.Type is not (FieldType.Link or FieldType.Table) || string.IsNullOrWhiteSpace(field.Options))
+                continue;
+
+            // A DocType may link to itself.
+            var target = string.Equals(field.Options, meta.Name, StringComparison.OrdinalIgnoreCase)
+                ? meta
+                : TryGet(field.Options, out var found) ? found : null;
+
+            if (target is null)
+                errors.Add(new FieldError($"fields[{i}].options", $"The DocType '{field.Options}' does not exist."));
+            else if (field.Type == FieldType.Table && !target.IsChildTable)
+                errors.Add(new FieldError($"fields[{i}].options", $"'{target.Name}' must be a child table."));
+        }
+
+        return errors;
+    }
+
+    private static Snapshot Build(ImmutableDictionary<string, (DocTypeMeta Meta, DocTypeSource Source)> byName) =>
+        new(byName, byName.Values.Select(v => v.Meta).ToArray());
 }

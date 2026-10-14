@@ -344,6 +344,8 @@ Workflow engine, tags and likes, attachments (local/S3/Azure Blob), email (queue
 
 ## 7. Phased roadmap
 
+> **Re-prioritised for low-code.** The principle in section 13 (everything an app needs is *data edited in the UI*, code is only an escape hatch) changes the order of work. Section 13.2 is the current roadmap; the phase lists below are kept for history and detail. Full Frappe feature coverage is tracked in Appendix A.
+
 Timeline assumes **1–2 full-time developers**. Scale it up or down accordingly.
 
 ### Phase 0: Foundations (Week 1–2)
@@ -462,3 +464,237 @@ Rule: every bug in the schema engine or permission system gets a regression test
 | 4 | Typed documents | Dynamic only, or dynamic + source generator | **Both** (generator in Phase 3) |
 | 5 | Scope of first flagship app | CRM, HR, Accounting | CRM-lite (smallest useful surface) |
 | 6 | Localization | English only, or Arabic/RTL from day one | **RTL-ready from day one** (cheaper than retrofitting) |
+
+---
+
+## 13. Low-code strategy
+
+### 13.1 Principle
+**Build an application with as little code as possible.** Every artifact of an application is a *document* that can be created and changed in the Desk, stored in the database, and applied at runtime without a rebuild or restart:
+
+| Artifact | Low-code form (Desk UI) | Code escape hatch |
+|---|---|---|
+| Data model | **DocType Designer** (fields, naming, layout, list settings) | JSON files in an app |
+| Extending a standard DocType | **Customize Form** / Custom Field / Property Setter | app override |
+| Field behavior | `depends_on`, `mandatory_depends_on`, `read_only_depends_on`, `fetch_from`, default expressions, validation rules, all in a safe expression language | server/client script |
+| Access control | **Role Permission Manager**, User Permissions, sharing | permission hooks |
+| Business process | **Workflow Builder**, Assignment Rules, Auto Repeat | server script / hooks |
+| Messaging | **Notification** rules (email, system, Slack, SMS), Email Templates | script |
+| Reports and analytics | **Report Builder**, Dashboard Charts, Number Cards, Dashboards | SQL/script report |
+| Navigation | **Workspace Builder** (shortcuts, charts, cards, links) | none |
+| Documents out | **Print Format Builder**, Letter Heads, PDF | HTML/template |
+| Public pages | **Web Forms** and portal pages | web templates |
+| Data in/out | **Data Import / Export** tools, bulk edit | API |
+| Integration | **Webhooks**, API keys, OAuth apps | script |
+
+Rules that keep it honest:
+1. If a feature needs a developer to edit a file, it is not finished. The file format (JSON) stays as the *export* of what the UI produced, so it is Git-friendly and shippable as an app (fixtures).
+2. UI-created definitions are data (`__doctype`, `Custom Field`, `Workflow`, ...), versioned and exportable.
+3. Logic written in the UI uses one **sandboxed expression language** evaluated identically on server and client. Full scripting comes after it and is never required for common cases.
+4. Standard (app-shipped) definitions are read-only in the UI; users extend them through Customize Form instead of editing them, so upgrades never clobber customisations.
+5. Schema changes from the UI follow the same safety rules as migrations: additive only, preview before apply, never drop data silently.
+
+### 13.2 Current roadmap (low-code first)
+
+| Step | Scope | Status |
+|---|---|---|
+| **L1: DocType Designer** | Create, edit and delete custom DocTypes in the Desk: fields, field properties, naming, title field, list columns, permissions, live form preview, SQL change preview, safe schema apply | **done (v1)**. Not yet: child tables (L2), rename, type change of saved fields, depends_on (L4), drag-and-drop ordering (up/down buttons today) |
+| L2: Child tables | `Table` fields, child DocTypes, grid editing in forms, designer support | planned |
+| L3: Customize Form | Custom Fields and Property Setters on any DocType (standard included), reorder fields, hide/rename, per-DocType list settings | planned |
+| L4: Field logic | `depends_on` family, `fetch_from`, default and validation expressions, expression language shared by server and client | planned |
+| L5: Permissions UI | Role Permission Manager, permission levels, User Permissions, Role/Module Profiles, sharing | planned |
+| L6: Special DocTypes | Single (settings) DocTypes, Tree DocTypes, Submittable, naming series manager, rename/merge | planned |
+| L7: Collaboration and list power | Comments, assign, share, follow, timeline, saved filters, user list settings, group-by sidebar, bulk edit | planned |
+| L8: Process automation | Workflow Builder, Assignment Rules, Auto Repeat, Notification rules, Email Templates, scheduler UI | planned |
+| L9: Presentation | Report Builder, Dashboard Charts, Number Cards, Workspace Builder, Print Format Builder, Letter Head | planned |
+| L10: Data and outside world | Data Import / Export, Web Forms, Webhooks, API keys, OAuth, file manager | planned |
+| L11: Scripting escape hatch | Sandboxed server and client scripts, custom HTML blocks | planned |
+| L12: Platform | App/plugin packaging and fixtures export, multi-site, SQL Server, translations, more views (Kanban, Calendar, Gantt, Map, Tree) | planned |
+
+---
+
+## Appendix A: Frappe feature catalog
+
+Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" refers to the roadmap in 13.2.
+
+### A1. Data modeling (DocType)
+
+| Feature | Notes | Status | Step |
+|---|---|---|---|
+| DocType (metadata-driven document model) | JSON definition, table generated | ✅ | done |
+| **DocType Designer UI** | build DocTypes in the Desk: fields, naming, title field, list columns, permissions, live preview, SQL preview | ✅ | L1 (v1) |
+| Standard vs custom DocTypes | app files are read-only, UI-created are editable | ✅ | L1 |
+| Field types: Data, Text, Long Text, Int, Float, Currency, Percent, Check, Select, Date, Datetime, Time, Link, Email, Phone, URL, Code, Markdown, JSON | | ✅ | done |
+| Field types: Small Text, Text Editor (rich text), HTML Editor, HTML, Heading, Button, Read Only, Autocomplete | | ⬜ | L3 |
+| Field types: Attach, Attach Image, Signature, Barcode, Geolocation, Icon, Color, Rating, Duration, Image | | ⬜ | L10 |
+| Field types: Dynamic Link, Table, Table MultiSelect | | ⬜ | L2 |
+| Field types: Password (encrypted), Phone with country | | ⬜ | L3 |
+| Layout fields: Section Break, Column Break, Tab Break | | 🟡 | L1 (section/tab), L3 |
+| Field properties: label, required, unique, default, options, in list view, lowercase | | ✅ | done |
+| Field properties: description, hidden, read only | UI hints (not enforced by the API) | ✅ | L1 |
+| Field properties: `depends_on`, `mandatory_depends_on`, `read_only_depends_on` | conditional logic by expression | ⬜ | L4 |
+| Field properties: `fetch_from`, `fetch_if_empty` | copy a value from a linked document | ⬜ | L4 |
+| Field properties: in standard filter, in preview, in global search, bold, no copy, allow on submit, set only once, non negative, collapsible, translatable, search index, precision, length, ignore user permissions, permission level | | ⬜ | L3 |
+| Child tables (Table field, parent/child) | | ⬜ | L2 |
+| Single DocTypes (settings stored as one document) | | ⬜ | L6 |
+| Tree DocTypes (nested set, parent/child hierarchy) | | ⬜ | L6 |
+| Virtual DocTypes (data from outside the database) | | 🔽 | L12 |
+| Submittable DocTypes (draft, submitted, cancelled, amend) | | ⬜ | L6 |
+| Naming: hash, field, prompt, series | | ✅ | done |
+| Naming: format with date/field parts (`INV-{YYYY}-.####`), expression, naming rules, series manager | | ⬜ | L6 |
+| Rename document (updates links), merge documents | | ⬜ | L6 |
+| Duplicate document, track changes (versions), track seen, track views | | ⬜ | L7 |
+| Document options: title field, sort field/order, search fields, image field, quick entry, allow rename, allow import, allow copy, editable grid, max attachments, default view | | 🟡 | L1, L3 |
+| Customize Form (adjust standard DocTypes) | | ⬜ | L3 |
+| Custom Field, Property Setter | stored as data, survive upgrades | ⬜ | L3 |
+| DocType Layout (alternative form layouts per role) | | 🔽 | L3 |
+| Module Definition, Module Profile | group DocTypes, restrict access to modules | 🟡 | L5 |
+
+### A2. Document lifecycle and logic
+
+| Feature | Notes | Status | Step |
+|---|---|---|---|
+| Required, unique, select option, link existence, length, type validation | | ✅ | done |
+| Optimistic concurrency ("modified by someone else") | | ✅ | done |
+| Lifecycle events: before_insert, validate, before_save, after_insert, on_update, on_trash, after_delete | event bus plus code hooks | ⬜ | L11 (code), L4 (rules) |
+| Submit events: before_submit, on_submit, before_cancel, on_cancel, on_update_after_submit | | ⬜ | L6 |
+| Validation rules without code | expression language | ⬜ | L4 |
+| Server Script (DocType event, API, scheduler event, permission query) | sandboxed | ⬜ | L11 |
+| Client Script (form/list events, field change) | | ⬜ | L11 |
+| Hooks per app (doc events, scheduler events, fixtures, boot) | | ⬜ | L12 |
+| Versions (field-level change history) | | ⬜ | L7 |
+| Comments with @mentions, timeline | | ⬜ | L7 |
+| Assign (ToDo), Assignment Rules (round robin, load balancing, by field) | | ⬜ | L7, L8 |
+| Share (DocShare), Follow (Document Follow), Likes, Tags | | ⬜ | L7 |
+| Attachments, File manager (folders, private/public, thumbnails) | | ⬜ | L10 |
+| Deleted Documents (restore), View Log, Access Log, Activity Log | | ⬜ | L7 |
+| Auto Repeat (recurring documents) | | ⬜ | L8 |
+| Reminders, Events (calendar), Milestones | | 🔽 | L8 |
+
+### A3. Workflow, automation and messaging
+
+| Feature | Notes | Status | Step |
+|---|---|---|---|
+| Workflow (states, transitions, roles, conditions) | visual **Workflow Builder** | ⬜ | L8 |
+| Workflow Actions inbox, approve/reject by email link | | ⬜ | L8 |
+| Notification rules (on new, save, submit, value change, days before/after, custom condition) | channels: email, system, Slack, SMS | ⬜ | L8 |
+| Email Template, Email Account (SMTP out, IMAP/POP in), Email Queue, Email Domain | | ⬜ | L8 |
+| Communication (email threads on documents), send email from a document | | ⬜ | L8 |
+| Notification Log (bell icon), Email Digest | | ⬜ | L8 |
+| Scheduled Job Types (cron, hourly, daily, weekly, monthly), Scheduler UI and logs | | ⬜ | L8 |
+| Background jobs and queues (short, default, long), job UI | | ⬜ | L8 |
+| Webhooks (outgoing, conditions, signed) | | ⬜ | L10 |
+| Auto Email Report | | ⬜ | L9 |
+| Document Naming Rule | | ⬜ | L6 |
+| Energy Points and gamification | | 🔽 | later |
+
+### A4. Permissions and security
+
+| Feature | Notes | Status | Step |
+|---|---|---|---|
+| Roles, role permissions (read, write, create, delete) | | ✅ | done |
+| Permissions: if owner | | ✅ | done |
+| Permissions: submit, cancel, amend, report, export, import, share, print, email, select | | ⬜ | L5 |
+| Permission levels (field-level access) | | ⬜ | L5 |
+| **Role Permission Manager** UI, Custom DocPerm | | ⬜ | L5 |
+| User Permissions (restrict by Link value, apply to all or some DocTypes) | | ⬜ | L5 |
+| Role Profile, Module Profile, User Types | | ⬜ | L5 |
+| Permission query and `has_permission` hooks | | ⬜ | L11 |
+| Password hashing, lockout, rate limit, change password | | ✅ | done |
+| Password policy (strength, expiry), password reset by email, email verification, sign-up | | ⬜ | L10 |
+| Two-factor authentication (TOTP, email, SMS) | | ⬜ | L10 |
+| API keys / secrets, token auth | | ⬜ | L10 |
+| OAuth 2 provider, social login (Google, GitHub, Microsoft, Keycloak), OpenID Connect | | ⬜ | L10 |
+| LDAP, SAML single sign-on | | ⬜ | L12 |
+| Session management (list/revoke, expiry), login as user (impersonation) | | ⬜ | L10 |
+| IP restrictions, system settings (security) | | ⬜ | L10 |
+| Encrypted fields (Password type) | | ⬜ | L3 |
+| CSRF, security headers | | ✅ | done |
+
+### A5. Desk UI
+
+| Feature | Notes | Status | Step |
+|---|---|---|---|
+| Login, sidebar, home | | ✅ | done |
+| List view: search, filters, sort, paging | | ✅ | done |
+| List view: saved filters, user settings (columns, sort), list view settings | | ⬜ | L7 |
+| List view: sidebar group-by counts, row indicators/status colors, tags, assigned, like, comment count | | ⬜ | L7 |
+| List view: bulk actions (edit, delete, assign, tag, export, print) | | ⬜ | L7 |
+| Form view: field controls per type, validation, conflict warning, delete | | ✅ | done |
+| Form view: tabs/sections/columns layout, collapsible sections | | 🟡 | L1, L3 |
+| Form view: child table grid (editable, reorder, upload/download rows, row form) | | ⬜ | L2 |
+| Form view: sidebar (assign, attachments, tags, share, follow, like), timeline, form dashboard with linked documents | | ⬜ | L7 |
+| Form: quick entry dialog, auto-save indicator, keyboard shortcuts, unsaved-changes warning | | 🟡 | L7 |
+| Report view (editable columns, group by, totals, export) | | ⬜ | L9 |
+| Kanban, Calendar, Gantt, Map, Image, Tree, Dashboard views | | ⬜ | L12 |
+| Workspaces (shortcuts, charts, number cards, onboarding) and **Workspace Builder** | | ⬜ | L9 |
+| Awesomebar (global search, create, commands), global search index | | ⬜ | L9 |
+| Notification bell, toasts, dialogs | | ⬜ | L8 |
+| Themes (light, dark, automatic), RTL layout | | 🟡 | L12 |
+| Translations (Translation DocType, language switch) | | ⬜ | L12 |
+| User settings: language, time zone, date/number/currency formats | | ⬜ | L7 |
+| Page Builder / Custom HTML Block | | 🔽 | L11 |
+
+### A6. Reports, charts and printing
+
+| Feature | Notes | Status | Step |
+|---|---|---|---|
+| **Report Builder** (pick fields, filters, group by, sort, save, share) | | ⬜ | L9 |
+| Query Report (SQL), Script Report | | ⬜ | L11 |
+| Dashboard Charts (count, sum, average, group by, time series), Number Cards, Dashboards | | ⬜ | L9 |
+| Prepared Reports (background) | | 🔽 | L9 |
+| Export to CSV / Excel / PDF | | ⬜ | L9 |
+| **Print Format Builder** (drag and drop), Print Settings, Letter Head, custom HTML/Jinja-style formats | | ⬜ | L9 |
+| PDF generation | | ⬜ | L9 |
+
+### A7. API and integration
+
+| Feature | Notes | Status | Step |
+|---|---|---|---|
+| REST resource API (list, get, create, update, delete) with filters, fields, order, paging | | ✅ | done |
+| Filter operators: `=`, `!=`, `<`, `>`, `<=`, `>=`, `like`, `in`, `is set` | | ✅ | done |
+| Filter operators: `not like`, `not in`, `between`, timespans, dynamic values (`__user`) | | ⬜ | L7 |
+| `/api/method` (whitelisted server functions), `get_count`, `get_value`, `set_value`, `get_list`, `rename_doc` | | ⬜ | L7 |
+| API versioning, OpenAPI documentation | | ⬜ | L12 |
+| Webhooks, incoming API via server script | | ⬜ | L10, L11 |
+| Realtime updates (socket events, document updates), SignalR | | ⬜ | L8 |
+| Payment gateways (Stripe, PayPal, Razorpay), SMS gateways, Google Calendar/Contacts/Drive, Dropbox, S3 backups, Slack, push notifications | | 🔽 | L12 |
+| Event streaming / data sync between sites | | 🔽 | later |
+
+### A8. Data tools and operations
+
+| Feature | Notes | Status | Step |
+|---|---|---|---|
+| Schema migration (additive), dry run | | ✅ | done |
+| Patches / data migrations (patch log) | | ⬜ | L12 |
+| **Data Import** (CSV/Excel template, validate, preview, background, update existing) | | ⬜ | L10 |
+| Data Export, bulk update, bulk rename | | ⬜ | L10 |
+| Backups (download, scheduled, restore) | | ⬜ | L12 |
+| Error Log, Scheduled Job Log, Recorder (query profiler), System Console | | ⬜ | L12 |
+| System Settings (time zone, formats, session expiry, security) | | ⬜ | L10 |
+| Fixtures (export UI-made customisations as files) | | ⬜ | L12 |
+
+### A9. Platform and developer experience
+
+| Feature | Notes | Status | Step |
+|---|---|---|---|
+| CLI: migrate, create-admin | | ✅ | done |
+| CLI: init, new-site, new-app, install-app, backup, restore, console, run-tests, set-config | like `bench` | ⬜ | L12 |
+| Apps (installable packages with DocTypes, hooks, fixtures, patches) | | ⬜ | L12 |
+| Multi-tenancy (sites, per-site config, database per site) | | ⬜ | L12 |
+| Developer mode (UI-made DocTypes written to the app's files) | export of L1 definitions | ⬜ | L12 |
+| Caching, boot info, performance | | 🟡 | L12 |
+| Test framework (unit, integration, UI) | | 🟡 | ongoing |
+
+### A10. Standard documents shipped with the framework
+
+| Document | Status | Step |
+|---|---|---|
+| User, Role, Has Role | ✅ | done |
+| DocType, Custom Field, Property Setter, Module Def | 🟡 | L1, L3 |
+| Comment, Communication, ToDo, DocShare, Document Follow, Tag, Version, File, Note | ⬜ | L7, L10 |
+| Notification, Email Template, Email Account, Assignment Rule, Auto Repeat, Workflow, Webhook | ⬜ | L8, L10 |
+| Report, Dashboard, Dashboard Chart, Number Card, Workspace, Print Format, Letter Head | ⬜ | L9 |
+| Data Import, Data Export, Scheduled Job Type, Error Log, System Settings, Navbar Settings | ⬜ | L10, L12 |
+| Contact, Address, Country, Currency, Language, Salutation, Gender (master data) | ⬜ | L10 |
+| Web Form, Web Page, Blog, Website Settings (portal and website) | 🔽 | later |

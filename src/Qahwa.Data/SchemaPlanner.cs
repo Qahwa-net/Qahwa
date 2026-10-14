@@ -61,8 +61,18 @@ public sealed class SchemaPlanner(ISqlDialect dialect)
         if (meta.IsChildTable)
             AddIndex(statements, existingIndexes, quotedTable, table, "parent", unique: false);
 
-        foreach (var field in meta.Fields.Where(f => f.Unique && FieldTypes.HasColumn(f.Type)))
-            AddIndex(statements, existingIndexes, quotedTable, table, field.Name, unique: true);
+        var wantedUnique = meta.Fields.Where(f => f.Unique && FieldTypes.HasColumn(f.Type)).Select(f => f.Name).ToHashSet();
+        foreach (var column in wantedUnique)
+            AddIndex(statements, existingIndexes, quotedTable, table, column, unique: true);
+
+        // A column that is no longer unique (or no longer in the DocType) must stop enforcing uniqueness.
+        // Only the index goes; the column and its data stay.
+        foreach (var column in current?.Columns.Keys ?? Enumerable.Empty<string>())
+        {
+            var index = IndexName(table, column, unique: true);
+            if (existingIndexes.Contains(index) && !wantedUnique.Contains(column))
+                statements.Add(new SchemaStatement($"Drop unique index on {table}.{column}", dialect.DropIndexSql(index)));
+        }
 
         return new SchemaPlan(meta.Name, table, current is not null, statements, warnings);
     }

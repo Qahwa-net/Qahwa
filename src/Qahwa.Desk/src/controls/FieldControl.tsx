@@ -12,6 +12,8 @@ interface Props {
   onChange: (value: InputValue) => void
   error?: string
   readOnly?: boolean
+  /** Designer preview: hidden fields are shown (dimmed) instead of omitted. */
+  preview?: boolean
 }
 
 /** Suggests existing documents of the linked DocType as the user types. */
@@ -48,9 +50,12 @@ function LinkInput({ field, value, onChange, readOnly, id, invalid }: Props & { 
 }
 
 export function FieldControl(props: Props) {
-  const { field, value, onChange, error, readOnly } = props
+  const { field, value, onChange, error, preview } = props
+  const readOnly = Boolean(props.readOnly || field.readOnly)
   const id = useId()
   const label = labelOf(field)
+
+  if (field.hidden && !preview) return null
 
   if (field.type === 'SectionBreak' || field.type === 'TabBreak') {
     return <h2 className="section-title full">{field.label ?? ''}</h2>
@@ -88,7 +93,7 @@ export function FieldControl(props: Props) {
       break
     case 'Link':
     case 'DynamicLink':
-      control = <LinkInput {...props} id={id} invalid={invalid} />
+      control = <LinkInput {...props} readOnly={readOnly} id={id} invalid={invalid} />
       break
     case 'Text':
     case 'LongText':
@@ -117,11 +122,13 @@ export function FieldControl(props: Props) {
   const wide = ['Text', 'LongText', 'Markdown', 'Code', 'Json'].includes(field.type)
 
   return (
-    <div className={`field${isCheck ? ' check' : ''}${wide ? ' full' : ''}`}>
+    <div className={`field${isCheck ? ' check' : ''}${wide ? ' full' : ''}${field.hidden ? ' dimmed' : ''}`}>
       <label htmlFor={id}>
         {label}{field.required && <span className="req" aria-label="required"> *</span>}
+        {field.hidden && <span className="badge"> hidden</span>}
       </label>
       {control}
+      {field.description && <small className="muted">{field.description}</small>}
       {invalid && <small id={`${id}-error`} className="error-text" role="alert">{error}</small>}
     </div>
   )

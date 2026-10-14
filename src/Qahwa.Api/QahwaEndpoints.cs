@@ -66,6 +66,7 @@ public static class QahwaEndpoints
         });
 
         app.MapQahwaAuth();
+        app.MapQahwaDesigner();
         return app;
     }
 

@@ -15,6 +15,18 @@ export interface DocField {
   inListView: boolean
   default?: string | null
   lowercase: boolean
+  description?: string | null
+  hidden?: boolean
+  readOnly?: boolean
+}
+
+export interface DocPerm {
+  role: string
+  read: boolean
+  write: boolean
+  create: boolean
+  delete: boolean
+  ifOwner: boolean
 }
 
 export interface DocTypeMeta {
@@ -26,6 +38,58 @@ export interface DocTypeMeta {
   isSubmittable: boolean
   trackChanges: boolean
   fields: DocField[]
+  permissions?: DocPerm[]
+}
+
+/** The definition sent to the designer API. Optional flags may be omitted. */
+export interface DocTypeDefinition {
+  name: string
+  module?: string
+  titleField?: string
+  autoname?: string
+  fields: (Partial<DocField> & Pick<DocField, 'name' | 'type'>)[]
+  permissions: DocPerm[]
+}
+
+export type DocTypeSource = 'Core' | 'App' | 'Custom'
+
+export interface DesignerItem {
+  name: string
+  module?: string | null
+  source: DocTypeSource
+  editable: boolean
+  fieldCount: number
+}
+
+export interface DesignerDetail {
+  definition: DocTypeMeta
+  source: DocTypeSource
+  editable: boolean
+  modified?: string | null
+  documentCount?: number | null
+}
+
+export type OptionsKind = 'None' | 'Choices' | 'DocType'
+
+export interface FieldTypeInfo {
+  type: FieldType
+  label: string
+  group: string
+  hint: string
+  options: OptionsKind
+  supported: boolean
+  unsupportedReason?: string | null
+}
+
+export interface SchemaChange {
+  description: string
+  sql: string
+}
+
+export interface DesignerPreview {
+  errors: FieldError[]
+  schema: { tableExists: boolean; changes: SchemaChange[]; warnings: string[] } | null
+  notes: string[]
 }
 
 export interface MetaSummary {

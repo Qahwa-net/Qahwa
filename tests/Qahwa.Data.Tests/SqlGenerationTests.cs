@@ -73,6 +73,26 @@ public class SqlGenerationTests
     }
 
     [Fact]
+    public void Planner_drops_the_unique_index_of_a_field_that_is_no_longer_unique_but_never_the_column()
+    {
+        var meta = Customer with { Fields = Customer.Fields.Select(f => f with { Unique = false }).ToList() };
+        var current = new TableSchema(
+            Customer.ColumnTypes().Concat(new Dictionary<string, FieldType> { ["orphan"] = FieldType.Data })
+                .ToDictionary(c => c.Key, c => Dialect.CatalogType(c.Value)),
+            new HashSet<string>
+            {
+                SchemaPlanner.IndexName("tabCustomer", "modified", unique: false),
+                SchemaPlanner.IndexName("tabCustomer", "customer_name", unique: true),
+                SchemaPlanner.IndexName("tabCustomer", "orphan", unique: true),
+            });
+
+        var plan = new SchemaPlanner(Dialect).Plan(meta, current);
+
+        Assert.Equal(2, plan.Statements.Count(s => s.Sql.StartsWith("DROP INDEX IF EXISTS")));
+        Assert.DoesNotContain(plan.Statements, s => s.Sql.Contains("DROP COLUMN") || s.Sql.StartsWith("DROP TABLE"));
+    }
+
+    [Fact]
     public void Select_binds_values_as_parameters_and_never_inlines_them()
     {
         const string hostile = "x'; DROP TABLE \"tabCustomer\"; --";

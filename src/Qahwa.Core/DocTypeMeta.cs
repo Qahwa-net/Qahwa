@@ -38,6 +38,15 @@ public sealed record DocFieldMeta
 
     /// <summary>Convert text values to lower case when saving (used for emails).</summary>
     public bool Lowercase { get; init; }
+
+    /// <summary>Help text shown under the field in forms.</summary>
+    public string? Description { get; init; }
+
+    /// <summary>UI hint: the field is not shown in forms (its value is kept and still validated).</summary>
+    public bool Hidden { get; init; }
+
+    /// <summary>UI hint: the field is shown but cannot be edited in forms.</summary>
+    public bool ReadOnly { get; init; }
 }
 
 public sealed record DocPermMeta

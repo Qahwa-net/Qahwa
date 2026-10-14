@@ -2,6 +2,8 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth.tsx'
 import { Shell } from './shell/Shell.tsx'
 import { AccountPage } from './pages/AccountPage.tsx'
+import { DesignerEditor } from './pages/DesignerEditor.tsx'
+import { DesignerList } from './pages/DesignerList.tsx'
 import { FormView } from './pages/FormView.tsx'
 import { HomePage } from './pages/HomePage.tsx'
 import { ListView } from './pages/ListView.tsx'
@@ -27,6 +29,9 @@ export function App() {
         <Route element={<RequireAuth />}>
           <Route index element={<HomePage />} />
           <Route path="account" element={<AccountPage />} />
+          <Route path="designer" element={<DesignerList />} />
+          <Route path="designer/new" element={<DesignerEditor />} />
+          <Route path="designer/:name" element={<DesignerEditor />} />
           <Route path="app/:doctype" element={<ListView />} />
           <Route path="app/:doctype/new" element={<FormView />} />
           <Route path="app/:doctype/:name" element={<FormView />} />

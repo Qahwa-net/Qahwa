@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Qahwa.Core;
 using Qahwa.Core.Auth;
+using Qahwa.Core.Designer;
 using Qahwa.Testing;
 
 namespace Qahwa.Api.Tests;
@@ -51,8 +52,17 @@ public sealed class QahwaFactory(
         }));
         builder.ConfigureServices(services =>
         {
+            var registry = TestMetas.Registry();
             services.RemoveAll<IMetaRegistry>();
-            services.AddSingleton<IMetaRegistry>(TestMetas.Registry());
+            services.RemoveAll<IMutableMetaRegistry>();
+            services.RemoveAll<MetaRegistry>();
+            services.AddSingleton(registry);
+            services.AddSingleton<IMetaRegistry>(registry);
+            services.AddSingleton<IMutableMetaRegistry>(registry);
+            services.RemoveAll<IDocTypeStore>();
+            services.AddSingleton<IDocTypeStore>(new InMemoryDocTypeStore());
+            services.RemoveAll<ISchemaManager>();
+            services.AddSingleton<ISchemaManager>(new InMemorySchemaManager());
             services.RemoveAll<IDocumentRepository>();
             services.AddSingleton<IDocumentRepository>(new InMemoryDocumentRepository());
             services.RemoveAll<IAuthStore>();

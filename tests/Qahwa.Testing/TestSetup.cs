@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Qahwa.Core;
 using Qahwa.Core.Auth;
+using Qahwa.Core.Designer;
 
 namespace Qahwa.Testing;
 
@@ -63,6 +64,7 @@ public static class TestUsers
     public static readonly UserContext SalesA = new("a@example.com", ["Sales User"]);
     public static readonly UserContext SalesB = new("b@example.com", ["Sales User"]);
     public static readonly UserContext Nobody = new("nobody@example.com", []);
+    public static readonly UserContext SystemManager = new("sysmgr@example.com", ["System Manager"]);
 
     public const string StrongPassword = "correct horse battery staple";
 }
@@ -76,6 +78,9 @@ public sealed class TestEngine
         Clock = new TestClock(new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero));
         Documents = new DocumentService(
             Registry, Repository, new PermissionService(), new NamingService(Repository), Clock);
+        DocTypeStore = new InMemoryDocTypeStore();
+        Schema = new InMemorySchemaManager();
+        Designer = new DocTypeDesigner(Registry, DocTypeStore, Schema, Repository, Clock);
         AuthStore = new InMemoryAuthStore();
         AuthOptions = new AuthOptions { HashIterations = 1000 };
         Auth = new AuthService(
@@ -92,6 +97,9 @@ public sealed class TestEngine
     public IDocumentRepository Repository { get; }
     public TestClock Clock { get; }
     public DocumentService Documents { get; }
+    public InMemoryDocTypeStore DocTypeStore { get; }
+    public InMemorySchemaManager Schema { get; }
+    public DocTypeDesigner Designer { get; }
     public IAuthStore AuthStore { get; }
     public AuthOptions AuthOptions { get; }
     public AuthService Auth { get; }

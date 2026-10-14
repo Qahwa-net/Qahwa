@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using Npgsql;
 using Qahwa.Core;
 using Qahwa.Core.Auth;
+using Qahwa.Core.Designer;
 using Qahwa.Data;
 using Qahwa.Data.Postgres;
 using Qahwa.Testing;
@@ -67,6 +68,9 @@ public sealed class PgStack : IAsyncDisposable
         Repository = new DocumentRepository(_connections, Dialect, new SqlBuilder(Dialect));
         Clock = new TestClock(DateTimeOffset.UtcNow);
         Documents = new DocumentService(Registry, Repository, new PermissionService(), new NamingService(Repository), Clock);
+        DocTypeStore = new DocTypeStore(_connections, Dialect, new PostgresSchemaInspector(_connections));
+        SchemaManager = new SchemaManager(Sync, Dialect);
+        Designer = new DocTypeDesigner(Registry, DocTypeStore, SchemaManager, Repository, Clock);
         AuthStore = new AuthStore(_connections, Dialect);
         AuthOptions = new AuthOptions { HashIterations = 1000 };
         Auth = new AuthService(
@@ -75,6 +79,9 @@ public sealed class PgStack : IAsyncDisposable
             Options.Create(AuthOptions), Clock);
     }
 
+    public DocTypeStore DocTypeStore { get; }
+    public SchemaManager SchemaManager { get; }
+    public DocTypeDesigner Designer { get; }
     public AuthStore AuthStore { get; }
     public AuthOptions AuthOptions { get; }
     public AuthService Auth { get; }

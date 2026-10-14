@@ -20,6 +20,8 @@ export function Shell() {
   const location = useLocation()
   const metas = useQuery({ queryKey: ['metas'], queryFn: api.metas })
   const groups = useMemo(() => groupByModule(metas.data ?? []), [metas.data])
+  // The server enforces this too; the link is only hidden for people who could not use it.
+  const canDesign = Boolean(user?.roles.some((r) => r === 'Administrator' || r === 'System Manager'))
 
   // Close the mobile menu after navigating.
   const [lastPath, setLastPath] = useState(location.pathname)
@@ -43,6 +45,12 @@ export function Shell() {
         {metas.isPending && <p className="muted pad">Loading…</p>}
         {metas.isError && <p className="muted pad">Could not load DocTypes.</p>}
         {metas.data?.length === 0 && <p className="muted pad">You do not have access to any DocType yet.</p>}
+        {canDesign && (
+          <section>
+            <h2>Tools</h2>
+            <ul><li><NavLink to="/designer">DocType Designer</NavLink></li></ul>
+          </section>
+        )}
         {groups.map(([module, items]) => (
           <section key={module}>
             <h2>{module}</h2>

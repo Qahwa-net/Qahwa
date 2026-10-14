@@ -1,5 +1,6 @@
 import type {
-  Doc, DocTypeMeta, FieldError, ListResponse, MetaResponse, MetaSummary, Permissions, SessionUser,
+  DesignerDetail, DesignerItem, DesignerPreview, Doc, DocTypeDefinition, DocTypeMeta, FieldError, FieldTypeInfo,
+  ListResponse, MetaResponse, MetaSummary, Permissions, SessionUser,
 } from './types.ts'
 import type { Filter } from '../lib/filters.ts'
 import { toApiFilters } from '../lib/filters.ts'
@@ -113,4 +114,19 @@ export const api = {
   },
 
   remove: (doctype: string, name: string) => request<unknown>('DELETE', resource(doctype, name)),
+
+  designer: {
+    fieldTypes: async () => (await request<{ data: FieldTypeInfo[] }>('GET', '/api/designer/field-types')).data,
+    list: async () => (await request<{ data: DesignerItem[] }>('GET', '/api/designer/doctypes')).data,
+    get: async (name: string) =>
+      (await request<{ data: DesignerDetail }>('GET', `/api/designer/doctypes/${encodeURIComponent(name)}`)).data,
+    preview: async (definition: DocTypeDefinition, existing: string | null) =>
+      (await request<{ data: DesignerPreview }>('POST', '/api/designer/preview', { definition, existing })).data,
+    create: async (definition: DocTypeDefinition) =>
+      (await request<{ data: DesignerDetail }>('POST', '/api/designer/doctypes', { definition })).data,
+    update: async (name: string, definition: DocTypeDefinition, modified: string | null | undefined) =>
+      (await request<{ data: DesignerDetail }>(
+        'PUT', `/api/designer/doctypes/${encodeURIComponent(name)}`, { definition, modified })).data,
+    remove: (name: string) => request<unknown>('DELETE', `/api/designer/doctypes/${encodeURIComponent(name)}`),
+  },
 }

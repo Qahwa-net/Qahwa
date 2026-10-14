@@ -38,6 +38,19 @@ public sealed class PostgresDialect : ISqlDialect
     public string CreateIndexSql(string indexName, string quotedTable, string column, bool unique) =>
         $"CREATE {(unique ? "UNIQUE " : string.Empty)}INDEX IF NOT EXISTS {Quote(indexName)} ON {quotedTable} ({Quote(column)})";
 
+    public string DropIndexSql(string indexName) => $"DROP INDEX IF EXISTS {Quote(indexName)}";
+
+    public string DropTableSql(string quotedTable) => $"DROP TABLE IF EXISTS {quotedTable}";
+
+    public string CreateDocTypeTableSql =>
+        "CREATE TABLE IF NOT EXISTS \"__doctype\" (" +
+        "\"name\" varchar(140) NOT NULL PRIMARY KEY, " +
+        "\"definition\" text NOT NULL, " +
+        "\"creation\" timestamp with time zone NOT NULL, " +
+        "\"modified\" timestamp with time zone NOT NULL, " +
+        "\"owner\" varchar(140) NOT NULL, " +
+        "\"modified_by\" varchar(140) NOT NULL)";
+
     public string CreateSeriesTableSql =>
         "CREATE TABLE IF NOT EXISTS \"tabSeries\" (\"name\" varchar(140) NOT NULL PRIMARY KEY, \"current\" bigint NOT NULL DEFAULT 0)";
 

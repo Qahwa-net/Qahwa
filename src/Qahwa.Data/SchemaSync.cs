@@ -18,7 +18,11 @@ public sealed class SchemaSync(
 
     /// <summary>Creates framework tables that are not DocTypes (naming series counters, credentials).</summary>
     public async Task EnsureSystemTablesAsync(CancellationToken ct = default) =>
-        await ExecuteAsync([dialect.CreateSeriesTableSql, dialect.CreateAuthTableSql], ct);
+        await ExecuteAsync([dialect.CreateSeriesTableSql, dialect.CreateAuthTableSql, dialect.CreateDocTypeTableSql], ct);
+
+    /// <summary>Drops the DocType's table. Callers must have checked that it holds no documents.</summary>
+    public Task DropTableAsync(DocTypeMeta meta, CancellationToken ct = default) =>
+        ExecuteAsync([dialect.DropTableSql(dialect.TableName(meta.Name))], ct);
 
     public Task ApplyAsync(SchemaPlan plan, CancellationToken ct = default) =>
         plan.IsEmpty ? Task.CompletedTask : ExecuteAsync(plan.Statements.Select(s => s.Sql), ct);
