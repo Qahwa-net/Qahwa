@@ -53,7 +53,7 @@ public static class FieldTypeCatalog
         new(FieldType.SectionBreak, "Section", "Layout", "A heading that starts a new section of the form", OptionsKind.None, true),
         new(FieldType.TabBreak, "Tab", "Layout", "A heading that starts a new tab of the form", OptionsKind.None, true),
 
-        new(FieldType.Table, "Table", "Advanced", "Rows of another DocType (child table)", OptionsKind.DocType, false, Later),
+        new(FieldType.Table, "Table", "Layout", "Rows of a child DocType, e.g. the items of an order", OptionsKind.DocType, true),
         new(FieldType.DynamicLink, "Dynamic Link", "Advanced", "A link whose target DocType is chosen per document", OptionsKind.None, false, Later),
         new(FieldType.Attach, "Attachment", "Advanced", "An uploaded file", OptionsKind.None, false, Later),
         new(FieldType.AttachImage, "Image", "Advanced", "An uploaded image", OptionsKind.None, false, Later),

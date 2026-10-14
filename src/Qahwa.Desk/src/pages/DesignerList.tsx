@@ -47,10 +47,13 @@ export function DesignerList() {
               <tr key={item.name}>
                 <td><Link to={`/designer/${encodeURIComponent(item.name)}`}>{item.name}</Link></td>
                 <td>{item.module ?? ''}</td>
-                <td><span className={`badge source-${item.source.toLowerCase()}`}>{SOURCE_LABEL[item.source]}</span></td>
+                <td>
+                  <span className={`badge source-${item.source.toLowerCase()}`}>{SOURCE_LABEL[item.source]}</span>
+                  {item.isChildTable && <span className="badge" title="Rows live inside other documents"> child table</span>}
+                </td>
                 <td>{item.fieldCount}</td>
                 <td className="nowrap">
-                  <Link to={`/app/${encodeURIComponent(item.name)}`}>Open documents</Link>
+                  {item.isChildTable ? <span className="muted">used inside other DocTypes</span> : <Link to={`/app/${encodeURIComponent(item.name)}`}>Open documents</Link>}
                 </td>
               </tr>
             ))}

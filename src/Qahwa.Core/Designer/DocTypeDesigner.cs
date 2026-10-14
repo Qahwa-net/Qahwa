@@ -2,7 +2,8 @@ using Qahwa.Abstractions;
 
 namespace Qahwa.Core.Designer;
 
-public sealed record DesignerItem(string Name, string? Module, DocTypeSource Source, bool Editable, int FieldCount);
+public sealed record DesignerItem(
+    string Name, string? Module, DocTypeSource Source, bool Editable, int FieldCount, bool IsChildTable);
 
 public sealed record DesignerDetail(
     DocTypeMeta Definition,
@@ -51,7 +52,7 @@ public sealed class DocTypeDesigner(
             .Select(m =>
             {
                 var source = registry.SourceOf(m.Name) ?? DocTypeSource.App;
-                return new DesignerItem(m.Name, m.Module, source, source == DocTypeSource.Custom, m.Fields.Count);
+                return new DesignerItem(m.Name, m.Module, source, source == DocTypeSource.Custom, m.Fields.Count, m.IsChildTable);
             })
             .ToList();
     }
@@ -90,7 +91,34 @@ public sealed class DocTypeDesigner(
         return new DesignerPreview(errors, preview, Notes(definition, existing));
     }
 
-    public async Task<DesignerDetail> CreateAsync(DocTypeMeta definition, IUserContext user, CancellationToken ct = default)
+    // Changes to the schema are applied one at a time within this process; another instance racing us is caught
+    // by the database (duplicate table, optimistic concurrency on the stored definition).
+    private readonly SemaphoreSlim _changes = new(1, 1);
+
+    private async Task<T> SerializedAsync<T>(Func<Task<T>> change, CancellationToken ct)
+    {
+        await _changes.WaitAsync(ct);
+        try
+        {
+            return await change();
+        }
+        finally
+        {
+            _changes.Release();
+        }
+    }
+
+    public Task<DesignerDetail> CreateAsync(DocTypeMeta definition, IUserContext user, CancellationToken ct = default) =>
+        SerializedAsync(() => CreateCoreAsync(definition, user, ct), ct);
+
+    public Task<DesignerDetail> UpdateAsync(
+        string name, DocTypeMeta definition, DateTime? expectedModified, IUserContext user, CancellationToken ct = default) =>
+        SerializedAsync(() => UpdateCoreAsync(name, definition, expectedModified, user, ct), ct);
+
+    public Task DeleteAsync(string name, IUserContext user, CancellationToken ct = default) =>
+        SerializedAsync(async () => { await DeleteCoreAsync(name, user, ct); return true; }, ct);
+
+    private async Task<DesignerDetail> CreateCoreAsync(DocTypeMeta definition, IUserContext user, CancellationToken ct)
     {
         RequireDesigner(user);
         ThrowIfInvalid(Validate(definition, null));
@@ -114,8 +142,8 @@ public sealed class DocTypeDesigner(
         return await GetAsync(definition.Name, user, ct);
     }
 
-    public async Task<DesignerDetail> UpdateAsync(
-        string name, DocTypeMeta definition, DateTime? expectedModified, IUserContext user, CancellationToken ct = default)
+    private async Task<DesignerDetail> UpdateCoreAsync(
+        string name, DocTypeMeta definition, DateTime? expectedModified, IUserContext user, CancellationToken ct)
     {
         RequireDesigner(user);
         RequireCustom(name);
@@ -148,7 +176,7 @@ public sealed class DocTypeDesigner(
         return await GetAsync(name, user, ct);
     }
 
-    public async Task DeleteAsync(string name, IUserContext user, CancellationToken ct = default)
+    private async Task DeleteCoreAsync(string name, IUserContext user, CancellationToken ct)
     {
         RequireDesigner(user);
         RequireCustom(name);
@@ -189,8 +217,8 @@ public sealed class DocTypeDesigner(
                 errors.Add(new FieldError($"fields[{i}].type", $"{type} fields are not supported yet."));
         }
 
-        if (definition.IsChildTable)
-            errors.Add(new FieldError("isChildTable", "Child tables are not supported yet."));
+        if (existing is not null && existing.IsChildTable != definition.IsChildTable)
+            errors.Add(new FieldError("isChildTable", "A DocType cannot be turned into a child table, or back, after it is created."));
         if (definition.IsSubmittable)
             errors.Add(new FieldError("isSubmittable", "Submittable DocTypes are not supported yet."));
 

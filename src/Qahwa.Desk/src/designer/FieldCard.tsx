@@ -8,7 +8,12 @@ interface Props {
   expanded: boolean
   info: FieldTypeInfo | undefined
   otherNames: string[]
+  /** DocTypes a Link field may point at. */
   doctypes: string[]
+  /** Child DocTypes a Table field may use. */
+  childTables: string[]
+  /** The DocType being designed is itself a child table. */
+  inChildTable: boolean
   errors: Record<string, string>
   disabled: boolean
   onToggle: () => void
@@ -22,10 +27,13 @@ function Err({ message }: { message?: string }) {
 }
 
 export function FieldCard({
-  field, index, total, expanded, info, otherNames, doctypes, errors, disabled, onToggle, onChange, onMove, onRemove,
+  field, index, total, expanded, info, otherNames, doctypes, childTables, inChildTable, errors, disabled,
+  onToggle, onChange, onMove, onRemove,
 }: Props) {
   const path = `fields[${index}]`
   const layout = isLayoutType(field.type)
+  const isTable = field.type === 'Table'
+  const targets = isTable ? childTables : doctypes
   const hasError = Object.keys(errors).some((k) => k.startsWith(`${path}.`))
   const choices = (field.options ?? '').split('\n').map((c) => c.trim()).filter(Boolean)
 
@@ -87,11 +95,14 @@ export function FieldCard({
 
           {info?.options === 'DocType' && (
             <label className="field full">
-              <span>Link to DocType</span>
+              <span>{isTable ? 'Child table DocType' : 'Link to DocType'}</span>
               <select value={field.options ?? ''} disabled={disabled} onChange={(e) => onChange({ options: e.target.value })}>
                 <option value="">Choose…</option>
-                {doctypes.map((d) => <option key={d} value={d}>{d}</option>)}
+                {targets.map((d) => <option key={d} value={d}>{d}</option>)}
               </select>
+              {isTable && targets.length === 0 && (
+                <small className="muted">There is no child table yet. Create a DocType and tick "This DocType is a table used inside other documents".</small>
+              )}
               <Err message={errors[`${path}.options`]} />
             </label>
           )}
@@ -100,9 +111,13 @@ export function FieldCard({
             <>
               <fieldset className="field full flags" disabled={disabled}>
                 <legend>Behaviour</legend>
-                <label><input type="checkbox" checked={field.required} onChange={(e) => onChange({ required: e.target.checked })} /> Required</label>
-                <label><input type="checkbox" checked={field.unique} onChange={(e) => onChange({ unique: e.target.checked })} /> Unique</label>
-                <label><input type="checkbox" checked={field.inListView} onChange={(e) => onChange({ inListView: e.target.checked })} /> Show in list</label>
+                <label><input type="checkbox" checked={field.required} onChange={(e) => onChange({ required: e.target.checked })} /> {isTable ? 'Needs at least one row' : 'Required'}</label>
+                {!isTable && !inChildTable && (
+                  <label><input type="checkbox" checked={field.unique} onChange={(e) => onChange({ unique: e.target.checked })} /> Unique</label>
+                )}
+                {!isTable && (
+                  <label><input type="checkbox" checked={field.inListView} onChange={(e) => onChange({ inListView: e.target.checked })} /> {inChildTable ? 'Show as a column' : 'Show in list'}</label>
+                )}
                 <label><input type="checkbox" checked={Boolean(field.hidden)} onChange={(e) => onChange({ hidden: e.target.checked })} /> Hidden</label>
                 <label><input type="checkbox" checked={Boolean(field.readOnly)} onChange={(e) => onChange({ readOnly: e.target.checked })} /> Read only</label>
                 {isTextType(field.type) && (
@@ -110,7 +125,7 @@ export function FieldCard({
                 )}
               </fieldset>
 
-              <label className="field">
+              {!isTable && <label className="field">
                 <span>Default value</span>
                 {field.type === 'Check' ? (
                   <select value={field.default ?? ''} disabled={disabled} onChange={(e) => onChange({ default: e.target.value || null })}>
@@ -125,7 +140,7 @@ export function FieldCard({
                   <input value={field.default ?? ''} disabled={disabled} onChange={(e) => onChange({ default: e.target.value })} />
                 )}
                 <Err message={errors[`${path}.default`]} />
-              </label>
+              </label>}
 
               <label className="field">
                 <span>Help text</span>

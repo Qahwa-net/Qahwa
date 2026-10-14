@@ -94,6 +94,7 @@ public class DesignerTests
                 Field("pick", FieldType.Select),
                 Field("owner", FieldType.Data),
                 Field("ref", FieldType.Link, "Nowhere"),
+                Field("file", FieldType.Attach),
             ],
         };
 
@@ -102,13 +103,14 @@ public class DesignerTests
         var paths = ex.Errors.Select(e => e.Field).ToHashSet();
         Assert.Contains("fields[0].name", paths);
         Assert.Contains("fields[2].name", paths);   // duplicate
-        Assert.Contains("fields[3].type", paths);   // Table unsupported
+        Assert.Contains("fields[3].type", paths);   // a child table cannot hold another table
+        Assert.Contains("fields[3].options", paths); // and Customer is not a child table
         Assert.Contains("fields[4].options", paths); // select without options
         Assert.Contains("fields[5].name", paths);   // reserved
         Assert.Contains("fields[6].options", paths); // link target missing
+        Assert.Contains("fields[7].type", paths);   // attachments are not supported yet
         Assert.Contains("titleField", paths);
         Assert.Contains("autoname", paths);
-        Assert.Contains("isChildTable", paths);
     }
 
     [Theory]
@@ -286,7 +288,8 @@ public class DesignerTests
 
         Assert.Equal(Enum.GetValues<FieldType>().Order(), types.Order());
         Assert.All(FieldTypeCatalog.All.Where(i => !i.Supported), i => Assert.NotNull(i.UnsupportedReason));
-        Assert.False(FieldTypeCatalog.IsSupported(FieldType.Table));
+        Assert.False(FieldTypeCatalog.IsSupported(FieldType.Attach));
+        Assert.True(FieldTypeCatalog.IsSupported(FieldType.Table));
         Assert.True(FieldTypeCatalog.IsSupported(FieldType.Currency));
     }
 

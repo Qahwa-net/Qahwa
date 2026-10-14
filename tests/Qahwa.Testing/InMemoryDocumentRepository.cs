@@ -5,7 +5,8 @@ namespace Qahwa.Testing;
 
 /// <summary>
 /// A dictionary-backed repository for unit and API tests. It mirrors the semantics the document engine
-/// relies on (unique names and fields, concurrency check on update) without needing a database.
+/// relies on (unique names and fields, concurrency check on update, atomic parent + child writes)
+/// without needing a database.
 /// </summary>
 public sealed class InMemoryDocumentRepository : IDocumentRepository
 {
@@ -15,7 +16,11 @@ public sealed class InMemoryDocumentRepository : IDocumentRepository
     private readonly Dictionary<string, long> _series = new(StringComparer.Ordinal);
     private readonly object _gate = new();
 
-    public Task InsertAsync(DocTypeMeta meta, IReadOnlyDictionary<string, object?> values, CancellationToken ct = default)
+    public Task InsertAsync(
+        DocTypeMeta meta,
+        IReadOnlyDictionary<string, object?> values,
+        IReadOnlyList<ChildChanges>? children = null,
+        CancellationToken ct = default)
     {
         lock (_gate)
         {
@@ -31,7 +36,17 @@ public sealed class InMemoryDocumentRepository : IDocumentRepository
                     throw new ConflictException($"A {meta.Name} with the same name or a unique value already exists.");
             }
 
+            // Check everything first so a failure leaves nothing behind, like a rolled back transaction.
+            foreach (var change in children ?? [])
+            {
+                var childTable = Table(change.Meta);
+                var names = change.Inserts.Select(r => (string)r["name"]!).ToList();
+                if (names.Distinct().Count() != names.Count || names.Any(childTable.ContainsKey))
+                    throw new ConflictException($"A {meta.Name} with the same name or a unique value already exists.");
+            }
+
             table[name] = Row(meta, values);
+            ApplyChildren(children);
         }
 
         return Task.CompletedTask;
@@ -43,11 +58,26 @@ public sealed class InMemoryDocumentRepository : IDocumentRepository
             return Task.FromResult(Table(meta).TryGetValue(name, out var row) ? new Dictionary<string, object?>(row) : null);
     }
 
+    public Task<IReadOnlyList<Dictionary<string, object?>>> GetChildrenAsync(
+        DocTypeMeta childMeta, string parentDocType, string parent, string parentField, CancellationToken ct = default)
+    {
+        lock (_gate)
+        {
+            var rows = Table(childMeta).Values
+                .Where(r => Equals(r["parent"], parent) && Equals(r["parenttype"], parentDocType) && Equals(r["parentfield"], parentField))
+                .OrderBy(r => Convert.ToInt32(r["idx"]))
+                .Select(r => new Dictionary<string, object?>(r))
+                .ToList();
+            return Task.FromResult<IReadOnlyList<Dictionary<string, object?>>>(rows);
+        }
+    }
+
     public Task<bool> UpdateAsync(
         DocTypeMeta meta,
         string name,
         IReadOnlyDictionary<string, object?> values,
         DateTime? expectedModified,
+        IReadOnlyList<ChildChanges>? children = null,
         CancellationToken ct = default)
     {
         lock (_gate)
@@ -59,14 +89,25 @@ public sealed class InMemoryDocumentRepository : IDocumentRepository
 
             foreach (var (key, value) in values)
                 row[key] = value;
+            ApplyChildren(children);
             return Task.FromResult(true);
         }
     }
 
-    public Task<bool> DeleteAsync(DocTypeMeta meta, string name, CancellationToken ct = default)
+    public Task<bool> DeleteAsync(
+        DocTypeMeta meta, string name, IReadOnlyList<DocTypeMeta>? childTables = null, CancellationToken ct = default)
     {
         lock (_gate)
+        {
+            foreach (var child in (childTables ?? []).DistinctBy(c => c.Name))
+            {
+                var table = Table(child);
+                foreach (var key in table.Where(kv => Equals(kv.Value["parent"], name) && Equals(kv.Value["parenttype"], meta.Name)).Select(kv => kv.Key).ToList())
+                    table.Remove(key);
+            }
+
             return Task.FromResult(Table(meta).Remove(name));
+        }
     }
 
     public Task<bool> ExistsAsync(DocTypeMeta meta, string name, CancellationToken ct = default)
@@ -110,6 +151,26 @@ public sealed class InMemoryDocumentRepository : IDocumentRepository
         {
             _series[prefix] = _series.GetValueOrDefault(prefix) + 1;
             return Task.FromResult(_series[prefix]);
+        }
+    }
+
+    private void ApplyChildren(IReadOnlyList<ChildChanges>? children)
+    {
+        foreach (var change in children ?? [])
+        {
+            var table = Table(change.Meta);
+            foreach (var name in change.Deletes)
+                table.Remove(name);
+            foreach (var update in change.Updates)
+            {
+                if (!table.TryGetValue(update.Name, out var row))
+                    continue;
+                foreach (var (key, value) in update.Values)
+                    row[key] = value;
+            }
+
+            foreach (var insert in change.Inserts)
+                table[(string)insert["name"]!] = Row(change.Meta, insert);
         }
     }
 

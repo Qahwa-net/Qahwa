@@ -4,9 +4,12 @@ import { Link, useMatch, useNavigate, useParams } from 'react-router-dom'
 import { ApiError, api } from '../api/client.ts'
 import type { Doc, DocTypeMeta, Permissions } from '../api/types.ts'
 import { FieldControl, type InputValue } from '../controls/FieldControl.tsx'
+import { TableControl } from '../controls/TableControl.tsx'
 import { fromInput, hasColumn, isEditable, toInput } from '../lib/fields.ts'
+import { rowsChanged, rowsFromDoc, rowsToPayload, tableFieldsOf, type TableRow } from '../lib/tables.ts'
 
 type Values = Record<string, InputValue>
+type Tables = Record<string, TableRow[]>
 
 function initialValues(meta: DocTypeMeta, doc: Doc | null): Values {
   const values: Values = {}
@@ -16,6 +19,12 @@ function initialValues(meta: DocTypeMeta, doc: Doc | null): Values {
     else values[field.name] = field.default ?? ''
   }
   return values
+}
+
+function initialTables(meta: DocTypeMeta, children: Record<string, DocTypeMeta>, doc: Doc | null): Tables {
+  const tables: Tables = {}
+  for (const { field, child } of tableFieldsOf(meta, children)) tables[field.name] = rowsFromDoc(child, doc?.[field.name])
+  return tables
 }
 
 export function FormView() {
@@ -51,26 +60,36 @@ export function FormView() {
       key={`${doctype}/${doc?.name ?? 'new'}/${String(doc?.modified ?? '')}`}
       meta={metaQuery.data.data}
       perms={metaQuery.data.permissions}
+      childMetas={metaQuery.data.children ?? {}}
       doc={doc}
     />
   )
 }
 
-function FormBody({ meta, perms, doc }: { meta: DocTypeMeta; perms: Permissions; doc: Doc | null }) {
+function FormBody({ meta, perms, childMetas, doc }: {
+  meta: DocTypeMeta
+  perms: Permissions
+  childMetas: Record<string, DocTypeMeta>
+  doc: Doc | null
+}) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const isNew = doc === null
   const editable = isNew ? perms.create : perms.write
   const base = `/app/${encodeURIComponent(meta.name)}`
 
+  const tableDefs = useMemo(() => tableFieldsOf(meta, childMetas), [meta, childMetas])
   const original = useMemo(() => initialValues(meta, doc), [meta, doc])
+  const originalTables = useMemo(() => initialTables(meta, childMetas, doc), [meta, childMetas, doc])
   const [values, setValues] = useState<Values>(original)
+  const [tables, setTables] = useState<Tables>(originalTables)
   const [promptName, setPromptName] = useState('')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [banner, setBanner] = useState<{ text: string; conflict: boolean } | null>(null)
 
   const changedNames = Object.keys(values).filter((key) => values[key] !== original[key])
-  const dirty = isNew ? true : changedNames.length > 0
+  const changedTables = tableDefs.filter(({ field }) => rowsChanged(originalTables[field.name] ?? [], tables[field.name] ?? []))
+  const dirty = isNew ? true : changedNames.length > 0 || changedTables.length > 0
 
   // Warn before leaving the page with edits that are not saved.
   useEffect(() => {
@@ -84,12 +103,19 @@ function FormBody({ meta, perms, doc }: { meta: DocTypeMeta; perms: Permissions;
     mutationFn: async () => {
       const send = (names: string[]) =>
         Object.fromEntries(names.map((n) => [n, fromInput(meta.fields.find((f) => f.name === n)!, values[n]!)]))
+      const sendTables = (defs: typeof tableDefs) =>
+        Object.fromEntries(defs.map(({ field, child }) => [field.name, rowsToPayload(child, tables[field.name] ?? [])]))
 
       if (isNew) {
         const filled = Object.keys(values).filter((n) => values[n] !== '')
-        return api.create(meta.name, { ...send(filled), ...(meta.autoname === 'prompt' ? { name: promptName } : {}) })
+        const withRows = tableDefs.filter(({ field }) => (tables[field.name]?.length ?? 0) > 0)
+        return api.create(meta.name, {
+          ...send(filled),
+          ...sendTables(withRows),
+          ...(meta.autoname === 'prompt' ? { name: promptName } : {}),
+        })
       }
-      return api.update(meta.name, doc.name, { ...send(changedNames), modified: doc.modified })
+      return api.update(meta.name, doc.name, { ...send(changedNames), ...sendTables(changedTables), modified: doc.modified })
     },
     onSuccess: async (saved) => {
       setFieldErrors({})
@@ -122,8 +148,12 @@ function FormBody({ meta, perms, doc }: { meta: DocTypeMeta; perms: Permissions;
       setBanner({ text: error instanceof ApiError ? error.message : 'Could not delete.', conflict: false }),
   })
 
+  const clearErrorsFor = (name: string) =>
+    setFieldErrors((errors) =>
+      Object.fromEntries(Object.entries(errors).filter(([path]) => path !== name && !path.startsWith(`${name}[`))))
+
   const title = isNew ? `New ${meta.name}` : String((meta.titleField ? doc[meta.titleField] : null) || doc.name)
-  const hasFields = meta.fields.some((f) => hasColumn(f.type) || f.type === 'SectionBreak')
+  const hasFields = meta.fields.some((f) => hasColumn(f.type) || f.type === 'SectionBreak' || f.type === 'Table')
 
   return (
     <>
@@ -170,11 +200,23 @@ function FormBody({ meta, perms, doc }: { meta: DocTypeMeta; perms: Permissions;
             {fieldErrors.name && <small className="error-text" role="alert">{fieldErrors.name}</small>}
           </div>
         )}
-        {meta.fields.map((field) => (
-          <FieldControl key={field.name} field={field}
-            value={values[field.name] ?? ''} readOnly={!editable} error={fieldErrors[field.name]}
-            onChange={(v) => { setValues({ ...values, [field.name]: v }); if (fieldErrors[field.name]) setFieldErrors({ ...fieldErrors, [field.name]: '' }) }} />
-        ))}
+        {meta.fields.map((field) => {
+          if (field.type === 'Table') {
+            const def = tableDefs.find((t) => t.field.name === field.name)
+            if (!def || field.hidden) return null
+            return (
+              <TableControl key={field.name} field={field} child={def.child} rows={tables[field.name] ?? []}
+                readOnly={!editable} errors={fieldErrors}
+                onChange={(rows) => { setTables({ ...tables, [field.name]: rows }); clearErrorsFor(field.name) }} />
+            )
+          }
+
+          return (
+            <FieldControl key={field.name} field={field}
+              value={values[field.name] ?? ''} readOnly={!editable} error={fieldErrors[field.name]}
+              onChange={(v) => { setValues({ ...values, [field.name]: v }); if (fieldErrors[field.name]) setFieldErrors({ ...fieldErrors, [field.name]: '' }) }} />
+          )
+        })}
         {!hasFields && <p className="muted full">This DocType has no editable fields.</p>}
         <button type="submit" hidden />
       </form>

@@ -99,7 +99,11 @@ public static partial class DocTypeLoader
 
         var seen = new HashSet<string>(StringComparer.Ordinal);
         for (var i = 0; i < meta.Fields.Count; i++)
-            CheckField(meta.Fields[i], $"fields[{i}]", seen, Add);
+            CheckField(meta.Fields[i], $"fields[{i}]", meta.IsChildTable, seen, Add);
+
+        // Rows of a child table are named automatically and always belong to a parent document.
+        if (meta.IsChildTable && meta.Autoname is not (null or "hash"))
+            Add("autoname", "Child tables are named automatically; remove the naming rule.");
 
         if (meta.TitleField is not null && !seen.Contains(meta.TitleField))
             Add("titleField", $"Title field '{meta.TitleField}' is not a field of this DocType.");
@@ -120,8 +124,24 @@ public static partial class DocTypeLoader
         return errors;
     }
 
-    private static void CheckField(DocFieldMeta field, string path, HashSet<string> seen, Action<string, string> add)
+    private static void CheckField(
+        DocFieldMeta field, string path, bool inChildTable, HashSet<string> seen, Action<string, string> add)
     {
+        if (field.Type == FieldType.Table)
+        {
+            if (inChildTable)
+                add($"{path}.type", "A child table cannot contain another table.");
+            if (field.Unique)
+                add($"{path}.unique", "A table cannot be unique.");
+            if (!string.IsNullOrEmpty(field.Default))
+                add($"{path}.default", "A table has no default value.");
+        }
+        else if (inChildTable && field.Unique)
+        {
+            // A unique index on a child table would be shared by the rows of every parent document.
+            add($"{path}.unique", "Fields of a child table cannot be unique.");
+        }
+
         if (!FieldNameRegex().IsMatch(field.Name))
             add($"{path}.name", $"Invalid field name '{field.Name}' (use lowercase letters, digits and underscores, starting with a letter).");
         else if (StandardFields.IsReserved(field.Name))

@@ -68,6 +68,9 @@ public sealed class PostgresDialect : ISqlDialect
         "INSERT INTO \"tabSeries\" (\"name\", \"current\") VALUES (@p0, 1) " +
         "ON CONFLICT (\"name\") DO UPDATE SET \"current\" = \"tabSeries\".\"current\" + 1 RETURNING \"current\"";
 
+    public bool IsDuplicateObject(Exception exception) =>
+        exception is PostgresException { SqlState: PostgresErrorCodes.DuplicateTable or PostgresErrorCodes.DuplicateObject };
+
     public bool IsUniqueViolation(Exception exception) =>
         exception is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation };
 }

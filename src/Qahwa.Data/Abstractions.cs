@@ -37,6 +37,9 @@ public interface ISqlDialect
 
     bool IsUniqueViolation(Exception exception);
 
+    /// <summary>The table or index being created already exists (another instance got there first).</summary>
+    bool IsDuplicateObject(Exception exception);
+
     string TableName(string docType) => Quote("tab" + docType);
 }
 

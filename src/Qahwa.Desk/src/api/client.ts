@@ -1,6 +1,6 @@
 import type {
-  DesignerDetail, DesignerItem, DesignerPreview, Doc, DocTypeDefinition, DocTypeMeta, FieldError, FieldTypeInfo,
-  ListResponse, MetaResponse, MetaSummary, Permissions, SessionUser,
+  DesignerDetail, DesignerItem, DesignerPreview, Doc, DocTypeDefinition, FieldError, FieldTypeInfo,
+  ListResponse, MetaResponse, MetaSummary, SessionUser,
 } from './types.ts'
 import type { Filter } from '../lib/filters.ts'
 import { toApiFilters } from '../lib/filters.ts'
@@ -84,11 +84,7 @@ export const api = {
     return (await request<{ data: MetaSummary[] }>('GET', '/api/meta')).data
   },
 
-  meta: (doctype: string) =>
-    request<MetaResponse>('GET', `/api/meta/${encodeURIComponent(doctype)}`) as Promise<{
-      data: DocTypeMeta
-      permissions: Permissions
-    }>,
+  meta: (doctype: string) => request<MetaResponse>('GET', `/api/meta/${encodeURIComponent(doctype)}`),
 
   list(doctype: string, params: ListParams): Promise<ListResponse> {
     const query = new URLSearchParams({

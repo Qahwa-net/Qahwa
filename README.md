@@ -16,6 +16,7 @@ Working today:
 - PostgreSQL provider, `qahwa migrate` and `qahwa create-admin` CLI
 
 - **DocType Designer** (Tools → DocType Designer, for System Managers): create and edit your own DocTypes in the Desk with a live form preview, a preview of the database changes, field properties, naming rules and a permissions table. New DocTypes work immediately, no restart ([ADR-003](docs/adr/003-doctype-designer.md))
+- **Child tables**: mark a DocType as a child table and add it to another DocType as a Table field (for example the items of an order). The form shows an editable grid; rows save atomically with the document ([ADR-004](docs/adr/004-child-tables.md))
 - Desk (React + TypeScript): login, DocType sidebar, generic list view (search, dynamic filters kept in the URL, sorting, paging) and form view (field controls per type, server-side validation errors inline, concurrent-edit detection, delete), account page with change password. Layout is right-to-left ready and works on phones.
 
 Not yet: child tables, submit/cancel, versions, comments/share/assign/follow, saved filters and per-user list settings, attachments, the Frappe-style form sidebar.

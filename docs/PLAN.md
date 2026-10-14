@@ -499,7 +499,7 @@ Rules that keep it honest:
 | Step | Scope | Status |
 |---|---|---|
 | **L1: DocType Designer** | Create, edit and delete custom DocTypes in the Desk: fields, field properties, naming, title field, list columns, permissions, live form preview, SQL change preview, safe schema apply | **done (v1)**. Not yet: child tables (L2), rename, type change of saved fields, depends_on (L4), drag-and-drop ordering (up/down buttons today) |
-| L2: Child tables | `Table` fields, child DocTypes, grid editing in forms, designer support | planned |
+| L2: Child tables | `Table` fields, child DocTypes, grid editing in forms, designer support | **done (v1)**. Rows save atomically with the parent; the form has an editable grid. Not yet: Table MultiSelect, nested tables, import/export of rows, filters on child fields, row-level drag and drop (up/down buttons today) |
 | L3: Customize Form | Custom Fields and Property Setters on any DocType (standard included), reorder fields, hide/rename, per-DocType list settings | planned |
 | L4: Field logic | `depends_on` family, `fetch_from`, default and validation expressions, expression language shared by server and client | planned |
 | L5: Permissions UI | Role Permission Manager, permission levels, User Permissions, Role/Module Profiles, sharing | planned |
@@ -527,7 +527,8 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Field types: Data, Text, Long Text, Int, Float, Currency, Percent, Check, Select, Date, Datetime, Time, Link, Email, Phone, URL, Code, Markdown, JSON | | ✅ | done |
 | Field types: Small Text, Text Editor (rich text), HTML Editor, HTML, Heading, Button, Read Only, Autocomplete | | ⬜ | L3 |
 | Field types: Attach, Attach Image, Signature, Barcode, Geolocation, Icon, Color, Rating, Duration, Image | | ⬜ | L10 |
-| Field types: Dynamic Link, Table, Table MultiSelect | | ⬜ | L2 |
+| Field types: Table | child rows inside a document | ✅ | L2 |
+| Field types: Dynamic Link, Table MultiSelect | | ⬜ | L2 |
 | Field types: Password (encrypted), Phone with country | | ⬜ | L3 |
 | Layout fields: Section Break, Column Break, Tab Break | | 🟡 | L1 (section/tab), L3 |
 | Field properties: label, required, unique, default, options, in list view, lowercase | | ✅ | done |
@@ -535,7 +536,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Field properties: `depends_on`, `mandatory_depends_on`, `read_only_depends_on` | conditional logic by expression | ⬜ | L4 |
 | Field properties: `fetch_from`, `fetch_if_empty` | copy a value from a linked document | ⬜ | L4 |
 | Field properties: in standard filter, in preview, in global search, bold, no copy, allow on submit, set only once, non negative, collapsible, translatable, search index, precision, length, ignore user permissions, permission level | | ⬜ | L3 |
-| Child tables (Table field, parent/child) | | ⬜ | L2 |
+| Child tables (Table field, parent/child) | created in the designer, saved atomically with the parent | ✅ | L2 |
 | Single DocTypes (settings stored as one document) | | ⬜ | L6 |
 | Tree DocTypes (nested set, parent/child hierarchy) | | ⬜ | L6 |
 | Virtual DocTypes (data from outside the database) | | 🔽 | L12 |
@@ -622,7 +623,8 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | List view: bulk actions (edit, delete, assign, tag, export, print) | | ⬜ | L7 |
 | Form view: field controls per type, validation, conflict warning, delete | | ✅ | done |
 | Form view: tabs/sections/columns layout, collapsible sections | | 🟡 | L1, L3 |
-| Form view: child table grid (editable, reorder, upload/download rows, row form) | | ⬜ | L2 |
+| Form view: child table grid (editable, reorder, row form) | | ✅ | L2 |
+| Form view: child table grid, upload/download rows as CSV | | ⬜ | L10 |
 | Form view: sidebar (assign, attachments, tags, share, follow, like), timeline, form dashboard with linked documents | | ⬜ | L7 |
 | Form: quick entry dialog, auto-save indicator, keyboard shortcuts, unsaved-changes warning | | 🟡 | L7 |
 | Report view (editable columns, group by, totals, export) | | ⬜ | L9 |

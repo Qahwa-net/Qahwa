@@ -23,7 +23,12 @@ public static class QahwaEndpoints
         {
             var user = await users.ResolveAsync(http, ct);
             var meta = docs.GetMeta(doctype, user);
-            return Results.Ok(new { data = meta, permissions = docs.GetPermissions(meta, user) });
+            return Results.Ok(new
+            {
+                data = meta,
+                permissions = docs.GetPermissions(meta, user),
+                children = docs.GetChildMetas(meta), // the Desk needs them to draw the table grids
+            });
         });
 
         var resource = api.MapGroup("/resource/{doctype}");

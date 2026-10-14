@@ -13,6 +13,8 @@ export interface DraftField extends DocField {
 export type AutonameKind = 'hash' | 'prompt' | 'field' | 'series'
 
 export interface Draft {
+  /** A child table: its rows live inside other documents and it has no list or form of its own. */
+  isChildTable: boolean
   isNew: boolean
   editable: boolean
   name: string
@@ -85,6 +87,7 @@ export function moveItem<T>(items: T[], from: number, to: number): T[] {
 
 export function emptyDraft(): Draft {
   return {
+    isChildTable: false,
     isNew: true,
     editable: true,
     name: '',
@@ -125,6 +128,7 @@ export function buildAutoname(draft: Pick<Draft, 'autonameKind' | 'autonameField
 export function fromDetail(detail: DesignerDetail): Draft {
   const def = detail.definition
   return {
+    isChildTable: def.isChildTable,
     isNew: false,
     editable: detail.editable,
     name: def.name,
@@ -155,8 +159,10 @@ export function toDefinition(draft: Draft): DocTypeDefinition {
   return {
     name: draft.name.trim(),
     module: blank(draft.module),
-    titleField: blank(draft.titleField),
-    autoname: buildAutoname(draft),
+    titleField: draft.isChildTable ? undefined : blank(draft.titleField),
+    // Rows of a child table are named automatically.
+    autoname: draft.isChildTable ? undefined : buildAutoname(draft),
+    isChildTable: draft.isChildTable || undefined,
     fields: draft.fields.map((f) => ({
       name: f.name,
       type: f.type,
@@ -171,7 +177,8 @@ export function toDefinition(draft: Draft): DocTypeDefinition {
       hidden: f.hidden || undefined,
       readOnly: f.readOnly || undefined,
     })) as DocTypeDefinition['fields'],
-    permissions: draft.permissions.filter((p) => p.role.trim() !== ''),
+    // Child table rows follow the permissions of the document they belong to.
+    permissions: draft.isChildTable ? [] : draft.permissions.filter((p) => p.role.trim() !== ''),
   }
 }
 

@@ -30,6 +30,10 @@ public sealed class SchemaManager(SchemaSync sync, ISqlDialect dialect) : ISchem
                 "A field cannot be made unique because existing documents already contain duplicate values. " +
                 "Remove the duplicates first.");
         }
+        catch (DbException ex) when (dialect.IsDuplicateObject(ex))
+        {
+            throw new ConflictException($"'{meta.Name}' was just created or changed by someone else. Reload and try again.");
+        }
     }
 
     public Task DropAsync(DocTypeMeta meta, CancellationToken ct = default) => sync.DropTableAsync(meta, ct);

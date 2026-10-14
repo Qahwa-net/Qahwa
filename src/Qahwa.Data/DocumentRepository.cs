@@ -10,11 +10,27 @@ public sealed class DocumentRepository(
     ISqlDialect dialect,
     SqlBuilder sql) : IDocumentRepository
 {
-    public async Task InsertAsync(DocTypeMeta meta, IReadOnlyDictionary<string, object?> values, CancellationToken ct = default)
+    public async Task InsertAsync(
+        DocTypeMeta meta,
+        IReadOnlyDictionary<string, object?> values,
+        IReadOnlyList<ChildChanges>? children = null,
+        CancellationToken ct = default)
     {
         try
         {
-            await ExecuteNonQueryAsync(sql.Insert(meta, values), ct);
+            await using var connection = await connections.OpenAsync(ct);
+            await using var transaction = await connection.BeginTransactionAsync(ct);
+            try
+            {
+                await ExecuteAsync(connection, transaction, sql.Insert(meta, values), ct);
+                await ApplyChildrenAsync(connection, transaction, children, ct);
+                await transaction.CommitAsync(ct);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(CancellationToken.None);
+                throw;
+            }
         }
         catch (DbException ex) when (dialect.IsUniqueViolation(ex))
         {
@@ -25,16 +41,50 @@ public sealed class DocumentRepository(
     public async Task<Dictionary<string, object?>?> GetAsync(DocTypeMeta meta, string name, CancellationToken ct = default) =>
         (await QueryAsync(meta, sql.Get(meta, name), ct)).FirstOrDefault();
 
+    public async Task<IReadOnlyList<Dictionary<string, object?>>> GetChildrenAsync(
+        DocTypeMeta childMeta, string parentDocType, string parent, string parentField, CancellationToken ct = default) =>
+        await QueryAsync(childMeta, sql.Select(childMeta, new ListQuery
+        {
+            Filters =
+            [
+                new QueryFilter("parent", FilterOp.Eq, parent),
+                new QueryFilter("parenttype", FilterOp.Eq, parentDocType),
+                new QueryFilter("parentfield", FilterOp.Eq, parentField),
+            ],
+            OrderBy = "idx",
+            Descending = false,
+            Limit = 1000,
+        }), ct);
+
     public async Task<bool> UpdateAsync(
         DocTypeMeta meta,
         string name,
         IReadOnlyDictionary<string, object?> values,
         DateTime? expectedModified,
+        IReadOnlyList<ChildChanges>? children = null,
         CancellationToken ct = default)
     {
         try
         {
-            return await ExecuteNonQueryAsync(sql.Update(meta, name, values, expectedModified), ct) > 0;
+            await using var connection = await connections.OpenAsync(ct);
+            await using var transaction = await connection.BeginTransactionAsync(ct);
+            try
+            {
+                if (await ExecuteAsync(connection, transaction, sql.Update(meta, name, values, expectedModified), ct) == 0)
+                {
+                    await transaction.RollbackAsync(CancellationToken.None);
+                    return false;
+                }
+
+                await ApplyChildrenAsync(connection, transaction, children, ct);
+                await transaction.CommitAsync(ct);
+                return true;
+            }
+            catch
+            {
+                await transaction.RollbackAsync(CancellationToken.None);
+                throw;
+            }
         }
         catch (DbException ex) when (dialect.IsUniqueViolation(ex))
         {
@@ -42,8 +92,26 @@ public sealed class DocumentRepository(
         }
     }
 
-    public async Task<bool> DeleteAsync(DocTypeMeta meta, string name, CancellationToken ct = default) =>
-        await ExecuteNonQueryAsync(sql.Delete(meta, name), ct) > 0;
+    public async Task<bool> DeleteAsync(
+        DocTypeMeta meta, string name, IReadOnlyList<DocTypeMeta>? childTables = null, CancellationToken ct = default)
+    {
+        await using var connection = await connections.OpenAsync(ct);
+        await using var transaction = await connection.BeginTransactionAsync(ct);
+        try
+        {
+            foreach (var child in (childTables ?? []).DistinctBy(c => c.Name))
+                await ExecuteAsync(connection, transaction, sql.DeleteChildren(child, meta.Name, name), ct);
+
+            var deleted = await ExecuteAsync(connection, transaction, sql.Delete(meta, name), ct) > 0;
+            await transaction.CommitAsync(ct);
+            return deleted;
+        }
+        catch
+        {
+            await transaction.RollbackAsync(CancellationToken.None);
+            throw;
+        }
+    }
 
     public async Task<bool> ExistsAsync(DocTypeMeta meta, string name, CancellationToken ct = default) =>
         await ExecuteScalarAsync(sql.Exists(meta, name), ct) is not null;
@@ -58,11 +126,33 @@ public sealed class DocumentRepository(
     public async Task<long> NextSeriesAsync(string prefix, CancellationToken ct = default) =>
         Convert.ToInt64(await ExecuteScalarAsync(new SqlStatement(dialect.NextSeriesSql, [prefix]), ct));
 
+    private async Task ApplyChildrenAsync(
+        DbConnection connection, DbTransaction transaction, IReadOnlyList<ChildChanges>? children, CancellationToken ct)
+    {
+        foreach (var change in children ?? [])
+        {
+            foreach (var name in change.Deletes)
+                await ExecuteAsync(connection, transaction, sql.Delete(change.Meta, name), ct);
+            foreach (var update in change.Updates)
+                await ExecuteAsync(connection, transaction, sql.Update(change.Meta, update.Name, update.Values, null), ct);
+            foreach (var row in change.Inserts)
+                await ExecuteAsync(connection, transaction, sql.Insert(change.Meta, row), ct);
+        }
+    }
+
+    private static async Task<int> ExecuteAsync(
+        DbConnection connection, DbTransaction transaction, SqlStatement statement, CancellationToken ct)
+    {
+        await using var command = DbCommands.Create(connection, statement.Sql, statement.Parameters);
+        command.Transaction = transaction;
+        return await command.ExecuteNonQueryAsync(ct);
+    }
+
     private async Task<List<Dictionary<string, object?>>> QueryAsync(DocTypeMeta meta, SqlStatement statement, CancellationToken ct)
     {
         var types = meta.ColumnTypes();
         await using var connection = await connections.OpenAsync(ct);
-        await using var command = CreateCommand(connection, statement);
+        await using var command = DbCommands.Create(connection, statement.Sql, statement.Parameters);
         await using var reader = await command.ExecuteReaderAsync(ct);
 
         var rows = new List<Dictionary<string, object?>>();
@@ -82,21 +172,11 @@ public sealed class DocumentRepository(
         return rows;
     }
 
-    private async Task<int> ExecuteNonQueryAsync(SqlStatement statement, CancellationToken ct)
-    {
-        await using var connection = await connections.OpenAsync(ct);
-        await using var command = CreateCommand(connection, statement);
-        return await command.ExecuteNonQueryAsync(ct);
-    }
-
     private async Task<object?> ExecuteScalarAsync(SqlStatement statement, CancellationToken ct)
     {
         await using var connection = await connections.OpenAsync(ct);
-        await using var command = CreateCommand(connection, statement);
+        await using var command = DbCommands.Create(connection, statement.Sql, statement.Parameters);
         var result = await command.ExecuteScalarAsync(ct);
         return result is DBNull ? null : result;
     }
-
-    private static DbCommand CreateCommand(DbConnection connection, SqlStatement statement) =>
-        DbCommands.Create(connection, statement.Sql, statement.Parameters);
 }

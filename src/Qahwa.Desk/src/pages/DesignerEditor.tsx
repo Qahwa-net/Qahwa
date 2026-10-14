@@ -4,11 +4,13 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ApiError, api } from '../api/client.ts'
 import type { DesignerDetail, FieldError, FieldTypeInfo } from '../api/types.ts'
 import { FieldControl, type InputValue } from '../controls/FieldControl.tsx'
+import { TableControl } from '../controls/TableControl.tsx'
 import { FieldCard, PermissionsEditor } from '../designer/FieldCard.tsx'
 import {
   emptyDraft, errorMap, fromDetail, moveItem, newField, toDefinition, type AutonameKind, type Draft, type DraftField,
 } from '../lib/designer.ts'
 import { isEditable } from '../lib/fields.ts'
+import type { TableRow } from '../lib/tables.ts'
 
 function useDebounced<T>(value: T, ms: number): T {
   const [debounced, setDebounced] = useState(value)
@@ -168,7 +170,8 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
   }, [types])
 
   const modules = [...new Set((doctypes.data ?? []).map((d) => d.module).filter((m): m is string => Boolean(m)))]
-  const linkable = (doctypes.data ?? []).map((d) => d.name)
+  const linkable = (doctypes.data ?? []).filter((d) => !d.isChildTable).map((d) => d.name)
+  const childTargets = (doctypes.data ?? []).filter((d) => d.isChildTable).map((d) => d.name)
   const dataFields = draft.fields.filter((f) => isEditable(f.type))
 
   return (
@@ -186,7 +189,7 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
             Delete
           </button>
         )}
-        {!draft.isNew && <Link className="btn" to={`/app/${encodeURIComponent(draft.name)}`}>Open documents</Link>}
+        {!draft.isNew && !draft.isChildTable && <Link className="btn" to={`/app/${encodeURIComponent(draft.name)}`}>Open documents</Link>}
         {draft.editable && (
           <button className="btn primary" disabled={!dirty || save.isPending}
             onClick={() => {
@@ -230,15 +233,28 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
                 <datalist id="module-list">{modules.map((m) => <option key={m} value={m} />)}</datalist>
                 {errors.module && <small className="error-text" role="alert">{errors.module}</small>}
               </label>
-              <label className="field">
+              <div className="field full">
+                <label className="check-line">
+                  <input type="checkbox" checked={draft.isChildTable} disabled={disabled || !draft.isNew}
+                    onChange={(e) => patch({ isChildTable: e.target.checked })} />
+                  This DocType is a table used inside other documents (a child table)
+                </label>
+                <small className="muted">
+                  {draft.isNew
+                    ? 'Use it for lines such as the items of an order. It has no list or form of its own; other DocTypes add it as a Table field.'
+                    : draft.isChildTable ? 'This is a child table. This cannot be changed after it is created.' : 'This is a normal DocType. This cannot be changed after it is created.'}
+                </small>
+                {errors.isChildTable && <small className="error-text" role="alert">{errors.isChildTable}</small>}
+              </div>
+              {!draft.isChildTable && <label className="field">
                 <span>Title field</span>
                 <select value={draft.titleField} disabled={disabled} onChange={(e) => patch({ titleField: e.target.value })}>
                   <option value="">None (use the ID)</option>
                   {dataFields.map((f) => <option key={f.key} value={f.name}>{f.label || f.name}</option>)}
                 </select>
                 {errors.titleField && <small className="error-text" role="alert">{errors.titleField}</small>}
-              </label>
-              <div className="field">
+              </label>}
+              {!draft.isChildTable && <div className="field">
                 <label htmlFor="autoname-kind">Document names</label>
                 <select id="autoname-kind" value={draft.autonameKind} disabled={disabled}
                   onChange={(e) => patch({ autonameKind: e.target.value as AutonameKind })}>
@@ -263,7 +279,7 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
                   </select>
                 )}
                 {errors.autoname && <small className="error-text" role="alert">{errors.autoname}</small>}
-              </div>
+              </div>}
             </div>
           </section>
 
@@ -284,8 +300,8 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
                     <h3>{group}</h3>
                     <div className="type-grid">
                       {items.map((t) => (
-                        <button key={t.type} type="button" role="menuitem" className="type-option" disabled={!t.supported}
-                          title={t.supported ? t.hint : (t.unsupportedReason ?? 'Not supported yet')} onClick={() => addField(t)}>
+                        <button key={t.type} type="button" role="menuitem" className="type-option" disabled={!t.supported || (t.type === 'Table' && draft.isChildTable)}
+                          title={!t.supported ? (t.unsupportedReason ?? 'Not supported yet') : t.type === 'Table' && draft.isChildTable ? 'A child table cannot contain another table' : t.hint} onClick={() => addField(t)}>
                           <strong>{t.label}</strong>
                           <small className="muted">{t.supported ? t.hint : 'Coming soon'}</small>
                         </button>
@@ -302,7 +318,7 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
                 <FieldCard key={field.key} field={field} index={index} total={draft.fields.length}
                   expanded={open === field.key} info={typeInfo.get(field.type)} disabled={disabled}
                   otherNames={draft.fields.filter((f) => f.key !== field.key).map((f) => f.name)}
-                  doctypes={linkable} errors={errors}
+                  doctypes={linkable} childTables={childTargets} inChildTable={draft.isChildTable} errors={errors}
                   onToggle={() => setOpen(open === field.key ? null : field.key)}
                   onChange={(changes) => patchField(field.key, changes)}
                   onMove={(delta) => patch({ fields: moveItem(draft.fields, index, index + delta) })}
@@ -311,12 +327,12 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
             </ul>
           </section>
 
-          <section className="card">
+          {!draft.isChildTable && <section className="card">
             <h2>Who can use it</h2>
             <p className="muted">Administrators can always use every DocType. Add the roles that should be allowed to read, write, create or delete documents.</p>
             <PermissionsEditor permissions={draft.permissions} roles={(roles.data?.data ?? []).map((r) => r.name)}
               disabled={disabled} errors={errors} onChange={(permissions) => patch({ permissions })} />
-          </section>
+          </section>}
         </div>
 
         <aside className="designer-side">
@@ -367,17 +383,35 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
   )
 }
 
+/** A Table field in the preview: the child DocType's grid with throwaway rows. */
+function PreviewTable({ field, rows, onChange }: { field: DraftField; rows: TableRow[]; onChange: (rows: TableRow[]) => void }) {
+  const child = useQuery({
+    queryKey: ['designer', 'detail', field.options],
+    queryFn: () => api.designer.get(field.options!),
+    enabled: Boolean(field.options),
+    retry: false,
+  })
+
+  if (!field.options) return <div className="field full"><span>{field.label || field.name}</span><small className="muted">Choose the child table this field uses.</small></div>
+  if (!child.data) return <div className="field full"><span>{field.label || field.name}</span><small className="muted">{child.isError ? 'Could not load the child table.' : 'Loading…'}</small></div>
+  return <TableControl field={field} child={child.data.definition} rows={rows} onChange={onChange} preview errors={{}} />
+}
+
 /** The form exactly as users will see it, with throwaway values you can type into. */
 function PreviewForm({ draft }: { draft: Draft }) {
   const [values, setValues] = useState<Record<string, InputValue>>({})
-  const fields = draft.fields.filter((f) => f.type === 'SectionBreak' || f.type === 'TabBreak' || isEditable(f.type))
+  const [tables, setTables] = useState<Record<string, TableRow[]>>({})
+  const fields = draft.fields.filter((f) => f.type === 'SectionBreak' || f.type === 'TabBreak' || f.type === 'Table' || isEditable(f.type))
 
   return (
     <div className="card">
-      <h3>{draft.name || 'New DocType'}</h3>
+      <h3>{draft.name || 'New DocType'}{draft.isChildTable && <span className="badge"> child table</span>}</h3>
+      {draft.isChildTable && <p className="muted">Its fields become the columns of the grid in every document that uses it. This is one row.</p>}
       {fields.length === 0 ? <p className="muted">Add fields to see the form.</p> : (
         <div className="form-grid">
-          {fields.map((f) => (
+          {fields.map((f) => f.type === 'Table' ? (
+            <PreviewTable key={f.key} field={f} rows={tables[f.name] ?? []} onChange={(rows) => setTables({ ...tables, [f.name]: rows })} />
+          ) : (
             <FieldControl key={f.key} field={f} preview
               value={values[f.name] ?? (f.type === 'Check' ? f.default === '1' : (f.default ?? ''))}
               onChange={(v) => setValues({ ...values, [f.name]: v })} />

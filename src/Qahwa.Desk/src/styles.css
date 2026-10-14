@@ -200,3 +200,20 @@ tbody tr:last-child td { border-block-end: 0; }
   .designer-side { position: static; }
   .field-card-body { grid-template-columns: 1fr; }
 }
+
+/* Child table grid */
+.sr-only { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.table-field .grid { margin-block-start: .25rem; }
+.table-field .grid.invalid { border-color: var(--danger); }
+.grid td, .grid th { padding: .3rem .4rem; vertical-align: middle; }
+.grid tbody tr { cursor: default; }
+.grid tbody tr:hover { background: transparent; }
+.grid td input:not([type='checkbox']), .grid td select { padding: .3rem .45rem; min-inline-size: 6rem; }
+.grid .row-no { inline-size: 2.2rem; text-align: center; color: var(--muted); }
+.grid .row-actions { white-space: nowrap; text-align: end; inline-size: 1%; }
+.grid .center { text-align: center; }
+.grid .row-error { background: var(--danger-soft); }
+.grid .row-detail td { background: var(--surface-2); }
+.row-messages { margin: .25rem 0 0; padding-inline-start: 1.1rem; }
+.check-line { display: inline-flex; align-items: center; gap: .5rem; font-weight: 600; }
+.check-line input { inline-size: 1.1rem; block-size: 1.1rem; }

@@ -47,6 +47,7 @@ export interface DocTypeDefinition {
   module?: string
   titleField?: string
   autoname?: string
+  isChildTable?: boolean
   fields: (Partial<DocField> & Pick<DocField, 'name' | 'type'>)[]
   permissions: DocPerm[]
 }
@@ -59,6 +60,7 @@ export interface DesignerItem {
   source: DocTypeSource
   editable: boolean
   fieldCount: number
+  isChildTable: boolean
 }
 
 export interface DesignerDetail {
@@ -108,6 +110,8 @@ export interface Permissions {
 export interface MetaResponse {
   data: DocTypeMeta
   permissions: Permissions
+  /** The child DocTypes used by this DocType's Table fields, keyed by name. */
+  children: Record<string, DocTypeMeta>
 }
 
 export type Doc = Record<string, unknown> & { name: string }

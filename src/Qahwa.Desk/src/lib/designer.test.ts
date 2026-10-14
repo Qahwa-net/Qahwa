@@ -110,6 +110,18 @@ describe('draft conversion', () => {
     expect(toDefinition(draft).permissions).toHaveLength(1)
   })
 
+  it('leaves out naming, title and permissions for child tables, which have none of their own', () => {
+    const draft = fromDetail(detail)
+    draft.isChildTable = true
+    const definition = toDefinition(draft)
+
+    expect(definition.isChildTable).toBe(true)
+    expect(definition.autoname).toBeUndefined()
+    expect(definition.titleField).toBeUndefined()
+    expect(definition.permissions).toEqual([])
+    expect(toDefinition(fromDetail(detail)).isChildTable).toBeUndefined()
+  })
+
   it('starts new DocTypes with full access for System Manager', () => {
     expect(emptyDraft().permissions[0]).toMatchObject({ role: 'System Manager', read: true, delete: true })
   })

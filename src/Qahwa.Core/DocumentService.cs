@@ -1,9 +1,11 @@
+using System.Collections;
+using System.Text.Json;
 using Qahwa.Abstractions;
 
 namespace Qahwa.Core;
 
 /// <summary>
-/// The document engine: permission checks, validation, naming, standard fields and optimistic
+/// The document engine: permission checks, validation, naming, standard fields, child tables and optimistic
 /// concurrency on top of an <see cref="IDocumentRepository"/>.
 /// </summary>
 public sealed class DocumentService(
@@ -14,6 +16,9 @@ public sealed class DocumentService(
     TimeProvider clock)
 {
     private const int MaxLimit = 1000;
+
+    /// <summary>The most rows one child table of a document may hold.</summary>
+    public const int MaxRows = 1000;
 
     private static readonly Dictionary<string, FilterOp> Operators = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -28,6 +33,15 @@ public sealed class DocumentService(
         ["is"] = FilterOp.IsNull, // resolved below from the value ("set" / "not set")
     };
 
+    /// <summary>One child table of a document as received from a client: the field, its DocType and the rows.</summary>
+    private sealed record TableInput(DocFieldMeta Field, DocTypeMeta Child, List<RowInput> Rows);
+
+    private sealed class RowInput(string? name, Dictionary<string, object?> values)
+    {
+        public string? Name { get; } = name;
+        public Dictionary<string, object?> Values { get; set; } = values;
+    }
+
     public IReadOnlyList<DocTypeMeta> ListMetas(IUserContext user) =>
         registry.All
             .Where(m => !m.IsChildTable && permissions.Evaluate(m, user, PermAction.Read) != AccessLevel.None)
@@ -36,10 +50,18 @@ public sealed class DocumentService(
 
     public DocTypeMeta GetMeta(string doctype, IUserContext user)
     {
-        var meta = registry.Get(doctype);
+        var meta = RequireTopLevel(registry.Get(doctype));
         permissions.Require(meta, user, PermAction.Read);
         return meta;
     }
+
+    /// <summary>The child DocTypes used by the Table fields of a DocType, keyed by name (the Desk needs them to draw grids).</summary>
+    public IReadOnlyDictionary<string, DocTypeMeta> GetChildMetas(DocTypeMeta meta) =>
+        meta.Fields
+            .Where(f => f.Type == FieldType.Table && f.Options is not null && registry.TryGet(f.Options, out _))
+            .Select(f => registry.Get(f.Options!))
+            .DistinctBy(c => c.Name)
+            .ToDictionary(c => c.Name, c => c, StringComparer.Ordinal);
 
     /// <summary>What the user may do with this DocType in general (owner-only rules count as allowed).</summary>
     public EffectivePermissions GetPermissions(DocTypeMeta meta, IUserContext user) => new(
@@ -54,15 +76,17 @@ public sealed class DocumentService(
         IUserContext user,
         CancellationToken ct = default)
     {
-        var meta = registry.Get(doctype);
+        var meta = RequireTopLevel(registry.Get(doctype));
         permissions.Require(meta, user, PermAction.Create);
-        if (meta.IsChildTable)
-            throw new DocumentValidationException($"{meta.Name} is a child table and cannot be created directly.");
 
         var errors = new List<FieldError>();
         var values = Coerce(meta, input, errors, meta.Autoname == "prompt", out var promptName);
+        var tables = ReadTables(meta, input, errors);
         ApplyDefaults(meta, values, errors);
-        await ValidateAsync(meta, values, values.Keys, errors, ct);
+        await ValidateAsync(meta, values, values.Keys, errors, string.Empty, ct);
+        foreach (var table in tables)
+            await ValidateTableAsync(table, null, errors, ct);
+        CheckRequiredTables(meta, tables, errors, onlyIfProvided: false);
         if (errors.Count > 0)
             throw new DocumentValidationException(errors);
 
@@ -76,8 +100,12 @@ public sealed class DocumentService(
         values["docstatus"] = 0;
         values["idx"] = 0;
 
-        await repository.InsertAsync(meta, values, ct);
-        return await repository.GetAsync(meta, name, ct)
+        var children = tables
+            .Select(t => BuildChanges(t, meta, name, new Dictionary<string, Dictionary<string, object?>>(), now, user))
+            .Where(c => !c.IsEmpty)
+            .ToList();
+        await repository.InsertAsync(meta, values, children, ct);
+        return await LoadAsync(meta, name, ct)
             ?? throw new InvalidOperationException($"{meta.Name} '{name}' vanished after insert.");
     }
 
@@ -87,9 +115,9 @@ public sealed class DocumentService(
         IUserContext user,
         CancellationToken ct = default)
     {
-        var meta = registry.Get(doctype);
+        var meta = RequireTopLevel(registry.Get(doctype));
         var access = permissions.Require(meta, user, PermAction.Read);
-        var doc = await repository.GetAsync(meta, name, ct)
+        var doc = await LoadAsync(meta, name, ct)
             ?? throw new NotFoundException($"{meta.Name} '{name}' was not found.");
         permissions.RequireOwnership(access, doc, user);
         return doc;
@@ -102,7 +130,7 @@ public sealed class DocumentService(
         IUserContext user,
         CancellationToken ct = default)
     {
-        var meta = registry.Get(doctype);
+        var meta = RequireTopLevel(registry.Get(doctype));
         var access = permissions.Require(meta, user, PermAction.Write);
         var existing = await repository.GetAsync(meta, name, ct)
             ?? throw new NotFoundException($"{meta.Name} '{name}' was not found.");
@@ -110,6 +138,7 @@ public sealed class DocumentService(
 
         var errors = new List<FieldError>();
         var changes = Coerce(meta, input, errors, allowName: false, out _);
+        var tables = ReadTables(meta, input, errors);
 
         // Optimistic concurrency: if the client says which version it edited, it must still be current.
         var stored = existing.GetValueOrDefault("modified") as DateTime?;
@@ -131,30 +160,48 @@ public sealed class DocumentService(
         foreach (var (key, value) in changes)
             merged[key] = value;
 
-        await ValidateAsync(meta, merged, changes.Keys, errors, ct);
+        await ValidateAsync(meta, merged, changes.Keys, errors, string.Empty, ct);
+
+        // Rows the client may refer to by name: the ones this document already has in each table.
+        var currentRows = new Dictionary<string, Dictionary<string, Dictionary<string, object?>>>(StringComparer.Ordinal);
+        foreach (var table in tables)
+        {
+            var rows = await repository.GetChildrenAsync(table.Child, meta.Name, name, table.Field.Name, ct);
+            currentRows[table.Field.Name] = rows.ToDictionary(r => (string)r["name"]!, r => r, StringComparer.Ordinal);
+            await ValidateTableAsync(table, currentRows[table.Field.Name], errors, ct);
+        }
+
+        CheckRequiredTables(meta, tables, errors, onlyIfProvided: true);
         if (errors.Count > 0)
             throw new DocumentValidationException(errors);
-        if (changes.Count == 0)
-            return existing;
 
-        changes["modified"] = Now();
+        var now = Now();
+        var children = tables
+            .Select(t => BuildChanges(t, meta, name, currentRows[t.Field.Name], now, user))
+            .Where(c => !c.IsEmpty)
+            .ToList();
+        if (changes.Count == 0 && children.Count == 0)
+            return (await LoadAsync(meta, name, ct))!;
+
+        changes["modified"] = now;
         changes["modified_by"] = user.User;
-        if (!await repository.UpdateAsync(meta, name, changes, stored, ct))
+        if (!await repository.UpdateAsync(meta, name, changes, stored, children, ct))
             throw new ConflictException($"{meta.Name} '{name}' was changed or deleted by someone else. Reload and try again.");
 
-        return await repository.GetAsync(meta, name, ct)
+        return await LoadAsync(meta, name, ct)
             ?? throw new NotFoundException($"{meta.Name} '{name}' was not found.");
     }
 
     public async Task DeleteAsync(string doctype, string name, IUserContext user, CancellationToken ct = default)
     {
-        var meta = registry.Get(doctype);
+        var meta = RequireTopLevel(registry.Get(doctype));
         var access = permissions.Require(meta, user, PermAction.Delete);
         var existing = await repository.GetAsync(meta, name, ct)
             ?? throw new NotFoundException($"{meta.Name} '{name}' was not found.");
         permissions.RequireOwnership(access, existing, user);
 
-        if (!await repository.DeleteAsync(meta, name, ct))
+        var childTables = TableFields(meta).Select(f => registry.Get(f.Options!)).ToList();
+        if (!await repository.DeleteAsync(meta, name, childTables, ct))
             throw new NotFoundException($"{meta.Name} '{name}' was not found.");
     }
 
@@ -164,7 +211,7 @@ public sealed class DocumentService(
         IUserContext user,
         CancellationToken ct = default)
     {
-        var meta = registry.Get(doctype);
+        var meta = RequireTopLevel(registry.Get(doctype));
         var access = permissions.Require(meta, user, PermAction.Read);
         var query = Normalize(meta, request);
 
@@ -174,6 +221,39 @@ public sealed class DocumentService(
         var rows = await repository.ListAsync(meta, query, ct);
         var total = await repository.CountAsync(meta, query, ct);
         return new ListResult(rows.ToList(), total);
+    }
+
+    /// <summary>Child tables are only reachable through their parent document, so they look like they do not exist.</summary>
+    private static DocTypeMeta RequireTopLevel(DocTypeMeta meta) =>
+        meta.IsChildTable ? throw new NotFoundException($"DocType '{meta.Name}' was not found.") : meta;
+
+    private static IEnumerable<DocFieldMeta> TableFields(DocTypeMeta meta) =>
+        meta.Fields.Where(f => f.Type == FieldType.Table && f.Options is not null);
+
+    /// <summary>The document with its child rows attached under the Table field names.</summary>
+    private async Task<Dictionary<string, object?>?> LoadAsync(DocTypeMeta meta, string name, CancellationToken ct)
+    {
+        var doc = await repository.GetAsync(meta, name, ct);
+        if (doc is null)
+            return null;
+
+        foreach (var field in TableFields(meta))
+        {
+            var child = registry.Get(field.Options!);
+            var rows = await repository.GetChildrenAsync(child, meta.Name, name, field.Name, ct);
+            doc[field.Name] = rows.Select(r => ShapeRow(child, r)).ToList();
+        }
+
+        return doc;
+    }
+
+    /// <summary>A child row as the API shows it: its id, position and the DocType's own fields.</summary>
+    private static Dictionary<string, object?> ShapeRow(DocTypeMeta child, Dictionary<string, object?> row)
+    {
+        var shaped = new Dictionary<string, object?> { ["name"] = row["name"], ["idx"] = row["idx"] };
+        foreach (var field in child.Fields.Where(f => FieldTypes.HasColumn(f.Type)))
+            shaped[field.Name] = row.GetValueOrDefault(field.Name);
+        return shaped;
     }
 
     private ListQuery Normalize(DocTypeMeta meta, ListRequest request)
@@ -278,16 +358,17 @@ public sealed class DocumentService(
         IReadOnlyDictionary<string, object?> input,
         List<FieldError> errors,
         bool allowName,
-        out string? promptName)
+        out string? providedName,
+        string pathPrefix = "")
     {
-        promptName = null;
+        providedName = null;
         var values = new Dictionary<string, object?>(StringComparer.Ordinal);
 
         foreach (var (key, raw) in input)
         {
             if (key == "name" && allowName)
             {
-                promptName = FieldValueConverter.Unwrap(raw) as string;
+                providedName = FieldValueConverter.Unwrap(raw) as string;
                 continue;
             }
 
@@ -298,13 +379,16 @@ public sealed class DocumentService(
             var field = meta.Fields.FirstOrDefault(f => f.Name == key);
             if (field is null)
             {
-                errors.Add(new FieldError(key, "Unknown field."));
+                errors.Add(new FieldError(pathPrefix + key, "Unknown field."));
                 continue;
             }
 
+            if (field.Type == FieldType.Table)
+                continue; // child rows are read separately by ReadTables
+
             if (!FieldTypes.HasColumn(field.Type))
             {
-                errors.Add(new FieldError(key, $"{field.Type} fields cannot be set directly yet."));
+                errors.Add(new FieldError(pathPrefix + key, $"{field.Type} fields cannot be set directly yet."));
                 continue;
             }
 
@@ -315,14 +399,97 @@ public sealed class DocumentService(
             }
             catch (FormatException ex)
             {
-                errors.Add(new FieldError(key, ex.Message));
+                errors.Add(new FieldError(pathPrefix + key, ex.Message));
             }
         }
 
         return values;
     }
 
-    private static void ApplyDefaults(DocTypeMeta meta, Dictionary<string, object?> values, List<FieldError> errors)
+    /// <summary>Reads the rows the client sent for each Table field it mentioned (a missing field means "unchanged").</summary>
+    private List<TableInput> ReadTables(DocTypeMeta meta, IReadOnlyDictionary<string, object?> input, List<FieldError> errors)
+    {
+        var tables = new List<TableInput>();
+        foreach (var field in TableFields(meta))
+        {
+            if (!input.TryGetValue(field.Name, out var raw))
+                continue;
+
+            if (!registry.TryGet(field.Options!, out var child))
+            {
+                errors.Add(new FieldError(field.Name, $"The child DocType '{field.Options}' does not exist."));
+                continue;
+            }
+
+            var rawRows = ReadRows(raw, field.Name, errors);
+            if (rawRows.Count > MaxRows)
+            {
+                errors.Add(new FieldError(field.Name, $"A table can hold at most {MaxRows} rows."));
+                continue;
+            }
+
+            var rows = new List<RowInput>();
+            for (var i = 0; i < rawRows.Count; i++)
+            {
+                var values = Coerce(child, rawRows[i], errors, allowName: true, out var rowName, $"{field.Name}[{i}].");
+                rows.Add(new RowInput(rowName, values));
+            }
+
+            tables.Add(new TableInput(field, child, rows));
+        }
+
+        return tables;
+    }
+
+    private static List<Dictionary<string, object?>> ReadRows(object? raw, string path, List<FieldError> errors)
+    {
+        var rows = new List<Dictionary<string, object?>>();
+        if (raw is JsonElement { ValueKind: JsonValueKind.Null or JsonValueKind.Undefined } || raw is null)
+            return rows;
+
+        if (raw is JsonElement { ValueKind: JsonValueKind.Array } array)
+        {
+            var index = 0;
+            foreach (var element in array.EnumerateArray())
+            {
+                if (element.ValueKind == JsonValueKind.Object)
+                {
+                    rows.Add(element.EnumerateObject().ToDictionary(p => p.Name, p => (object?)p.Value.Clone(), StringComparer.Ordinal));
+                }
+                else
+                {
+                    errors.Add(new FieldError($"{path}[{index}]", "Each row must be an object."));
+                }
+
+                index++;
+            }
+
+            return rows;
+        }
+
+        if (raw is IEnumerable items and not string)
+        {
+            var index = 0;
+            foreach (var item in items)
+            {
+                if (item is IEnumerable<KeyValuePair<string, object?>> pairs)
+                    rows.Add(pairs.ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal));
+                else if (item is IEnumerable<KeyValuePair<string, JsonElement>> jsonPairs)
+                    rows.Add(jsonPairs.ToDictionary(p => p.Key, p => (object?)p.Value, StringComparer.Ordinal));
+                else
+                    errors.Add(new FieldError($"{path}[{index}]", "Each row must be an object."));
+                index++;
+            }
+
+            return rows;
+        }
+
+        errors.Add(new FieldError(path, "Must be a list of rows."));
+        return rows;
+    }
+
+    private static void ApplyDefaults(
+        DocTypeMeta meta, Dictionary<string, object?> values, List<FieldError> errors, string pathPrefix = "")
     {
         foreach (var field in meta.Fields.Where(f => f.Default is not null && FieldTypes.HasColumn(f.Type)))
         {
@@ -335,7 +502,7 @@ public sealed class DocumentService(
             }
             catch (FormatException ex)
             {
-                errors.Add(new FieldError(field.Name, $"Invalid default: {ex.Message}"));
+                errors.Add(new FieldError(pathPrefix + field.Name, $"Invalid default: {ex.Message}"));
             }
         }
     }
@@ -345,18 +512,20 @@ public sealed class DocumentService(
         IReadOnlyDictionary<string, object?> document,
         IEnumerable<string> changed,
         List<FieldError> errors,
+        string pathPrefix,
         CancellationToken ct)
     {
         var changedSet = changed.ToHashSet(StringComparer.Ordinal);
 
         foreach (var field in meta.Fields.Where(f => FieldTypes.HasColumn(f.Type)))
         {
+            var path = pathPrefix + field.Name;
             var value = document.GetValueOrDefault(field.Name);
             var isEmpty = value is null or "";
 
             if (field.Required && isEmpty)
             {
-                errors.Add(new FieldError(field.Name, "This field is required."));
+                errors.Add(new FieldError(path, "This field is required."));
                 continue;
             }
 
@@ -364,19 +533,128 @@ public sealed class DocumentService(
                 continue;
 
             if (value is string text && FieldTypes.IsShortText(field.Type) && text.Length > FieldTypes.ShortTextLength)
-                errors.Add(new FieldError(field.Name, $"Value is too long (max {FieldTypes.ShortTextLength} characters)."));
+                errors.Add(new FieldError(path, $"Value is too long (max {FieldTypes.ShortTextLength} characters)."));
 
             if (field.Type == FieldType.Select && !field.SelectOptions().Contains(value as string, StringComparer.Ordinal))
-                errors.Add(new FieldError(field.Name, $"Must be one of: {string.Join(", ", field.SelectOptions())}."));
+                errors.Add(new FieldError(path, $"Must be one of: {string.Join(", ", field.SelectOptions())}."));
 
             if (field.Type == FieldType.Link && value is string linked)
             {
                 if (!registry.TryGet(field.Options!, out var target))
-                    errors.Add(new FieldError(field.Name, $"Link target '{field.Options}' does not exist."));
+                    errors.Add(new FieldError(path, $"Link target '{field.Options}' does not exist."));
                 else if (!await repository.ExistsAsync(target, linked, ct))
-                    errors.Add(new FieldError(field.Name, $"{target.Name} '{linked}' does not exist."));
+                    errors.Add(new FieldError(path, $"{target.Name} '{linked}' does not exist."));
             }
         }
+    }
+
+    /// <summary>Validates the rows of one child table. <paramref name="current"/> is null for a brand new document.</summary>
+    private async Task ValidateTableAsync(
+        TableInput table,
+        Dictionary<string, Dictionary<string, object?>>? current,
+        List<FieldError> errors,
+        CancellationToken ct)
+    {
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        for (var i = 0; i < table.Rows.Count; i++)
+        {
+            var row = table.Rows[i];
+            var prefix = $"{table.Field.Name}[{i}].";
+
+            if (row.Name is not null && current is not null)
+            {
+                if (!current.TryGetValue(row.Name, out var existing))
+                {
+                    errors.Add(new FieldError(prefix + "name", "This row does not belong to the document."));
+                    continue;
+                }
+
+                if (!seen.Add(row.Name))
+                {
+                    errors.Add(new FieldError(prefix + "name", "The same row appears twice."));
+                    continue;
+                }
+
+                var merged = new Dictionary<string, object?>(existing);
+                foreach (var (key, value) in row.Values)
+                    merged[key] = value;
+                await ValidateAsync(table.Child, merged, row.Values.Keys, errors, prefix, ct);
+            }
+            else
+            {
+                var values = new Dictionary<string, object?>(row.Values);
+                ApplyDefaults(table.Child, values, errors, prefix);
+                row.Values = values;
+                await ValidateAsync(table.Child, values, values.Keys, errors, prefix, ct);
+            }
+        }
+    }
+
+    private static void CheckRequiredTables(
+        DocTypeMeta meta, List<TableInput> tables, List<FieldError> errors, bool onlyIfProvided)
+    {
+        foreach (var field in TableFields(meta).Where(f => f.Required))
+        {
+            var provided = tables.FirstOrDefault(t => t.Field.Name == field.Name);
+            if (provided is null ? !onlyIfProvided : provided.Rows.Count == 0)
+                errors.Add(new FieldError(field.Name, "Add at least one row."));
+        }
+    }
+
+    /// <summary>Works out which rows to add, change and remove so the table matches what the client sent.</summary>
+    private static ChildChanges BuildChanges(
+        TableInput table,
+        DocTypeMeta parent,
+        string parentName,
+        Dictionary<string, Dictionary<string, object?>> current,
+        DateTime now,
+        IUserContext user)
+    {
+        var inserts = new List<IReadOnlyDictionary<string, object?>>();
+        var updates = new List<ChildUpdate>();
+        var kept = new HashSet<string>(StringComparer.Ordinal);
+
+        for (var i = 0; i < table.Rows.Count; i++)
+        {
+            var row = table.Rows[i];
+            var idx = i + 1;
+
+            if (row.Name is not null && current.TryGetValue(row.Name, out var existing))
+            {
+                kept.Add(row.Name);
+                var changed = row.Values
+                    .Where(kv => !Equals(existing.GetValueOrDefault(kv.Key), kv.Value))
+                    .ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.Ordinal);
+                if (Convert.ToInt32(existing["idx"]) != idx)
+                    changed["idx"] = idx;
+
+                if (changed.Count > 0)
+                {
+                    changed["modified"] = now;
+                    changed["modified_by"] = user.User;
+                    updates.Add(new ChildUpdate(row.Name, changed));
+                }
+
+                continue;
+            }
+
+            inserts.Add(new Dictionary<string, object?>(row.Values, StringComparer.Ordinal)
+            {
+                ["name"] = Guid.NewGuid().ToString("N")[..10],
+                ["parent"] = parentName,
+                ["parenttype"] = parent.Name,
+                ["parentfield"] = table.Field.Name,
+                ["idx"] = idx,
+                ["creation"] = now,
+                ["modified"] = now,
+                ["modified_by"] = user.User,
+                ["owner"] = user.User,
+                ["docstatus"] = 0,
+            });
+        }
+
+        var deletes = current.Keys.Where(name => !kept.Contains(name)).ToList();
+        return new ChildChanges(table.Child, inserts, updates, deletes);
     }
 
     private DateTime Now()

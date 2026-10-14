@@ -93,6 +93,12 @@ public sealed class SqlBuilder(ISqlDialect dialect)
         return new SqlStatement(sql.ToString(), parameters);
     }
 
+    /// <summary>Removes every row of a child table that belongs to one parent document.</summary>
+    public SqlStatement DeleteChildren(DocTypeMeta childMeta, string parentDocType, string parent) =>
+        new($"DELETE FROM {dialect.TableName(childMeta.Name)} WHERE {dialect.Quote("parent")} = {dialect.Parameter(0)} " +
+            $"AND {dialect.Quote("parenttype")} = {dialect.Parameter(1)}",
+            [parent, parentDocType]);
+
     public SqlStatement Delete(DocTypeMeta meta, string name) =>
         new($"DELETE FROM {dialect.TableName(meta.Name)} WHERE {dialect.Quote("name")} = {dialect.Parameter(0)}", [name]);
 
