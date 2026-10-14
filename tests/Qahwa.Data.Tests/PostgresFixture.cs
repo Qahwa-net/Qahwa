@@ -1,5 +1,8 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
 using Npgsql;
 using Qahwa.Core;
+using Qahwa.Core.Auth;
 using Qahwa.Data;
 using Qahwa.Data.Postgres;
 using Qahwa.Testing;
@@ -64,7 +67,17 @@ public sealed class PgStack : IAsyncDisposable
         Repository = new DocumentRepository(_connections, Dialect, new SqlBuilder(Dialect));
         Clock = new TestClock(DateTimeOffset.UtcNow);
         Documents = new DocumentService(Registry, Repository, new PermissionService(), new NamingService(Repository), Clock);
+        AuthStore = new AuthStore(_connections, Dialect);
+        AuthOptions = new AuthOptions { HashIterations = 1000 };
+        Auth = new AuthService(
+            Registry, Repository, Documents, AuthStore,
+            new PasswordHasher<string>(Options.Create(new PasswordHasherOptions { IterationCount = 1000 })),
+            Options.Create(AuthOptions), Clock);
     }
+
+    public AuthStore AuthStore { get; }
+    public AuthOptions AuthOptions { get; }
+    public AuthService Auth { get; }
 
     public NpgsqlDataSource DataSource { get; }
     public PostgresDialect Dialect { get; }

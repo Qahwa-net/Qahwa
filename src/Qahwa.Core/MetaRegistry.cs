@@ -30,6 +30,21 @@ public sealed class MetaRegistry : IMetaRegistry
             throw new DocTypeValidationException($"Duplicate DocType '{meta.Name}'.");
     }
 
+    /// <summary>Adds the framework's own DocTypes (User, Role, Has Role) that ship inside this assembly.</summary>
+    public void AddCoreDocTypes()
+    {
+        var assembly = typeof(MetaRegistry).Assembly;
+        var resources = assembly.GetManifestResourceNames()
+            .Where(n => n.Contains(".CoreDocTypes.", StringComparison.Ordinal) && n.EndsWith(".json", StringComparison.Ordinal))
+            .Order(StringComparer.Ordinal);
+
+        foreach (var resource in resources)
+        {
+            using var reader = new StreamReader(assembly.GetManifestResourceStream(resource)!);
+            Add(DocTypeLoader.Parse(reader.ReadToEnd()));
+        }
+    }
+
     public void LoadDirectory(string path)
     {
         if (!Directory.Exists(path))

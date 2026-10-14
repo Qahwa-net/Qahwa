@@ -1,4 +1,7 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
 using Qahwa.Core;
+using Qahwa.Core.Auth;
 
 namespace Qahwa.Testing;
 
@@ -45,6 +48,7 @@ public static class TestMetas
     public static MetaRegistry Registry()
     {
         var registry = new MetaRegistry();
+        registry.AddCoreDocTypes();
         registry.Add(DocTypeLoader.Parse(Territory));
         registry.Add(DocTypeLoader.Parse(Customer));
         registry.ValidateReferences();
@@ -59,6 +63,8 @@ public static class TestUsers
     public static readonly UserContext SalesA = new("a@example.com", ["Sales User"]);
     public static readonly UserContext SalesB = new("b@example.com", ["Sales User"]);
     public static readonly UserContext Nobody = new("nobody@example.com", []);
+
+    public const string StrongPassword = "correct horse battery staple";
 }
 
 public sealed class TestEngine
@@ -70,12 +76,25 @@ public sealed class TestEngine
         Clock = new TestClock(new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero));
         Documents = new DocumentService(
             Registry, Repository, new PermissionService(), new NamingService(Repository), Clock);
+        AuthStore = new InMemoryAuthStore();
+        AuthOptions = new AuthOptions { HashIterations = 1000 };
+        Auth = new AuthService(
+            Registry,
+            Repository,
+            Documents,
+            AuthStore,
+            new PasswordHasher<string>(Options.Create(new PasswordHasherOptions { IterationCount = 1000 })),
+            Options.Create(AuthOptions),
+            Clock);
     }
 
     public MetaRegistry Registry { get; }
     public IDocumentRepository Repository { get; }
     public TestClock Clock { get; }
     public DocumentService Documents { get; }
+    public IAuthStore AuthStore { get; }
+    public AuthOptions AuthOptions { get; }
+    public AuthService Auth { get; }
 
     public static Dictionary<string, object?> Values(params (string Key, object? Value)[] pairs) =>
         pairs.ToDictionary(p => p.Key, p => p.Value);

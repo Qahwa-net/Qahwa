@@ -1,0 +1,12 @@
+{
+  "name": "Role",
+  "module": "Core",
+  "autoname": "field:role_name",
+  "titleField": "role_name",
+  "fields": [
+    { "name": "role_name", "type": "Data", "label": "Role Name", "required": true, "inListView": true }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "write": true, "create": true, "delete": true }
+  ]
+}

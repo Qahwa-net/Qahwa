@@ -1,75 +1,140 @@
+using System.Security.Claims;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Json;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Qahwa.Core;
+using Qahwa.Core.Auth;
 
 namespace Qahwa.Api;
 
-public sealed class QahwaApiOptions
-{
-    /// <summary>
-    /// Development-only authentication: trusts the X-Qahwa-User and X-Qahwa-Roles request headers.
-    /// Refused outside the Development environment. Replaced by real authentication later in Phase 1.
-    /// </summary>
-    public bool DevAuthEnabled { get; set; }
-}
-
+/// <summary>Works out who is making the current request.</summary>
 public interface IUserContextResolver
 {
-    IUserContext Resolve(HttpContext context);
+    ValueTask<IUserContext> ResolveAsync(HttpContext context, CancellationToken ct = default);
 }
 
-internal sealed class AnonymousUserContextResolver : IUserContextResolver
+/// <summary>
+/// Reads the signed session cookie, then re-checks the user against the database (briefly cached), so disabling a
+/// user, changing roles or changing the password takes effect on open sessions.
+/// </summary>
+internal sealed class CookieUserContextResolver(
+    AuthService auth,
+    IMemoryCache cache,
+    IOptions<AuthOptions> options) : IUserContextResolver
 {
-    public IUserContext Resolve(HttpContext context) => UserContext.Anonymous;
-}
+    private static readonly object ItemKey = new();
 
-internal sealed class DevUserContextResolver : IUserContextResolver
-{
-    public IUserContext Resolve(HttpContext context)
+    public async ValueTask<IUserContext> ResolveAsync(HttpContext context, CancellationToken ct = default)
     {
-        var user = context.Request.Headers["X-Qahwa-User"].ToString();
-        if (string.IsNullOrWhiteSpace(user))
+        if (context.Items.TryGetValue(ItemKey, out var cached))
+            return (IUserContext)cached!;
+
+        var resolved = await ResolveCoreAsync(context, ct);
+        context.Items[ItemKey] = resolved;
+        return resolved;
+    }
+
+    private async Task<IUserContext> ResolveCoreAsync(HttpContext context, CancellationToken ct)
+    {
+        var principal = context.User;
+        if (principal.Identity?.IsAuthenticated != true)
             return UserContext.Anonymous;
 
-        var roles = context.Request.Headers["X-Qahwa-Roles"].ToString()
-            .Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries)
-            .ToList();
-        if (user == UserContext.AdministratorRole)
-            roles.Add(UserContext.AdministratorRole);
+        var email = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+        var version = principal.FindFirstValue(AuthClaims.PasswordVersion);
+        if (email is null)
+            return UserContext.Anonymous;
 
-        return new UserContext(user, roles);
+        var session = await GetSessionAsync(email, ct);
+        return session is not null && session.PasswordVersion.ToString(System.Globalization.CultureInfo.InvariantCulture) == version
+            ? session.User
+            : UserContext.Anonymous;
     }
+
+    private async Task<SessionInfo?> GetSessionAsync(string email, CancellationToken ct)
+    {
+        var seconds = options.Value.SessionCacheSeconds;
+        if (seconds <= 0)
+            return await auth.LoadSessionAsync(email, ct);
+
+        return await cache.GetOrCreateAsync(AuthClaims.SessionKey(email), entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(seconds);
+            return auth.LoadSessionAsync(email, CancellationToken.None);
+        });
+    }
+}
+
+internal static class AuthClaims
+{
+    public const string PasswordVersion = "qahwa:pwv";
+    public const string LoginRateLimit = "qahwa-login";
+
+    public static string SessionKey(string email) => $"qahwa:session:{email}";
 }
 
 public static class ApiServiceCollectionExtensions
 {
     public static IServiceCollection AddQahwaApi(this IServiceCollection services)
     {
-        services.AddOptions<QahwaApiOptions>();
         services.Configure<JsonOptions>(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
-        services.AddSingleton<IUserContextResolver>(sp =>
+        services.AddMemoryCache();
+        services.AddSingleton<IUserContextResolver, CookieUserContextResolver>();
+
+        // Cross-site request forgery: the cookie is SameSite=Lax (not sent on cross-site POST/PUT/DELETE) and every
+        // state-changing endpoint only accepts JSON bodies, which browsers cannot send cross-site without a CORS
+        // preflight. Do not enable CORS for untrusted origins.
+        services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme).AddCookie();
+        services.AddOptions<CookieAuthenticationOptions>(CookieAuthenticationDefaults.AuthenticationScheme)
+            .Configure<IHostEnvironment, IOptions<AuthOptions>>((cookie, env, auth) =>
+            {
+                cookie.Cookie.Name = "qahwa.sid";
+                cookie.Cookie.HttpOnly = true;
+                cookie.Cookie.SameSite = SameSiteMode.Lax;
+                cookie.Cookie.SecurePolicy = env.IsDevelopment() ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
+                cookie.ExpireTimeSpan = TimeSpan.FromHours(auth.Value.SessionHours);
+                cookie.SlidingExpiration = true;
+                cookie.Events.OnRedirectToLogin = ctx => { ctx.Response.StatusCode = StatusCodes.Status401Unauthorized; return Task.CompletedTask; };
+                cookie.Events.OnRedirectToAccessDenied = ctx => { ctx.Response.StatusCode = StatusCodes.Status403Forbidden; return Task.CompletedTask; };
+            });
+
+        services.AddRateLimiter(limiter =>
         {
-            if (!sp.GetRequiredService<IOptions<QahwaApiOptions>>().Value.DevAuthEnabled)
-                return new AnonymousUserContextResolver();
-
-            if (!sp.GetRequiredService<IHostEnvironment>().IsDevelopment())
-                throw new InvalidOperationException("Qahwa dev authentication can only be enabled in the Development environment.");
-
-            return new DevUserContextResolver();
+            limiter.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            limiter.AddPolicy(AuthClaims.LoginRateLimit, http =>
+            {
+                var permits = http.RequestServices.GetRequiredService<IOptions<AuthOptions>>().Value.LoginPermitsPerMinute;
+                return RateLimitPartition.GetFixedWindowLimiter(
+                    http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new FixedWindowRateLimiterOptions
+                    {
+                        PermitLimit = Math.Max(permits, 1),
+                        Window = TimeSpan.FromMinutes(1),
+                        QueueLimit = 0,
+                    });
+            });
         });
+
         return services;
     }
 }
 
-public static class ErrorHandlingExtensions
+public static class ApplicationBuilderExtensions
 {
+    /// <summary>Error envelope, rate limiting and authentication, in the order they must run.</summary>
+    public static IApplicationBuilder UseQahwa(this IApplicationBuilder app) =>
+        app.UseQahwaErrors().UseRateLimiter().UseAuthentication();
+
     /// <summary>Maps framework exceptions to the standard <c>{ code, message, details }</c> error envelope.</summary>
     public static IApplicationBuilder UseQahwaErrors(this IApplicationBuilder app) =>
         app.Use(async (context, next) =>

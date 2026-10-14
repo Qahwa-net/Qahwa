@@ -97,18 +97,6 @@ public sealed class DocumentRepository(
         return result is DBNull ? null : result;
     }
 
-    private static DbCommand CreateCommand(DbConnection connection, SqlStatement statement)
-    {
-        var command = connection.CreateCommand();
-        command.CommandText = statement.Sql;
-        for (var i = 0; i < statement.Parameters.Count; i++)
-        {
-            var parameter = command.CreateParameter();
-            parameter.ParameterName = $"p{i}";
-            parameter.Value = statement.Parameters[i] ?? DBNull.Value;
-            command.Parameters.Add(parameter);
-        }
-
-        return command;
-    }
+    private static DbCommand CreateCommand(DbConnection connection, SqlStatement statement) =>
+        DbCommands.Create(connection, statement.Sql, statement.Parameters);
 }

@@ -1,4 +1,5 @@
 using Qahwa.Api;
+using Qahwa.Core.Auth;
 using Qahwa.Data.Postgres;
 using Qahwa.Hosting;
 
@@ -9,7 +10,7 @@ builder.Services.AddOptions<QahwaOptions>().Configure<IConfiguration, IHostEnvir
     foreach (var path in config.GetSection("Qahwa:DocTypePaths").Get<string[]>() ?? [])
         options.DocTypePaths.Add(Path.GetFullPath(path, env.ContentRootPath));
 });
-builder.Services.AddOptions<QahwaApiOptions>().BindConfiguration("Qahwa:Api");
+builder.Services.AddOptions<AuthOptions>().BindConfiguration("Qahwa:Auth");
 
 builder.Services.AddQahwa();
 builder.Services.AddQahwaPostgres(sp =>
@@ -19,7 +20,7 @@ builder.Services.AddQahwaApi();
 
 var app = builder.Build();
 
-app.UseQahwaErrors();
+app.UseQahwa();
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok", framework = "Qahwa" }));
 app.MapQahwaApi();
 

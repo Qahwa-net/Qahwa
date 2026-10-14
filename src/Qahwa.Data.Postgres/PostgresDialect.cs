@@ -41,6 +41,16 @@ public sealed class PostgresDialect : ISqlDialect
     public string CreateSeriesTableSql =>
         "CREATE TABLE IF NOT EXISTS \"tabSeries\" (\"name\" varchar(140) NOT NULL PRIMARY KEY, \"current\" bigint NOT NULL DEFAULT 0)";
 
+    public string CreateAuthTableSql =>
+        "CREATE TABLE IF NOT EXISTS \"__auth\" (" +
+        "\"name\" varchar(140) NOT NULL PRIMARY KEY, " +
+        "\"password\" text NOT NULL, " +
+        "\"failed_attempts\" integer NOT NULL DEFAULT 0, " +
+        "\"locked_until\" timestamp with time zone, " +
+        "\"last_login\" timestamp with time zone, " +
+        "\"password_changed\" timestamp with time zone NOT NULL, " +
+        "\"user_created\" timestamp with time zone NOT NULL)";
+
     public string NextSeriesSql =>
         "INSERT INTO \"tabSeries\" (\"name\", \"current\") VALUES (@p0, 1) " +
         "ON CONFLICT (\"name\") DO UPDATE SET \"current\" = \"tabSeries\".\"current\" + 1 RETURNING \"current\"";

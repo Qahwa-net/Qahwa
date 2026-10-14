@@ -1,0 +1,11 @@
+{
+  "name": "Has Role",
+  "module": "Core",
+  "fields": [
+    { "name": "user", "type": "Link", "options": "User", "label": "User", "required": true, "inListView": true },
+    { "name": "role", "type": "Link", "options": "Role", "label": "Role", "required": true, "inListView": true }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "write": true, "create": true, "delete": true }
+  ]
+}

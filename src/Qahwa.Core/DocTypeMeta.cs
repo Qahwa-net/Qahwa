@@ -35,6 +35,9 @@ public sealed record DocFieldMeta
     public bool Unique { get; init; }
     public bool InListView { get; init; }
     public string? Default { get; init; }
+
+    /// <summary>Convert text values to lower case when saving (used for emails).</summary>
+    public bool Lowercase { get; init; }
 }
 
 public sealed record DocPermMeta

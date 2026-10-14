@@ -70,7 +70,7 @@ Define a `Customer` DocType in JSON, run one command, and get a working table, A
 | Data access | **Dapper + custom `SqlBuilder` (dialect-aware)** | Runtime schema changes fit poorly with EF Core's compiled model |
 | Primary DB | **PostgreSQL** (JSONB gives a flexible escape hatch) | Also support SQL Server via a dialect abstraction |
 | Metadata storage | JSON files in each app (source of truth) + mirrored into `tabDocType` tables at migrate time | Git-friendly, like Frappe |
-| Auth | **ASP.NET Core Identity + JWT / cookie sessions + API key/secret** | Standard |
+| Auth | **Cookie sessions + ASP.NET Core Identity password hasher (PBKDF2)**; JWT and API key/secret later | Users are `User` DocTypes, so the full Identity/EF stores do not fit. See ADR-002 |
 | Frontend | **React + TypeScript + Vite** (Desk SPA) | Largest ecosystem for form builders and data grids. Blazor is a viable alternative if you want all-C# |
 | UI components | TanStack Table/Query, React Hook Form, Radix/shadcn | |
 | Background jobs | Hangfire (PostgreSQL storage) | Dashboard included |
@@ -359,7 +359,7 @@ Timeline assumes **1–2 full-time developers**. Scale it up or down accordingly
 4. `Document` class + basic insert/read/update/delete + standard columns
 5. Generic CRUD endpoints + `/api/meta`
 6. Filters → SQL query builder (whitelisted)
-7. Auth (Identity, login/logout), `User` and `Role` DocTypes, basic role permissions
+7. Auth (cookie login/logout, lockout, rate limit), `User`, `Role` and `Has Role` DocTypes, basic role permissions: **done**
 8. CLI: `new-site`, `migrate`, `start`
 9. Desk v0: login, sidebar of DocTypes, generic list + form for simple fields
 

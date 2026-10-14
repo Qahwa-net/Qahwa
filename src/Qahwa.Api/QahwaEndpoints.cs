@@ -12,21 +12,23 @@ public static class QahwaEndpoints
     {
         var api = app.MapGroup("/api");
 
-        api.MapGet("/meta", (HttpContext http, DocumentService docs, IUserContextResolver users) =>
+        api.MapGet("/meta", async (HttpContext http, DocumentService docs, IUserContextResolver users, CancellationToken ct) =>
             Results.Ok(new
             {
-                data = docs.ListMetas(users.Resolve(http)).Select(m => new { m.Name, m.Module, m.TitleField }),
+                data = docs.ListMetas(await users.ResolveAsync(http, ct)).Select(m => new { m.Name, m.Module, m.TitleField }),
             }));
 
-        api.MapGet("/meta/{doctype}", (string doctype, HttpContext http, DocumentService docs, IUserContextResolver users) =>
-            Results.Ok(new { data = docs.GetMeta(doctype, users.Resolve(http)) }));
+        api.MapGet("/meta/{doctype}", async (
+            string doctype, HttpContext http, DocumentService docs, IUserContextResolver users, CancellationToken ct) =>
+            Results.Ok(new { data = docs.GetMeta(doctype, await users.ResolveAsync(http, ct)) }));
 
         var resource = api.MapGroup("/resource/{doctype}");
 
         resource.MapGet(string.Empty, async (
             string doctype, HttpContext http, DocumentService docs, IUserContextResolver users, CancellationToken ct) =>
         {
-            var result = await docs.ListAsync(doctype, ParseListRequest(http.Request.Query), users.Resolve(http), ct);
+            var result = await docs.ListAsync(
+                doctype, ParseListRequest(http.Request.Query), await users.ResolveAsync(http, ct), ct);
             return Results.Ok(new { data = result.Data, total = result.Total });
         });
 
@@ -34,28 +36,32 @@ public static class QahwaEndpoints
             string doctype, Dictionary<string, JsonElement> body, HttpContext http,
             DocumentService docs, IUserContextResolver users, CancellationToken ct) =>
         {
-            var doc = await docs.InsertAsync(doctype, ToValues(body), users.Resolve(http), ct);
+            var doc = await docs.InsertAsync(doctype, ToValues(body), await users.ResolveAsync(http, ct), ct);
             return Results.Created($"/api/resource/{doctype}/{Uri.EscapeDataString((string)doc["name"]!)}", new { data = doc });
         });
 
         resource.MapGet("/{name}", async (
             string doctype, string name, HttpContext http,
             DocumentService docs, IUserContextResolver users, CancellationToken ct) =>
-            Results.Ok(new { data = await docs.GetAsync(doctype, name, users.Resolve(http), ct) }));
+            Results.Ok(new { data = await docs.GetAsync(doctype, name, await users.ResolveAsync(http, ct), ct) }));
 
         resource.MapPut("/{name}", async (
             string doctype, string name, Dictionary<string, JsonElement> body, HttpContext http,
             DocumentService docs, IUserContextResolver users, CancellationToken ct) =>
-            Results.Ok(new { data = await docs.UpdateAsync(doctype, name, ToValues(body), users.Resolve(http), ct) }));
+            Results.Ok(new
+            {
+                data = await docs.UpdateAsync(doctype, name, ToValues(body), await users.ResolveAsync(http, ct), ct),
+            }));
 
         resource.MapDelete("/{name}", async (
             string doctype, string name, HttpContext http,
             DocumentService docs, IUserContextResolver users, CancellationToken ct) =>
         {
-            await docs.DeleteAsync(doctype, name, users.Resolve(http), ct);
+            await docs.DeleteAsync(doctype, name, await users.ResolveAsync(http, ct), ct);
             return Results.Ok(new { message = "ok" });
         });
 
+        app.MapQahwaAuth();
         return app;
     }
 

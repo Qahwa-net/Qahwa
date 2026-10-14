@@ -16,9 +16,9 @@ public sealed class SchemaSync(
         return _planner.Plan(meta, current);
     }
 
-    /// <summary>Creates framework tables that are not DocTypes (naming series counters).</summary>
+    /// <summary>Creates framework tables that are not DocTypes (naming series counters, credentials).</summary>
     public async Task EnsureSystemTablesAsync(CancellationToken ct = default) =>
-        await ExecuteAsync([dialect.CreateSeriesTableSql], ct);
+        await ExecuteAsync([dialect.CreateSeriesTableSql, dialect.CreateAuthTableSql], ct);
 
     public Task ApplyAsync(SchemaPlan plan, CancellationToken ct = default) =>
         plan.IsEmpty ? Task.CompletedTask : ExecuteAsync(plan.Statements.Select(s => s.Sql), ct);

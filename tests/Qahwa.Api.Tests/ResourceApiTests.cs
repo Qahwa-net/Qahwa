@@ -169,23 +169,4 @@ public sealed class ResourceApiTests : IAsyncDisposable
         Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateClient().GetAsync("/api/meta/Customer")).StatusCode);
     }
 
-    [Fact]
-    public async Task Dev_auth_is_ignored_when_disabled()
-    {
-        await using var factory = new QahwaFactory(devAuth: false);
-
-        var response = await factory.ClientFor("Administrator").GetAsync("/api/resource/Customer");
-
-        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task Dev_auth_fails_closed_outside_development()
-    {
-        await using var factory = new QahwaFactory(environment: "Production", devAuth: true);
-
-        var response = await factory.ClientFor("Administrator").GetAsync("/api/resource/Customer");
-
-        Assert.Equal(HttpStatusCode.InternalServerError, response.StatusCode);
-    }
 }

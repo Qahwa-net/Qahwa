@@ -303,7 +303,8 @@ public sealed class DocumentService(
 
             try
             {
-                values[key] = FieldValueConverter.ToStorage(field.Type, raw);
+                var value = FieldValueConverter.ToStorage(field.Type, raw);
+                values[key] = field.Lowercase && value is string text ? text.ToLowerInvariant() : value;
             }
             catch (FormatException ex)
             {

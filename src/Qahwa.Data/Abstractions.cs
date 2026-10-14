@@ -22,6 +22,9 @@ public interface ISqlDialect
 
     string CreateSeriesTableSql { get; }
 
+    /// <summary>Table holding password hashes and login counters (see <c>IAuthStore</c>).</summary>
+    string CreateAuthTableSql { get; }
+
     /// <summary>Increments the counter named by parameter 0 and returns the new value.</summary>
     string NextSeriesSql { get; }
 
