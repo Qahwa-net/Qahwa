@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Text.Json;
 using Qahwa.Abstractions;
+using Qahwa.Core.Expressions;
 
 namespace Qahwa.Core;
 
@@ -15,6 +16,8 @@ public sealed class DocumentService(
     NamingService naming,
     TimeProvider clock)
 {
+    private readonly DocumentLogic _logic = new(registry, repository, permissions, clock);
+
     private const int MaxLimit = 1000;
 
     /// <summary>The most rows one child table of a document may hold.</summary>
@@ -32,15 +35,6 @@ public sealed class DocumentService(
         ["in"] = FilterOp.In,
         ["is"] = FilterOp.IsNull, // resolved below from the value ("set" / "not set")
     };
-
-    /// <summary>One child table of a document as received from a client: the field, its DocType and the rows.</summary>
-    private sealed record TableInput(DocFieldMeta Field, DocTypeMeta Child, List<RowInput> Rows);
-
-    private sealed class RowInput(string? name, Dictionary<string, object?> values)
-    {
-        public string? Name { get; } = name;
-        public Dictionary<string, object?> Values { get; set; } = values;
-    }
 
     public IReadOnlyList<DocTypeMeta> ListMetas(IUserContext user) =>
         registry.All
@@ -83,10 +77,21 @@ public sealed class DocumentService(
         var values = Coerce(meta, input, errors, meta.Autoname == "prompt", out var promptName);
         var tables = ReadTables(meta, input, errors);
         ApplyDefaults(meta, values, errors);
-        await ValidateAsync(meta, values, values.Keys, errors, string.Empty, ct);
         foreach (var table in tables)
-            await ValidateTableAsync(table, null, errors, ct);
+        {
+            for (var i = 0; i < table.Rows.Count; i++)
+                ApplyDefaults(table.Child, table.Rows[i].Values, errors, $"{table.Field.Name}[{i}].");
+        }
+
+        // Expression defaults, "fetch from" values and formulas, then validation of the finished document.
+        var changed = values.Keys.ToHashSet(StringComparer.Ordinal);
+        await _logic.RunAsync(meta, values, changed, tables, user, isNew: true, errors, ct);
+        var context = _logic.Context(meta, values, tables, null, user, isNew: true);
+        await ValidateAsync(meta, values, values.Keys, errors, string.Empty, context, ct);
+        foreach (var table in tables)
+            await ValidateTableAsync(table, null, errors, values, user, isNew: true, ct);
         CheckRequiredTables(meta, tables, errors, onlyIfProvided: false);
+        ValidateRules(meta, tables, values, context, user, isNew: true, errors);
         if (errors.Count > 0)
             throw new DocumentValidationException(errors);
 
@@ -140,6 +145,13 @@ public sealed class DocumentService(
         var changes = Coerce(meta, input, errors, allowName: false, out _);
         var tables = ReadTables(meta, input, errors);
 
+        // Only what really differs from the saved document counts as a change.
+        foreach (var key in changes.Keys.ToList())
+        {
+            if (Equals(existing.GetValueOrDefault(key), changes[key]))
+                changes.Remove(key);
+        }
+
         // Optimistic concurrency: if the client says which version it edited, it must still be current.
         var stored = existing.GetValueOrDefault("modified") as DateTime?;
         if (input.TryGetValue("modified", out var rawModified) && FieldValueConverter.Unwrap(rawModified) is not null)
@@ -160,18 +172,40 @@ public sealed class DocumentService(
         foreach (var (key, value) in changes)
             merged[key] = value;
 
-        await ValidateAsync(meta, merged, changes.Keys, errors, string.Empty, ct);
-
         // Rows the client may refer to by name: the ones this document already has in each table.
         var currentRows = new Dictionary<string, Dictionary<string, Dictionary<string, object?>>>(StringComparer.Ordinal);
         foreach (var table in tables)
         {
             var rows = await repository.GetChildrenAsync(table.Child, meta.Name, name, table.Field.Name, ct);
             currentRows[table.Field.Name] = rows.ToDictionary(r => (string)r["name"]!, r => r, StringComparer.Ordinal);
-            await ValidateTableAsync(table, currentRows[table.Field.Name], errors, ct);
+            foreach (var row in table.Rows.Where(r => r.Name is not null && currentRows[table.Field.Name].ContainsKey(r.Name)))
+                row.Existing = currentRows[table.Field.Name][row.Name!];
         }
 
-        CheckRequiredTables(meta, tables, errors, onlyIfProvided: true);
+        // Formulas and rules may read tables the client did not send: bring their saved rows into play unchanged.
+        if (meta.HasLogic() || TableFields(meta).Any(f => registry.Get(f.Options!).HasLogic()))
+        {
+            foreach (var field in TableFields(meta).Where(f => tables.All(t => t.Field.Name != f.Name)).ToList())
+            {
+                var child = registry.Get(field.Options!);
+                var rows = await repository.GetChildrenAsync(child, meta.Name, name, field.Name, ct);
+                currentRows[field.Name] = rows.ToDictionary(r => (string)r["name"]!, r => r, StringComparer.Ordinal);
+                tables.Add(new TableInput(field, child, rows.Select(r => new RowInput((string)r["name"]!, [], r)).ToList(), Provided: false));
+            }
+        }
+
+        var changed = changes.Keys.ToHashSet(StringComparer.Ordinal);
+        await _logic.RunAsync(meta, merged, changed, tables, user, isNew: false, errors, ct);
+        foreach (var key in changed)
+            changes[key] = merged[key]; // calculated and fetched values are saved too
+
+        var context = _logic.Context(meta, merged, tables, null, user, isNew: false);
+        await ValidateAsync(meta, merged, changed, errors, string.Empty, context, ct);
+        foreach (var table in tables.Where(t => t.Provided))
+            await ValidateTableAsync(table, currentRows[table.Field.Name], errors, merged, user, isNew: false, ct);
+
+        CheckRequiredTables(meta, tables.Where(t => t.Provided).ToList(), errors, onlyIfProvided: true);
+        ValidateRules(meta, tables, merged, context, user, isNew: false, errors);
         if (errors.Count > 0)
             throw new DocumentValidationException(errors);
 
@@ -488,13 +522,16 @@ public sealed class DocumentService(
         return rows;
     }
 
+    /// <summary>Defaults starting with "=" are expressions; <see cref="DocumentLogic"/> evaluates those.</summary>
+    private static bool IsExpressionDefault(string? value) => value is { Length: > 1 } && value[0] == '=';
+
     private static void ApplyDefaults(
         DocTypeMeta meta, Dictionary<string, object?> values, List<FieldError> errors, string pathPrefix = "")
     {
-        foreach (var field in meta.Fields.Where(f => f.Default is not null && FieldTypes.HasColumn(f.Type)))
+        foreach (var field in meta.Fields.Where(f => f.Default is not null && !IsExpressionDefault(f.Default) && FieldTypes.HasColumn(f.Type)))
         {
-            if (values.ContainsKey(field.Name))
-                continue;
+            if (values.TryGetValue(field.Name, out var present) && present is not (null or ""))
+                continue; // an empty value counts as "not given"
 
             try
             {
@@ -513,6 +550,7 @@ public sealed class DocumentService(
         IEnumerable<string> changed,
         List<FieldError> errors,
         string pathPrefix,
+        ExpressionContext? context,
         CancellationToken ct)
     {
         var changedSet = changed.ToHashSet(StringComparer.Ordinal);
@@ -523,7 +561,8 @@ public sealed class DocumentService(
             var value = document.GetValueOrDefault(field.Name);
             var isEmpty = value is null or "";
 
-            if (field.Required && isEmpty)
+            // Required by the field or by its condition, and only while the field is shown.
+            if (DocumentLogic.IsRequired(field, context) && isEmpty)
             {
                 errors.Add(new FieldError(path, "This field is required."));
                 continue;
@@ -553,6 +592,9 @@ public sealed class DocumentService(
         TableInput table,
         Dictionary<string, Dictionary<string, object?>>? current,
         List<FieldError> errors,
+        IReadOnlyDictionary<string, object?> parentValues,
+        IUserContext user,
+        bool isNew,
         CancellationToken ct)
     {
         var seen = new HashSet<string>(StringComparer.Ordinal);
@@ -563,7 +605,7 @@ public sealed class DocumentService(
 
             if (row.Name is not null && current is not null)
             {
-                if (!current.TryGetValue(row.Name, out var existing))
+                if (!current.ContainsKey(row.Name))
                 {
                     errors.Add(new FieldError(prefix + "name", "This row does not belong to the document."));
                     continue;
@@ -574,19 +616,11 @@ public sealed class DocumentService(
                     errors.Add(new FieldError(prefix + "name", "The same row appears twice."));
                     continue;
                 }
+            }
 
-                var merged = new Dictionary<string, object?>(existing);
-                foreach (var (key, value) in row.Values)
-                    merged[key] = value;
-                await ValidateAsync(table.Child, merged, row.Values.Keys, errors, prefix, ct);
-            }
-            else
-            {
-                var values = new Dictionary<string, object?>(row.Values);
-                ApplyDefaults(table.Child, values, errors, prefix);
-                row.Values = values;
-                await ValidateAsync(table.Child, values, values.Keys, errors, prefix, ct);
-            }
+            var merged = row.Merged();
+            var context = _logic.Context(table.Child, merged, [], parentValues, user, isNew);
+            await ValidateAsync(table.Child, merged, row.Values.Keys, errors, prefix, context, ct);
         }
     }
 
@@ -598,6 +632,33 @@ public sealed class DocumentService(
             var provided = tables.FirstOrDefault(t => t.Field.Name == field.Name);
             if (provided is null ? !onlyIfProvided : provided.Rows.Count == 0)
                 errors.Add(new FieldError(field.Name, "Add at least one row."));
+        }
+    }
+
+    /// <summary>
+    /// Runs the DocType's validation rules, and those of its child tables for each row. Rules read the finished
+    /// document, so they only run once nothing more basic is wrong.
+    /// </summary>
+    private void ValidateRules(
+        DocTypeMeta meta,
+        List<TableInput> tables,
+        IReadOnlyDictionary<string, object?> values,
+        ExpressionContext context,
+        IUserContext user,
+        bool isNew,
+        List<FieldError> errors)
+    {
+        if (errors.Count > 0)
+            return;
+
+        DocumentLogic.ValidateRules(meta, context, errors, string.Empty, string.Empty);
+        foreach (var table in tables.Where(t => t.Provided && t.Child.Validations.Count > 0))
+        {
+            for (var i = 0; i < table.Rows.Count; i++)
+            {
+                var rowContext = _logic.Context(table.Child, table.Rows[i].Merged(), [], values, user, isNew);
+                DocumentLogic.ValidateRules(table.Child, rowContext, errors, $"{table.Field.Name}[{i}].", $"{table.Field.Name}[{i}]");
+            }
         }
     }
 

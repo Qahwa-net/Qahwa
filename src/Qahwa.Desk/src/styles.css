@@ -217,3 +217,19 @@ tbody tr:last-child td { border-block-end: 0; }
 .row-messages { margin: .25rem 0 0; padding-inline-start: 1.1rem; }
 .check-line { display: inline-flex; align-items: center; gap: .5rem; font-weight: 600; }
 .check-line input { inline-size: 1.1rem; block-size: 1.1rem; }
+
+/* Field logic and rules in the designer */
+.logic > summary { cursor: pointer; font-weight: 600; font-size: .85rem; }
+.logic-body { display: grid; gap: .75rem; margin-block-start: .5rem; }
+.expression input { font-size: .85rem; }
+.link-button { all: unset; cursor: pointer; color: var(--brand); font-size: .8rem; text-decoration: underline; }
+.link-button:focus-visible { outline: 2px solid var(--focus); }
+.expr-help { border: 1px solid var(--border); border-radius: var(--radius); padding: .6rem .8rem; background: var(--surface-2); max-block-size: 18rem; overflow: auto; font-size: .85rem; }
+.expr-help dl { margin: 0; display: grid; gap: .35rem; }
+.expr-help dt { font-weight: 600; }
+.expr-help dd { margin: 0; color: var(--muted); }
+.chip-button { font: inherit; font-size: .8rem; cursor: pointer; border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 999px; padding: .05rem .5rem; margin: .1rem; }
+.rule-list { list-style: none; margin: 0; padding: 0; display: grid; gap: .75rem; }
+.rule { display: grid; grid-template-columns: 1fr 1fr auto; gap: .5rem .75rem; align-items: start; border: 1px solid var(--border); border-radius: var(--radius); padding: .6rem; }
+.rule .expression { grid-column: 1 / -1; }
+.check-line.plain { font-weight: 400; }

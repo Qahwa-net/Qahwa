@@ -1,16 +1,22 @@
 import { useEffect, useMemo, useState } from 'react'
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { keepPreviousData, useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ApiError, api } from '../api/client.ts'
-import type { DesignerDetail, FieldError, FieldTypeInfo } from '../api/types.ts'
+import type { DesignerDetail, DocTypeMeta, FieldError, FieldTypeInfo } from '../api/types.ts'
+import { useAuth } from '../auth.tsx'
 import { FieldControl, type InputValue } from '../controls/FieldControl.tsx'
 import { TableControl } from '../controls/TableControl.tsx'
 import { FieldCard, PermissionsEditor } from '../designer/FieldCard.tsx'
+import { RulesEditor } from '../designer/RulesEditor.tsx'
 import {
   emptyDraft, errorMap, fromDetail, moveItem, newField, toDefinition, type AutonameKind, type Draft, type DraftField,
 } from '../lib/designer.ts'
 import { isEditable } from '../lib/fields.ts'
-import type { TableRow } from '../lib/tables.ts'
+import {
+  applyLogic, documentContext, expressionDefaults, failingRules, fieldState, rowContext, rowExpressionDefaults,
+  type FieldState, type Session,
+} from '../lib/logic.ts'
+import { emptyRow, type TableRow } from '../lib/tables.ts'
 
 function useDebounced<T>(value: T, ms: number): T {
   const [debounced, setDebounced] = useState(value)
@@ -319,12 +325,25 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
                   expanded={open === field.key} info={typeInfo.get(field.type)} disabled={disabled}
                   otherNames={draft.fields.filter((f) => f.key !== field.key).map((f) => f.name)}
                   doctypes={linkable} childTables={childTargets} inChildTable={draft.isChildTable} errors={errors}
+                  fieldNames={draft.fields.map((f) => f.name)} linkFields={draft.fields.filter((f) => f.type === 'Link')}
                   onToggle={() => setOpen(open === field.key ? null : field.key)}
                   onChange={(changes) => patchField(field.key, changes)}
                   onMove={(delta) => patch({ fields: moveItem(draft.fields, index, index + delta) })}
                   onRemove={() => removeField(field)} />
               ))}
             </ul>
+          </section>
+
+          <section className="card">
+            <h2>Rules</h2>
+            <p className="muted">
+              Conditions every {draft.isChildTable ? 'row' : 'document'} must satisfy before it can be saved.
+              {draft.isChildTable && ' Rules here are checked for each row, and can read the document as parent.'}
+            </p>
+            <RulesEditor rules={draft.validations}
+              fieldNames={draft.fields.filter((f) => f.type !== 'SectionBreak' && f.type !== 'TabBreak' && f.type !== 'ColumnBreak').map((f) => f.name)}
+              fieldLabels={Object.fromEntries(draft.fields.map((f) => [f.name, f.label ?? '']))} allowParent={draft.isChildTable}
+              errors={errors} disabled={disabled} onChange={(validations) => patch({ validations })} />
           </section>
 
           {!draft.isChildTable && <section className="card">
@@ -383,25 +402,43 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
   )
 }
 
-/** A Table field in the preview: the child DocType's grid with throwaway rows. */
-function PreviewTable({ field, rows, onChange }: { field: DraftField; rows: TableRow[]; onChange: (rows: TableRow[]) => void }) {
-  const child = useQuery({
-    queryKey: ['designer', 'detail', field.options],
-    queryFn: () => api.designer.get(field.options!),
-    enabled: Boolean(field.options),
-    retry: false,
-  })
-
-  if (!field.options) return <div className="field full"><span>{field.label || field.name}</span><small className="muted">Choose the child table this field uses.</small></div>
-  if (!child.data) return <div className="field full"><span>{field.label || field.name}</span><small className="muted">{child.isError ? 'Could not load the child table.' : 'Loading…'}</small></div>
-  return <TableControl field={field} child={child.data.definition} rows={rows} onChange={onChange} preview errors={{}} />
-}
-
-/** The form exactly as users will see it, with throwaway values you can type into. */
+/** The form exactly as users will see it, with the field logic running on throwaway values you can type into. */
 function PreviewForm({ draft }: { draft: Draft }) {
+  const { user } = useAuth()
   const [values, setValues] = useState<Record<string, InputValue>>({})
   const [tables, setTables] = useState<Record<string, TableRow[]>>({})
+
+  const tableFields = draft.fields.filter((f) => f.type === 'Table' && f.options)
+  const childQueries = useQueries({
+    queries: tableFields.map((f) => ({
+      queryKey: ['designer', 'detail', f.options],
+      queryFn: () => api.designer.get(f.options!),
+      retry: false,
+    })),
+  })
+  const children: Record<string, DocTypeMeta> = {}
+  tableFields.forEach((f, i) => {
+    const detail = childQueries[i]?.data
+    if (detail) children[f.options!] = detail.definition
+  })
+
+  const meta: DocTypeMeta = {
+    name: draft.name || 'New DocType', isChildTable: draft.isChildTable, isSubmittable: false, trackChanges: false,
+    fields: draft.fields, validations: draft.validations,
+  }
+  const session: Session = { user: user?.user ?? '', roles: user?.roles ?? [], isNew: true }
   const fields = draft.fields.filter((f) => f.type === 'SectionBreak' || f.type === 'TabBreak' || f.type === 'Table' || isEditable(f.type))
+
+  // Start from each field's default, let the person's input override it, then run the formulas.
+  const defaults: Record<string, InputValue> = {}
+  for (const f of draft.fields.filter((f) => isEditable(f.type))) {
+    defaults[f.name] = f.type === 'Check' ? f.default === '1' : f.default && !f.default.startsWith('=') ? f.default : ''
+  }
+  const start = expressionDefaults(meta, children, { ...defaults, ...values }, session)
+  const view = applyLogic(meta, children, start, tables, session)
+  const context = documentContext(meta, children, view.values, view.tables, session)
+  const failing = failingRules(meta, context)
+  const stateOf = (f: (typeof draft.fields)[number]): FieldState => fieldState(f, context)
 
   return (
     <div className="card">
@@ -409,13 +446,28 @@ function PreviewForm({ draft }: { draft: Draft }) {
       {draft.isChildTable && <p className="muted">Its fields become the columns of the grid in every document that uses it. This is one row.</p>}
       {fields.length === 0 ? <p className="muted">Add fields to see the form.</p> : (
         <div className="form-grid">
-          {fields.map((f) => f.type === 'Table' ? (
-            <PreviewTable key={f.key} field={f} rows={tables[f.name] ?? []} onChange={(rows) => setTables({ ...tables, [f.name]: rows })} />
-          ) : (
-            <FieldControl key={f.key} field={f} preview
-              value={values[f.name] ?? (f.type === 'Check' ? f.default === '1' : (f.default ?? ''))}
-              onChange={(v) => setValues({ ...values, [f.name]: v })} />
-          ))}
+          {fields.map((f) => {
+            if (f.type !== 'Table') {
+              return <FieldControl key={f.key} field={f} preview state={stateOf(f)} value={view.values[f.name] ?? ''}
+                onChange={(v) => setValues({ ...values, [f.name]: v })} />
+            }
+
+            const child = f.options ? children[f.options] : undefined
+            if (!f.options) return <div key={f.key} className="field full"><span>{f.label || f.name}</span><small className="muted">Choose the child table this field uses.</small></div>
+            if (!child) return <div key={f.key} className="field full"><span>{f.label || f.name}</span><small className="muted">Loading…</small></div>
+            return (
+              <TableControl key={f.key} field={f} child={child} rows={view.tables[f.name] ?? []} preview errors={{}}
+                rowState={(row, col) => fieldState(col, rowContext(child, row.values, view.values, meta, session))}
+                makeRow={() => { const row = emptyRow(child); return { ...row, values: rowExpressionDefaults(child, row.values, view.values, meta, session) } }}
+                onChange={(rows) => setTables({ ...tables, [f.name]: rows })} />
+            )
+          })}
+        </div>
+      )}
+      {failing.length > 0 && (
+        <div className="banner info" role="status">
+          With this data, saving would be refused:
+          <ul>{failing.map((r, i) => <li key={i}>{r.message || r.expression}</li>)}</ul>
         </div>
       )}
     </div>

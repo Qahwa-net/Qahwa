@@ -2,6 +2,7 @@ import { useId, useState } from 'react'
 import type { DocField, DocTypeMeta } from '../api/types.ts'
 import { editableFields, emptyRow, gridColumns, moveRow, rowErrorList, rowErrors, type TableRow } from '../lib/tables.ts'
 import { labelOf } from '../lib/fields.ts'
+import type { FieldState } from '../lib/logic.ts'
 import { FieldControl, FieldInput } from './FieldControl.tsx'
 
 interface Props {
@@ -14,10 +15,16 @@ interface Props {
   errors: Record<string, string>
   /** Designer preview: hidden fields are shown (dimmed) instead of omitted. */
   preview?: boolean
+  /** What the field logic says about a cell of a row right now. Without it cells are static. */
+  rowState?: (row: TableRow, field: DocField) => FieldState
+  /** Builds a new row (so defaults that read the document can be applied). */
+  makeRow?: () => TableRow
+  /** Called after a cell was edited, with the row's index and the field, e.g. to run "fetch from". */
+  onCellEdited?: (rowIndex: number, fieldName: string, value: string | boolean) => void
 }
 
 /** An editable grid for a child table: type into the cells, add, remove and reorder rows. */
-export function TableControl({ field, child, rows, onChange, readOnly, errors, preview }: Props) {
+export function TableControl({ field, child, rows, onChange, readOnly, errors, preview, rowState, makeRow, onCellEdited }: Props) {
   const id = useId()
   const [expanded, setExpanded] = useState<string | null>(null)
   const columns = gridColumns(child)
@@ -26,11 +33,13 @@ export function TableControl({ field, child, rows, onChange, readOnly, errors, p
   const { table: tableError, rows: byRow } = rowErrors(errors, field.name)
   const messages = rowErrorList(errors, field.name, child.fields)
 
-  const update = (index: number, name: string, value: string | boolean) =>
+  const update = (index: number, name: string, value: string | boolean) => {
     onChange(rows.map((r, i) => (i === index ? { ...r, values: { ...r.values, [name]: value } } : r)))
+    onCellEdited?.(index, name, value)
+  }
 
   function addRow() {
-    const row = emptyRow(child)
+    const row = makeRow ? makeRow() : emptyRow(child)
     onChange([...rows, row])
     if (all.length > columns.length) setExpanded(null)
   }
@@ -62,13 +71,18 @@ export function TableControl({ field, child, rows, onChange, readOnly, errors, p
                 <RowFragment key={row.key}>
                   <tr className={Object.keys(rowError).length > 0 ? 'row-error' : undefined}>
                     <td className="row-no">{index + 1}</td>
-                    {columns.map((c) => (
-                      <td key={c.name} className={c.type === 'Check' ? 'center' : undefined}>
-                        <FieldInput field={c} value={row.values[c.name] ?? ''} readOnly={locked || c.readOnly}
-                          invalid={Boolean(rowError[c.name])} ariaLabel={`${labelOf(c)}, row ${index + 1}`}
-                          onChange={(v) => update(index, c.name, v)} />
-                      </td>
-                    ))}
+                    {columns.map((c) => {
+                      const state = rowState?.(row, c)
+                      return (
+                        <td key={c.name} className={c.type === 'Check' ? 'center' : undefined}>
+                          {state && !state.active && !preview
+                            ? <span className="muted" aria-label={`${labelOf(c)}, row ${index + 1}: not applicable`}>—</span>
+                            : <FieldInput field={c} value={row.values[c.name] ?? ''} readOnly={locked || c.readOnly || state?.readOnly}
+                                invalid={Boolean(rowError[c.name])} ariaLabel={`${labelOf(c)}, row ${index + 1}`}
+                                onChange={(v) => update(index, c.name, v)} />}
+                        </td>
+                      )
+                    })}
                     <td className="row-actions">
                       {all.length > columns.length && (
                         <button type="button" className="btn small icon" aria-expanded={open}
@@ -93,6 +107,7 @@ export function TableControl({ field, child, rows, onChange, readOnly, errors, p
                         <div className="form-grid">
                           {all.map((f) => (
                             <FieldControl key={f.name} field={f} preview={preview} readOnly={locked}
+                              state={rowState?.(row, f)}
                               value={row.values[f.name] ?? ''} error={rowError[f.name]}
                               onChange={(v) => update(index, f.name, v)} />
                           ))}

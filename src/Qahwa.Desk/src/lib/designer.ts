@@ -1,5 +1,5 @@
 import type {
-  DesignerDetail, DocField, DocPerm, DocTypeDefinition, FieldError, FieldType, FieldTypeInfo,
+  DesignerDetail, DocField, DocPerm, DocTypeDefinition, FieldError, FieldType, FieldTypeInfo, ValidationRule,
 } from '../api/types.ts'
 
 /** A field being edited. `key` is a stable id for React; `locked` marks fields that already exist in the database. */
@@ -26,6 +26,7 @@ export interface Draft {
   seriesDigits: number
   fields: DraftField[]
   permissions: DocPerm[]
+  validations: ValidationRule[]
   modified: string | null
   documentCount: number | null
 }
@@ -74,6 +75,12 @@ export function newField(info: FieldTypeInfo, taken: string[]): DraftField {
     description: null,
     hidden: false,
     readOnly: false,
+    dependsOn: null,
+    mandatoryDependsOn: null,
+    readOnlyDependsOn: null,
+    formula: null,
+    fetchFrom: null,
+    fetchIfEmpty: false,
   }
 }
 
@@ -99,6 +106,7 @@ export function emptyDraft(): Draft {
     seriesDigits: 5,
     fields: [],
     permissions: [{ role: 'System Manager', read: true, write: true, create: true, delete: true, ifOwner: false }],
+    validations: [],
     modified: null,
     documentCount: null,
   }
@@ -145,8 +153,15 @@ export function fromDetail(detail: DesignerDetail): Draft {
       description: f.description ?? null,
       hidden: f.hidden ?? false,
       readOnly: f.readOnly ?? false,
+      dependsOn: f.dependsOn ?? null,
+      mandatoryDependsOn: f.mandatoryDependsOn ?? null,
+      readOnlyDependsOn: f.readOnlyDependsOn ?? null,
+      formula: f.formula ?? null,
+      fetchFrom: f.fetchFrom ?? null,
+      fetchIfEmpty: f.fetchIfEmpty ?? false,
     })),
     permissions: (def.permissions ?? []).map((p) => ({ ...p, ifOwner: p.ifOwner ?? false })),
+    validations: (def.validations ?? []).map((r) => ({ expression: r.expression, message: r.message, field: r.field ?? null })),
     modified: detail.modified ?? null,
     documentCount: detail.documentCount ?? null,
   }
@@ -176,9 +191,21 @@ export function toDefinition(draft: Draft): DocTypeDefinition {
       description: blank(f.description),
       hidden: f.hidden || undefined,
       readOnly: f.readOnly || undefined,
+      dependsOn: blank(f.dependsOn),
+      mandatoryDependsOn: blank(f.mandatoryDependsOn),
+      readOnlyDependsOn: blank(f.readOnlyDependsOn),
+      formula: blank(f.formula),
+      fetchFrom: blank(f.fetchFrom),
+      fetchIfEmpty: (f.fetchFrom && f.fetchIfEmpty) || undefined,
     })) as DocTypeDefinition['fields'],
     // Child table rows follow the permissions of the document they belong to.
     permissions: draft.isChildTable ? [] : draft.permissions.filter((p) => p.role.trim() !== ''),
+    // Rules left completely blank are dropped; a half-filled rule is kept so the server can say what is missing.
+    validations: draft.validations.some((r) => r.expression.trim() || r.message.trim())
+      ? draft.validations
+          .filter((r) => r.expression.trim() || r.message.trim())
+          .map((r) => ({ expression: r.expression, message: r.message, field: blank(r.field) }))
+      : undefined,
   }
 }
 

@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Qahwa.Abstractions;
+using Qahwa.Core.Expressions;
 
 namespace Qahwa.Core;
 
@@ -38,6 +39,11 @@ public static partial class DocTypeLoader
 
     [GeneratedRegex(@"^[A-Za-z0-9_\-/]*\.#{1,10}$")]
     private static partial Regex SeriesPatternRegex();
+
+    [GeneratedRegex(@"^([a-z][a-z0-9_]*)\.([a-z][a-z0-9_]*)$")]
+    private static partial Regex FetchFromRegex();
+
+    public const int MaxValidations = 30;
 
     public static DocTypeMeta Parse(string json)
     {
@@ -109,6 +115,7 @@ public static partial class DocTypeLoader
             Add("titleField", $"Title field '{meta.TitleField}' is not a field of this DocType.");
 
         CheckAutoname(meta, seen, Add);
+        CheckLogic(meta, seen, Add);
 
         if (meta.Permissions.Count > MaxPermissions)
             Add("permissions", $"At most {MaxPermissions} permission rules are allowed.");
@@ -159,7 +166,7 @@ public static partial class DocTypeLoader
                 add($"{path}.options", "Select fields need at least one option.");
             else if (options.Count != options.Distinct(StringComparer.Ordinal).Count())
                 add($"{path}.options", "Select options must be unique.");
-            else if (!string.IsNullOrEmpty(field.Default) && !options.Contains(field.Default, StringComparer.Ordinal))
+            else if (!string.IsNullOrEmpty(field.Default) && !field.Default.StartsWith('=') && !options.Contains(field.Default, StringComparer.Ordinal))
                 add($"{path}.default", "The default must be one of the options.");
         }
 
@@ -171,6 +178,133 @@ public static partial class DocTypeLoader
             add($"{path}.options", "Options are too long.");
         if (field.Default is { Length: > 140 })
             add($"{path}.default", "Default must be at most 140 characters.");
+    }
+
+    /// <summary>Parses every expression of the DocType and checks that it only reads fields that exist.</summary>
+    private static void CheckLogic(DocTypeMeta meta, HashSet<string> fieldNames, Action<string, string> add)
+    {
+        var names = new HashSet<string>(fieldNames, StringComparer.Ordinal);
+        names.UnionWith(StandardFields.Columns.Keys);
+
+        void Expr(string? source, string path)
+        {
+            if (source is null)
+                return;
+            if (string.IsNullOrWhiteSpace(source))
+            {
+                add(path, "The expression is empty.");
+                return;
+            }
+
+            try
+            {
+                var expression = Expression.Parse(source);
+                foreach (var id in expression.Identifiers.Where(id => !names.Contains(id)))
+                    add(path, $"Unknown field '{id}'.");
+                if (expression.UsesParent && !meta.IsChildTable)
+                    add(path, "'parent' can only be used in a child table.");
+            }
+            catch (ExpressionException ex)
+            {
+                add(path, $"{ex.Message} (character {ex.Position + 1})");
+            }
+        }
+
+        for (var i = 0; i < meta.Fields.Count; i++)
+        {
+            var field = meta.Fields[i];
+            var path = $"fields[{i}]";
+            Expr(field.DependsOn, $"{path}.dependsOn");
+            Expr(field.MandatoryDependsOn, $"{path}.mandatoryDependsOn");
+            Expr(field.ReadOnlyDependsOn, $"{path}.readOnlyDependsOn");
+
+            if (field.Formula is not null)
+            {
+                Expr(field.Formula, $"{path}.formula");
+                if (!FieldTypes.HasColumn(field.Type))
+                    add($"{path}.formula", "Only fields that store a value can be calculated.");
+                if (!string.IsNullOrEmpty(field.Default))
+                    add($"{path}.default", "A calculated field has no default value.");
+                if (field.FetchFrom is not null)
+                    add($"{path}.fetchFrom", "A field cannot both fetch a value and be calculated.");
+            }
+
+            if (field.Default is { Length: > 1 } expressionDefault && expressionDefault.StartsWith('='))
+                Expr(expressionDefault[1..], $"{path}.default");
+
+            if (field.FetchFrom is not null)
+            {
+                var match = FetchFromRegex().Match(field.FetchFrom);
+                if (!match.Success)
+                    add($"{path}.fetchFrom", "Use the form link_field.target_field.");
+                else if (!meta.Fields.Any(f => f.Name == match.Groups[1].Value && f.Type == FieldType.Link))
+                    add($"{path}.fetchFrom", $"'{match.Groups[1].Value}' is not a Link field of this DocType.");
+            }
+            else if (field.FetchIfEmpty)
+            {
+                add($"{path}.fetchIfEmpty", "This only applies together with a 'fetch from'.");
+            }
+        }
+
+        if (meta.Validations.Count > MaxValidations)
+            add("validations", $"At most {MaxValidations} rules are allowed.");
+        for (var i = 0; i < meta.Validations.Count; i++)
+        {
+            var rule = meta.Validations[i];
+            var path = $"validations[{i}]";
+            Expr(rule.Expression, $"{path}.expression");
+            if (string.IsNullOrWhiteSpace(rule.Message))
+                add($"{path}.message", "Say what is wrong when the rule fails.");
+            else if (rule.Message.Length > 300)
+                add($"{path}.message", "The message must be at most 300 characters.");
+            if (rule.Field is not null && !fieldNames.Contains(rule.Field))
+                add($"{path}.field", $"'{rule.Field}' is not a field of this DocType.");
+        }
+
+        CheckFormulaCycles(meta, add);
+    }
+
+    private static void CheckFormulaCycles(DocTypeMeta meta, Action<string, string> add)
+    {
+        var formulas = new Dictionary<string, HashSet<string>>(StringComparer.Ordinal);
+        foreach (var field in meta.Fields.Where(f => f.Formula is not null))
+        {
+            try
+            {
+                formulas[field.Name] = new HashSet<string>(Expression.Parse(field.Formula!).Identifiers, StringComparer.Ordinal);
+            }
+            catch (ExpressionException)
+            {
+                // reported separately as an invalid expression
+            }
+        }
+
+        var state = new Dictionary<string, int>(StringComparer.Ordinal); // 1 = visiting, 2 = done
+        var reported = false;
+
+        void Visit(string name, List<string> trail)
+        {
+            if (reported || state.GetValueOrDefault(name) == 2)
+                return;
+            if (state.GetValueOrDefault(name) == 1)
+            {
+                var cycle = trail.SkipWhile(n => n != name).Append(name);
+                var index = meta.Fields.ToList().FindIndex(f => f.Name == name);
+                add($"fields[{index}].formula", $"Circular formula: {string.Join(" → ", cycle)}.");
+                reported = true;
+                return;
+            }
+
+            state[name] = 1;
+            trail.Add(name);
+            foreach (var dependency in formulas[name].Where(formulas.ContainsKey))
+                Visit(dependency, trail);
+            trail.RemoveAt(trail.Count - 1);
+            state[name] = 2;
+        }
+
+        foreach (var name in formulas.Keys)
+            Visit(name, []);
     }
 
     private static void CheckAutoname(DocTypeMeta meta, HashSet<string> fields, Action<string, string> add)

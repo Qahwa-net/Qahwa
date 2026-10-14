@@ -122,6 +122,44 @@ describe('draft conversion', () => {
     expect(toDefinition(fromDetail(detail)).isChildTable).toBeUndefined()
   })
 
+  it('writes the logic properties and rules, and leaves them out when empty', () => {
+    const draft = fromDetail(detail)
+    draft.fields[0]!.dependsOn = "status == 'Open'"
+    draft.fields[0]!.formula = '  '
+    draft.fields[0]!.fetchFrom = 'customer.name'
+    draft.fields[0]!.fetchIfEmpty = true
+    draft.validations = [
+      { expression: 'qty > 0', message: 'Positive please', field: 'qty' },
+      { expression: '', message: '', field: null },
+    ]
+
+    const definition = toDefinition(draft)
+
+    expect(definition.fields[0]).toMatchObject({ dependsOn: "status == 'Open'", fetchFrom: 'customer.name', fetchIfEmpty: true })
+    expect(definition.fields[0]?.formula).toBeUndefined()
+    expect(definition.validations).toEqual([{ expression: 'qty > 0', message: 'Positive please', field: 'qty' }])
+
+    draft.fields[0]!.fetchFrom = null
+    expect(toDefinition(draft).fields[0]?.fetchIfEmpty).toBeUndefined()
+    draft.validations = []
+    expect(toDefinition(draft).validations).toBeUndefined()
+  })
+
+  it('loads logic properties from the server definition', () => {
+    const withLogic: DesignerDetail = {
+      ...detail,
+      definition: {
+        ...detail.definition,
+        fields: [{ ...detail.definition.fields[0]!, formula: 'qty * rate', dependsOn: 'qty > 0' }],
+        validations: [{ expression: 'qty > 0', message: 'm', field: 'qty' }],
+      },
+    }
+    const draft = fromDetail(withLogic)
+
+    expect(draft.fields[0]).toMatchObject({ formula: 'qty * rate', dependsOn: 'qty > 0', fetchIfEmpty: false })
+    expect(draft.validations).toEqual([{ expression: 'qty > 0', message: 'm', field: 'qty' }])
+  })
+
   it('starts new DocTypes with full access for System Manager', () => {
     expect(emptyDraft().permissions[0]).toMatchObject({ role: 'System Manager', read: true, delete: true })
   })

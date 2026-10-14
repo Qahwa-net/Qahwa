@@ -1,4 +1,8 @@
+import { useQuery } from '@tanstack/react-query'
+import { api } from '../api/client.ts'
 import type { DocPerm, FieldTypeInfo } from '../api/types.ts'
+import { localExpressionError } from '../lib/expr/check.ts'
+import { ExpressionInput } from './ExpressionInput.tsx'
 import { isLayoutType, isTextType, slugify, uniqueName, type DraftField } from '../lib/designer.ts'
 
 interface Props {
@@ -14,6 +18,10 @@ interface Props {
   childTables: string[]
   /** The DocType being designed is itself a child table. */
   inChildTable: boolean
+  /** Every field of the DocType being designed: what its expressions may read. */
+  fieldNames: string[]
+  /** The Link fields of the DocType being designed, for "fetch from". */
+  linkFields: DraftField[]
   errors: Record<string, string>
   disabled: boolean
   onToggle: () => void
@@ -22,12 +30,63 @@ interface Props {
   onRemove: () => void
 }
 
+/** "Fetch from": pick a Link field of this DocType, then a field of the DocType it points at. */
+function FetchFromEditor({ field, linkFields, disabled, error, onChange }: {
+  field: DraftField
+  linkFields: DraftField[]
+  disabled: boolean
+  error?: string
+  onChange: (patch: Partial<DraftField>) => void
+}) {
+  const [linkName = '', targetName = ''] = (field.fetchFrom ?? '').split('.')
+  const link = linkFields.find((f) => f.name === linkName)
+  const target = useQuery({
+    queryKey: ['designer', 'detail', link?.options],
+    queryFn: () => api.designer.get(link!.options!),
+    enabled: Boolean(link?.options),
+    retry: false,
+  })
+  const targetFields = [
+    ...(target.data?.definition.fields ?? []).filter((f) => f.type !== 'Table' && f.type !== 'SectionBreak' && f.type !== 'TabBreak' && f.type !== 'ColumnBreak'),
+  ]
+
+  const set = (link: string, target: string) => onChange({ fetchFrom: link ? `${link}.${target}` : null, fetchIfEmpty: link ? field.fetchIfEmpty : false })
+
+  return (
+    <div className="field full">
+      <span>Fetch from a linked document</span>
+      <span className="inline">
+        <select aria-label="Link field to fetch from" value={linkName} disabled={disabled}
+          onChange={(e) => set(e.target.value, '')}>
+          <option value="">Not fetched</option>
+          {linkFields.filter((f) => f.name !== field.name).map((f) => <option key={f.name} value={f.name}>{f.label || f.name}</option>)}
+        </select>
+        {linkName && (
+          <select aria-label="Field to copy" value={targetName} disabled={disabled} onChange={(e) => set(linkName, e.target.value)}>
+            <option value="">Choose a field…</option>
+            {targetFields.map((f) => <option key={f.name} value={f.name}>{f.label || f.name}</option>)}
+            {['name', 'owner', 'creation', 'modified'].map((n) => <option key={n} value={n}>{n} (standard)</option>)}
+          </select>
+        )}
+      </span>
+      {linkName && (
+        <label className="check-line plain">
+          <input type="checkbox" checked={field.fetchIfEmpty ?? false} disabled={disabled}
+            onChange={(e) => onChange({ fetchIfEmpty: e.target.checked })} /> Only when this field is still empty
+        </label>
+      )}
+      <small className="muted">The value is copied when the link changes. Nothing is copied if the person may not read the linked document.</small>
+      {error && <small className="error-text" role="alert">{error}</small>}
+    </div>
+  )
+}
+
 function Err({ message }: { message?: string }) {
   return message ? <small className="error-text" role="alert">{message}</small> : null
 }
 
 export function FieldCard({
-  field, index, total, expanded, info, otherNames, doctypes, childTables, inChildTable, errors, disabled,
+  field, index, total, expanded, info, otherNames, doctypes, childTables, inChildTable, fieldNames, linkFields, errors, disabled,
   onToggle, onChange, onMove, onRemove,
 }: Props) {
   const path = `fields[${index}]`
@@ -148,6 +207,40 @@ export function FieldCard({
                 <Err message={errors[`${path}.description`]} />
               </label>
             </>
+          )}
+          {!layout && (
+            <details className="field full logic" open={Boolean(field.dependsOn || field.mandatoryDependsOn || field.readOnlyDependsOn || field.formula || field.fetchFrom || field.default?.startsWith('='))}>
+              <summary>Logic <span className="muted">(conditions, calculations, fetching)</span></summary>
+              <div className="logic-body">
+                <ExpressionInput label="Show only when" value={field.dependsOn ?? ''} names={fieldNames} allowParent={inChildTable}
+                  disabled={disabled} placeholder="status == 'Closed'" serverError={errors[`${path}.dependsOn`]}
+                  hint="Leave empty to always show the field. A field that is not shown is never required."
+                  onChange={(value) => onChange({ dependsOn: value })} />
+
+                {!isTable && (
+                  <>
+                    <ExpressionInput label="Required when" value={field.mandatoryDependsOn ?? ''} names={fieldNames} allowParent={inChildTable}
+                      disabled={disabled} placeholder="amount > 1000" serverError={errors[`${path}.mandatoryDependsOn`]} help={false}
+                      onChange={(value) => onChange({ mandatoryDependsOn: value })} />
+                    <ExpressionInput label="Read-only when" value={field.readOnlyDependsOn ?? ''} names={fieldNames} allowParent={inChildTable}
+                      disabled={disabled} placeholder="status == 'Closed'" serverError={errors[`${path}.readOnlyDependsOn`]} help={false}
+                      onChange={(value) => onChange({ readOnlyDependsOn: value })} />
+                    <ExpressionInput label="Calculate as (formula)" value={field.formula ?? ''} names={fieldNames.filter((n) => n !== field.name)}
+                      allowParent={inChildTable} disabled={disabled || Boolean(field.fetchFrom)}
+                      placeholder="qty * rate" serverError={errors[`${path}.formula`]}
+                      hint="The field is filled in automatically, recalculated on every save, and cannot be edited."
+                      onChange={(value) => onChange({ formula: value })} />
+                    <FetchFromEditor field={field} linkFields={linkFields} disabled={disabled || Boolean(field.formula)}
+                      error={errors[`${path}.fetchFrom`] ?? errors[`${path}.fetchIfEmpty`]} onChange={onChange} />
+                    {field.default?.startsWith('=') && (
+                      <small className={localExpressionError(field.default.slice(1), fieldNames, inChildTable) ? 'error-text' : 'muted'}>
+                        {localExpressionError(field.default.slice(1), fieldNames, inChildTable) ?? 'The default is an expression, worked out when a document is created.'}
+                      </small>
+                    )}
+                  </>
+                )}
+              </div>
+            </details>
           )}
           <Err message={errors[`${path}.type`]} />
         </div>

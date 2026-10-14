@@ -157,6 +157,24 @@ public sealed class MetaRegistry : IMutableMetaRegistry
                 errors.Add(new FieldError($"fields[{i}].options", $"'{target.Name}' must be a child table."));
         }
 
+        // "fetch from" copies a value out of the linked document, so that field must exist there and fit this one.
+        for (var i = 0; i < meta.Fields.Count; i++)
+        {
+            var field = meta.Fields[i];
+            var parts = field.FetchFrom?.Split('.');
+            if (parts is not { Length: 2 })
+                continue;
+
+            var link = meta.Fields.FirstOrDefault(f => f.Name == parts[0] && f.Type == FieldType.Link);
+            if (link?.Options is null || !TryGet(link.Options, out var linked))
+                continue; // the missing link target is reported above
+
+            if (!linked.ColumnTypes().TryGetValue(parts[1], out var type))
+                errors.Add(new FieldError($"fields[{i}].fetchFrom", $"{linked.Name} has no field '{parts[1]}'."));
+            else if (type != field.Type && !(FieldTypes.IsTextual(type) && FieldTypes.IsTextual(field.Type)))
+                errors.Add(new FieldError($"fields[{i}].fetchFrom", $"'{parts[1]}' is a {type} field and cannot be copied into a {field.Type} field."));
+        }
+
         return errors;
     }
 

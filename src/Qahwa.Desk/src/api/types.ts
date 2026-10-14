@@ -18,6 +18,21 @@ export interface DocField {
   description?: string | null
   hidden?: boolean
   readOnly?: boolean
+  /** Expressions: see lib/expr. The field is shown / required / read-only while they are true. */
+  dependsOn?: string | null
+  mandatoryDependsOn?: string | null
+  readOnlyDependsOn?: string | null
+  /** Calculated from other fields. */
+  formula?: string | null
+  /** "link_field.target_field": copy a value from the linked document. */
+  fetchFrom?: string | null
+  fetchIfEmpty?: boolean
+}
+
+export interface ValidationRule {
+  expression: string
+  message: string
+  field?: string | null
 }
 
 export interface DocPerm {
@@ -39,6 +54,7 @@ export interface DocTypeMeta {
   trackChanges: boolean
   fields: DocField[]
   permissions?: DocPerm[]
+  validations?: ValidationRule[]
 }
 
 /** The definition sent to the designer API. Optional flags may be omitted. */
@@ -50,6 +66,7 @@ export interface DocTypeDefinition {
   isChildTable?: boolean
   fields: (Partial<DocField> & Pick<DocField, 'name' | 'type'>)[]
   permissions: DocPerm[]
+  validations?: ValidationRule[]
 }
 
 export type DocTypeSource = 'Core' | 'App' | 'Custom'

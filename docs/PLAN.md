@@ -501,7 +501,7 @@ Rules that keep it honest:
 | **L1: DocType Designer** | Create, edit and delete custom DocTypes in the Desk: fields, field properties, naming, title field, list columns, permissions, live form preview, SQL change preview, safe schema apply | **done (v1)**. Not yet: child tables (L2), rename, type change of saved fields, depends_on (L4), drag-and-drop ordering (up/down buttons today) |
 | L2: Child tables | `Table` fields, child DocTypes, grid editing in forms, designer support | **done (v1)**. Rows save atomically with the parent; the form has an editable grid. Not yet: Table MultiSelect, nested tables, import/export of rows, filters on child fields, row-level drag and drop (up/down buttons today) |
 | L3: Customize Form | Custom Fields and Property Setters on any DocType (standard included), reorder fields, hide/rename, per-DocType list settings | planned |
-| L4: Field logic | `depends_on` family, `fetch_from`, default and validation expressions, expression language shared by server and client | planned |
+| L4: Field logic | `depends_on` family, `fetch_from`, default and validation expressions, expression language shared by server and client | **done (v1)**. A safe expression language (no code, no loops) evaluated identically on server and in the Desk, checked by 220+ shared test vectors. Show/require/read-only conditions, calculated fields (formulas, also in table rows, `parent.x`, `sum(table, 'field')`), expression defaults (`=today()`), fetch from a linked document, and document/row validation rules, all edited in the designer with live checks. Not yet: formulas that read other documents, rules across rows, per-field validation messages by type, date/time pickers in expressions |
 | L5: Permissions UI | Role Permission Manager, permission levels, User Permissions, Role/Module Profiles, sharing | planned |
 | L6: Special DocTypes | Single (settings) DocTypes, Tree DocTypes, Submittable, naming series manager, rename/merge | planned |
 | L7: Collaboration and list power | Comments, assign, share, follow, timeline, saved filters, user list settings, group-by sidebar, bulk edit | planned |
@@ -533,8 +533,9 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Layout fields: Section Break, Column Break, Tab Break | | 🟡 | L1 (section/tab), L3 |
 | Field properties: label, required, unique, default, options, in list view, lowercase | | ✅ | done |
 | Field properties: description, hidden, read only | UI hints (not enforced by the API) | ✅ | L1 |
-| Field properties: `depends_on`, `mandatory_depends_on`, `read_only_depends_on` | conditional logic by expression | ⬜ | L4 |
-| Field properties: `fetch_from`, `fetch_if_empty` | copy a value from a linked document | ⬜ | L4 |
+| Field properties: `depends_on`, `mandatory_depends_on`, `read_only_depends_on` | conditional logic by expression (read-only is a UI hint) | ✅ | L4 |
+| Field properties: `fetch_from`, `fetch_if_empty` | copy a value from a linked document, only what the user may read | ✅ | L4 |
+| Calculated fields (formula), expression defaults | recalculated on every save and live in the form | ✅ | L4 |
 | Field properties: in standard filter, in preview, in global search, bold, no copy, allow on submit, set only once, non negative, collapsible, translatable, search index, precision, length, ignore user permissions, permission level | | ⬜ | L3 |
 | Child tables (Table field, parent/child) | created in the designer, saved atomically with the parent | ✅ | L2 |
 | Single DocTypes (settings stored as one document) | | ⬜ | L6 |
@@ -559,7 +560,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Optimistic concurrency ("modified by someone else") | | ✅ | done |
 | Lifecycle events: before_insert, validate, before_save, after_insert, on_update, on_trash, after_delete | event bus plus code hooks | ⬜ | L11 (code), L4 (rules) |
 | Submit events: before_submit, on_submit, before_cancel, on_cancel, on_update_after_submit | | ⬜ | L6 |
-| Validation rules without code | expression language | ⬜ | L4 |
+| Validation rules without code | expression language, per document and per table row | ✅ | L4 |
 | Server Script (DocType event, API, scheduler event, permission query) | sandboxed | ⬜ | L11 |
 | Client Script (form/list events, field change) | | ⬜ | L11 |
 | Hooks per app (doc events, scheduler events, fixtures, boot) | | ⬜ | L12 |

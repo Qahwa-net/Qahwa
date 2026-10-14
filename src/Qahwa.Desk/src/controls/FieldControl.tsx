@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client.ts'
 import type { DocField } from '../api/types.ts'
 import { isEditable, labelOf, selectOptions } from '../lib/fields.ts'
+import type { FieldState } from '../lib/logic.ts'
 
 export type InputValue = string | boolean
 
@@ -102,15 +103,18 @@ interface Props {
   readOnly?: boolean
   /** Designer preview: hidden fields are shown (dimmed) instead of omitted. */
   preview?: boolean
+  /** What the field logic says right now: shown, required and read-only. Without it the field is static. */
+  state?: FieldState
 }
 
 export function FieldControl(props: Props) {
-  const { field, value, onChange, error, preview } = props
-  const readOnly = Boolean(props.readOnly || field.readOnly)
+  const { field, value, onChange, error, preview, state } = props
+  const readOnly = Boolean(props.readOnly || field.readOnly || state?.readOnly)
   const id = useId()
   const label = labelOf(field)
 
   if (field.hidden && !preview) return null
+  if (state && !state.active && !preview) return null
 
   if (field.type === 'SectionBreak' || field.type === 'TabBreak') {
     return <h2 className="section-title full">{field.label ?? ''}</h2>
@@ -127,14 +131,17 @@ export function FieldControl(props: Props) {
   }
 
   const invalid = Boolean(error)
+  const required = state ? state.required : field.required
+  const conditional = Boolean(state && !state.active)
   const isCheck = field.type === 'Check'
   const wide = ['Text', 'LongText', 'Markdown', 'Code', 'Json'].includes(field.type)
 
   return (
-    <div className={`field${isCheck ? ' check' : ''}${wide ? ' full' : ''}${field.hidden ? ' dimmed' : ''}`}>
+    <div className={`field${isCheck ? ' check' : ''}${wide ? ' full' : ''}${field.hidden || conditional ? ' dimmed' : ''}`}>
       <label htmlFor={id}>
-        {label}{field.required && <span className="req" aria-label="required"> *</span>}
+        {label}{required && <span className="req" aria-label="required"> *</span>}
         {field.hidden && <span className="badge"> hidden</span>}
+        {conditional && <span className="badge" title={field.dependsOn ?? undefined}> only when its condition holds</span>}
       </label>
       <FieldInput field={field} value={value} onChange={onChange} readOnly={readOnly} invalid={invalid} id={id} />
       {field.description && <small className="muted">{field.description}</small>}

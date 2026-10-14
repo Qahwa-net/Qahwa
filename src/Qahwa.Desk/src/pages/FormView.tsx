@@ -1,12 +1,17 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useMatch, useNavigate, useParams } from 'react-router-dom'
 import { ApiError, api } from '../api/client.ts'
-import type { Doc, DocTypeMeta, Permissions } from '../api/types.ts'
+import type { Doc, DocField, DocTypeMeta, Permissions } from '../api/types.ts'
+import { useAuth } from '../auth.tsx'
 import { FieldControl, type InputValue } from '../controls/FieldControl.tsx'
 import { TableControl } from '../controls/TableControl.tsx'
 import { fromInput, hasColumn, isEditable, toInput } from '../lib/fields.ts'
-import { rowsChanged, rowsFromDoc, rowsToPayload, tableFieldsOf, type TableRow } from '../lib/tables.ts'
+import {
+  applyLogic, documentContext, expressionDefaults, fetchTargets, fieldState, rowContext, rowExpressionDefaults,
+  type FieldState, type Session,
+} from '../lib/logic.ts'
+import { emptyRow, rowsChanged, rowsFromDoc, rowsToPayload, tableFieldsOf, type TableRow } from '../lib/tables.ts'
 
 type Values = Record<string, InputValue>
 type Tables = Record<string, TableRow[]>
@@ -16,7 +21,7 @@ function initialValues(meta: DocTypeMeta, doc: Doc | null): Values {
   for (const field of meta.fields.filter((f) => isEditable(f.type))) {
     if (doc) values[field.name] = toInput(field, doc[field.name])
     else if (field.type === 'Check') values[field.name] = field.default === '1' || field.default === 'true'
-    else values[field.name] = field.default ?? ''
+    else values[field.name] = field.default && !field.default.startsWith('=') ? field.default : ''
   }
   return values
 }
@@ -26,6 +31,10 @@ function initialTables(meta: DocTypeMeta, children: Record<string, DocTypeMeta>,
   for (const { field, child } of tableFieldsOf(meta, children)) tables[field.name] = rowsFromDoc(child, doc?.[field.name])
   return tables
 }
+
+/** A field with no expressions at all is the common case; skip building a context for it. */
+const hasLogic = (f: DocField) => Boolean(f.dependsOn || f.mandatoryDependsOn || f.readOnlyDependsOn || f.formula)
+const staticState = (f: DocField): FieldState => ({ active: true, required: f.required, readOnly: Boolean(f.readOnly) })
 
 export function FormView() {
   const { doctype = '', name } = useParams()
@@ -74,21 +83,32 @@ function FormBody({ meta, perms, childMetas, doc }: {
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { user } = useAuth()
   const isNew = doc === null
   const editable = isNew ? perms.create : perms.write
   const base = `/app/${encodeURIComponent(meta.name)}`
 
+  const session = useMemo<Session>(
+    () => ({ user: user?.user ?? '', roles: user?.roles ?? [], isNew }),
+    [user, isNew],
+  )
   const tableDefs = useMemo(() => tableFieldsOf(meta, childMetas), [meta, childMetas])
   const original = useMemo(() => initialValues(meta, doc), [meta, doc])
   const originalTables = useMemo(() => initialTables(meta, childMetas, doc), [meta, childMetas, doc])
-  const [values, setValues] = useState<Values>(original)
+
+  // What the user typed. Calculated values are derived from it below and never stored.
+  const [values, setValues] = useState<Values>(() => (isNew ? expressionDefaults(meta, childMetas, original, session) : original))
   const [tables, setTables] = useState<Tables>(originalTables)
   const [promptName, setPromptName] = useState('')
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [banner, setBanner] = useState<{ text: string; conflict: boolean } | null>(null)
 
-  const changedNames = Object.keys(values).filter((key) => values[key] !== original[key])
-  const changedTables = tableDefs.filter(({ field }) => rowsChanged(originalTables[field.name] ?? [], tables[field.name] ?? []))
+  const view = useMemo(() => applyLogic(meta, childMetas, values, tables, session), [meta, childMetas, values, tables, session])
+  const docContext = documentContext(meta, childMetas, view.values, view.tables, session)
+  const stateOf = (field: DocField): FieldState => (hasLogic(field) ? fieldState(field, docContext) : staticState(field))
+
+  const changedNames = Object.keys(view.values).filter((key) => view.values[key] !== original[key])
+  const changedTables = tableDefs.filter(({ field }) => rowsChanged(originalTables[field.name] ?? [], view.tables[field.name] ?? []))
   const dirty = isNew ? true : changedNames.length > 0 || changedTables.length > 0
 
   // Warn before leaving the page with edits that are not saved.
@@ -99,16 +119,61 @@ function FormBody({ meta, perms, childMetas, doc }: {
     return () => window.removeEventListener('beforeunload', warn)
   }, [dirty, isNew])
 
+  // "Fetch from": when a Link field changes, copy values out of the document it points at.
+  const timers = useRef(new Map<string, ReturnType<typeof setTimeout>>())
+  useEffect(() => () => timers.current.forEach(clearTimeout), [])
+
+  function scheduleFetch(key: string, run: () => Promise<void>) {
+    clearTimeout(timers.current.get(key))
+    timers.current.set(key, setTimeout(() => { void run().catch(() => undefined) }, 350))
+  }
+
+  function fetchForDocument(linkField: DocField, linkValue: string) {
+    const targets = fetchTargets(meta, linkField.name)
+    if (targets.length === 0) return
+    scheduleFetch(`doc:${linkField.name}`, async () => {
+      const source = linkValue && linkField.options ? await api.get(linkField.options, linkValue) : null
+      setValues((current) => {
+        const next = { ...current }
+        for (const { field, source: from } of targets) {
+          if (field.fetchIfEmpty && next[field.name] !== '' && next[field.name] !== undefined) continue
+          next[field.name] = source ? toInput(field, source[from]) : ''
+        }
+        return next
+      })
+    })
+  }
+
+  function fetchForRow(table: { field: DocField; child: DocTypeMeta }, rowKey: string, linkField: DocField, linkValue: string) {
+    const targets = fetchTargets(table.child, linkField.name)
+    if (targets.length === 0) return
+    scheduleFetch(`row:${table.field.name}:${rowKey}:${linkField.name}`, async () => {
+      const source = linkValue && linkField.options ? await api.get(linkField.options, linkValue) : null
+      setTables((current) => ({
+        ...current,
+        [table.field.name]: (current[table.field.name] ?? []).map((row) => {
+          if (row.key !== rowKey) return row
+          const nextValues = { ...row.values }
+          for (const { field, source: from } of targets) {
+            if (field.fetchIfEmpty && nextValues[field.name] !== '' && nextValues[field.name] !== undefined) continue
+            nextValues[field.name] = source ? toInput(field, source[from]) : ''
+          }
+          return { ...row, values: nextValues }
+        }),
+      }))
+    })
+  }
+
   const save = useMutation({
     mutationFn: async () => {
       const send = (names: string[]) =>
-        Object.fromEntries(names.map((n) => [n, fromInput(meta.fields.find((f) => f.name === n)!, values[n]!)]))
+        Object.fromEntries(names.map((n) => [n, fromInput(meta.fields.find((f) => f.name === n)!, view.values[n]!)]))
       const sendTables = (defs: typeof tableDefs) =>
-        Object.fromEntries(defs.map(({ field, child }) => [field.name, rowsToPayload(child, tables[field.name] ?? [])]))
+        Object.fromEntries(defs.map(({ field, child }) => [field.name, rowsToPayload(child, view.tables[field.name] ?? [])]))
 
       if (isNew) {
-        const filled = Object.keys(values).filter((n) => values[n] !== '')
-        const withRows = tableDefs.filter(({ field }) => (tables[field.name]?.length ?? 0) > 0)
+        const filled = Object.keys(view.values).filter((n) => view.values[n] !== '')
+        const withRows = tableDefs.filter(({ field }) => (view.tables[field.name]?.length ?? 0) > 0)
         return api.create(meta.name, {
           ...send(filled),
           ...sendTables(withRows),
@@ -130,9 +195,10 @@ function FormBody({ meta, perms, childMetas, doc }: {
       const byField = Object.fromEntries(error.details.filter((d) => d.field).map((d) => [d.field, d.message]))
       setFieldErrors(byField)
       const general = error.details.filter((d) => !d.field).map((d) => d.message)
-      const shown = Object.keys(byField).length > 0 && general.length === 0
-        ? 'Please fix the highlighted fields.'
-        : general[0] ?? error.message
+      // Rules that apply to the whole document have no field to sit under, so say them here.
+      const shown = general.length > 0
+        ? general.join(' ')
+        : Object.keys(byField).length > 0 ? 'Please fix the highlighted fields.' : error.message
       setBanner({ text: shown, conflict: error.status === 409 && error.code === 'conflict' && !isNew })
     },
   })
@@ -204,17 +270,36 @@ function FormBody({ meta, perms, childMetas, doc }: {
           if (field.type === 'Table') {
             const def = tableDefs.find((t) => t.field.name === field.name)
             if (!def || field.hidden) return null
+            const state = stateOf(field)
+            if (!state.active) return null
+
+            const rowState = (row: TableRow, f: DocField): FieldState =>
+              hasLogic(f) ? fieldState(f, rowContext(def.child, row.values, view.values, meta, session)) : staticState(f)
+            const makeRow = (): TableRow => {
+              const row = emptyRow(def.child)
+              return { ...row, values: rowExpressionDefaults(def.child, row.values, view.values, meta, session) }
+            }
+
             return (
-              <TableControl key={field.name} field={field} child={def.child} rows={tables[field.name] ?? []}
-                readOnly={!editable} errors={fieldErrors}
-                onChange={(rows) => { setTables({ ...tables, [field.name]: rows }); clearErrorsFor(field.name) }} />
+              <TableControl key={field.name} field={field} child={def.child} rows={view.tables[field.name] ?? []}
+                readOnly={!editable || state.readOnly} errors={fieldErrors} rowState={rowState} makeRow={makeRow}
+                onChange={(rows) => { setTables({ ...tables, [field.name]: rows }); clearErrorsFor(field.name) }}
+                onCellEdited={(index, name, value) => {
+                  const column = def.child.fields.find((f) => f.name === name)
+                  const row = (view.tables[field.name] ?? [])[index]
+                  if (column?.type === 'Link' && row) fetchForRow(def, row.key, column, String(value))
+                }} />
             )
           }
 
           return (
-            <FieldControl key={field.name} field={field}
-              value={values[field.name] ?? ''} readOnly={!editable} error={fieldErrors[field.name]}
-              onChange={(v) => { setValues({ ...values, [field.name]: v }); if (fieldErrors[field.name]) setFieldErrors({ ...fieldErrors, [field.name]: '' }) }} />
+            <FieldControl key={field.name} field={field} state={stateOf(field)}
+              value={view.values[field.name] ?? ''} readOnly={!editable} error={fieldErrors[field.name]}
+              onChange={(v) => {
+                setValues({ ...values, [field.name]: v })
+                if (fieldErrors[field.name]) setFieldErrors({ ...fieldErrors, [field.name]: '' })
+                if (field.type === 'Link') fetchForDocument(field, String(v))
+              }} />
           )
         })}
         {!hasFields && <p className="muted full">This DocType has no editable fields.</p>}
