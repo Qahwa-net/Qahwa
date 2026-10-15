@@ -16,6 +16,10 @@ public sealed partial class DocumentService
     private bool HoldsRole(IUserContext user, IEnumerable<string> roles) =>
         permissions.IsAdministrator(user) || roles.Any(r => user.Roles.Contains(r, StringComparer.Ordinal));
 
+    /// <summary>Whether a condition (an expression over the document's fields) holds; an empty one always does and a broken one never.</summary>
+    public bool EvaluateCondition(string? condition, DocTypeMeta meta, IReadOnlyDictionary<string, object?> doc, IUserContext user) =>
+        ConditionHolds(condition, meta, doc, user);
+
     private bool ConditionHolds(string? condition, DocTypeMeta meta, IReadOnlyDictionary<string, object?> doc, IUserContext user)
     {
         if (condition is null)

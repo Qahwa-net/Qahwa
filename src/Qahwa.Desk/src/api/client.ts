@@ -1,6 +1,6 @@
 import type {
   DesignerDetail, DocPerm, DesignerItem, DesignerPreview, Doc, DocTypeDefinition, FieldError, FieldTypeInfo,
-  ListResponse, AutoRepeatInfo, AutoRepeatRequest, AssignmentRuleItem, AssignmentRuleSet, AssignmentRuleView, PendingAction, WorkflowDefinition, WorkflowItem, WorkflowStatus, WorkflowView, MetaResponse, MetaSummary, PermissionItem, ActivityItem, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, FollowState, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
+  ListResponse, NotificationRuleItem, NotificationRuleSet, NotificationRuleView, AutoRepeatInfo, AutoRepeatRequest, AssignmentRuleItem, AssignmentRuleSet, AssignmentRuleView, PendingAction, WorkflowDefinition, WorkflowItem, WorkflowStatus, WorkflowView, MetaResponse, MetaSummary, PermissionItem, ActivityItem, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, FollowState, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
 } from './types.ts'
 import type { Filter } from '../lib/filters.ts'
 import { toApiFilters } from '../lib/filters.ts'
@@ -249,6 +249,15 @@ export const api = {
       (await request<{ data: CustomizationView }>('PUT', `/api/customize/doctypes/${encodeURIComponent(name)}`, { customization, modified })).data,
     reset: async (name: string) =>
       (await request<{ data: CustomizationView }>('DELETE', `/api/customize/doctypes/${encodeURIComponent(name)}`)).data,
+  },
+
+  notificationRules: {
+    list: async () => (await request<{ data: NotificationRuleItem[] }>('GET', '/api/notification-rules/doctypes')).data,
+    get: async (name: string) =>
+      (await request<{ data: NotificationRuleView }>('GET', `/api/notification-rules/doctypes/${encodeURIComponent(name)}`)).data,
+    save: async (name: string, rules: NotificationRuleSet, modified: string | null | undefined) =>
+      (await request<{ data: NotificationRuleView }>('PUT', `/api/notification-rules/doctypes/${encodeURIComponent(name)}`, { rules, modified })).data,
+    remove: async (name: string) => { await request<unknown>('DELETE', `/api/notification-rules/doctypes/${encodeURIComponent(name)}`) },
   },
 
   autoRepeat: {

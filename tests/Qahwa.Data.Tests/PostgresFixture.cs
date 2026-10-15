@@ -74,6 +74,8 @@ public sealed class PgStack : IAsyncDisposable
         Shares = new ShareStore(Registry, Repository);
         WorkflowCatalog = new WorkflowCatalog();
         AssignmentRuleCatalog = new AssignmentRuleCatalog();
+        NotificationRuleCatalog = new NotificationRuleCatalog();
+        NotificationRuleStore = new NotificationRuleStore(_connections, Dialect, new PostgresSchemaInspector(_connections));
         AssignmentRuleStore = new AssignmentRuleStore(_connections, Dialect, new PostgresSchemaInspector(_connections));
         Profiles = new ProfileService(Registry, Repository, Clock);
         History = new HistoryRecorder(Registry, Repository, Clock);
@@ -81,7 +83,7 @@ public sealed class PgStack : IAsyncDisposable
         Notifications = new NotificationService(Registry, Repository, lazyDocuments, History);
         Follows = new FollowService(Registry, Repository, lazyDocuments, History);
         Collaboration = new CollaborationHooks(Follows, Notifications, Registry, Repository);
-        Documents = new DocumentService(Registry, Repository, permissions, new NamingService(Repository), Clock, new UserPermissionService(Registry, Repository), Shares, Profiles, History, Collaboration, WorkflowCatalog, new Lazy<AssignmentRuleEngine>(() => AssignmentRules!));
+        Documents = new DocumentService(Registry, Repository, permissions, new NamingService(Repository), Clock, new UserPermissionService(Registry, Repository), Shares, Profiles, History, Collaboration, WorkflowCatalog, new Lazy<AssignmentRuleEngine>(() => AssignmentRules!), new Lazy<NotificationRuleEngine>(() => NotificationRules!));
         ShareManager = new ShareManager(Registry, Repository, Documents, permissions, Shares, History, Notifications);
         Activity = new ActivityService(Registry, Repository, Documents, permissions, History, Collaboration);
         Assignments = new AssignmentService(Registry, Repository, Documents, permissions, ShareManager, Notifications, Follows, History);
@@ -94,6 +96,8 @@ public sealed class PgStack : IAsyncDisposable
         CustomizationStore = new CustomizationStore(_connections, Dialect, new PostgresSchemaInspector(_connections));
         WorkflowStore = new WorkflowStore(_connections, Dialect, new PostgresSchemaInspector(_connections));
         AssignmentRules = new AssignmentRuleEngine(AssignmentRuleCatalog, Registry, Repository, Assignments, Notifications);
+        NotificationRules = new NotificationRuleEngine(NotificationRuleCatalog, Registry, Repository, Documents, Notifications, Follows, Clock);
+        NotificationRuleManager = new NotificationRuleManager(Registry, NotificationRuleStore, NotificationRuleCatalog, Repository, permissions, Clock);
         AssignmentRuleManager = new AssignmentRuleManager(Registry, AssignmentRuleStore, AssignmentRuleCatalog, Repository, permissions, Clock);
         Workflows = new WorkflowManager(Registry, WorkflowStore, WorkflowCatalog, permissions, Clock);
         Customization = new CustomizationManager(Registry, CustomizationStore, SchemaManager, permissions, Clock);
@@ -119,6 +123,10 @@ public sealed class PgStack : IAsyncDisposable
     public AssignmentRuleStore AssignmentRuleStore { get; }
     public AssignmentRuleEngine AssignmentRules { get; }
     public AssignmentRuleManager AssignmentRuleManager { get; }
+    public NotificationRuleCatalog NotificationRuleCatalog { get; }
+    public NotificationRuleStore NotificationRuleStore { get; }
+    public NotificationRuleEngine NotificationRules { get; }
+    public NotificationRuleManager NotificationRuleManager { get; }
     public ProfileService Profiles { get; }
     public HistoryRecorder History { get; }
     public ActivityService Activity { get; }

@@ -507,3 +507,47 @@ export interface AutoRepeatRequest {
   dateFields?: string[]
   status?: 'Active' | 'Paused'
 }
+
+export type NotificationEvent = 'New' | 'Update' | 'ValueChange' | 'Submit' | 'Cancel' | 'DaysBefore' | 'DaysAfter'
+
+export interface NotificationRule {
+  name: string
+  active: boolean
+  event: NotificationEvent
+  field?: string | null
+  dateField?: string | null
+  days?: number | null
+  condition?: string | null
+  users: string[]
+  roles: string[]
+  userFields: string[]
+  notifyOwner: boolean
+  notifyFollowers: boolean
+  message: string
+}
+
+export interface NotificationRuleSet {
+  docType: string
+  rules: NotificationRule[]
+}
+
+export interface NotificationRuleItem {
+  docType: string
+  module?: string | null
+  source: DocTypeSource
+  hasRules: boolean
+  rules: number
+  activeRules: number
+}
+
+export interface NotificationRuleView {
+  docType: string
+  source: DocTypeSource
+  exists: boolean
+  modified?: string | null
+  set: NotificationRuleSet
+  userFields: string[]
+  fields: string[]
+  dateFields: string[]
+  canEdit: boolean
+}

@@ -68,6 +68,10 @@ Managing rules needs a System Manager. Rules run as the system after a save: the
 
 Setting a repeat up needs read access to the document and create access to its DocType. The scheduler makes each copy as the repeat's owner (`ContextOfAsync` loads their current roles), so the owner's rules, User Permissions and field levels apply; a disabled owner pauses the repeat. Only the owner or a System Manager sees a repeat.
 
+## Notification rules
+
+Managing rules needs a System Manager. Whatever a rule says, `NotificationService.NotifyAsync` only writes a notification for an enabled user who may read the document, so a rule cannot disclose a document. Time-based rules run as the system (the notification shows "Administrator" as the sender).
+
 ## What the API never reveals
 
 - A document you may not read looks like it does not exist where possible (checks run before the document is loaded).

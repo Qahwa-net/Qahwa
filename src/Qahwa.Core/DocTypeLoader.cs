@@ -97,6 +97,21 @@ public static partial class DocTypeLoader
         }
     }
 
+    public static string SerializeNotificationRules(NotificationRuleSet set) => JsonSerializer.Serialize(set, Options);
+
+    public static NotificationRuleSet ParseNotificationRules(string json)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<NotificationRuleSet>(json, Options)
+                ?? throw new DocTypeValidationException("The notification rules are empty.");
+        }
+        catch (JsonException ex)
+        {
+            throw new DocTypeValidationException($"Invalid notification rules: {ex.Message}");
+        }
+    }
+
     public static string SerializeCustomization(Customization customization) => JsonSerializer.Serialize(customization, Options);
 
     public static Customization ParseCustomization(string json)

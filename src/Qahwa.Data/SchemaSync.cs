@@ -18,7 +18,7 @@ public sealed class SchemaSync(
 
     /// <summary>Creates framework tables that are not DocTypes (naming series counters, credentials).</summary>
     public async Task EnsureSystemTablesAsync(CancellationToken ct = default) =>
-        await ExecuteAsync([dialect.CreateSeriesTableSql, dialect.CreateAuthTableSql, dialect.CreateDocTypeTableSql, dialect.CreatePermissionsTableSql, dialect.CreateCustomizeTableSql, dialect.CreateWorkflowTableSql, dialect.CreateAssignmentRuleTableSql], ct);
+        await ExecuteAsync([dialect.CreateSeriesTableSql, dialect.CreateAuthTableSql, dialect.CreateDocTypeTableSql, dialect.CreatePermissionsTableSql, dialect.CreateCustomizeTableSql, dialect.CreateWorkflowTableSql, dialect.CreateAssignmentRuleTableSql, dialect.CreateNotificationRuleTableSql], ct);
 
     /// <summary>Drops the DocType's table. Callers must have checked that it holds no documents.</summary>
     public Task DropTableAsync(DocTypeMeta meta, CancellationToken ct = default) =>

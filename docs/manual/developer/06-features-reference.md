@@ -36,7 +36,7 @@ Tools → Customize Form. Adds fields to Core/App DocTypes (names `custom_...`, 
 `Version` rows (field-level diffs, table row changes, delete snapshots) are written for **every** DocType unless it sets `trackChanges: false`, **in the same transaction** as the change: `HistoryRecorder` builds the rows and `DocumentService` hands them to the repository as side writes (`ChildChanges` for another table; `DeleteAsync`/`RenameAsync` accept them too). `ActivityService` is the read side and the comments: `TimelineAsync`, `AddCommentAsync`, `UpdateCommentAsync`, `DeleteCommentAsync`. Sharing adds system notes (`Info` comments); rename and merge repoint the log and comments. Endpoints in `ActivityEndpoints.cs`; Desk `ActivityPanel`. Limits: no retention or restore yet; mentions are highlighted but not notified.
 
 ## Assign, follow and notifications ([ADR-015](../../adr/015-assign-follow-notifications.md))
-`AssignmentService`, `FollowService`, `NotificationService` and `CollaborationHooks` (called by `DocumentService` after a save and by `ActivityService` after a comment; they reach back to `DocumentService` through `Lazy<DocumentService>` to check read access). Creating, commenting on or being assigned a document makes you a follower; followers are notified of others' changes and comments; @mentions (`Mentions.Find`) notify with an excerpt. Deleting removes the rows; rename and merge repoint them. Endpoints in `CollaborationEndpoints.cs`; Desk: `NotificationBell`, `AssignDialog`, `FollowButton`, `MyAssignments`. Limits: in-app only; no due-date reminders or preferences yet (assignment rules: see below).
+`AssignmentService`, `FollowService`, `NotificationService` and `CollaborationHooks` (called by `DocumentService` after a save and by `ActivityService` after a comment; they reach back to `DocumentService` through `Lazy<DocumentService>` to check read access). Creating, commenting on or being assigned a document makes you a follower; followers are notified of others' changes and comments; @mentions (`Mentions.Find`) notify with an excerpt. Deleting removes the rows; rename and merge repoint them. Endpoints in `CollaborationEndpoints.cs`; Desk: `NotificationBell`, `AssignDialog`, `FollowButton`, `MyAssignments`. Limits: in-app only; no preferences yet (assignment rules, auto repeat and notification rules, with due-date reminders, are below).
 
 ## List settings, saved filters and bulk actions ([ADR-016](../../adr/016-list-settings-saved-filters-bulk.md))
 `ListSettingsService` (per-person `List Setting` rows, shared or private `Saved Filter` rows, validation against the person's readable columns) and `BulkService` (per-document calls into `DocumentService`, max 100, per-document results). Endpoints in `ListEndpoints.cs`; Desk: `ColumnsPanel`, `SavedFilters`, `BulkBar`, and the selection column in `ListView`. Limits: no group-by sidebar, row indicators, comment counts, default views per DocType, or bulk assign/export yet.
@@ -78,8 +78,22 @@ Desk: `AssignmentRules.tsx`, helpers in `lib/assignmentRules.ts`. Tests: `Assign
 
 `AutoRepeat.cs`: `AutoRepeatSchedule` (date maths), `AutoRepeatService` (create, update, delete, run now, `RunDueAsync`), and the Core DocType `CoreDocTypes/auto_repeat.json`. `Qahwa.Server/SchedulerService.cs` is a `BackgroundService` that calls `RunDueAsync` every `Qahwa:Scheduler:IntervalSeconds` (default 300; `Qahwa:Scheduler:Enabled = false` turns it off, for example on all but one server, though several are safe). To add another scheduled job, call it from that loop (or add a second hosted service) and make it idempotent: claim the work with a compare-and-swap before doing it, as `RunRowAsync` does. Endpoints: `AutoRepeatEndpoints.cs`. Desk: `RepeatDialog.tsx`, `AutoRepeatPage.tsx`, `lib/autoRepeat.ts`. Tests: `AutoRepeatTests` (a fake clock drives due dates, including four parallel runs), `AutoRepeatApiTests`, `PostgresAutoRepeatTests`.
 
+## Notification rules ([ADR-022](../../adr/022-notification-rules.md))
+
+`NotificationRules.cs`: `NotificationRule` / `NotificationRuleSet`, `MessageTemplate` (placeholder filling), `NotificationRuleCatalog`, `NotificationRuleManager` (list, get, save, delete, load, static `ValidateShape`) and `NotificationRuleEngine`. `DocumentService.AfterSaveAsync` calls `AfterSaveAsync(meta, name, isNew, before, after, actor)` through `Lazy<NotificationRuleEngine>`; `before` is the stored document before an update, so the engine can tell which columns really changed and whether docstatus moved. `SchedulerService` calls `RunScheduledAsync` about once an hour for the DaysBefore and DaysAfter events. `DocumentService.EvaluateCondition` evaluates a rule's condition. Store: `NotificationRuleStore`. Endpoints: `NotificationRuleEndpoints.cs`. A rule set is JSON:
+
+```json
+{ "docType": "Claim", "rules": [
+  { "name": "Big claim", "event": "Submit", "condition": "amount > 1000", "roles": ["Accounts Manager"], "notifyOwner": true,
+    "message": "{{user}} submitted {{name}} for {{amount}}" },
+  { "name": "Ending soon", "event": "DaysBefore", "dateField": "ends_on", "days": 7, "userFields": ["handler"],
+    "message": "{{title}} ends on {{ends_on}}" } ] }
+```
+
+Desk: `NotificationRules.tsx`, `controls/ChipPicker.tsx`, `lib/notificationRules.ts`. Tests: `NotificationRuleTests`, `NotificationRuleApiTests`, `PostgresNotificationRuleTests`.
+
 ## Authentication ([ADR-002](../../adr/002-authentication.md))
 Cookie sessions, ASP.NET Identity password hashing, lockout, login rate limit; `User`, `Role`, `Has Role` DocTypes. Roles are cached per session for `SessionCacheSeconds`.
 
 ## Planned next
-Email and push notifications, notification rules and email templates (L8), reports and dashboards. The plan lists everything with its status.
+Email channels, email templates and the email queue (L8), reports and dashboards. The plan lists everything with its status.

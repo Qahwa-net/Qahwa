@@ -141,6 +141,7 @@ Someone else's repeat answers 404.
 | `GET/PUT/DELETE /customize/doctypes[/{name}]` | Customize Form |
 | `GET/PUT/DELETE /workflows/doctypes[/{name}]` | Workflow Builder: `PUT` takes `{ workflow, modified }`; `GET` returns `{ docType, source, exists, modified, workflow, stateFields, canEdit }` |
 | `GET/PUT/DELETE /assignment-rules/doctypes[/{name}]` | Assignment Rules: `PUT` takes `{ rules: { docType, rules: [...] }, modified }`; `GET` returns `{ docType, source, exists, modified, set, userFields, canEdit }` |
+| `GET/PUT/DELETE /notification-rules/doctypes[/{name}]` | Notification Rules: `PUT` takes `{ rules: { docType, rules: [...] }, modified }`; `GET` returns `{ docType, source, exists, modified, set, userFields, fields, dateFields, canEdit }` |
 | `GET/PUT /naming/series` | Naming series counters |
 
 PUT bodies carry the version you loaded (`modified`) and fail with 409 if someone else changed it.

@@ -82,15 +82,33 @@ public sealed class NotificationService(
         registry.TryGet("User", out var userMeta) ? (await repository.GetAsync(userMeta, email, ct))?.GetValueOrDefault("full_name") as string : null;
 
     /// <summary>Tells one person something about a document. Silently does nothing if they should not hear it.</summary>
-    public async Task NotifyAsync(
-        string forUser, string type, string doctype, string name, string fromUser, string subject, CancellationToken ct = default)
+    /// <summary>
+    /// Adds to a person's notifications, if they are an enabled user who may read the document and are not the one who caused it.
+    /// A notification from a rule carries the rule and a key (the day): the same person is not told twice for the same key.
+    /// </summary>
+    /// <returns>True when a notification was written.</returns>
+    public async Task<bool> NotifyAsync(
+        string forUser, string type, string doctype, string name, string fromUser, string subject, CancellationToken ct = default,
+        string? rule = null, string? ruleKey = null)
     {
         if (Meta is not { } meta || string.Equals(forUser, fromUser, StringComparison.Ordinal))
-            return;
+            return false;
 
         var person = await ContextOfAsync(forUser, ct);
         if (person is null || !await CanReadAsync(person, doctype, name, ct))
-            return;
+            return false;
+
+        if (rule is not null && ruleKey is not null)
+        {
+            var already = await repository.ListAsync(meta, new ListQuery
+            {
+                Filters = [new("for_user", FilterOp.Eq, forUser), new("document_type", FilterOp.Eq, doctype), new("document_name", FilterOp.Eq, name),
+                           new("rule", FilterOp.Eq, rule), new("rule_key", FilterOp.Eq, ruleKey)],
+                Fields = ["name"], Limit = 1,
+            }, ct);
+            if (already.Count > 0)
+                return false;
+        }
 
         var row = HistoryRecorder.Standard(fromUser, history.Now());
         row["for_user"] = forUser;
@@ -100,7 +118,10 @@ public sealed class NotificationService(
         row["from_user"] = fromUser;
         row["subject"] = subject.Length > MaxSubject ? subject[..MaxSubject] + "…" : subject;
         row["is_read"] = false;
+        row["rule"] = rule;
+        row["rule_key"] = ruleKey;
         await repository.InsertAsync(meta, row, null, ct);
+        return true;
     }
 
     private IEnumerable<QueryFilter> Mine(IUserContext user, bool unreadOnly)

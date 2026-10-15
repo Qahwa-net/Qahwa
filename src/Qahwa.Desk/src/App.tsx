@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './auth.tsx'
 import { Shell } from './shell/Shell.tsx'
 import { AccountPage } from './pages/AccountPage.tsx'
 import { CustomizeFormPage } from './pages/CustomizeForm.tsx'
+import { NotificationRulesPage } from './pages/NotificationRules.tsx'
 import { AutoRepeatPage } from './pages/AutoRepeatPage.tsx'
 import { AssignmentRulesPage } from './pages/AssignmentRules.tsx'
 import { WorkflowBuilderPage } from './pages/WorkflowBuilder.tsx'
@@ -41,6 +42,8 @@ export function App() {
           <Route path="designer/:name" element={<DesignerEditor />} />
           <Route path="customize" element={<CustomizeFormPage />} />
           <Route path="customize/:name" element={<CustomizeFormPage />} />
+          <Route path="notification-rules" element={<NotificationRulesPage />} />
+          <Route path="notification-rules/:name" element={<NotificationRulesPage />} />
           <Route path="auto-repeat" element={<AutoRepeatPage />} />
           <Route path="assignment-rules" element={<AssignmentRulesPage />} />
           <Route path="assignment-rules/:name" element={<AssignmentRulesPage />} />

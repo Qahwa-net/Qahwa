@@ -21,7 +21,8 @@ public sealed partial class DocumentService(
     HistoryRecorder? history = null,
     CollaborationHooks? collaboration = null,
     WorkflowCatalog? workflows = null,
-    Lazy<AssignmentRuleEngine>? assignmentRules = null)
+    Lazy<AssignmentRuleEngine>? assignmentRules = null,
+    Lazy<NotificationRuleEngine>? notificationRules = null)
 {
     private readonly DocumentLogic _logic = new(registry, repository, permissions, clock);
 
@@ -175,7 +176,8 @@ public sealed partial class DocumentService(
     private static Dictionary<string, object?> TransitionInput(DateTime? modified) =>
         modified is null ? [] : new() { ["modified"] = modified };
 
-    private async Task AfterSaveAsync(DocTypeMeta meta, string name, IReadOnlySet<string> changed, bool isNew, IUserContext user, CancellationToken ct)
+    private async Task AfterSaveAsync(
+        DocTypeMeta meta, string name, IReadOnlySet<string> changed, bool isNew, IUserContext user, CancellationToken ct, IReadOnlyDictionary<string, object?>? before = null)
     {
         if (profiles is not null && await LoadAsync(meta, name, ct) is { } saved)
             await profiles.AfterSaveAsync(meta, saved, changed, isNew, ct);
@@ -183,6 +185,8 @@ public sealed partial class DocumentService(
             await collaboration.AfterSaveAsync(meta, name, isNew, user, ct);
         if (assignmentRules is not null && AssignmentRuleManager.Applies(meta) && await LoadAsync(meta, name, ct) is { } current)
             await assignmentRules.Value.AfterSaveAsync(meta, name, current, condition => ConditionHolds(condition, meta, current, user), user, ct);
+        if (notificationRules is not null && AssignmentRuleManager.Applies(meta) && await LoadAsync(meta, name, ct) is { } latest)
+            await notificationRules.Value.AfterSaveAsync(meta, name, isNew, before, latest, user, ct);
     }
 
     private static DocumentValidationException General(string message) => new([new FieldError(string.Empty, message)]);
@@ -376,7 +380,7 @@ public sealed partial class DocumentService(
         if (!await repository.UpdateAsync(meta, name, changes, stored, children, ct))
             throw new ConflictException($"{meta.Name} '{name}' was changed or deleted by someone else. Reload and try again.");
 
-        await AfterSaveAsync(meta, name, changes.Keys.ToHashSet(StringComparer.Ordinal), isNew: false, user, ct);
+        await AfterSaveAsync(meta, name, changes.Keys.ToHashSet(StringComparer.Ordinal), isNew: false, user, ct, before: existing);
         return await LoadForAsync(meta, name, user, ct)
             ?? throw new NotFoundException($"{meta.Name} '{name}' was not found.");
     }

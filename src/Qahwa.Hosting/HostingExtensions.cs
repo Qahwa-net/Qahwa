@@ -83,6 +83,11 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<AssignmentRuleCatalog>();
         services.TryAddSingleton<AssignmentRuleManager>();
         services.TryAddSingleton<AssignmentRuleEngine>();
+        services.TryAddSingleton<INotificationRuleStore, NotificationRuleStore>();
+        services.TryAddSingleton<NotificationRuleCatalog>();
+        services.TryAddSingleton<NotificationRuleManager>();
+        services.TryAddSingleton<NotificationRuleEngine>();
+        services.TryAddSingleton(sp => new Lazy<NotificationRuleEngine>(() => sp.GetRequiredService<NotificationRuleEngine>()));
         services.TryAddSingleton(sp => new Lazy<AssignmentRuleEngine>(() => sp.GetRequiredService<AssignmentRuleEngine>()));
         services.TryAddSingleton<NamingService>();
         services.TryAddSingleton<UserPermissionService>();

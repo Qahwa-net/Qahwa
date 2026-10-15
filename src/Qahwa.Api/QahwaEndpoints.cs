@@ -96,6 +96,7 @@ public static class QahwaEndpoints
         app.MapQahwaWorkflows();
         app.MapQahwaAssignmentRules();
         app.MapQahwaAutoRepeat();
+        app.MapQahwaNotificationRules();
         return app;
     }
 

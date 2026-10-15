@@ -61,6 +61,7 @@ export function Shell() {
               <li><NavLink to="/customize">Customize Form</NavLink></li>
               <li><NavLink to="/permissions">Role Permissions</NavLink></li>
               <li><NavLink to="/workflows">Workflow Builder</NavLink></li>
+              <li><NavLink to="/notification-rules">Notification Rules</NavLink></li>
               <li><NavLink to="/assignment-rules">Assignment Rules</NavLink></li>
               <li><NavLink to="/naming">Naming Series</NavLink></li>
             </ul>
