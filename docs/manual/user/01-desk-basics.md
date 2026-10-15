@@ -12,6 +12,7 @@ DocTypes you may use are grouped by module. **Tools** (System Managers only) hol
 
 - **Search** box: finds documents by their title.
 - **Filters**: add one or more conditions on any field (equals, contains, greater than, is set ...). Filters are kept in the address, so you can bookmark or share a filtered list.
+- **Columns** lets you choose and order the columns, rows per page and sort for yourself; **Save filters…** keeps a set of filters; tick rows for bulk actions: see [Your lists](08-list-views-filters-bulk.md).
 - Click a column heading to **sort**; use the page controls at the bottom.
 - Link columns (a customer on an order) show the **name**, not the ID.
 - Buttons at the top depend on your rights: **+ New**, **Export** (downloads the filtered list as CSV), **Report** (a count or total per value of a field), **Tree view** (for tree DocTypes).

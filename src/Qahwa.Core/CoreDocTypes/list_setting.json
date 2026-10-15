@@ -1,0 +1,13 @@
+{
+  "name": "List Setting",
+  "module": "Core",
+  "trackChanges": false,
+  "fields": [
+    { "name": "reference_doctype", "type": "Data", "label": "DocType", "required": true, "indexed": true, "inListView": true },
+    { "name": "user", "type": "Data", "label": "User", "required": true, "indexed": true, "inListView": true },
+    { "name": "settings", "type": "LongText", "label": "Settings" }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "delete": true }
+  ]
+}

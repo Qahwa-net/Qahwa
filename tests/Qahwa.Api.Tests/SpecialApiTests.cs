@@ -367,3 +367,65 @@ public sealed class CollaborationApiTests : IAsyncDisposable
         Assert.Equal(HttpStatusCode.BadRequest, (await seller.GetAsync("/api/notifications?before=garbage")).StatusCode);
     }
 }
+
+public sealed class ListPowerApiTests : IAsyncDisposable
+{
+    private readonly QahwaFactory _factory = new();
+
+    public ValueTask DisposeAsync() => _factory.DisposeAsync();
+
+    private static async Task<JsonElement> JsonOf(HttpResponseMessage response) =>
+        (await response.Content.ReadFromJsonAsync<JsonElement>()).Clone();
+
+    [Fact]
+    public async Task Settings_and_saved_filters_round_trip_and_are_validated()
+    {
+        var manager = _factory.ClientFor("m@example.com", "Sales Manager");
+
+        var start = (await JsonOf(await manager.GetAsync("/api/list-settings/Customer"))).GetProperty("data");
+        Assert.Equal(JsonValueKind.Null, start.GetProperty("settings").ValueKind);
+
+        var saved = await manager.PutAsJsonAsync("/api/list-settings/Customer/settings", new { columns = new[] { "customer_name", "modified" }, pageSize = 50, sortField = "customer_name", sortDescending = false });
+        Assert.Equal(HttpStatusCode.OK, saved.StatusCode);
+        Assert.Equal(50, (await JsonOf(saved)).GetProperty("data").GetProperty("pageSize").GetInt32());
+        Assert.Equal(HttpStatusCode.BadRequest, (await manager.PutAsJsonAsync("/api/list-settings/Customer/settings", new { columns = new[] { "nope" }, pageSize = 20 })).StatusCode);
+
+        var filter = await manager.PostAsJsonAsync("/api/list-settings/Customer/filters", new { name = "Companies", filters = new[] { new[] { "customer_type", "=", "Company" } }, isPublic = false });
+        Assert.Equal(HttpStatusCode.OK, filter.StatusCode);
+        var id = (await JsonOf(filter)).GetProperty("data").GetProperty("id").GetString();
+        var listed = (await JsonOf(await manager.GetAsync("/api/list-settings/Customer"))).GetProperty("data");
+        Assert.Equal("Companies", listed.GetProperty("filters")[0].GetProperty("name").GetString());
+        Assert.Equal("customer_type", listed.GetProperty("settings").ValueKind == JsonValueKind.Object ? listed.GetProperty("filters")[0].GetProperty("filters")[0][0].GetString() : "");
+
+        Assert.Equal(HttpStatusCode.BadRequest, (await manager.PostAsJsonAsync("/api/list-settings/Customer/filters", new { name = "Bad", filters = new[] { new[] { "ghost", "=", "x" } } })).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await _factory.ClientFor("o@example.com", "Sales Manager").DeleteAsync($"/api/list-settings/Customer/filters/{id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await manager.DeleteAsync($"/api/list-settings/Customer/filters/{id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await manager.DeleteAsync("/api/list-settings/Customer/settings")).StatusCode);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateClient().GetAsync("/api/list-settings/Customer")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await _factory.ClientFor("n@example.com", "Nobody").GetAsync("/api/list-settings/Customer")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Bulk_update_and_delete_report_each_document()
+    {
+        var manager = _factory.ClientFor("m@example.com", "Sales Manager");
+        var ids = new List<string>();
+        foreach (var name in new[] { "A", "B", "C" })
+            ids.Add((await JsonOf(await manager.PostAsJsonAsync("/api/resource/Customer", new { customer_name = name }))).GetProperty("data").GetProperty("name").GetString()!);
+
+        var update = await manager.PostAsJsonAsync("/api/resource/Customer/bulk", new { action = "update", names = ids.Append("MISSING"), field = "credit_limit", value = 900 });
+        var body = await JsonOf(update);
+        Assert.Equal(3, body.GetProperty("succeeded").GetInt32());
+        Assert.Equal(1, body.GetProperty("failed").GetInt32());
+        Assert.Equal(900m, (await JsonOf(await manager.GetAsync($"/api/resource/Customer/{ids[0]}"))).GetProperty("data").GetProperty("credit_limit").GetDecimal());
+
+        Assert.Equal(HttpStatusCode.BadRequest, (await manager.PostAsJsonAsync("/api/resource/Customer/bulk", new { action = "explode", names = ids })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await manager.PostAsJsonAsync("/api/resource/Customer/bulk", new { action = "update", names = ids, field = "name", value = "x" })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await manager.PostAsJsonAsync("/api/resource/Customer/bulk", new { action = "delete", names = Array.Empty<string>() })).StatusCode);
+
+        var delete = await JsonOf(await manager.PostAsJsonAsync("/api/resource/Customer/bulk", new { action = "delete", names = ids }));
+        Assert.Equal(3, delete.GetProperty("succeeded").GetInt32());
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateClient().PostAsJsonAsync("/api/resource/Customer/bulk", new { action = "delete", names = ids })).StatusCode);
+    }
+}

@@ -287,6 +287,37 @@ export interface AssignmentInfo {
   docName?: string | null
 }
 
+/** How one person likes a DocType's list: columns, rows per page and sort order. */
+export interface ListViewSettings {
+  columns: string[]
+  pageSize: number
+  sortField?: string | null
+  sortDescending: boolean
+}
+
+/** A named set of list filters, private or shared with everyone who can use the DocType. */
+export interface SavedFilter {
+  id: string
+  name: string
+  /** [field, operator, value] entries, in the same shape as the list's filters. */
+  filters: [string, string, string | number | boolean][] | null
+  isPublic: boolean
+  mine: boolean
+  owner: string
+  ownerName?: string | null
+}
+
+export interface ListViewState {
+  settings: ListViewSettings | null
+  filters: SavedFilter[]
+}
+
+export interface BulkResult {
+  name: string
+  ok: boolean
+  error?: string | null
+}
+
 export interface TreeNode {
   name: string
   is_group: boolean

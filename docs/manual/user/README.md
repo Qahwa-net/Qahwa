@@ -9,6 +9,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 5. [Special documents: settings, trees, submit and cancel, rename, export, reports, naming series](05-special-documents.md)
 6. [History and comments on every document](06-history-and-comments.md)
 7. [Assigning, following and notifications](07-assign-follow-notifications.md)
+8. [Your lists: columns, saved filters and bulk actions](08-list-views-filters-bulk.md)
 
 **Words used**
 

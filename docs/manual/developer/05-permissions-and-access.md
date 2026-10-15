@@ -48,6 +48,10 @@ The updates log and comments need read access to the document (every layer above
 
 Assigning needs the same right as sharing; the assignee is given a read share if they cannot open the document. A notification is only written if the recipient is an enabled user who can read the document (checked with `DocumentService.GetAsync` using their roles from `Has Role`), so no notification, and no comment excerpt in a mention, reaches someone without access. Notifications and assignments are scoped to their owner/participants; others get "not found".
 
+## List settings, saved filters and bulk actions
+
+List settings and saved filters only ever name columns the caller may read (validated on save and again on read). A saved filter is applied through the ordinary list request, so every layer above still limits the result. Bulk actions call `DocumentService` per document, so each document is authorised, validated, locked, logged and notified exactly as a single request; the caller needs the write (or delete) right on the DocType to start one.
+
 ## What the API never reveals
 
 - A document you may not read looks like it does not exist where possible (checks run before the document is loaded).

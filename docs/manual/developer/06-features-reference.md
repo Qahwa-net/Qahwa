@@ -38,6 +38,9 @@ Tools → Customize Form. Adds fields to Core/App DocTypes (names `custom_...`, 
 ## Assign, follow and notifications ([ADR-015](../../adr/015-assign-follow-notifications.md))
 `AssignmentService`, `FollowService`, `NotificationService` and `CollaborationHooks` (called by `DocumentService` after a save and by `ActivityService` after a comment; they reach back to `DocumentService` through `Lazy<DocumentService>` to check read access). Creating, commenting on or being assigned a document makes you a follower; followers are notified of others' changes and comments; @mentions (`Mentions.Find`) notify with an excerpt. Deleting removes the rows; rename and merge repoint them. Endpoints in `CollaborationEndpoints.cs`; Desk: `NotificationBell`, `AssignPanel`, `FollowButton`, `MyAssignments`. Limits: in-app only; no assignment rules, due-date reminders or preferences yet.
 
+## List settings, saved filters and bulk actions ([ADR-016](../../adr/016-list-settings-saved-filters-bulk.md))
+`ListSettingsService` (per-person `List Setting` rows, shared or private `Saved Filter` rows, validation against the person's readable columns) and `BulkService` (per-document calls into `DocumentService`, max 100, per-document results). Endpoints in `ListEndpoints.cs`; Desk: `ColumnsPanel`, `SavedFilters`, `BulkBar`, and the selection column in `ListView`. Limits: no group-by sidebar, row indicators, comment counts, default views per DocType, or bulk assign/export yet.
+
 ## Authentication ([ADR-002](../../adr/002-authentication.md))
 Cookie sessions, ASP.NET Identity password hashing, lockout, login rate limit; `User`, `Role`, `Has Role` DocTypes. Roles are cached per session for `SessionCacheSeconds`.
 

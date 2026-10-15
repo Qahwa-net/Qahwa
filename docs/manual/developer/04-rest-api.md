@@ -81,6 +81,17 @@ For versions `data` is `{ changed: [[field, before, after], ...], tables: { fiel
 | `GET /notifications/count` | `{ unread }` |
 | `POST /notifications/{id}/read`, `POST /notifications/read-all` | Mark mine read |
 
+## List settings, saved filters and bulk actions
+
+| Call | Purpose |
+|---|---|
+| `GET /list-settings/{doctype}` | `{ settings, filters }`: my columns/page size/sort (null for the usual view) and the saved filters I can pick (mine, then shared) |
+| `PUT /list-settings/{doctype}/settings` `{ columns, pageSize, sortField, sortDescending }` | Save my settings (validated against what I may read) |
+| `DELETE /list-settings/{doctype}/settings` | Back to the usual view |
+| `POST /list-settings/{doctype}/filters` `{ name, filters: [[field, op, value], ...], isPublic }` | Save (or replace by name) a filter; `isPublic` needs write access to the DocType |
+| `DELETE /list-settings/{doctype}/filters/{id}` | Delete mine (or a shared one as Administrator) |
+| `POST /resource/{doctype}/bulk` `{ action: "update"\|"delete", names: [...], field, value }` | Up to 100 documents; returns `{ data: [{ name, ok, error }], succeeded, failed }`. 401/403 when not signed in / no write or delete right |
+
 ## Link fields
 
 | Call | Purpose |

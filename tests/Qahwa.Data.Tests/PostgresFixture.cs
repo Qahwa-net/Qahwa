@@ -82,6 +82,8 @@ public sealed class PgStack : IAsyncDisposable
         ShareManager = new ShareManager(Registry, Repository, Documents, permissions, Shares, History, Notifications);
         Activity = new ActivityService(Registry, Repository, Documents, permissions, History, Collaboration);
         Assignments = new AssignmentService(Registry, Repository, Documents, permissions, ShareManager, Notifications, Follows, History);
+        ListSettings = new ListSettingsService(Registry, Repository, Documents, permissions, History);
+        Bulk = new BulkService(Registry, Documents);
         DocTypeStore = new DocTypeStore(_connections, Dialect, new PostgresSchemaInspector(_connections));
         SchemaManager = new SchemaManager(Sync, Dialect);
         Designer = new DocTypeDesigner(Registry, DocTypeStore, SchemaManager, Repository, Clock);
@@ -108,6 +110,8 @@ public sealed class PgStack : IAsyncDisposable
     public FollowService Follows { get; }
     public CollaborationHooks Collaboration { get; }
     public AssignmentService Assignments { get; }
+    public ListSettingsService ListSettings { get; }
+    public BulkService Bulk { get; }
     public ShareManager ShareManager { get; }
     public DocTypeStore DocTypeStore { get; }
     public SchemaManager SchemaManager { get; }

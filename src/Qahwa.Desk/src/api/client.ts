@@ -1,6 +1,6 @@
 import type {
   DesignerDetail, DocPerm, DesignerItem, DesignerPreview, Doc, DocTypeDefinition, FieldError, FieldTypeInfo,
-  ListResponse, MetaResponse, MetaSummary, PermissionItem, ActivityItem, AssignmentInfo, Customization, CustomizationItem, CustomizationView, FollowState, LinkOption, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
+  ListResponse, MetaResponse, MetaSummary, PermissionItem, ActivityItem, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, FollowState, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
 } from './types.ts'
 import type { Filter } from '../lib/filters.ts'
 import { toApiFilters } from '../lib/filters.ts'
@@ -170,6 +170,23 @@ export const api = {
       (await request<{ data: ShareInfo[] }>('GET', `/api/share/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}`)).data,
     set: async (doctype: string, name: string, user: string, read: boolean, write: boolean) =>
       (await request<{ data: ShareInfo[] }>('PUT', `/api/share/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}`, { user, read, write })).data,
+  },
+
+  listSettings: {
+    get: async (doctype: string) => (await request<{ data: ListViewState }>('GET', `/api/list-settings/${encodeURIComponent(doctype)}`)).data,
+    save: async (doctype: string, settings: ListViewSettings) =>
+      (await request<{ data: ListViewSettings }>('PUT', `/api/list-settings/${encodeURIComponent(doctype)}/settings`, settings)).data,
+    reset: (doctype: string) => request<unknown>('DELETE', `/api/list-settings/${encodeURIComponent(doctype)}/settings`),
+    saveFilter: async (doctype: string, name: string, filters: Filter[], isPublic: boolean) =>
+      (await request<{ data: SavedFilter }>('POST', `/api/list-settings/${encodeURIComponent(doctype)}/filters`,
+        { name, filters: filters.map((f) => [f.field, f.op, f.value]), isPublic })).data,
+    deleteFilter: (doctype: string, id: string) =>
+      request<unknown>('DELETE', `/api/list-settings/${encodeURIComponent(doctype)}/filters/${encodeURIComponent(id)}`),
+  },
+
+  /** Change one field on, or delete, several documents; each is reported on its own. */
+  async bulk(doctype: string, body: { action: 'update' | 'delete'; names: string[]; field?: string; value?: unknown }) {
+    return request<{ data: BulkResult[]; succeeded: number; failed: number }>('POST', `${resource(doctype)}/bulk`, body)
   },
 
   notifications: {

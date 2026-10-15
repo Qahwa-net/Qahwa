@@ -313,3 +313,34 @@ public class PostgresCollaborationTests(PostgresFixture postgres) : IClassFixtur
         Assert.Equal(1, await db.ScalarAsync("SELECT COUNT(*) FROM pg_indexes WHERE schemaname = current_schema() AND tablename = 'tabNotification Log' AND indexdef LIKE '%(for_user)%'"));
     }
 }
+
+public class PostgresListPowerTests(PostgresFixture postgres) : IClassFixture<PostgresFixture>
+{
+    [SkippableFact]
+    public async Task Settings_filters_and_bulk_actions_run_on_postgres()
+    {
+        Skip.IfNot(postgres.Available, postgres.SkipReason);
+        await using var db = await postgres.CreateStackAsync();
+        var admin = TestUsers.Admin;
+        foreach (var name in new[] { "A", "B", "C" })
+            await db.Documents.InsertAsync("Customer", Values(("customer_name", name)), admin);
+
+        await db.ListSettings.SaveSettingsAsync("Customer", new ListViewSettings(["customer_name", "credit_limit"], 50, "customer_name", false), admin);
+        var filters = System.Text.Json.JsonDocument.Parse("""[["customer_name","like","%A%"],["customer_type","in",["Company","Individual"]]]""").RootElement.Clone();
+        await db.ListSettings.SaveFilterAsync("Customer", "My view", filters, false, admin);
+        await db.ListSettings.SaveFilterAsync("Customer", "my VIEW", filters, true, admin); // same name: replaced, now shared
+
+        var state = await db.ListSettings.GetAsync("Customer", admin);
+        Assert.Equal(50, state.Settings!.PageSize);
+        var saved = Assert.Single(state.Filters);
+        Assert.True(saved.IsPublic);
+        Assert.Equal(2, saved.Filters!.AsArray().Count);
+
+        var names = (await db.Documents.ListAsync("Customer", new ListRequest { Limit = 100 }, admin)).Data.Select(r => (string)r["name"]!).ToList();
+        var update = await db.Bulk.UpdateAsync("Customer", names, "credit_limit", 123, admin);
+        Assert.All(update, r => Assert.True(r.Ok, r.Error));
+        Assert.Equal(3, await db.ScalarAsync("SELECT COUNT(*) FROM \"tabCustomer\" WHERE \"credit_limit\" = 123"));
+        Assert.All(await db.Bulk.DeleteAsync("Customer", names, admin), r => Assert.True(r.Ok));
+        Assert.Equal(0, await db.ScalarAsync("SELECT COUNT(*) FROM \"tabCustomer\""));
+    }
+}

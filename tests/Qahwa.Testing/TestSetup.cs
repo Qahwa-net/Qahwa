@@ -94,6 +94,8 @@ public sealed class TestEngine
         ShareManager = new ShareManager(Registry, Repository, Documents, Permissions, Shares, History, Notifications);
         Activity = new ActivityService(Registry, Repository, Documents, Permissions, History, Collaboration);
         Assignments = new AssignmentService(Registry, Repository, Documents, Permissions, ShareManager, Notifications, Follows, History);
+        ListSettings = new ListSettingsService(Registry, Repository, Documents, Permissions, History);
+        Bulk = new BulkService(Registry, Documents);
         DocTypeStore = new InMemoryDocTypeStore();
         Schema = new InMemorySchemaManager();
         Designer = new DocTypeDesigner(Registry, DocTypeStore, Schema, Repository, Clock);
@@ -128,6 +130,8 @@ public sealed class TestEngine
     public FollowService Follows { get; }
     public CollaborationHooks Collaboration { get; }
     public AssignmentService Assignments { get; }
+    public ListSettingsService ListSettings { get; }
+    public BulkService Bulk { get; }
     public NamingSeriesManager NamingSeries { get; }
     public ShareManager ShareManager { get; }
     public InMemoryDocTypeStore DocTypeStore { get; }
