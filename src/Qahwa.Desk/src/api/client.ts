@@ -1,6 +1,6 @@
 import type {
   DesignerDetail, DocPerm, DesignerItem, DesignerPreview, Doc, DocTypeDefinition, FieldError, FieldTypeInfo,
-  ListResponse, DashboardDetail, DashboardInfo, DashboardItem, DashboardResult, EmailPreview, EmailTemplateInfo, NotificationRuleItem, NotificationRuleSet, NotificationRuleView, AutoRepeatInfo, AutoRepeatRequest, AssignmentRuleItem, AssignmentRuleSet, AssignmentRuleView, PendingAction, WorkflowDefinition, WorkflowItem, WorkflowStatus, WorkflowView, MetaResponse, MetaSummary, PermissionItem, ActivityItem, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, FollowState, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
+  ListResponse, LetterHeadDetail, PrintChoices, PrintFormatDetail, PrintFormatInfo, DashboardDetail, DashboardInfo, DashboardItem, DashboardResult, EmailPreview, EmailTemplateInfo, NotificationRuleItem, NotificationRuleSet, NotificationRuleView, AutoRepeatInfo, AutoRepeatRequest, AssignmentRuleItem, AssignmentRuleSet, AssignmentRuleView, PendingAction, WorkflowDefinition, WorkflowItem, WorkflowStatus, WorkflowView, MetaResponse, MetaSummary, PermissionItem, ActivityItem, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, FollowState, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
 } from './types.ts'
 import type { Filter } from '../lib/filters.ts'
 import { toApiFilters } from '../lib/filters.ts'
@@ -249,6 +249,32 @@ export const api = {
       (await request<{ data: CustomizationView }>('PUT', `/api/customize/doctypes/${encodeURIComponent(name)}`, { customization, modified })).data,
     reset: async (name: string) =>
       (await request<{ data: CustomizationView }>('DELETE', `/api/customize/doctypes/${encodeURIComponent(name)}`)).data,
+  },
+
+  print: {
+    choices: async (doctype: string) => (await request<{ data: PrintChoices }>('GET', `/api/print/choices?doctype=${encodeURIComponent(doctype)}`)).data,
+    /** The URL of the printable page (opens in its own tab, which has a Print button). */
+    url: (doctype: string, name: string, format: string, letterHead: string) => {
+      const query = new URLSearchParams()
+      if (format) query.set('format', format)
+      if (letterHead) query.set('letterhead', letterHead)
+      return `/api/print/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}${query.size ? `?${query}` : ''}`
+    },
+    page: async (url: string) => {
+      const response = await fetch(url, { credentials: 'same-origin' })
+      if (!response.ok) throw new ApiError(response.status, 'print_error', response.status === 403 ? 'You may not print this.' : 'Could not load the printout.')
+      return response.text()
+    },
+    formats: async () => (await request<{ data: PrintFormatInfo[] }>('GET', '/api/print-formats')).data,
+    format: async (name: string) => (await request<{ data: PrintFormatDetail }>('GET', `/api/print-formats/${encodeURIComponent(name)}`)).data,
+    saveFormat: async (body: { name: string; docType: string; html: string; isDefault: boolean; letterHead?: string | null }) =>
+      (await request<{ data: PrintFormatDetail }>('PUT', '/api/print-formats', body)).data,
+    removeFormat: async (name: string) => { await request<unknown>('DELETE', `/api/print-formats/${encodeURIComponent(name)}`) },
+    preview: async (body: { docType: string; name: string; html: string; letterHead?: string | null }) =>
+      (await request<{ data: { html: string } }>('POST', '/api/print-formats/preview', body)).data.html,
+    letterHeads: async () => (await request<{ data: LetterHeadDetail[] }>('GET', '/api/letter-heads')).data,
+    saveLetterHead: async (body: LetterHeadDetail) => (await request<{ data: LetterHeadDetail }>('PUT', '/api/letter-heads', body)).data,
+    removeLetterHead: async (name: string) => { await request<unknown>('DELETE', `/api/letter-heads/${encodeURIComponent(name)}`) },
   },
 
   dashboards: {

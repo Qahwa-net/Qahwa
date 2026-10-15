@@ -108,6 +108,7 @@ public sealed class TestEngine
         Designer = new DocTypeDesigner(Registry, DocTypeStore, Schema, Repository, Clock);
         Customization = new CustomizationManager(Registry, CustomizationStore, Schema, Permissions, Clock);
         AssignmentRules = new AssignmentRuleEngine(AssignmentRuleCatalog, Registry, Repository, Assignments, Notifications);
+        Print = new PrintService(Registry, Repository, Documents, Permissions, History);
         Dashboards = new DashboardService(Registry, Repository, Documents, Permissions, Notifications, History);
         EmailSender = new FakeEmailSender();
         Email = new EmailService(Registry, Repository, Documents, Permissions, History, EmailSender);
@@ -151,6 +152,7 @@ public sealed class TestEngine
     public NotificationRuleEngine NotificationRules { get; }
     public FakeEmailSender EmailSender { get; }
     public DashboardService Dashboards { get; }
+    public PrintService Print { get; }
     public EmailService Email { get; }
     public NotificationRuleManager NotificationRuleManager { get; }
     public ProfileService Profiles { get; }

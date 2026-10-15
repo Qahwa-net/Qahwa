@@ -16,6 +16,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 12. [Notification rules: tell people automatically](12-notification-rules.md)
 13. [Email: send mail about a document](13-email.md)
 14. [Dashboards: numbers, charts and lists](14-dashboards.md)
+15. [Printing documents](15-printing.md)
 
 **Words used**
 

@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './auth.tsx'
 import { Shell } from './shell/Shell.tsx'
 import { AccountPage } from './pages/AccountPage.tsx'
 import { CustomizeFormPage } from './pages/CustomizeForm.tsx'
+import { PrintFormatsPage } from './pages/PrintFormats.tsx'
 import { DashboardsPage } from './pages/Dashboards.tsx'
 import { NotificationRulesPage } from './pages/NotificationRules.tsx'
 import { AutoRepeatPage } from './pages/AutoRepeatPage.tsx'
@@ -43,6 +44,7 @@ export function App() {
           <Route path="designer/:name" element={<DesignerEditor />} />
           <Route path="customize" element={<CustomizeFormPage />} />
           <Route path="customize/:name" element={<CustomizeFormPage />} />
+          <Route path="print-formats" element={<PrintFormatsPage />} />
           <Route path="dashboards" element={<DashboardsPage />} />
           <Route path="dashboards/:id" element={<DashboardsPage />} />
           <Route path="notification-rules" element={<NotificationRulesPage />} />

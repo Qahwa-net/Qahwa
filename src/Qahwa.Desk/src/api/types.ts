@@ -618,3 +618,26 @@ export interface DashboardResult {
   truncated: boolean
   error?: string | null
 }
+
+export interface PrintFormatInfo {
+  name: string
+  docType: string
+  isDefault: boolean
+  letterHead?: string | null
+}
+
+export interface PrintFormatDetail extends PrintFormatInfo {
+  html: string
+}
+
+export interface PrintChoices {
+  formats: PrintFormatInfo[]
+  letterHeads: string[]
+}
+
+export interface LetterHeadDetail {
+  name: string
+  header: string
+  footer: string
+  isDefault: boolean
+}

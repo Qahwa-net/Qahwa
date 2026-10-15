@@ -99,6 +99,7 @@ public static class QahwaEndpoints
         app.MapQahwaNotificationRules();
         app.MapQahwaEmail();
         app.MapQahwaDashboards();
+        app.MapQahwaPrint();
         return app;
     }
 

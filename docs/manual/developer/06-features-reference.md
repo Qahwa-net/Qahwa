@@ -100,6 +100,10 @@ Desk: `NotificationRules.tsx`, `controls/ChipPicker.tsx`, `lib/notificationRules
 
 `Dashboards.cs`: `DashboardItem`, `DashboardService` (list, get, create, update, delete, `DataAsync`, `PreviewAsync`, `Validate`); `DocumentService.Analytics.cs`: `AggregateAsync` (one number) and `SeriesAsync` (an aggregate per group or per day, month or year), both reading rows through `ListAsync`; the Core DocType `dashboard.json`; `DashboardEndpoints.cs`. Desk: `Dashboards.tsx` (list, view, builder, `Tile`), `controls/Charts.tsx` (SVG bar, line and pie), `lib/charts.ts` (axis maths, tested), `lib/dashboards.ts`. To add a tile type: extend `DashboardItem.Types`, `ValidateItem`, `EvaluateAsync`, then `TileBody` and the editor. Tests: `DashboardTests`, `DashboardApiTests`, `PostgresDashboardTests`.
 
+## Printing ([ADR-025](../../adr/025-print-formats-and-letter-heads.md))
+
+`Print.cs`: `PrintTemplate` (parser, `Validate`, `Render`, `UnsafeReason`); `PrintService.cs`: choices, rendering (`RenderAsync`), preview, formats and letter heads CRUD, the default layout and the page wrapper with its nonce; Core DocTypes `print_format.json` and `letter_head.json`; `PrintEndpoints.cs` (sets the CSP headers). Desk: `PrintDialog.tsx` (sandboxed preview, opens the page in a tab), `PrintFormats.tsx` (builder). To extend the language add a node type in `PrintTemplate`'s `Parse`, `Validate` and `Render`, and test it against hostile values. Tests: `PrintTests`, `PrintApiTests`, `PostgresPrintTests`.
+
 ## Authentication ([ADR-002](../../adr/002-authentication.md))
 Cookie sessions, ASP.NET Identity password hashing, lockout, login rate limit; `User`, `Role`, `Has Role` DocTypes. Roles are cached per session for `SessionCacheSeconds`.
 

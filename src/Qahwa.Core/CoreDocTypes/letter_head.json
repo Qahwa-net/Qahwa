@@ -1,0 +1,16 @@
+{
+  "name": "Letter Head",
+  "module": "Core",
+  "autoname": "field:letter_head_name",
+  "titleField": "letter_head_name",
+  "trackChanges": false,
+  "fields": [
+    { "name": "letter_head_name", "type": "Data", "label": "Name", "required": true, "inListView": true },
+    { "name": "header_html", "type": "LongText", "label": "Header" },
+    { "name": "footer_html", "type": "LongText", "label": "Footer" },
+    { "name": "is_default", "type": "Check", "label": "Default", "inListView": true }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "delete": true }
+  ]
+}

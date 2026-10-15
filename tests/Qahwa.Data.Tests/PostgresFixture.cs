@@ -96,6 +96,7 @@ public sealed class PgStack : IAsyncDisposable
         CustomizationStore = new CustomizationStore(_connections, Dialect, new PostgresSchemaInspector(_connections));
         WorkflowStore = new WorkflowStore(_connections, Dialect, new PostgresSchemaInspector(_connections));
         AssignmentRules = new AssignmentRuleEngine(AssignmentRuleCatalog, Registry, Repository, Assignments, Notifications);
+        Print = new PrintService(Registry, Repository, Documents, permissions, History);
         Dashboards = new DashboardService(Registry, Repository, Documents, permissions, Notifications, History);
         EmailSender = new FakeEmailSender();
         Email = new EmailService(Registry, Repository, Documents, permissions, History, EmailSender);
@@ -131,6 +132,7 @@ public sealed class PgStack : IAsyncDisposable
     public NotificationRuleEngine NotificationRules { get; }
     public FakeEmailSender EmailSender { get; }
     public DashboardService Dashboards { get; }
+    public PrintService Print { get; }
     public EmailService Email { get; }
     public NotificationRuleManager NotificationRuleManager { get; }
     public ProfileService Profiles { get; }

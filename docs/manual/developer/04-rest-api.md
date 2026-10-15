@@ -138,6 +138,15 @@ Someone else's repeat answers 404.
 
 A tile is `{ id, type: Number|Chart|List, title, docType, function, valueField, groupBy, period, chartType, columns, orderBy, descending, limit, filters: [{ field, op, value }], color }`.
 
+## Printing ([ADR-025](../../adr/025-print-formats-and-letter-heads.md))
+
+| Call | Purpose |
+|---|---|
+| `GET /print/choices?doctype=` | The formats made for a DocType and the letter head names (needs read access to the DocType) |
+| `GET /print/{doctype}/{name}?format=&letterhead=` | The printable HTML page, with a strict Content-Security-Policy. `letterhead=none` removes the letter head |
+| `GET/PUT/DELETE /print-formats[/{name}]`, `POST /print-formats/preview` | Manage formats and preview one on a document (System Manager). `PUT` takes `{ name, docType, html, isDefault, letterHead }` |
+| `GET/PUT/DELETE /letter-heads[/{name}]` | Manage letter heads (`{ name, header, footer, isDefault }`) |
+
 ## Link fields
 
 | Call | Purpose |

@@ -80,6 +80,10 @@ Emailing about a document needs write access to it, is limited to 10 recipients 
 
 Numbers and charts need read **and report** access to the DocType; lists need read. Every tile is evaluated for the person viewing it through the ordinary list rules (own-only roles, shares, User Permissions, blocked modules), never as the dashboard's owner, so sharing a dashboard shares no data. A private dashboard is invisible to others.
 
+## Printing
+
+A printout is read with the viewer's own permissions, so hidden fields are absent. Formats and letter heads are managed by System Managers; their HTML is refused if it has scripts, forms, event attributes or dangerous URLs, and the page is served with a CSP that only allows its own nonce-protected Print button script.
+
 ## What the API never reveals
 
 - A document you may not read looks like it does not exist where possible (checks run before the document is loaded).
