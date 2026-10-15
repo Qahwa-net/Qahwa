@@ -29,6 +29,7 @@ Settings (`appsettings.json`, section `Qahwa`):
 | `AutoMigrate` | Run the schema sync at start |
 | `Qahwa:Email:Host`, `Port`, `UseSsl`, `User`, `Password`, `From` | Outgoing mail. Without a `Host` messages are only logged. Keep the password in user secrets or environment variables |
 | `Qahwa:Webhooks:AllowInsecure` | Development only: allow http and local addresses for webhooks. Never in production |
+| `Qahwa:Files:Path`, `MaxMegabytes` | Where attachments are stored (default `data/files` next to the server; back it up) and the largest file (1 to 100, default 25) |
 | `Qahwa:Scheduler:Enabled`, `IntervalSeconds` | The background scheduler (auto repeat): on by default, every 300 seconds (10 to 3600) |
 | `Auth:MinPasswordLength`, `MaxFailedAttempts`, `LockoutMinutes` | Password and lockout policy |
 | `Auth:LoginPermitsPerMinute` | Login rate limit |

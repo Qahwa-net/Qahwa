@@ -1,0 +1,17 @@
+{
+  "name": "File",
+  "module": "Core",
+  "trackChanges": false,
+  "fields": [
+    { "name": "file_name", "type": "Data", "label": "File name", "required": true, "inListView": true },
+    { "name": "content_type", "type": "Data", "label": "Type" },
+    { "name": "file_size", "type": "Int", "label": "Size (bytes)", "inListView": true },
+    { "name": "content_hash", "type": "Data", "label": "SHA-256" },
+    { "name": "storage_key", "type": "Data", "label": "Storage key", "permLevel": 9 },
+    { "name": "reference_doctype", "type": "Data", "label": "DocType", "required": true, "indexed": true, "inListView": true },
+    { "name": "reference_name", "type": "Data", "label": "Document", "required": true, "indexed": true, "inListView": true }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "delete": true }
+  ]
+}

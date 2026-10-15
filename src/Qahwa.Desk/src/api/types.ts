@@ -765,3 +765,14 @@ export interface WebhookView {
   fields: string[]
   canEdit: boolean
 }
+
+export interface AttachedFile {
+  id: string
+  fileName: string
+  contentType: string
+  size: number
+  image: boolean
+  uploadedBy: string
+  uploadedByName?: string | null
+  created: string
+}

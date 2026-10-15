@@ -23,7 +23,8 @@ public sealed partial class DocumentService(
     WorkflowCatalog? workflows = null,
     Lazy<AssignmentRuleEngine>? assignmentRules = null,
     Lazy<NotificationRuleEngine>? notificationRules = null,
-    Lazy<WebhookService>? webhooks = null)
+    Lazy<WebhookService>? webhooks = null,
+    Lazy<FileService>? files = null)
 {
     private readonly DocumentLogic _logic = new(registry, repository, permissions, clock);
 
@@ -416,6 +417,8 @@ public sealed partial class DocumentService(
             throw new NotFoundException($"{meta.Name} '{name}' was not found.");
         if (webhooks is not null)
             await webhooks.Value.AfterDeleteAsync(meta, name, existing, ct);
+        if (files is not null)
+            await files.Value.DeleteForDocumentAsync(meta.Name, name, ct);
         if (shares is not null)
             await shares.DeleteForDocumentAsync(meta.Name, name, ct);
         if (history is not null)

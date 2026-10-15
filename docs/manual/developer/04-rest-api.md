@@ -182,6 +182,17 @@ A tile is `{ id, type: Number|Chart|List, title, docType, function, valueField, 
 
 Receivers verify a delivery like this (pseudo-code): `expected = hex(HMAC_SHA256(secret, t + "." + rawBody))` where `t` comes from `X-Qahwa-Signature: t=...,v1=...`; compare with `v1` in constant time and reject if `|now - t|` is large. `X-Qahwa-Delivery` is unique per delivery attempt chain: use it to ignore repeats.
 
+## Attachments ([ADR-030](../../adr/030-attachments.md))
+
+| Call | Purpose |
+|---|---|
+| `GET /files/for/{doctype}/{name}` | The files attached to a document (needs read access): `{ id, fileName, contentType, size, image, uploadedBy, created }` |
+| `POST /files/for/{doctype}/{name}` | Upload: the **raw bytes** as the body and the name in the `X-File-Name` header (percent-encoded UTF-8). Needs write access. 201; 400 for empty, too big (default 25 MB) or a missing name; 403 without write access |
+| `GET /files/{id}` | Download. Pictures (by content) are inline; everything else is `application/octet-stream` with `Content-Disposition: attachment`; always `nosniff`, a sandboxing CSP and `no-store`. 404 when the caller cannot read the document |
+| `DELETE /files/{id}` | Remove (the uploader, whoever can change the document, or a System Manager) |
+
+Example: `curl -X POST -H "Authorization: Bearer <key>" -H "X-File-Name: contract.pdf" --data-binary @contract.pdf https://server/api/files/for/Customer/CUST-0001`
+
 ## Link fields
 
 | Call | Purpose |

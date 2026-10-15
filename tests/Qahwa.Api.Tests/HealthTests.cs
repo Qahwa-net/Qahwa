@@ -62,6 +62,8 @@ public sealed class QahwaFactory(
             services.AddSingleton<IMutableMetaRegistry>(registry);
             services.RemoveAll<IDocTypeStore>();
             services.AddSingleton<IDocTypeStore>(new InMemoryDocTypeStore());
+            services.RemoveAll<IFileStorage>();
+            services.AddSingleton<IFileStorage>(new InMemoryFileStorage());
             services.RemoveAll<IWebhookStore>();
             services.AddSingleton<IWebhookStore>(new InMemoryWebhookStore());
             services.RemoveAll<INotificationRuleStore>();

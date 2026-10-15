@@ -120,6 +120,10 @@ Desk: `NotificationRules.tsx`, `controls/ChipPicker.tsx`, `lib/notificationRules
 
 `Webhooks.cs`: `Webhook` / `WebhookSet`, `WebhookCatalog`, `WebhookManager` (validation, secret handling, SSRF checks on addresses), `NetworkGuard` (`IsPublic`, `UrlProblem`), `WebhookService` (`AfterSaveAsync`/`AfterDeleteAsync` queue deliveries; `DeliverPendingAsync` sends with claims, retries and backoff; static `Sign`) and `IWebhookSender`. `Qahwa.Server/WebhookSender.cs` is the real sender: it resolves the name and connects only to addresses that pass `NetworkGuard` (in `ConnectCallback`), never follows redirects and has short timeouts. `DocumentService` calls the service through `Lazy<WebhookService>` after saves and deletes; `SchedulerService` delivers each tick. Core DocType `webhook_delivery.json`; endpoints `WebhookEndpoints.cs`; Desk `Webhooks.tsx`, `lib/webhooks.ts`. To use another transport implement `IWebhookSender` but keep the guard. Tests: `WebhookTests` (with `FakeWebhookSender`; includes address and IP tables), `WebhookApiTests`, `WebhookSenderTests` (the real sender against internal addresses and a local receiver), `PostgresWebhookTests`.
 
+## Attachments ([ADR-030](../../adr/030-attachments.md))
+
+`Files.cs`: `IFileStorage`, `FileService` (`UploadAsync`, `OpenAsync`, `ListAsync`, `DeleteAsync`, `DeleteForDocumentAsync`; static `CleanName` and `Sniff`), `AttachmentOptions`, the Core DocType `file.json`; `FileEndpoints.cs` (sets the download headers); `Qahwa.Server/DiskFileStorage.cs` (random validated keys). `DocumentService.DeleteAsync` calls `DeleteForDocumentAsync` through `Lazy<FileService>`; rename and merge move the references through `CollaborationHooks`. To store files elsewhere (S3, Azure Blob) implement `IFileStorage` and register it. Desk: `Attachments.tsx` in the document side panel, `lib/files.ts`. Tests: `FileTests` (with `InMemoryFileStorage`), `FileApiTests`, `PostgresFileTests`.
+
 ## Authentication ([ADR-002](../../adr/002-authentication.md))
 Cookie sessions, ASP.NET Identity password hashing, lockout, login rate limit; `User`, `Role`, `Has Role` DocTypes. Roles are cached per session for `SessionCacheSeconds`.
 

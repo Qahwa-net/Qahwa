@@ -78,6 +78,7 @@ public sealed class PgStack : IAsyncDisposable
         WebhookCatalog = new WebhookCatalog();
         WebhookStore = new WebhookStore(_connections, Dialect, new PostgresSchemaInspector(_connections));
         WebhookSender = new FakeWebhookSender();
+        FileStorage = new InMemoryFileStorage();
         NotificationRuleStore = new NotificationRuleStore(_connections, Dialect, new PostgresSchemaInspector(_connections));
         AssignmentRuleStore = new AssignmentRuleStore(_connections, Dialect, new PostgresSchemaInspector(_connections));
         Profiles = new ProfileService(Registry, Repository, Clock);
@@ -86,7 +87,7 @@ public sealed class PgStack : IAsyncDisposable
         Notifications = new NotificationService(Registry, Repository, lazyDocuments, History);
         Follows = new FollowService(Registry, Repository, lazyDocuments, History);
         Collaboration = new CollaborationHooks(Follows, Notifications, Registry, Repository);
-        Documents = new DocumentService(Registry, Repository, permissions, new NamingService(Repository), Clock, new UserPermissionService(Registry, Repository), Shares, Profiles, History, Collaboration, WorkflowCatalog, new Lazy<AssignmentRuleEngine>(() => AssignmentRules!), new Lazy<NotificationRuleEngine>(() => NotificationRules!), new Lazy<WebhookService>(() => Webhooks!));
+        Documents = new DocumentService(Registry, Repository, permissions, new NamingService(Repository), Clock, new UserPermissionService(Registry, Repository), Shares, Profiles, History, Collaboration, WorkflowCatalog, new Lazy<AssignmentRuleEngine>(() => AssignmentRules!), new Lazy<NotificationRuleEngine>(() => NotificationRules!), new Lazy<WebhookService>(() => Webhooks!), new Lazy<FileService>(() => Files!));
         ShareManager = new ShareManager(Registry, Repository, Documents, permissions, Shares, History, Notifications);
         Activity = new ActivityService(Registry, Repository, Documents, permissions, History, Collaboration);
         Assignments = new AssignmentService(Registry, Repository, Documents, permissions, ShareManager, Notifications, Follows, History);
@@ -118,6 +119,7 @@ public sealed class PgStack : IAsyncDisposable
             Options.Create(AuthOptions), Clock);
         Webhooks = new WebhookService(WebhookCatalog, Registry, Repository, Documents, WebhookSender, History);
         WebhookManager = new WebhookManager(Registry, WebhookStore, WebhookCatalog, permissions, Clock, allowInsecure: false);
+        Files = new FileService(Registry, Repository, Documents, permissions, Notifications, FileStorage, History);
         ApiKeys = new ApiKeyService(Registry, Repository, Auth, permissions, History);
     }
 
@@ -149,6 +151,8 @@ public sealed class PgStack : IAsyncDisposable
     public FakeWebhookSender WebhookSender { get; }
     public WebhookService Webhooks { get; }
     public WebhookManager WebhookManager { get; }
+    public InMemoryFileStorage FileStorage { get; }
+    public FileService Files { get; }
     public EmailService Email { get; }
     public NotificationRuleManager NotificationRuleManager { get; }
     public ProfileService Profiles { get; }

@@ -21,6 +21,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 17. [Importing data from a spreadsheet](17-importing-data.md)
 18. [API keys: let a program act as you](18-api-keys.md)
 19. [Webhooks: tell other systems automatically](19-webhooks.md)
+20. [Attachments: files on a document](20-attachments.md)
 
 **Words used**
 

@@ -86,6 +86,10 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<WorkspaceService>();
         services.TryAddSingleton<DataImportService>();
         services.TryAddSingleton<ApiKeyService>();
+        services.TryAddSingleton(sp => new FileService(sp.GetRequiredService<IMetaRegistry>(), sp.GetRequiredService<IDocumentRepository>(), sp.GetRequiredService<DocumentService>(),
+            sp.GetRequiredService<PermissionService>(), sp.GetRequiredService<NotificationService>(), sp.GetRequiredService<IFileStorage>(), sp.GetRequiredService<HistoryRecorder>())
+        { MaxBytes = (sp.GetService<AttachmentOptions>()?.MaxMegabytes ?? 25) * 1024L * 1024L });
+        services.TryAddSingleton(sp => new Lazy<FileService>(() => sp.GetRequiredService<FileService>()));
         services.TryAddSingleton<IWebhookStore, WebhookStore>();
         services.TryAddSingleton<WebhookCatalog>();
         services.TryAddSingleton(sp => new WebhookManager(sp.GetRequiredService<IMetaRegistry>(), sp.GetRequiredService<IWebhookStore>(), sp.GetRequiredService<WebhookCatalog>(),

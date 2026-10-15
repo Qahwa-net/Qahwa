@@ -272,6 +272,7 @@ public sealed class CollaborationHooks(
         (FollowService.DocTypeName, "ref_doctype", "ref_docname"),
         (NotificationService.DocTypeName, "document_type", "document_name"),
         (AutoRepeatService.DocTypeName, "reference_doctype", "reference_name"),
+        (FileService.DocTypeName, "reference_doctype", "reference_name"),
     ];
 
     /// <summary>References to a document's name in assignments, follows and notifications, for rename and merge.</summary>

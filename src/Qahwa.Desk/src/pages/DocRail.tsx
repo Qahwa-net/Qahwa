@@ -4,6 +4,7 @@ import type { Doc } from '../api/types.ts'
 import { Avatar, Icon, IconButton } from '../controls/Icon.tsx'
 import { AssignmentRow, assignmentsKey } from './AssignPanel.tsx'
 import { sharesKey } from './SharePanel.tsx'
+import { Attachments } from './Attachments.tsx'
 
 const when = (value: unknown) => (value ? new Date(String(value)).toLocaleString() : '')
 
@@ -49,6 +50,8 @@ export function DocRail({ doctype, doc, canAssign, canShare, onAssign, onShare }
             )}
         </section>
       )}
+
+      <Attachments doctype={doctype} name={doc.name} canUpload={canAssign} />
 
       <section className="rail-card" aria-label="Details">
         <header><h3>Details</h3></header>

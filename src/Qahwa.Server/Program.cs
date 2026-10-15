@@ -29,6 +29,10 @@ else
 var webhookOptions = builder.Configuration.GetSection("Qahwa:Webhooks").Get<WebhookOptions>() ?? new WebhookOptions();
 builder.Services.AddSingleton(webhookOptions);
 builder.Services.AddSingleton<IWebhookSender, WebhookSender>();
+var fileOptions = builder.Configuration.GetSection("Qahwa:Files").Get<AttachmentOptions>() ?? new AttachmentOptions();
+fileOptions.MaxMegabytes = Math.Clamp(fileOptions.MaxMegabytes, 1, 100);
+builder.Services.AddSingleton(fileOptions);
+builder.Services.AddSingleton<IFileStorage>(new DiskFileStorage(builder.Configuration["Qahwa:Files:Path"] ?? Path.Combine(builder.Environment.ContentRootPath, "data", "files")));
 builder.Services.AddHostedService<SchedulerService>();
 
 var app = builder.Build();

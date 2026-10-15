@@ -100,6 +100,10 @@ A key authenticates as its owner and is limited to the owner's current permissio
 
 Managing hooks needs a System Manager. Posts go only to public https addresses (checked on save and again at connect time), the secret is write-only, payloads exclude passwords and fields above permission level 0 unless listed explicitly (passwords never), and redirects are never followed.
 
+## Attachments
+
+Upload needs write access to the document, download and listing need read access, and both are checked per request through the document engine; unreadable files look absent (404). File contents are never interpreted: only real pictures are shown inline.
+
 ## What the API never reveals
 
 - A document you may not read looks like it does not exist where possible (checks run before the document is loaded).
