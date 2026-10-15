@@ -1,0 +1,14 @@
+{
+  "name": "DocShare",
+  "module": "Core",
+  "fields": [
+    { "name": "user", "type": "Link", "options": "User", "label": "Shared with", "required": true, "inListView": true },
+    { "name": "share_doctype", "type": "Data", "label": "DocType", "required": true, "inListView": true },
+    { "name": "share_name", "type": "Data", "label": "Document", "required": true, "inListView": true },
+    { "name": "can_read", "type": "Check", "label": "Can read", "default": "1", "inListView": true },
+    { "name": "can_write", "type": "Check", "label": "Can write", "inListView": true }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "write": true, "create": true, "delete": true }
+  ]
+}

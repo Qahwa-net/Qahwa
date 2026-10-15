@@ -190,14 +190,15 @@ public sealed class InMemoryDocumentRepository : IDocumentRepository
     }
 
     private IEnumerable<Dictionary<string, object?>> Filter(DocTypeMeta meta, ListQuery query) =>
-        Table(meta).Values.Where(row => query.Filters.All(f => Matches(row.GetValueOrDefault(f.Field), f)));
+        Table(meta).Values.Where(row => query.Filters.All(f => Matches(row.GetValueOrDefault(f.Field), f, row.GetValueOrDefault("name") as string)));
 
-    private static bool Matches(object? actual, QueryFilter filter)
+    private static bool Matches(object? actual, QueryFilter filter, string? name = null)
     {
         switch (filter.Op)
         {
             case FilterOp.IsNull: return actual is null;
             case FilterOp.IsNotNull: return actual is not null;
+            case FilterOp.OwnerOrNames: { var o = (OwnerOrNames)filter.Value!; return Equals(actual, o.Owner) || o.Names.Contains(name); }
             case FilterOp.InOrNull: return actual is null || (filter.Value as IEnumerable<object?> ?? []).Any(v => Equals(v, actual));
             case FilterOp.In: return (filter.Value as IEnumerable<object?> ?? []).Any(v => Equals(v, actual));
             case FilterOp.Like:

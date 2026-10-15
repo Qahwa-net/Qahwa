@@ -20,6 +20,7 @@ Working today:
 - **Field logic without code**: show/require/read-only conditions, calculated fields, `=today()`-style defaults, fetch-from-a-link, and document and row validation rules, all written in a small safe [expression language](docs/expressions.md) that runs identically on the server and in the form ([ADR-005](docs/adr/005-expression-language.md))
 - **Role Permission Manager** (Tools → Role Permissions) and **permission levels**: change who can read, write, create and delete any DocType without editing it, and hide fields from roles with no rule at the field's level; enforced on the server and reset-able ([ADR-006](docs/adr/006-permission-levels.md))
 - **User Permissions**: restrict a person to some documents (for example only the North territory) with a `User Permission` document; lists, reads, writes and links all respect it ([ADR-007](docs/adr/007-user-permissions.md))
+- **Sharing**: share one document with one person (read or edit) from the form, without changing anyone's role ([ADR-008](docs/adr/008-sharing.md))
 - Desk (React + TypeScript): login, DocType sidebar, generic list view (search, dynamic filters kept in the URL, sorting, paging) and form view (field controls per type, server-side validation errors inline, concurrent-edit detection, delete), account page with change password. Layout is right-to-left ready and works on phones.
 
 Not yet: child tables, submit/cancel, versions, comments/share/assign/follow, saved filters and per-user list settings, attachments, the Frappe-style form sidebar.

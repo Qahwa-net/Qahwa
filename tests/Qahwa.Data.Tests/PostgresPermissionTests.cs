@@ -80,3 +80,29 @@ public class PostgresUserPermissionTests(PostgresFixture postgres) : IClassFixtu
         Assert.Equal(1, (await db.Documents.ListAsync("Territory", new ListRequest(), rep)).Total);
     }
 }
+
+public class PostgresShareTests(PostgresFixture postgres) : IClassFixture<PostgresFixture>
+{
+    [SkippableFact]
+    public async Task Shared_documents_appear_in_sql_lists_for_own_only_and_role_less_users()
+    {
+        Skip.IfNot(postgres.Available, postgres.SkipReason);
+        await using var db = await postgres.CreateStackAsync();
+        foreach (var user in new[] { TestUsers.SalesA, TestUsers.SalesB, TestUsers.Nobody })
+            await db.Documents.InsertAsync("User", Values(("email", user.User), ("full_name", user.User)), TestUsers.Admin);
+        var mine = (string)(await db.Documents.InsertAsync("Customer", Values(("customer_name", "A1")), TestUsers.SalesA))["name"]!;
+        await db.Documents.InsertAsync("Customer", Values(("customer_name", "A2")), TestUsers.SalesA);
+        await db.Documents.InsertAsync("Customer", Values(("customer_name", "B1")), TestUsers.SalesB);
+
+        await db.ShareManager.SetAsync("Customer", mine, TestUsers.SalesB.User, true, false, TestUsers.SalesA);
+        await db.ShareManager.SetAsync("Customer", mine, TestUsers.Nobody.User, true, false, TestUsers.SalesA);
+
+        var b = (await db.Documents.ListAsync("Customer", new ListRequest { Limit = 100 }, TestUsers.SalesB)).Data.Select(r => (string)r["customer_name"]!).Order().ToList();
+        var nobody = (await db.Documents.ListAsync("Customer", new ListRequest(), TestUsers.Nobody)).Data.Select(r => r["customer_name"]).ToList();
+
+        Assert.Equal(["A1", "B1"], b);
+        Assert.Equal(["A1"], nobody);
+        await db.Documents.DeleteAsync("Customer", mine, TestUsers.Admin);
+        Assert.Empty(await db.Shares.RowsForDocumentAsync("Customer", mine));
+    }
+}

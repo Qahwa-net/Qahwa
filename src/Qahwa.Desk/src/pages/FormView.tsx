@@ -1,3 +1,4 @@
+import { SharePanel } from './SharePanel.tsx'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useMatch, useNavigate, useParams } from 'react-router-dom'
@@ -104,6 +105,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
   const [values, setValues] = useState<Values>(() => (isNew ? expressionDefaults(meta, childMetas, original, session) : original))
   const [tables, setTables] = useState<Tables>(originalTables)
   const [promptName, setPromptName] = useState('')
+  const [sharing, setSharing] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [banner, setBanner] = useState<{ text: string; conflict: boolean } | null>(null)
 
@@ -235,6 +237,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
           <h1>{title} {!isNew && dirty && <span className="badge">Not saved</span>}</h1>
         </div>
         <span className="spacer" />
+        {!isNew && perms.write && <button className="btn" onClick={() => setSharing(!sharing)} aria-expanded={sharing}>Share</button>}
         {!isNew && perms.delete && (
           <button className="btn danger" disabled={remove.isPending}
             onClick={() => { if (window.confirm(`Delete ${meta.name} "${doc.name}"? This cannot be undone.`)) remove.mutate() }}>
@@ -248,6 +251,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
         )}
       </div>
 
+      {sharing && doc && <SharePanel doctype={meta.name} name={doc.name} onClose={() => setSharing(false)} />}
       {!editable && (
         <div className="banner info" role="status">
           {isNew ? 'You are not allowed to create this document.' : 'You have read-only access to this document.'}

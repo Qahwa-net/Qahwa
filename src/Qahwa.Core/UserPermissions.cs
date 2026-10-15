@@ -66,7 +66,7 @@ public sealed class UserPermissionService(IMetaRegistry registry, IDocumentRepos
         IsTrue(row.GetValueOrDefault("apply_to_all_doctypes"))
         || string.Equals((row.GetValueOrDefault("applicable_for") as string)?.Trim(), doctype, StringComparison.OrdinalIgnoreCase);
 
-    private static bool IsTrue(object? value) => value switch
+    internal static bool IsTrue(object? value) => value switch
     {
         bool b => b,
         null => false,

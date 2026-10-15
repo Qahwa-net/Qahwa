@@ -21,7 +21,7 @@ public static class QahwaEndpoints
         api.MapGet("/meta/{doctype}", async (
             string doctype, HttpContext http, DocumentService docs, IUserContextResolver users, CancellationToken ct) =>
         {
-            var view = docs.GetMetaView(doctype, await users.ResolveAsync(http, ct));
+            var view = await docs.GetMetaViewAsync(doctype, await users.ResolveAsync(http, ct), ct);
             return Results.Ok(new
             {
                 data = view.Meta,                // only the fields this person may read, without permission rules
@@ -73,6 +73,7 @@ public static class QahwaEndpoints
         app.MapQahwaAuth();
         app.MapQahwaDesigner();
         app.MapQahwaPermissions();
+        app.MapQahwaSharing();
         return app;
     }
 

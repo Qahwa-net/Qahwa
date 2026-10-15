@@ -240,3 +240,11 @@ tbody tr:last-child td { border-block-end: 0; }
 .perm-list li a { display: block; padding: .35rem .5rem; border-radius: 6px; text-decoration: none; }
 .perm-list li.active a { background: var(--accent-soft, rgba(0, 0, 0, .06)); font-weight: 600; }
 @media (max-width: 800px) { .perm-layout { grid-template-columns: 1fr; } }
+
+/* Share panel */
+.share-panel { margin-bottom: 1rem; }
+.share-list { list-style: none; padding: 0; margin: 0 0 .75rem; }
+.share-list li { display: flex; gap: 1rem; align-items: center; padding: .25rem 0; }
+.share-list li span { flex: 1; }
+.share-add { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
+.share-add input[type=email] { flex: 1; min-width: 12rem; }

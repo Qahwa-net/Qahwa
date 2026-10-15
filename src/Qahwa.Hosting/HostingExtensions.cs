@@ -73,6 +73,8 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<PermissionManager>();
         services.TryAddSingleton<NamingService>();
         services.TryAddSingleton<UserPermissionService>();
+        services.TryAddSingleton<ShareStore>();
+        services.TryAddSingleton<ShareManager>();
         services.TryAddSingleton<DocumentService>();
         services.TryAddSingleton<AuthService>();
         services.TryAddSingleton<SqlBuilder>();

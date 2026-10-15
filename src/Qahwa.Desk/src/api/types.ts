@@ -156,6 +156,12 @@ export interface PermissionView {
   canEdit: boolean
 }
 
+export interface ShareInfo {
+  user: string
+  read: boolean
+  write: boolean
+}
+
 export type Doc = Record<string, unknown> & { name: string }
 
 export interface ListResponse {

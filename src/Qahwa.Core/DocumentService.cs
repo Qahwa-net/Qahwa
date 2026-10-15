@@ -15,7 +15,8 @@ public sealed class DocumentService(
     PermissionService permissions,
     NamingService naming,
     TimeProvider clock,
-    UserPermissionService? userPermissions = null)
+    UserPermissionService? userPermissions = null,
+    ShareStore? shares = null)
 {
     private readonly DocumentLogic _logic = new(registry, repository, permissions, clock);
 
@@ -127,12 +128,12 @@ public sealed class DocumentService(
         CancellationToken ct = default)
     {
         var meta = RequireTopLevel(registry.Get(doctype));
-        var access = permissions.Require(meta, user, PermAction.Read);
+        var (level, share) = await PreAuthorizeAsync(meta, user, PermAction.Read, name, ct);
         var doc = await LoadAsync(meta, name, ct)
             ?? throw new NotFoundException($"{meta.Name} '{name}' was not found.");
-        permissions.RequireOwnership(access, doc, user);
+        var viaShare = Settle(level, share, PermAction.Read, doc, user);
         RequireRestrictions(await RestrictionsAsync(meta, user, ct), doc, meta);
-        return Strip(meta, doc, permissions.FieldAccessFor(meta, user, doc.GetValueOrDefault("owner") as string, creating: false));
+        return Strip(meta, doc, SharedAccess(permissions.FieldAccessFor(meta, user, doc.GetValueOrDefault("owner") as string, creating: false), viaShare, share));
     }
 
     public async Task<Dictionary<string, object?>> UpdateAsync(
@@ -143,13 +144,13 @@ public sealed class DocumentService(
         CancellationToken ct = default)
     {
         var meta = RequireTopLevel(registry.Get(doctype));
-        var access = permissions.Require(meta, user, PermAction.Write);
+        var (level, share) = await PreAuthorizeAsync(meta, user, PermAction.Write, name, ct);
         var existing = await repository.GetAsync(meta, name, ct)
             ?? throw new NotFoundException($"{meta.Name} '{name}' was not found.");
-        permissions.RequireOwnership(access, existing, user);
+        var viaShare = Settle(level, share, PermAction.Write, existing, user);
         var restrictions = await RestrictionsAsync(meta, user, ct);
         RequireRestrictions(restrictions, existing, meta);
-        var fieldAccess = permissions.FieldAccessFor(meta, user, existing.GetValueOrDefault("owner") as string, creating: false);
+        var fieldAccess = SharedAccess(permissions.FieldAccessFor(meta, user, existing.GetValueOrDefault("owner") as string, creating: false), viaShare, share);
 
         var errors = new List<FieldError>();
         var changes = Coerce(meta, input, errors, allowName: false, out _);
@@ -265,6 +266,8 @@ public sealed class DocumentService(
         var childTables = TableFields(meta).Select(f => registry.Get(f.Options!)).ToList();
         if (!await repository.DeleteAsync(meta, name, childTables, ct))
             throw new NotFoundException($"{meta.Name} '{name}' was not found.");
+        if (shares is not null)
+            await shares.DeleteForDocumentAsync(meta.Name, name, ct);
     }
 
     public async Task<ListResult> ListAsync(
@@ -274,11 +277,18 @@ public sealed class DocumentService(
         CancellationToken ct = default)
     {
         var meta = RequireTopLevel(registry.Get(doctype));
-        var access = permissions.Require(meta, user, PermAction.Read);
+        var access = permissions.Evaluate(meta, user, PermAction.Read);
+        var sharedNames = access == AccessLevel.All || shares is null
+            ? []
+            : (await shares.ForUserAsync(meta.Name, user, ct)).Where(kv => kv.Value.Allows(PermAction.Read)).Select(kv => kv.Key).ToList();
+        if (access == AccessLevel.None && sharedNames.Count == 0)
+            permissions.Require(meta, user, PermAction.Read); // throws
         var query = Normalize(meta, request, permissions.FieldAccessFor(meta, user, documentOwner: null, creating: false));
 
-        if (access == AccessLevel.Owner)
-            query = query with { Filters = [.. query.Filters, new QueryFilter("owner", FilterOp.Eq, user.User)] };
+        if (access == AccessLevel.None)
+            query = query with { Filters = [.. query.Filters, new QueryFilter("name", FilterOp.In, sharedNames.Cast<object?>().ToList())] };
+        else if (access == AccessLevel.Owner)
+            query = query with { Filters = [.. query.Filters, new QueryFilter("owner", sharedNames.Count > 0 ? FilterOp.OwnerOrNames : FilterOp.Eq, sharedNames.Count > 0 ? new OwnerOrNames(user.User, sharedNames) : user.User)] };
 
         foreach (var restriction in await RestrictionsAsync(meta, user, ct))
         {
@@ -292,6 +302,37 @@ public sealed class DocumentService(
         var total = await repository.CountAsync(meta, query, ct);
         return new ListResult(rows.ToList(), total);
     }
+
+    /// <summary>
+    /// The user's role-based access, and what the document has been shared with them. Throws when neither lets them
+    /// act (before the document is loaded, so a missing document and a forbidden one look alike).
+    /// </summary>
+    private async Task<(AccessLevel Level, ShareGrant Share)> PreAuthorizeAsync(
+        DocTypeMeta meta, IUserContext user, PermAction action, string name, CancellationToken ct)
+    {
+        var level = permissions.Evaluate(meta, user, action);
+        var share = level == AccessLevel.All || shares is null ? ShareGrant.None : await shares.ForDocumentAsync(meta.Name, name, user, ct);
+        if (level == AccessLevel.None && !share.Allows(action))
+            permissions.Require(meta, user, action); // throws
+        return (level, share);
+    }
+
+    /// <summary>Checks ownership for owner-only access; returns true when the access exists only because of a share.</summary>
+    private static bool Settle(AccessLevel level, ShareGrant share, PermAction action, IReadOnlyDictionary<string, object?> doc, IUserContext user)
+    {
+        if (level == AccessLevel.All)
+            return false;
+        if (level == AccessLevel.Owner && string.Equals(doc.GetValueOrDefault("owner") as string, user.User, StringComparison.Ordinal))
+            return false;
+        if (share.Allows(action))
+            return true;
+
+        throw new PermissionDeniedException("You can only access documents you own.");
+    }
+
+    /// <summary>A share opens level 0 of the document: reading it, and writing it when the share says so.</summary>
+    private static FieldAccess SharedAccess(FieldAccess access, bool viaShare, ShareGrant share) =>
+        !viaShare ? access : new FieldAccess(access.Readable.Append(0).ToHashSet(), share.Write ? access.Writable.Append(0).ToHashSet() : access.Writable);
 
     private async Task<IReadOnlyList<Restriction>> RestrictionsAsync(DocTypeMeta meta, IUserContext user, CancellationToken ct) =>
         userPermissions is null ? [] : await userPermissions.ForAsync(meta, user, ct);
@@ -357,6 +398,27 @@ public sealed class DocumentService(
             GetPermissions(meta, user),
             GetChildMetas(meta),
             access.Writable.Order().ToList());
+    }
+
+    /// <summary>Like <see cref="GetMetaView"/>, but a person with no role access can still open a DocType through documents shared with them.</summary>
+    public async Task<MetaView> GetMetaViewAsync(string doctype, IUserContext user, CancellationToken ct = default)
+    {
+        var meta = RequireTopLevel(registry.Get(doctype));
+        if (permissions.Evaluate(meta, user, PermAction.Read) != AccessLevel.None || shares is null)
+            return GetMetaView(doctype, user);
+
+        var grants = await shares.ForUserAsync(meta.Name, user, ct);
+        if (grants.Count == 0)
+            return GetMetaView(doctype, user); // throws the usual permission error
+
+        // Which documents they may write is decided per document; the form is editable only where the server allows it.
+        var access = permissions.FieldAccessFor(meta, user, null, creating: false);
+        var visible = meta with { Fields = meta.Fields.Where(f => f.PermLevel == 0 || access.CanRead(f)).ToList(), Permissions = [] };
+        return new MetaView(
+            visible,
+            new EffectivePermissions(true, grants.Values.Any(g => g.Write), false, false),
+            GetChildMetas(meta),
+            [0]);
     }
 
     /// <summary>The document with its child rows attached under the Table field names.</summary>

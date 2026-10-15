@@ -122,6 +122,24 @@ public sealed class SqlBuilder(ISqlDialect dialect)
                 case FilterOp.IsNotNull:
                     sql.Append(column).Append(" IS NOT NULL");
                     break;
+                case FilterOp.OwnerOrNames:
+                    var shared = (OwnerOrNames)filter.Value!;
+                    sql.Append('(').Append(column).Append(" = ").Append(dialect.Parameter(parameters.Count));
+                    parameters.Add(shared.Owner);
+                    if (shared.Names.Count > 0)
+                    {
+                        sql.Append(" OR ").Append(dialect.Quote("name")).Append(" IN (");
+                        for (var n = 0; n < shared.Names.Count; n++)
+                        {
+                            sql.Append(n == 0 ? string.Empty : ", ").Append(dialect.Parameter(parameters.Count));
+                            parameters.Add(shared.Names[n]);
+                        }
+
+                        sql.Append(')');
+                    }
+
+                    sql.Append(')');
+                    break;
                 case FilterOp.InOrNull:
                     var allowed = (filter.Value as IEnumerable<object?> ?? []).Where(v => v is not null).ToList();
                     sql.Append('(').Append(column).Append(" IS NULL");

@@ -1,6 +1,6 @@
 import type {
   DesignerDetail, DocPerm, DesignerItem, DesignerPreview, Doc, DocTypeDefinition, FieldError, FieldTypeInfo,
-  ListResponse, MetaResponse, MetaSummary, PermissionItem, PermissionView, SessionUser,
+  ListResponse, MetaResponse, MetaSummary, PermissionItem, PermissionView, SessionUser, ShareInfo,
 } from './types.ts'
 import type { Filter } from '../lib/filters.ts'
 import { toApiFilters } from '../lib/filters.ts'
@@ -110,6 +110,13 @@ export const api = {
   },
 
   remove: (doctype: string, name: string) => request<unknown>('DELETE', resource(doctype, name)),
+
+  share: {
+    list: async (doctype: string, name: string) =>
+      (await request<{ data: ShareInfo[] }>('GET', `/api/share/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}`)).data,
+    set: async (doctype: string, name: string, user: string, read: boolean, write: boolean) =>
+      (await request<{ data: ShareInfo[] }>('PUT', `/api/share/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}`, { user, read, write })).data,
+  },
 
   permissions: {
     list: async () => (await request<{ data: PermissionItem[] }>('GET', '/api/permissions/doctypes')).data,

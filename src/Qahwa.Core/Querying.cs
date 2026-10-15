@@ -13,9 +13,15 @@ public enum FilterOp
 
     /// <summary>In the list, or empty (used by User Permissions on Link fields).</summary>
     InOrNull,
+
+    /// <summary>The column equals the owner, or the document's name is one of the shared names (see <see cref="OwnerOrNames"/>).</summary>
+    OwnerOrNames,
     IsNull,
     IsNotNull,
 }
+
+/// <summary>The value of an <see cref="FilterOp.OwnerOrNames"/> filter: documents a user owns plus those shared with them.</summary>
+public sealed record OwnerOrNames(string Owner, IReadOnlyList<string> Names);
 
 /// <summary>A filter whose field and value have already been validated and converted to storage types.</summary>
 public sealed record QueryFilter(string Field, FilterOp Op, object? Value = null);
