@@ -19,6 +19,7 @@ export function WorkflowBar({ doctype, doc, status, disabled, onError }: {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['doc', doctype, doc.name] }),
         queryClient.invalidateQueries({ queryKey: ['workflow', doctype, doc.name] }),
+        queryClient.invalidateQueries({ queryKey: ['activity', doctype, doc.name] }),
         queryClient.invalidateQueries({ queryKey: ['list', doctype] }),
         queryClient.invalidateQueries({ queryKey: ['workflow', 'pending'] }),
       ])

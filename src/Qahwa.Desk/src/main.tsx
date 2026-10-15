@@ -5,6 +5,7 @@ import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-qu
 import './styles.css'
 import { ApiError } from './api/client.ts'
 import { App } from './App.tsx'
+import { ToastProvider } from './controls/Toast.tsx'
 
 const queryClient: QueryClient = new QueryClient({
   // When the session ends (expired, disabled, signed out elsewhere) any request returns 401: drop to the login page.
@@ -25,9 +26,11 @@ const queryClient: QueryClient = new QueryClient({
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <ToastProvider>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </ToastProvider>
     </QueryClientProvider>
   </StrictMode>,
 )

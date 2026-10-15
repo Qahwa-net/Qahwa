@@ -22,7 +22,7 @@ Create a **User Permission**: user *ali@example.com*, allow *Territory*, value *
 
 ## Sharing one document
 
-On a form click **Share**, search for a person, and choose whether they may edit. See [The Desk](01-desk-basics.md#sharing-a-document). Sharing never gives the right to delete, submit or export, and user permissions still apply.
+On a form click the **Share** icon (the arrow leaving a box, top right; hover any icon to see its name). A dialog opens: search for a person, and choose whether they may edit. See [The Desk](01-desk-basics.md#sharing-a-document). Sharing never gives the right to delete, submit or export, and user permissions still apply.
 
 ## Who can do what, quickly
 

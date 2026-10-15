@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api/client.ts'
+import { IconButton } from '../controls/Icon.tsx'
 
 /** Follow or unfollow a document: followers are told about changes and comments. Shows how many follow. */
 export function FollowButton({ doctype, name }: { doctype: string; name: string }) {
@@ -12,10 +13,9 @@ export function FollowButton({ doctype, name }: { doctype: string; name: string 
   })
 
   if (!state.data) return null
+  const following = state.data.following
   return (
-    <button className="btn" aria-pressed={state.data.following} disabled={toggle.isPending} onClick={() => toggle.mutate()}
-      title={state.data.following ? 'You are told about changes and comments. Click to stop.' : 'Get told about changes and comments'}>
-      {state.data.following ? 'Following ✓' : 'Follow'}{state.data.followers > 0 && <small className="muted"> · {state.data.followers}</small>}
-    </button>
+    <IconButton icon="bell" filled={following} pressed={following} count={Number(state.data.followers)} disabled={toggle.isPending}
+      label={following ? 'Following: click to stop getting updates' : 'Follow to get updates and comments'} onClick={() => toggle.mutate()} />
   )
 }

@@ -1,9 +1,15 @@
 import { WorkflowBar } from './WorkflowBar.tsx'
+import { DocRail } from './DocRail.tsx'
+import { buildLayout } from '../lib/layout.ts'
+import { useToast } from '../controls/Toast.tsx'
+import { FormSkeleton } from '../controls/Skeleton.tsx'
+import { Icon, IconButton } from '../controls/Icon.tsx'
+import { ConfirmDialog } from '../controls/Modal.tsx'
 import { ActivityPanel } from './ActivityPanel.tsx'
-import { AssignPanel } from './AssignPanel.tsx'
+import { AssignDialog } from './AssignPanel.tsx'
 import { FollowButton } from './FollowButton.tsx'
-import { RenamePanel } from './RenamePanel.tsx'
-import { SharePanel } from './SharePanel.tsx'
+import { RenameDialog } from './RenamePanel.tsx'
+import { ShareDialog } from './SharePanel.tsx'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useMatch, useNavigate, useParams } from 'react-router-dom'
@@ -66,7 +72,7 @@ export function FormView() {
     )
   }
 
-  if (!metaQuery.data || (!isNew && !docQuery.data)) return <p className="muted" role="status">Loading…</p>
+  if (!metaQuery.data || (!isNew && !docQuery.data)) return <FormSkeleton />
 
   const doc = isNew ? null : docQuery.data!
   return (
@@ -118,6 +124,11 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
   const [promptName, setPromptName] = useState('')
   const [sharing, setSharing] = useState(false)
   const [renaming, setRenaming] = useState(false)
+  const [assigning, setAssigning] = useState(false)
+  const [activeTab, setActiveTab] = useState(0)
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
+  const toast = useToast()
+  const [confirm, setConfirm] = useState<'submit' | 'cancel' | 'delete' | null>(null)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [banner, setBanner] = useState<{ text: string; conflict: boolean } | null>(null)
 
@@ -203,9 +214,11 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
       return api.update(meta.name, doc.name, { ...send(changedNames), ...sendTables(changedTables), modified: doc.modified })
     },
     onSuccess: async (saved) => {
+      toast(isNew ? 'Created' : 'Saved')
       setFieldErrors({})
       setBanner(null)
       await queryClient.invalidateQueries({ queryKey: ['list', meta.name] })
+      void queryClient.invalidateQueries({ queryKey: ['activity', meta.name, saved.name] })
       queryClient.setQueryData(['doc', meta.name, saved.name], saved)
       if (isNew) navigate(`${base}/${encodeURIComponent(saved.name)}`, { replace: true })
     },
@@ -225,10 +238,12 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
 
   const transition = useMutation({
     mutationFn: (kind: 'submit' | 'cancel') => (kind === 'submit' ? api.submit : api.cancel)(meta.name, doc!.name, doc!.modified),
-    onSuccess: async (saved) => {
+    onSuccess: async (saved, kind) => {
+      toast(kind === 'submit' ? 'Submitted' : 'Cancelled')
       setFieldErrors({})
       setBanner(null)
       await queryClient.invalidateQueries({ queryKey: ['list', meta.name] })
+      void queryClient.invalidateQueries({ queryKey: ['activity', meta.name, saved.name] })
       queryClient.setQueryData(['doc', meta.name, saved.name], saved)
     },
     onError: (error) => {
@@ -241,6 +256,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
   const remove = useMutation({
     mutationFn: () => api.remove(meta.name, doc!.name),
     onSuccess: async () => {
+      toast('Deleted')
       await queryClient.invalidateQueries({ queryKey: ['list', meta.name] })
       queryClient.removeQueries({ queryKey: ['doc', meta.name, doc!.name] })
       navigate(base, { replace: true })
@@ -253,84 +269,34 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
     setFieldErrors((errors) =>
       Object.fromEntries(Object.entries(errors).filter(([path]) => path !== name && !path.startsWith(`${name}[`))))
 
+  // Ctrl+S (or Cmd+S) saves, as in any editor.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's') {
+        event.preventDefault()
+        if (dirty && editable && !save.isPending) save.mutate()
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  })
+
   const title = isNew ? `New ${meta.name}` : String((meta.titleField ? doc[meta.titleField] : null) || doc.name)
   const hasFields = meta.fields.some((f) => hasColumn(f.type) || f.type === 'SectionBreak' || f.type === 'Table')
 
-  return (
-    <>
-      <div className="page-head">
-        <div>
-          {!meta.isSingle && <Link to={base} className="muted back">← {meta.name}</Link>}
-          <h1>{title} {!isNew && dirty && <span className="badge">Not saved</span>}</h1>
-        </div>
-        <span className="spacer" />
-        {!isNew && doc && <FollowButton doctype={meta.name} name={doc.name} />}
-        {!isNew && meta.allowRename && perms.write && docstatus !== 1 && <button className="btn" onClick={() => setRenaming(!renaming)} aria-expanded={renaming}>Rename</button>}
-        {!isNew && !meta.isSingle && perms.write && docstatus !== 2 && <button className="btn" onClick={() => setSharing(!sharing)} aria-expanded={sharing}>Share</button>}
-        {!isNew && meta.isSubmittable && (
-          <span className={`badge status-${docstatus}`}>{['Draft', 'Submitted', 'Cancelled'][docstatus]}</span>
-        )}
-        {!isNew && !flow && docstatus === 0 && meta.isSubmittable && perms.submit && (
-          <button className="btn" disabled={dirty || transition.isPending} title={dirty ? 'Save your changes first' : undefined}
-            onClick={() => { if (window.confirm(`Submit ${meta.name} "${doc!.name}"? It will be locked afterwards.`)) transition.mutate('submit') }}>
-            Submit
-          </button>
-        )}
-        {!isNew && !flow && docstatus === 1 && perms.cancel && (
-          <button className="btn danger" disabled={dirty || transition.isPending}
-            onClick={() => { if (window.confirm(`Cancel ${meta.name} "${doc!.name}"? It cannot be changed afterwards.`)) transition.mutate('cancel') }}>
-            Cancel document
-          </button>
-        )}
-        {!isNew && !meta.isSingle && perms.delete && docstatus !== 1 && (
-          <button className="btn danger" disabled={remove.isPending}
-            onClick={() => { if (window.confirm(`Delete ${meta.name} "${doc.name}"? This cannot be undone.`)) remove.mutate() }}>
-            Delete
-          </button>
-        )}
-        {editable && docstatus !== 2 && (
-          <button className="btn primary" disabled={!dirty || save.isPending} onClick={() => save.mutate()}>
-            {save.isPending ? 'Saving…' : 'Save'}
-          </button>
-        )}
-      </div>
+  const shownInForm = (f: DocField) => !f.hidden && stateOf(f).active && (f.type !== 'Table' || tableDefs.some((t) => t.field.name === f.name))
+  const layout = buildLayout(meta.fields, shownInForm)
+  // Errors come keyed by field (or `table[row].field`); show which tab holds them and jump there when saving fails.
+  const errorKeys = new Set(Object.entries(fieldErrors).filter(([, message]) => message).map(([path]) => path.split(/[[.]/)[0]!))
+  const tabHasError = (tab: (typeof layout)[number]) => tab.sections.some((sec) => sec.fields.some((f) => errorKeys.has(f.name)))
+  const current = Math.min(activeTab, Math.max(layout.length - 1, 0))
+  useEffect(() => {
+    const first = layout.findIndex(tabHasError)
+    if (first >= 0 && !tabHasError(layout[current]!)) setActiveTab(first)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fieldErrors])
 
-      {flow && doc && <WorkflowBar doctype={meta.name} doc={doc} status={flow} disabled={dirty} onError={(text, conflict) => setBanner({ text, conflict })} />}
-
-      {renaming && doc && <RenamePanel doctype={meta.name} name={doc.name} onClose={() => setRenaming(false)}
-        onRenamed={async (newName) => {
-          await queryClient.invalidateQueries({ queryKey: ['list', meta.name] })
-          queryClient.removeQueries({ queryKey: ['doc', meta.name, doc.name] })
-          navigate(`${base}/${encodeURIComponent(newName)}`, { replace: true })
-        }} />}
-      {sharing && doc && <SharePanel doctype={meta.name} name={doc.name} onClose={() => setSharing(false)} />}
-      {docstatus === 2 && <div className="banner info" role="status">This document is cancelled and cannot be changed.</div>}
-      {docstatus === 1 && editable && <div className="banner info" role="status">This document is submitted. Only some fields can still be changed.</div>}
-      {!editable && (
-        <div className="banner info" role="status">
-          {isNew ? 'You are not allowed to create this document.' : 'You have read-only access to this document.'}
-        </div>
-      )}
-      {banner && (
-        <div className="banner error" role="alert">
-          {banner.text}
-          {banner.conflict && (
-            <> <button className="btn small" onClick={() => void queryClient.invalidateQueries({ queryKey: ['doc', meta.name, doc?.name] })}>
-              Reload latest
-            </button></>
-          )}
-        </div>
-      )}
-
-      <form className="card form-grid" onSubmit={(e) => { e.preventDefault(); if (dirty && editable) save.mutate() }}>
-        {isNew && meta.autoname === 'prompt' && (
-          <div className="field full">
-            <label htmlFor="prompt-name">Name <span className="req">*</span></label>
-            <input id="prompt-name" value={promptName} onChange={(e) => setPromptName(e.target.value)} aria-invalid={Boolean(fieldErrors.name)} />
-            {fieldErrors.name && <small className="error-text" role="alert">{fieldErrors.name}</small>}
-          </div>
-        )}
-        {meta.fields.map((field) => {
+  const renderField = (field: DocField) => {
           if (field.type === 'Table') {
             const def = tableDefs.find((t) => t.field.name === field.name)
             if (!def || field.hidden) return null
@@ -365,20 +331,148 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
                 if (field.type === 'Link') fetchForDocument(field, String(v))
               }} />
           )
-        })}
+  }
+
+  return (
+    <>
+      <header className="doc-bar">
+        <div className="doc-title">
+          {!meta.isSingle && (
+            <Link to={base} className="icon-btn" aria-label={`Back to ${meta.name} list`} data-tip={`Back to ${meta.name}`}><Icon name="arrowLeft" /></Link>
+          )}
+          <div className="doc-heading">
+            <p className="doc-kicker">{meta.name}</p>
+            <h1>{title}</h1>
+          </div>
+          {!isNew && meta.isSubmittable && <span className={`badge status-${docstatus}`}>{['Draft', 'Submitted', 'Cancelled'][docstatus]}</span>}
+          {!isNew && dirty && <span className="badge unsaved">Not saved</span>}
+        </div>
+        <div className="doc-actions">
+          {!isNew && doc && <FollowButton doctype={meta.name} name={doc.name} />}
+          {!isNew && !meta.isSingle && perms.write && docstatus !== 2 && <IconButton icon="userPlus" label="Assign" onClick={() => setAssigning(true)} />}
+          {!isNew && !meta.isSingle && perms.write && docstatus !== 2 && <IconButton icon="share" label="Share" onClick={() => setSharing(true)} />}
+          {!isNew && meta.allowRename && perms.write && docstatus !== 1 && <IconButton icon="pencil" label="Rename" onClick={() => setRenaming(true)} />}
+          {!isNew && !meta.isSingle && perms.delete && docstatus !== 1 && <IconButton icon="trash" label="Delete" tone="danger" disabled={remove.isPending} onClick={() => setConfirm('delete')} />}
+          {!isNew && !flow && docstatus === 0 && meta.isSubmittable && perms.submit && (
+            <IconButton icon="checkCircle" label={dirty ? 'Save your changes before submitting' : 'Submit'} tone="primary" disabled={dirty || transition.isPending} onClick={() => setConfirm('submit')} />
+          )}
+          {!isNew && !flow && docstatus === 1 && perms.cancel && (
+            <IconButton icon="ban" label={dirty ? 'Save your changes before cancelling' : 'Cancel document'} tone="danger" disabled={dirty || transition.isPending} onClick={() => setConfirm('cancel')} />
+          )}
+          {editable && docstatus !== 2 && (
+            <button className="btn primary save-btn" disabled={!dirty || save.isPending} onClick={() => save.mutate()}>
+              <Icon name="save" /> <span className="btn-label">{save.isPending ? 'Saving…' : 'Save'}</span>
+            </button>
+          )}
+        </div>
+      </header>
+
+      {flow && doc && <WorkflowBar doctype={meta.name} doc={doc} status={flow} disabled={dirty} onError={(text, conflict) => setBanner({ text, conflict })} />}
+
+      {renaming && doc && <RenameDialog doctype={meta.name} name={doc.name} onClose={() => setRenaming(false)}
+        onRenamed={async (newName) => {
+          await queryClient.invalidateQueries({ queryKey: ['list', meta.name] })
+          queryClient.removeQueries({ queryKey: ['doc', meta.name, doc.name] })
+          navigate(`${base}/${encodeURIComponent(newName)}`, { replace: true })
+        }} />}
+      {sharing && doc && <ShareDialog doctype={meta.name} name={doc.name} onClose={() => setSharing(false)} />}
+      {assigning && doc && <AssignDialog doctype={meta.name} name={doc.name} canAssign={perms.write} onClose={() => setAssigning(false)} />}
+      {confirm && doc && (
+        <ConfirmDialog
+          title={confirm === 'submit' ? 'Submit this document?' : confirm === 'cancel' ? 'Cancel this document?' : 'Delete this document?'}
+          confirmLabel={confirm === 'submit' ? 'Submit' : confirm === 'cancel' ? 'Cancel document' : 'Delete'}
+          tone={confirm === 'submit' ? 'primary' : 'danger'}
+          busy={transition.isPending || remove.isPending}
+          message={confirm === 'submit' ? `${meta.name} "${doc.name}" will be locked afterwards.`
+            : confirm === 'cancel' ? `${meta.name} "${doc.name}" cannot be changed afterwards.`
+            : `${meta.name} "${doc.name}" will be deleted. This cannot be undone.`}
+          onClose={() => setConfirm(null)}
+          onConfirm={() => {
+            const kind = confirm
+            setConfirm(null)
+            if (kind === 'delete') remove.mutate()
+            else transition.mutate(kind)
+          }} />
+      )}
+      {docstatus === 2 && <div className="banner info" role="status">This document is cancelled and cannot be changed.</div>}
+      {docstatus === 1 && editable && <div className="banner info" role="status">This document is submitted. Only some fields can still be changed.</div>}
+      {!editable && (
+        <div className="banner info" role="status">
+          {isNew ? 'You are not allowed to create this document.' : 'You have read-only access to this document.'}
+        </div>
+      )}
+      {banner && (
+        <div className="banner error" role="alert">
+          {banner.text}
+          {banner.conflict && (
+            <> <button className="btn small" onClick={() => void queryClient.invalidateQueries({ queryKey: ['doc', meta.name, doc?.name] })}>
+              Reload latest
+            </button></>
+          )}
+        </div>
+      )}
+
+      <div className={doc ? 'doc-layout' : undefined}>
+      <div className="doc-main">
+      <form className="form-stack" onSubmit={(e) => { e.preventDefault(); if (dirty && editable) save.mutate() }}>
+        {isNew && meta.autoname === 'prompt' && (
+          <section className="card form-section">
+            <div className="field">
+              <label htmlFor="prompt-name">Name <span className="req">*</span></label>
+              <input id="prompt-name" value={promptName} onChange={(e) => setPromptName(e.target.value)} aria-invalid={Boolean(fieldErrors.name)} />
+              {fieldErrors.name && <small className="error-text" role="alert">{fieldErrors.name}</small>}
+            </div>
+          </section>
+        )}
+        {layout.length > 1 && (
+          <div className="tabs" role="tablist" aria-label="Form sections"
+            onKeyDown={(e) => {
+              if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return
+              e.preventDefault()
+              const next = (current + (e.key === 'ArrowRight' ? 1 : layout.length - 1)) % layout.length
+              setActiveTab(next)
+              document.getElementById(`form-tab-${next}`)?.focus()
+            }}>
+            {layout.map((tab, i) => (
+              <button key={i} type="button" role="tab" id={`form-tab-${i}`} aria-selected={i === current} aria-controls={`form-panel-${i}`}
+                tabIndex={i === current ? 0 : -1} className={i === current ? 'on' : undefined} onClick={() => setActiveTab(i)}>
+                {tab.label}{tabHasError(tab) && <span className="tab-dot" role="img" aria-label="has errors" />}
+              </button>
+            ))}
+          </div>
+        )}
+        {layout.map((tab, ti) => (
+          <div key={ti} role={layout.length > 1 ? 'tabpanel' : undefined} id={`form-panel-${ti}`} className="form-stack" hidden={ti !== current}>
+            {tab.sections.map((section, si) => {
+              const id = `${ti}:${si}`
+              const closed = Boolean(section.label) && Boolean(collapsed[id]) && !section.fields.some((f) => errorKeys.has(f.name))
+              return (
+                <section key={si} className="card form-section" aria-label={section.label || undefined}>
+                  {section.label && (
+                    <h2 className="section-toggle">
+                      <button type="button" aria-expanded={!closed} aria-controls={`form-section-${id}`} onClick={() => setCollapsed({ ...collapsed, [id]: !closed })}>
+                        <span className={closed ? 'chev shut' : 'chev'}><Icon name="chevronDown" size={16} /></span>
+                        {section.label}
+                      </button>
+                    </h2>
+                  )}
+                  <div id={`form-section-${id}`} className="form-grid" hidden={closed}>
+                    {section.fields.map(renderField)}
+                  </div>
+                </section>
+              )
+            })}
+          </div>
+        ))}
         {!hasFields && <p className="muted full">This DocType has no editable fields.</p>}
         <button type="submit" hidden />
       </form>
 
-      {doc && <AssignPanel doctype={meta.name} name={doc.name} canAssign={perms.write} />}
       {doc && <ActivityPanel meta={meta} childMetas={childMetas} name={doc.name} />}
-
-      {!isNew && (
-        <p className="muted meta-line">
-          ID <code>{doc.name}</code> · created by {String(doc.owner ?? '')} · last modified by {String(doc.modified_by ?? '')}
-          {' '}on {new Date(String(doc.modified)).toLocaleString()}
-        </p>
-      )}
+      </div>
+      {doc && <DocRail doctype={meta.name} doc={doc} canAssign={perms.write && docstatus !== 2 && !meta.isSingle} canShare={perms.write && !meta.isSingle && docstatus !== 2}
+        onAssign={() => setAssigning(true)} onShare={() => setSharing(true)} />}
+      </div>
     </>
   )
 }

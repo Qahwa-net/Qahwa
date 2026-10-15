@@ -2,15 +2,15 @@
 
 ## Assigning a document to someone
 
-Open a saved document and look for **Assigned to** under the form.
+Open a saved document. Who it is assigned to is shown in the side panel on the right (below the form on a phone). Click the **Assign** icon (a person with a plus) at the top, or the **+** in that panel, to open the Assign dialog.
 
-1. In **Assign to…** type part of a name or email and choose the person.
+1. In **Person** type part of a name or email and choose the person.
 2. Optionally write **what needs doing**, pick a **due date** and a **priority**.
-3. Click **Assign**.
+3. Click **Assign** (or press Enter).
 
 The person gets a notification, the document appears in **Assigned to me** on their home page, and a grey note is added to the document's Activity. If they could not open the document before, they are given permission to **read** it so the link works.
 
-You can assign a document if you could also **share** it (you can edit it through your role). When the work is finished, the assignee (or whoever assigned it) clicks **Done**; use **Remove** to take the assignment back. Assigning the same person twice does nothing the second time.
+You can assign a document if you could also **share** it (you can edit it through your role). When the work is finished, the assignee (or whoever assigned it) clicks the tick icon (**Mark as done**); use the bin icon (**Remove assignment**) to take it back. Assigning the same person twice does nothing the second time.
 
 ## Following
 

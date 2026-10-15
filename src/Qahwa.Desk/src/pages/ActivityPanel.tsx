@@ -2,6 +2,8 @@ import { useMemo, useState } from 'react'
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ApiError, api } from '../api/client.ts'
 import type { ActivityItem, DocTypeMeta } from '../api/types.ts'
+import { Avatar } from '../controls/Icon.tsx'
+import { ConfirmDialog } from '../controls/Modal.tsx'
 import { describeVersion, splitMentions, timeAgo, versionHeadline } from '../lib/activity.ts'
 
 const MAX = 5000
@@ -23,6 +25,7 @@ export function ActivityPanel({ meta, childMetas, name }: { meta: DocTypeMeta; c
     queryKey: key,
     queryFn: ({ pageParam }) => api.activity.timeline(meta.name, name, pageParam),
     initialPageParam: undefined as string | undefined,
+    staleTime: 0,
     getNextPageParam: (last) => (last.length >= 30 ? last[last.length - 1]?.at : undefined),
     retry: false,
   })
@@ -84,13 +87,14 @@ function Entry({ item, labels, doctype, name, onChanged, onError }: {
     const lines = describeVersion(item, labels)
     return (
       <li className="entry version">
+        <Avatar name={item.userName || item.user} />
         <div><Who item={item} /> {versionHeadline(item)} · <When at={item.at} /></div>
         {lines.length > 0 && ['Update', 'Rename', 'Merge'].includes(item.event) && <ul className="changes">{lines.map((line, i) => <li key={i}>{line}</li>)}</ul>}
       </li>
     )
   }
   if (item.event === 'Info') {
-    return <li className="entry note"><span>{item.content}</span> · <When at={item.at} /></li>
+    return <li className="entry note"><span className="note-dot" aria-hidden="true" /><span>{item.content}</span> · <When at={item.at} /></li>
   }
   return <CommentEntry item={item} doctype={doctype} name={name} onChanged={onChanged} onError={onError} />
 }
@@ -104,6 +108,7 @@ function CommentEntry({ item, doctype, name, onChanged, onError }: {
 }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(item.content ?? '')
+  const [deleting, setDeleting] = useState(false)
 
   const save = useMutation({
     mutationFn: () => api.activity.updateComment(doctype, name, item.id, draft.trim()),
@@ -118,6 +123,7 @@ function CommentEntry({ item, doctype, name, onChanged, onError }: {
 
   return (
     <li className="entry comment">
+      <Avatar name={item.userName || item.user} />
       <div><Who item={item} /> commented · <When at={item.at} />{item.edited && <span className="muted"> (edited)</span>}</div>
       {editing ? (
         <div className="comment-box">
@@ -135,8 +141,12 @@ function CommentEntry({ item, doctype, name, onChanged, onError }: {
         <div className="comment-actions">
           <button className="link-button" onClick={() => setEditing(true)}>Edit</button>
           <button className="link-button" disabled={remove.isPending}
-            onClick={() => { if (window.confirm('Delete this comment?')) remove.mutate() }}>Delete</button>
+            onClick={() => setDeleting(true)}>Delete</button>
         </div>
+      )}
+      {deleting && (
+        <ConfirmDialog title="Delete this comment?" message="It will be removed from the activity for everyone." confirmLabel="Delete" tone="danger" busy={remove.isPending}
+          onClose={() => setDeleting(false)} onConfirm={() => remove.mutate(undefined, { onSettled: () => setDeleting(false) })} />
       )}
     </li>
   )

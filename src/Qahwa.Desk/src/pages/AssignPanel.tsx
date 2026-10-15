@@ -3,18 +3,44 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError, api } from '../api/client.ts'
 import type { AssignmentInfo, LinkOption } from '../api/types.ts'
 import { LinkSelect } from '../controls/LinkSelect.tsx'
+import { Avatar, Icon, IconButton } from '../controls/Icon.tsx'
+import { Modal } from '../controls/Modal.tsx'
 import { useAuth } from '../auth.tsx'
 
-/** Who is asked to do something about this document, with a way to ask someone else. */
-export function AssignPanel({ doctype, name, canAssign }: { doctype: string; name: string; canAssign: boolean }) {
+const PRIORITIES = ['Low', 'Medium', 'High'] as const
+
+export const assignmentsKey = (doctype: string, name: string) => ['assignments', doctype, name]
+
+/** One assignment: who, what to do, how urgent. */
+export function AssignmentRow({ a }: { a: AssignmentInfo }) {
+  return (
+    <>
+      <Avatar name={a.userName || a.user} />
+      <span className="person-text">
+        <strong>{a.userName || a.user}</strong>
+        <small className="muted">
+          {a.description || 'No instructions'}
+        </small>
+        <small className="chips">
+          <span className={`chip prio-${a.priority.toLowerCase()}`}><Icon name="flag" size={12} /> {a.priority}</span>
+          {a.due && <span className="chip"><Icon name="calendar" size={12} /> {a.due}</span>}
+          {a.status === 'Closed' && <span className="chip done"><Icon name="check" size={12} /> Done</span>}
+        </small>
+      </span>
+    </>
+  )
+}
+
+/** Assign a document to someone, and see who it is assigned to, in a dialog. */
+export function AssignDialog({ doctype, name, canAssign, onClose }: { doctype: string; name: string; canAssign: boolean; onClose: () => void }) {
   const queryClient = useQueryClient()
   const { user: me } = useAuth()
-  const key = ['assignments', doctype, name]
+  const key = assignmentsKey(doctype, name)
   const list = useQuery({ queryKey: key, queryFn: () => api.assignments.forDocument(doctype, name), retry: false })
   const [person, setPerson] = useState<LinkOption | null>(null)
   const [description, setDescription] = useState('')
   const [date, setDate] = useState('')
-  const [priority, setPriority] = useState('Medium')
+  const [priority, setPriority] = useState<(typeof PRIORITIES)[number]>('Medium')
   const [error, setError] = useState<string | null>(null)
 
   const refresh = () => Promise.all([
@@ -26,50 +52,74 @@ export function AssignPanel({ doctype, name, canAssign }: { doctype: string; nam
 
   const assign = useMutation({
     mutationFn: () => api.assignments.assign(doctype, name, person!.value, description.trim(), date, priority),
-    onSuccess: async () => { setPerson(null); setDescription(''); setDate(''); setError(null); await refresh() },
+    onSuccess: async () => { setPerson(null); setDescription(''); setDate(''); setPriority('Medium'); setError(null); await refresh() },
     onError: fail,
   })
   const complete = useMutation({ mutationFn: (id: string) => api.assignments.complete(id), onSuccess: refresh, onError: fail })
   const remove = useMutation({ mutationFn: (id: string) => api.assignments.remove(id), onSuccess: refresh, onError: fail })
-
+  const busy = assign.isPending || complete.isPending || remove.isPending
   const items = list.data ?? []
-  if (list.isError || (!canAssign && items.length === 0)) return null
 
   return (
-    <section className="card assign" aria-label="Assignments">
-      <h3>Assigned to</h3>
+    <Modal title="Assign" subtitle={`Ask someone to take care of ${doctype === name ? doctype : `${doctype} ${name}`}.`} onClose={onClose} dismissible={!busy}
+      footer={canAssign ? (
+        <>
+          <button className="btn" onClick={onClose}>Close</button>
+          <button className="btn primary" form="assign-form" disabled={!person || busy}><Icon name="userPlus" /> {assign.isPending ? 'Assigning…' : 'Assign'}</button>
+        </>
+      ) : <button className="btn" onClick={onClose}>Close</button>}>
       {error && <div className="banner error" role="alert">{error}</div>}
-      <ul className="assignments">
-        {items.map((a: AssignmentInfo) => (
-          <li key={a.id} className={a.status === 'Closed' ? 'done' : undefined}>
-            <span><strong>{a.userName || a.user}</strong>{a.description && <> · {a.description}</>}
-              <small className="muted"> · {a.priority}{a.due ? ` · due ${a.due}` : ''}{a.status === 'Closed' ? ' · done' : ''}</small></span>
-            {a.status === 'Open' && (
-              <span className="comment-actions">
-                {(a.user === me?.user || a.assignedBy === me?.user) && <button className="link-button" disabled={complete.isPending} onClick={() => complete.mutate(a.id)}>Done</button>}
-                {(a.user === me?.user || a.assignedBy === me?.user) && <button className="link-button" disabled={remove.isPending} onClick={() => remove.mutate(a.id)}>Remove</button>}
-              </span>
-            )}
-          </li>
-        ))}
-        {items.length === 0 && <li className="muted">Nobody yet.</li>}
+      {list.isPending && <p className="muted" role="status">Loading…</p>}
+
+      <h3 className="modal-section">Assigned to</h3>
+      <ul className="person-list">
+        {items.map((a) => {
+          const mine = a.user === me?.user || a.assignedBy === me?.user
+          return (
+            <li key={a.id} className={a.status === 'Closed' ? 'done' : undefined}>
+              <AssignmentRow a={a} />
+              {a.status === 'Open' && mine && (
+                <span className="row-actions">
+                  <IconButton icon="checkCircle" label="Mark as done" tone="primary" disabled={busy} onClick={() => complete.mutate(a.id)} />
+                  <IconButton icon="trash" label="Remove assignment" tone="danger" disabled={busy} onClick={() => remove.mutate(a.id)} />
+                </span>
+              )}
+            </li>
+          )
+        })}
+        {list.data && items.length === 0 && <li className="empty-note">Nobody is assigned yet.</li>}
       </ul>
 
       {canAssign && (
-        <form className="assign-form" onSubmit={(e) => { e.preventDefault(); if (person) assign.mutate() }}>
-          <div className="share-user">
-            <LinkSelect ariaLabel="Assign to" placeholder="Assign to… (search by name or email)" value={person?.value ?? ''} knownLabel={person?.label}
+        <form id="assign-form" className="modal-form" onSubmit={(e) => { e.preventDefault(); if (person && !busy) assign.mutate() }}>
+          <h3 className="modal-section">New assignment</h3>
+          <div className="field">
+            <label>Person</label>
+            <LinkSelect ariaLabel="Assign to" placeholder="Search by name or email…" value={person?.value ?? ''} knownLabel={person?.label}
               cacheKey={['assign-users', doctype, name]} search={(text) => api.share.users(doctype, name, text)}
               onChange={(_, option) => setPerson(option ?? null)} />
           </div>
-          <input aria-label="What to do" placeholder="What needs doing?" maxLength={500} value={description} onChange={(e) => setDescription(e.target.value)} />
-          <input type="date" aria-label="Due date" value={date} onChange={(e) => setDate(e.target.value)} />
-          <select aria-label="Priority" value={priority} onChange={(e) => setPriority(e.target.value)}>
-            <option>Low</option><option>Medium</option><option>High</option>
-          </select>
-          <button className="btn" disabled={!person || assign.isPending}>Assign</button>
+          <div className="field">
+            <label htmlFor="assign-what">What needs doing</label>
+            <textarea id="assign-what" rows={3} maxLength={500} placeholder="Optional instructions" value={description} onChange={(e) => setDescription(e.target.value)} />
+          </div>
+          <div className="modal-row">
+            <div className="field">
+              <label htmlFor="assign-due">Due date</label>
+              <input id="assign-due" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            </div>
+            <div className="field">
+              <span id="assign-prio" className="label">Priority</span>
+              <div className="segmented" role="radiogroup" aria-labelledby="assign-prio">
+                {PRIORITIES.map((p) => (
+                  <button key={p} type="button" role="radio" aria-checked={priority === p} className={priority === p ? `on prio-${p.toLowerCase()}` : undefined}
+                    onClick={() => setPriority(p)}>{p}</button>
+                ))}
+              </div>
+            </div>
+          </div>
         </form>
       )}
-    </section>
+    </Modal>
   )
 }

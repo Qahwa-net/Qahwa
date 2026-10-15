@@ -1,5 +1,9 @@
 # The Desk: lists, forms, searching and choosing
 
+## The form at a glance
+
+The bar at the top stays in view while you scroll. It shows the title, the status, and icons for the things you can do: follow (bell), assign, share, rename, delete, submit and cancel. Hover an icon to see what it does. **Save** is the only button with a word on it; **Ctrl+S** does the same. Anything that cannot be undone asks first in a small window. Long forms are split into titled sections (click a title to fold it) and tabs. If saving fails, the tab with the problem is opened and marked with a red dot. A short message at the bottom corner confirms what happened ("Saved"). On the right (below the form on a phone) you see who the document is assigned to, who it is shared with, and its details.
+
 ## Signing in
 
 Open the site and sign in with your email and password. After several wrong attempts the account is locked for a while. Change your password from your name at the top right (Account).
