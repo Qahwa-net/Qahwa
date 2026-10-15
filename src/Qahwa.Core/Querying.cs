@@ -10,6 +10,9 @@ public enum FilterOp
     Le,
     Like,
     In,
+
+    /// <summary>In the list, or empty (used by User Permissions on Link fields).</summary>
+    InOrNull,
     IsNull,
     IsNotNull,
 }

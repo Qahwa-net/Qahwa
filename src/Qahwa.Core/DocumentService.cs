@@ -14,7 +14,8 @@ public sealed class DocumentService(
     IDocumentRepository repository,
     PermissionService permissions,
     NamingService naming,
-    TimeProvider clock)
+    TimeProvider clock,
+    UserPermissionService? userPermissions = null)
 {
     private readonly DocumentLogic _logic = new(registry, repository, permissions, clock);
 
@@ -73,9 +74,11 @@ public sealed class DocumentService(
         var meta = RequireTopLevel(registry.Get(doctype));
         permissions.Require(meta, user, PermAction.Create);
         var fieldAccess = permissions.FieldAccessFor(meta, user, user.User, creating: true);
+        var restrictions = await RestrictionsAsync(meta, user, ct);
 
         var errors = new List<FieldError>();
         var values = Coerce(meta, input, errors, meta.Autoname == "prompt", out var promptName, access: fieldAccess);
+        CheckRestrictedValues(restrictions, values, errors);
         var tables = ReadTables(meta, input, errors);
         foreach (var table in tables.Where(t => t.Rows.Count > 0 && !fieldAccess.CanWrite(t.Field)))
             errors.Add(new FieldError(table.Field.Name, "You do not have permission to fill in this table."));
@@ -128,6 +131,7 @@ public sealed class DocumentService(
         var doc = await LoadAsync(meta, name, ct)
             ?? throw new NotFoundException($"{meta.Name} '{name}' was not found.");
         permissions.RequireOwnership(access, doc, user);
+        RequireRestrictions(await RestrictionsAsync(meta, user, ct), doc, meta);
         return Strip(meta, doc, permissions.FieldAccessFor(meta, user, doc.GetValueOrDefault("owner") as string, creating: false));
     }
 
@@ -143,6 +147,8 @@ public sealed class DocumentService(
         var existing = await repository.GetAsync(meta, name, ct)
             ?? throw new NotFoundException($"{meta.Name} '{name}' was not found.");
         permissions.RequireOwnership(access, existing, user);
+        var restrictions = await RestrictionsAsync(meta, user, ct);
+        RequireRestrictions(restrictions, existing, meta);
         var fieldAccess = permissions.FieldAccessFor(meta, user, existing.GetValueOrDefault("owner") as string, creating: false);
 
         var errors = new List<FieldError>();
@@ -155,6 +161,8 @@ public sealed class DocumentService(
             if (Equals(existing.GetValueOrDefault(key), changes[key]))
                 changes.Remove(key);
         }
+
+        CheckRestrictedValues(restrictions, changes, errors);
 
         // A client may echo back values it was shown; it may not change fields above its permission level.
         foreach (var key in changes.Keys)
@@ -252,6 +260,7 @@ public sealed class DocumentService(
         var existing = await repository.GetAsync(meta, name, ct)
             ?? throw new NotFoundException($"{meta.Name} '{name}' was not found.");
         permissions.RequireOwnership(access, existing, user);
+        RequireRestrictions(await RestrictionsAsync(meta, user, ct), existing, meta);
 
         var childTables = TableFields(meta).Select(f => registry.Get(f.Options!)).ToList();
         if (!await repository.DeleteAsync(meta, name, childTables, ct))
@@ -271,9 +280,37 @@ public sealed class DocumentService(
         if (access == AccessLevel.Owner)
             query = query with { Filters = [.. query.Filters, new QueryFilter("owner", FilterOp.Eq, user.User)] };
 
+        foreach (var restriction in await RestrictionsAsync(meta, user, ct))
+        {
+            query = query with
+            {
+                Filters = [.. query.Filters, new QueryFilter(restriction.Field, restriction.AllowEmpty ? FilterOp.InOrNull : FilterOp.In, restriction.Allowed.Cast<object?>().ToList())],
+            };
+        }
+
         var rows = await repository.ListAsync(meta, query, ct);
         var total = await repository.CountAsync(meta, query, ct);
         return new ListResult(rows.ToList(), total);
+    }
+
+    private async Task<IReadOnlyList<Restriction>> RestrictionsAsync(DocTypeMeta meta, IUserContext user, CancellationToken ct) =>
+        userPermissions is null ? [] : await userPermissions.ForAsync(meta, user, ct);
+
+    /// <summary>A document outside the user's User Permissions might as well not exist for them.</summary>
+    private static void RequireRestrictions(IReadOnlyList<Restriction> restrictions, IReadOnlyDictionary<string, object?> doc, DocTypeMeta meta)
+    {
+        if (restrictions.Any(r => !r.Admits(doc.GetValueOrDefault(r.Field))))
+            throw new PermissionDeniedException($"You are not allowed to access this {meta.Name}.");
+    }
+
+    /// <summary>The user may not point a Link field at a document their User Permissions rule out.</summary>
+    private static void CheckRestrictedValues(IReadOnlyList<Restriction> restrictions, IReadOnlyDictionary<string, object?> values, List<FieldError> errors)
+    {
+        foreach (var restriction in restrictions.Where(r => !r.IsName))
+        {
+            if (values.TryGetValue(restriction.Field, out var value) && value is string { Length: > 0 } text && !restriction.Allowed.Contains(text))
+                errors.Add(new FieldError(restriction.Field, $"You are not allowed to use '{text}'."));
+        }
     }
 
     /// <summary>Child tables are only reachable through their parent document, so they look like they do not exist.</summary>

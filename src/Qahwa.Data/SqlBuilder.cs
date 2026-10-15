@@ -122,6 +122,23 @@ public sealed class SqlBuilder(ISqlDialect dialect)
                 case FilterOp.IsNotNull:
                     sql.Append(column).Append(" IS NOT NULL");
                     break;
+                case FilterOp.InOrNull:
+                    var allowed = (filter.Value as IEnumerable<object?> ?? []).Where(v => v is not null).ToList();
+                    sql.Append('(').Append(column).Append(" IS NULL");
+                    if (allowed.Count > 0)
+                    {
+                        sql.Append(" OR ").Append(column).Append(" IN (");
+                        for (var n = 0; n < allowed.Count; n++)
+                        {
+                            sql.Append(n == 0 ? string.Empty : ", ").Append(dialect.Parameter(parameters.Count));
+                            parameters.Add(allowed[n]);
+                        }
+
+                        sql.Append(')');
+                    }
+
+                    sql.Append(')');
+                    break;
                 case FilterOp.In:
                     var items = (filter.Value as IEnumerable<object?> ?? []).Where(v => v is not null).ToList();
                     if (items.Count == 0)

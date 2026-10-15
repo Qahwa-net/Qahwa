@@ -70,7 +70,7 @@ public sealed class PgStack : IAsyncDisposable
         Overrides = new PermissionOverrides();
         PermissionStore = new PermissionStore(_connections, Dialect, new PostgresSchemaInspector(_connections));
         PermissionManager = new PermissionManager(Registry, PermissionStore, Overrides, Clock);
-        Documents = new DocumentService(Registry, Repository, new PermissionService(Overrides), new NamingService(Repository), Clock);
+        Documents = new DocumentService(Registry, Repository, new PermissionService(Overrides), new NamingService(Repository), Clock, new UserPermissionService(Registry, Repository));
         DocTypeStore = new DocTypeStore(_connections, Dialect, new PostgresSchemaInspector(_connections));
         SchemaManager = new SchemaManager(Sync, Dialect);
         Designer = new DocTypeDesigner(Registry, DocTypeStore, SchemaManager, Repository, Clock);

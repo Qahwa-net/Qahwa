@@ -81,7 +81,7 @@ public sealed class TestEngine
         PermissionStore = new InMemoryPermissionStore();
         PermissionManager = new PermissionManager(Registry, PermissionStore, Overrides, Clock);
         Documents = new DocumentService(
-            Registry, Repository, Permissions, new NamingService(Repository), Clock);
+            Registry, Repository, Permissions, new NamingService(Repository), Clock, new UserPermissionService(Registry, Repository));
         DocTypeStore = new InMemoryDocTypeStore();
         Schema = new InMemorySchemaManager();
         Designer = new DocTypeDesigner(Registry, DocTypeStore, Schema, Repository, Clock);

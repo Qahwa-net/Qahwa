@@ -198,6 +198,7 @@ public sealed class InMemoryDocumentRepository : IDocumentRepository
         {
             case FilterOp.IsNull: return actual is null;
             case FilterOp.IsNotNull: return actual is not null;
+            case FilterOp.InOrNull: return actual is null || (filter.Value as IEnumerable<object?> ?? []).Any(v => Equals(v, actual));
             case FilterOp.In: return (filter.Value as IEnumerable<object?> ?? []).Any(v => Equals(v, actual));
             case FilterOp.Like:
                 var pattern = "^" + Regex.Escape((string)filter.Value!).Replace("%", ".*").Replace("_", ".") + "$";

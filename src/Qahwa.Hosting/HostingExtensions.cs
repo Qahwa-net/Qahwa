@@ -72,6 +72,7 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton(sp => new PermissionService(sp.GetRequiredService<IPermissionOverrides>()));
         services.TryAddSingleton<PermissionManager>();
         services.TryAddSingleton<NamingService>();
+        services.TryAddSingleton<UserPermissionService>();
         services.TryAddSingleton<DocumentService>();
         services.TryAddSingleton<AuthService>();
         services.TryAddSingleton<SqlBuilder>();

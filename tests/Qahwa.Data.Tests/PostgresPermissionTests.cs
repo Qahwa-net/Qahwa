@@ -56,3 +56,27 @@ public class PostgresPermissionTests(PostgresFixture postgres) : IClassFixture<P
         await Assert.ThrowsAnyAsync<Exception>(() => db.Documents.ListAsync("Payroll", request, TestUsers.SalesA));
     }
 }
+
+public class PostgresUserPermissionTests(PostgresFixture postgres) : IClassFixture<PostgresFixture>
+{
+    [SkippableFact]
+    public async Task Restricted_users_only_get_rows_linked_to_their_values_or_with_no_link()
+    {
+        Skip.IfNot(postgres.Available, postgres.SkipReason);
+        await using var db = await postgres.CreateStackAsync();
+        var admin = TestUsers.Admin;
+        var rep = new UserContext("rep@example.com", ["Sales Manager"]);
+
+        foreach (var territory in new[] { "North", "South" })
+            await db.Documents.InsertAsync("Territory", Values(("territory_name", territory)), admin);
+        foreach (var (name, territory) in new (string, string?)[] { ("In North", "North"), ("In South", "South"), ("Nowhere", null) })
+            await db.Documents.InsertAsync("Customer", Values(("customer_name", name), ("territory", territory)), admin);
+        await db.Documents.InsertAsync("User", Values(("email", rep.User), ("full_name", "Rep")), admin);
+        await db.Documents.InsertAsync("User Permission", Values(("user", rep.User), ("allow", "Territory"), ("for_value", "North"), ("apply_to_all_doctypes", true)), admin);
+
+        var seen = (await db.Documents.ListAsync("Customer", new ListRequest { Limit = 100 }, rep)).Data.Select(r => (string)r["customer_name"]!).Order().ToList();
+
+        Assert.Equal(["In North", "Nowhere"], seen);
+        Assert.Equal(1, (await db.Documents.ListAsync("Territory", new ListRequest(), rep)).Total);
+    }
+}
