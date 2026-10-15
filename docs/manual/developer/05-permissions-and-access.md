@@ -76,6 +76,10 @@ Managing rules needs a System Manager. Whatever a rule says, `NotificationServic
 
 Emailing about a document needs write access to it, is limited to 10 recipients per request and 50 emails per person per day, and uses addresses only in plain `name@host.tld` form. The Email Queue is readable and deletable only by System Managers; Email Templates are managed by System Managers and offered to anyone signed in for the DocTypes they fit.
 
+## Dashboards
+
+Numbers and charts need read **and report** access to the DocType; lists need read. Every tile is evaluated for the person viewing it through the ordinary list rules (own-only roles, shares, User Permissions, blocked modules), never as the dashboard's owner, so sharing a dashboard shares no data. A private dashboard is invisible to others.
+
 ## What the API never reveals
 
 - A document you may not read looks like it does not exist where possible (checks run before the document is loaded).

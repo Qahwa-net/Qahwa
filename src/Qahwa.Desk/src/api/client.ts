@@ -1,6 +1,6 @@
 import type {
   DesignerDetail, DocPerm, DesignerItem, DesignerPreview, Doc, DocTypeDefinition, FieldError, FieldTypeInfo,
-  ListResponse, EmailPreview, EmailTemplateInfo, NotificationRuleItem, NotificationRuleSet, NotificationRuleView, AutoRepeatInfo, AutoRepeatRequest, AssignmentRuleItem, AssignmentRuleSet, AssignmentRuleView, PendingAction, WorkflowDefinition, WorkflowItem, WorkflowStatus, WorkflowView, MetaResponse, MetaSummary, PermissionItem, ActivityItem, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, FollowState, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
+  ListResponse, DashboardDetail, DashboardInfo, DashboardItem, DashboardResult, EmailPreview, EmailTemplateInfo, NotificationRuleItem, NotificationRuleSet, NotificationRuleView, AutoRepeatInfo, AutoRepeatRequest, AssignmentRuleItem, AssignmentRuleSet, AssignmentRuleView, PendingAction, WorkflowDefinition, WorkflowItem, WorkflowStatus, WorkflowView, MetaResponse, MetaSummary, PermissionItem, ActivityItem, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, FollowState, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
 } from './types.ts'
 import type { Filter } from '../lib/filters.ts'
 import { toApiFilters } from '../lib/filters.ts'
@@ -249,6 +249,18 @@ export const api = {
       (await request<{ data: CustomizationView }>('PUT', `/api/customize/doctypes/${encodeURIComponent(name)}`, { customization, modified })).data,
     reset: async (name: string) =>
       (await request<{ data: CustomizationView }>('DELETE', `/api/customize/doctypes/${encodeURIComponent(name)}`)).data,
+  },
+
+  dashboards: {
+    list: async () => (await request<{ data: DashboardInfo[] }>('GET', '/api/dashboards')).data,
+    get: async (id: string) => (await request<{ data: DashboardDetail }>('GET', `/api/dashboards/${encodeURIComponent(id)}`)).data,
+    data: async (id: string) => (await request<{ data: DashboardResult[] }>('GET', `/api/dashboards/${encodeURIComponent(id)}/data`)).data,
+    create: async (body: { title: string; isPublic: boolean; items: DashboardItem[] }) =>
+      (await request<{ data: DashboardInfo }>('POST', '/api/dashboards', body)).data,
+    update: async (id: string, body: { title: string; isPublic: boolean; items: DashboardItem[]; modified?: string }) =>
+      (await request<{ data: DashboardInfo }>('PUT', `/api/dashboards/${encodeURIComponent(id)}`, body)).data,
+    remove: async (id: string) => { await request<unknown>('DELETE', `/api/dashboards/${encodeURIComponent(id)}`) },
+    preview: async (item: DashboardItem) => (await request<{ data: DashboardResult }>('POST', '/api/dashboards/preview', item)).data,
   },
 
   email: {

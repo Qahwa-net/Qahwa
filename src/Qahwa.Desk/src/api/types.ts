@@ -562,3 +562,59 @@ export interface EmailPreview {
   subject: string
   message: string
 }
+
+export type TileType = 'Number' | 'Chart' | 'List'
+export type TileFunction = 'count' | 'sum' | 'avg' | 'min' | 'max'
+
+export interface TileFilter {
+  field: string
+  op: string
+  value?: string | number | boolean | null
+}
+
+/** One tile of a dashboard. */
+export interface DashboardItem {
+  id: string
+  type: TileType
+  title: string
+  docType: string
+  function: TileFunction
+  valueField?: string | null
+  groupBy?: string | null
+  period?: 'day' | 'month' | 'year' | null
+  chartType: 'bar' | 'line' | 'pie'
+  columns: string[]
+  orderBy?: string | null
+  descending: boolean
+  limit: number
+  filters: TileFilter[]
+  color: IndicatorColor
+}
+
+export interface DashboardInfo {
+  id: string
+  title: string
+  isPublic: boolean
+  mine: boolean
+  owner: string
+  ownerName?: string | null
+  items: number
+  modified: string
+}
+
+export interface DashboardDetail {
+  info: DashboardInfo
+  items: DashboardItem[]
+  canEdit: boolean
+}
+
+export interface DashboardResult {
+  id: string
+  type: TileType
+  number?: number | null
+  points?: { label: string | null; value: number }[] | null
+  columns?: string[] | null
+  rows?: Record<string, unknown>[] | null
+  truncated: boolean
+  error?: string | null
+}

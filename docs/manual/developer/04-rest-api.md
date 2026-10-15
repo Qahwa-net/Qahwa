@@ -125,6 +125,19 @@ Someone else's repeat answers 404.
 | `POST /resource/{doctype}/{name}/email/preview` `{ template }` | The subject and message a template gives for the document |
 | `POST /resource/{doctype}/{name}/email` `{ to[], subject?, message?, template? }` | Queue emails (202 `{ queued }`). Needs write access; 10 addresses, 50 a day per person; 400 for bad addresses or text |
 
+## Dashboards ([ADR-024](../../adr/024-dashboards.md))
+
+| Call | Purpose |
+|---|---|
+| `GET /dashboards` | The dashboards the caller may open (own, shared, and for a System Manager all) |
+| `POST /dashboards` `{ title, isPublic, items[] }` | Create (201). Problems are keyed `items[2].groupBy` |
+| `GET /dashboards/{id}` | The dashboard and its tiles, with `canEdit` |
+| `GET /dashboards/{id}/data` | Every tile worked out for the caller: `{ id, type, number?, points?, columns?, rows?, truncated, error? }` |
+| `PUT /dashboards/{id}` `{ title, isPublic, items[], modified? }` / `DELETE` | Owner or System Manager; 409 for a stale `modified` |
+| `POST /dashboards/preview` `{ tile }` | One unsaved tile, for the builder |
+
+A tile is `{ id, type: Number|Chart|List, title, docType, function, valueField, groupBy, period, chartType, columns, orderBy, descending, limit, filters: [{ field, op, value }], color }`.
+
 ## Link fields
 
 | Call | Purpose |

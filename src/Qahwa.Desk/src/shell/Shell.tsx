@@ -50,6 +50,7 @@ export function Shell() {
         <section>
           <h2>My work</h2>
           <ul>
+            <li><NavLink to="/dashboards">Dashboards</NavLink></li>
             <li><NavLink to="/auto-repeat">Auto Repeat</NavLink></li>
           </ul>
         </section>

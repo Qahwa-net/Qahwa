@@ -96,6 +96,10 @@ Desk: `NotificationRules.tsx`, `controls/ChipPicker.tsx`, `lib/notificationRules
 
 `Email.cs`: `IEmailSender`, `EmailService` (`EnqueueAsync`, `TemplatesAsync`, `PreviewAsync`, `SendFromDocumentAsync`, `SendPendingAsync`, static `ValidAddress`) and the Core DocTypes `email_template.json` and `email_queue.json`. `Qahwa.Server/EmailSenders.cs` has `SmtpEmailSender` (System.Net.Mail) and the logging `LogEmailSender`, chosen in `Program.cs` by whether `Qahwa:Email:Host` is set; to use another provider (an API, SendGrid, a cloud mailer) implement `IEmailSender` and register it instead. `SchedulerService` calls `SendPendingAsync` every tick. `NotificationRule.Email` enqueues mail from `NotificationRuleEngine`. A claim must change `modified` (see `SendPendingAsync`) because it is the version other servers compare with. Endpoints: `EmailEndpoints.cs`. Desk: `EmailDialog.tsx`, `lib/email.ts`. Tests: `EmailTests` (with `FakeEmailSender`), `EmailApiTests`, `PostgresEmailTests`.
 
+## Dashboards ([ADR-024](../../adr/024-dashboards.md))
+
+`Dashboards.cs`: `DashboardItem`, `DashboardService` (list, get, create, update, delete, `DataAsync`, `PreviewAsync`, `Validate`); `DocumentService.Analytics.cs`: `AggregateAsync` (one number) and `SeriesAsync` (an aggregate per group or per day, month or year), both reading rows through `ListAsync`; the Core DocType `dashboard.json`; `DashboardEndpoints.cs`. Desk: `Dashboards.tsx` (list, view, builder, `Tile`), `controls/Charts.tsx` (SVG bar, line and pie), `lib/charts.ts` (axis maths, tested), `lib/dashboards.ts`. To add a tile type: extend `DashboardItem.Types`, `ValidateItem`, `EvaluateAsync`, then `TileBody` and the editor. Tests: `DashboardTests`, `DashboardApiTests`, `PostgresDashboardTests`.
+
 ## Authentication ([ADR-002](../../adr/002-authentication.md))
 Cookie sessions, ASP.NET Identity password hashing, lockout, login rate limit; `User`, `Role`, `Has Role` DocTypes. Roles are cached per session for `SessionCacheSeconds`.
 

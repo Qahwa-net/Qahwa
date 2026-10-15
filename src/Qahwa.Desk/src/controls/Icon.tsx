@@ -15,6 +15,7 @@ const PATHS = {
   play: <path d="m6 3 14 9-14 9z" />,
   pause: <><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></>,
   mail: <><rect x="2" y="4" width="20" height="16" rx="2" /><path d="m22 7-10 6L2 7" /></>,
+  chart: <><path d="M3 3v18h18" /><path d="M7 15v3M12 9v9M17 5v13" /></>,
   x: <path d="M18 6 6 18M6 6l12 12" />,
   plus: <path d="M12 5v14M5 12h14" />,
   arrowLeft: <path d="m12 19-7-7 7-7M19 12H5" />,

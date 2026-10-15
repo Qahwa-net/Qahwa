@@ -15,6 +15,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 11. [Auto Repeat: documents that copy themselves](11-auto-repeat.md)
 12. [Notification rules: tell people automatically](12-notification-rules.md)
 13. [Email: send mail about a document](13-email.md)
+14. [Dashboards: numbers, charts and lists](14-dashboards.md)
 
 **Words used**
 
