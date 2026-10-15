@@ -98,6 +98,33 @@ public static class SpecialEndpoints
             return Results.Ok(new { data = await docs.LinkTitlesAsync(doctype, wanted, await users.ResolveAsync(http, ct), ct) });
         });
 
+        // The list sidebar: how many documents have each value of a field, under the list's current filters.
+        resource.MapGet("/group-by", async (
+            string doctype, HttpContext http, DocumentService docs, IUserContextResolver users, CancellationToken ct) =>
+        {
+            var query = http.Request.Query;
+            var limit = int.TryParse(query["limit"], out var n) ? n : 20;
+            var groups = await docs.GroupByAsync(doctype, query["field"].ToString(), QahwaEndpoints.ParseListRequest(query), limit, await users.ResolveAsync(http, ct), ct);
+            return Results.Ok(new { data = groups });
+        });
+
+        // Comment counts for the rows of a list (names as a JSON array, at most 100).
+        resource.MapGet("/comment-counts", async (
+            string doctype, string? names, HttpContext http, ActivityService activity, IUserContextResolver users, CancellationToken ct) =>
+        {
+            List<string> wanted;
+            try
+            {
+                wanted = string.IsNullOrWhiteSpace(names) ? [] : System.Text.Json.JsonSerializer.Deserialize<List<string>>(names) ?? [];
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                throw new DocumentValidationException("'names' must be a JSON array of names.");
+            }
+
+            return Results.Ok(new { data = await activity.CommentCountsAsync(doctype, wanted, await users.ResolveAsync(http, ct), ct) });
+        });
+
         app.MapGet("/api/tree/{doctype}", async (
             string doctype, string? parent, HttpContext http, DocumentService docs, IUserContextResolver users, CancellationToken ct) =>
             Results.Ok(new { data = await docs.TreeChildrenAsync(doctype, parent, await users.ResolveAsync(http, ct), ct) }));

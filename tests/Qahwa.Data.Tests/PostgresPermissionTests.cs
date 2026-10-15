@@ -344,3 +344,27 @@ public class PostgresListPowerTests(PostgresFixture postgres) : IClassFixture<Po
         Assert.Equal(0, await db.ScalarAsync("SELECT COUNT(*) FROM \"tabCustomer\""));
     }
 }
+
+public class PostgresListSidebarTests(PostgresFixture postgres) : IClassFixture<PostgresFixture>
+{
+    [SkippableFact]
+    public async Task Group_counts_and_comment_counts_run_as_sql_on_postgres()
+    {
+        Skip.IfNot(postgres.Available, postgres.SkipReason);
+        await using var db = await postgres.CreateStackAsync();
+        var admin = TestUsers.Admin;
+        var ids = new List<string>();
+        foreach (var (name, type) in new[] { ("A", "Company"), ("B", "Company"), ("C", "Individual") })
+            ids.Add((string)(await db.Documents.InsertAsync("Customer", Values(("customer_name", name), ("customer_type", type)), admin))["name"]!);
+        await db.Activity.AddCommentAsync("Customer", ids[0], "one", admin);
+        await db.Activity.AddCommentAsync("Customer", ids[0], "two", admin);
+
+        var groups = await db.Documents.GroupByAsync("Customer", "customer_type", new ListRequest(), 10, admin);
+        var filtered = await db.Documents.GroupByAsync("Customer", "customer_type", new ListRequest { Filters = [new("customer_name", "like", "%A%")] }, 10, admin);
+        var comments = await db.Activity.CommentCountsAsync("Customer", ids, admin);
+
+        Assert.Equal([("Company", 2L), ("Individual", 1L)], groups.Select(g => (g.Value, g.Count)));
+        Assert.Equal([("Company", 1L)], filtered.Select(g => (g.Value, g.Count)));
+        Assert.Equal(new Dictionary<string, long> { [ids[0]] = 2 }, comments);
+    }
+}

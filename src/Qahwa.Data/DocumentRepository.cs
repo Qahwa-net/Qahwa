@@ -126,6 +126,25 @@ public sealed class DocumentRepository(
     public async Task<long> CountAsync(DocTypeMeta meta, ListQuery query, CancellationToken ct = default) =>
         Convert.ToInt64(await ExecuteScalarAsync(sql.Count(meta, query), ct));
 
+    public async Task<IReadOnlyList<GroupCount>> GroupCountAsync(
+        DocTypeMeta meta, string field, IReadOnlyList<QueryFilter> filters, int limit, CancellationToken ct = default)
+    {
+        var statement = sql.GroupCount(meta, field, filters, limit);
+        var type = meta.ColumnTypes()[field];
+        await using var connection = await connections.OpenAsync(ct);
+        await using var command = DbCommands.Create(connection, statement.Sql, statement.Parameters);
+        await using var reader = await command.ExecuteReaderAsync(ct);
+
+        var result = new List<GroupCount>();
+        while (await reader.ReadAsync(ct))
+        {
+            var raw = await reader.IsDBNullAsync(0, ct) ? null : reader.GetValue(0);
+            result.Add(new GroupCount(FieldValueConverter.FromStorage(type, raw), reader.GetInt64(1)));
+        }
+
+        return result;
+    }
+
     public async Task<long> NextSeriesAsync(string prefix, CancellationToken ct = default) =>
         Convert.ToInt64(await ExecuteScalarAsync(new SqlStatement(dialect.NextSeriesSql, [prefix]), ct));
 

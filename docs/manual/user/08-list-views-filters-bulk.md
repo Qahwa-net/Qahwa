@@ -19,6 +19,14 @@ You can only choose columns you are allowed to see; protected fields do not appe
 
 Saving under the same name replaces the old one. **Delete** (next to the picker) removes a filter you saved. You can keep up to 50 per DocType.
 
+## Group by: counts at a glance
+
+Click **Group by**, choose a field (a choice, a link, a yes/no field or *Created By*), and the side panel shows how many documents have each value, for the documents your current filters show. **Click a value** to filter the list by it; click it again to remove that filter. Your choice of field is remembered in this browser.
+
+## Status colours and comment counts
+
+If the DocType has a **status field** (set in the DocType Designer by choosing the field and a colour for each choice), each row shows it as a coloured label: for example *Open* in orange, *Done* in green. Submittable documents also show **Draft**, **Submitted** or **Cancelled**. A **💬 3** beside a name means the document has 3 comments.
+
 ## Select several documents (bulk actions)
 
 Tick the boxes at the left of the rows (the top box selects the whole page). A bar appears:

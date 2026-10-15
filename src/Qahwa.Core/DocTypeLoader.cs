@@ -150,6 +150,7 @@ public static partial class DocTypeLoader
 
         errors.AddRange(CheckPermissionRules(meta.Permissions, "permissions"));
         CheckSpecial(meta, Add);
+        CheckIndicators(meta, seen, Add);
         if (meta.IsSubmittable && meta.IsChildTable)
             errors.Add(new FieldError("isSubmittable", "A child table cannot be submittable; its rows follow their document."));
         if (!meta.IsSubmittable)
@@ -170,6 +171,38 @@ public static partial class DocTypeLoader
     }
 
     public const int MaxPermLevel = 9;
+
+    public const int MaxIndicators = 50;
+
+    private static void CheckIndicators(DocTypeMeta meta, HashSet<string> fieldNames, Action<string, string> add)
+    {
+        if (meta.StatusField is null)
+        {
+            if (meta.Indicators.Count > 0)
+                add("indicators", "Colours need a status field.");
+            return;
+        }
+
+        var field = meta.Fields.FirstOrDefault(f => f.Name == meta.StatusField);
+        if (field is null || !fieldNames.Contains(field.Name))
+            add("statusField", $"Status field '{meta.StatusField}' is not a field of this DocType.");
+        else if (field.Type is not (FieldType.Select or FieldType.Data or FieldType.Link))
+            add("statusField", "The status field must be a Select, Data or Link field.");
+
+        if (meta.Indicators.Count > MaxIndicators)
+            add("indicators", $"At most {MaxIndicators} colours are allowed.");
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        for (var i = 0; i < meta.Indicators.Count; i++)
+        {
+            var indicator = meta.Indicators[i];
+            if (string.IsNullOrWhiteSpace(indicator.Value) || indicator.Value.Length > FieldTypes.ShortTextLength)
+                add($"indicators[{i}].value", "Give the value a colour is for (up to 140 characters).");
+            else if (!seen.Add(indicator.Value))
+                add($"indicators[{i}].value", $"'{indicator.Value}' already has a colour.");
+            if (!IndicatorMeta.Colors.Contains(indicator.Color))
+                add($"indicators[{i}].color", $"Use one of: {string.Join(", ", IndicatorMeta.Colors.Order())}.");
+        }
+    }
 
     private static void CheckSpecial(DocTypeMeta meta, Action<string, string> add)
     {

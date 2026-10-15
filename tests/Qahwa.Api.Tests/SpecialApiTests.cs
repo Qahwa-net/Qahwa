@@ -429,3 +429,40 @@ public sealed class ListPowerApiTests : IAsyncDisposable
         Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateClient().PostAsJsonAsync("/api/resource/Customer/bulk", new { action = "delete", names = ids })).StatusCode);
     }
 }
+
+public sealed class ListSidebarApiTests : IAsyncDisposable
+{
+    private readonly QahwaFactory _factory = new();
+
+    public ValueTask DisposeAsync() => _factory.DisposeAsync();
+
+    private static async Task<JsonElement> JsonOf(HttpResponseMessage response) =>
+        (await response.Content.ReadFromJsonAsync<JsonElement>()).Clone();
+
+    [Fact]
+    public async Task Group_by_counts_and_comment_counts_are_served_to_people_who_can_list()
+    {
+        var manager = _factory.ClientFor("m@example.com", "Sales Manager");
+        string? first = null;
+        foreach (var type in new[] { "Company", "Company", "Individual" })
+        {
+            var id = (await JsonOf(await manager.PostAsJsonAsync("/api/resource/Customer", new { customer_name = Guid.NewGuid().ToString("N")[..6], customer_type = type }))).GetProperty("data").GetProperty("name").GetString();
+            first ??= id;
+        }
+
+        var groups = (await JsonOf(await manager.GetAsync("/api/resource/Customer/group-by?field=customer_type"))).GetProperty("data");
+        Assert.Equal("Company", groups[0].GetProperty("value").GetString());
+        Assert.Equal(2, groups[0].GetProperty("count").GetInt32());
+        var filtered = (await JsonOf(await manager.GetAsync("/api/resource/Customer/group-by?field=customer_type&filters=" + Uri.EscapeDataString("[[\"customer_type\",\"=\",\"Individual\"]]")))).GetProperty("data");
+        Assert.Single(filtered.EnumerateArray());
+
+        await manager.PostAsJsonAsync($"/api/resource/Customer/{first}/comments", new { content = "hello" });
+        var counts = (await JsonOf(await manager.GetAsync("/api/resource/Customer/comment-counts?names=" + Uri.EscapeDataString($"[\"{first}\"]")))).GetProperty("data");
+        Assert.Equal(1, counts.GetProperty(first!).GetInt32());
+
+        Assert.Equal(HttpStatusCode.BadRequest, (await manager.GetAsync("/api/resource/Customer/group-by?field=nope")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await manager.GetAsync("/api/resource/Customer/comment-counts?names=not-json")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateClient().GetAsync("/api/resource/Customer/group-by?field=customer_type")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await _factory.ClientFor("n@example.com", "Nobody").GetAsync("/api/resource/Customer/group-by?field=customer_type")).StatusCode);
+    }
+}

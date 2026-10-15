@@ -1,6 +1,6 @@
 import type {
   DesignerDetail, DocPerm, DesignerItem, DesignerPreview, Doc, DocTypeDefinition, FieldError, FieldTypeInfo,
-  ListResponse, MetaResponse, MetaSummary, PermissionItem, ActivityItem, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, FollowState, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
+  ListResponse, MetaResponse, MetaSummary, PermissionItem, ActivityItem, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, FollowState, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
 } from './types.ts'
 import type { Filter } from '../lib/filters.ts'
 import { toApiFilters } from '../lib/filters.ts'
@@ -182,6 +182,20 @@ export const api = {
         { name, filters: filters.map((f) => [f.field, f.op, f.value]), isPublic })).data,
     deleteFilter: (doctype: string, id: string) =>
       request<unknown>('DELETE', `/api/list-settings/${encodeURIComponent(doctype)}/filters/${encodeURIComponent(id)}`),
+  },
+
+  /** How many documents have each value of a field, under the list's filters (for the sidebar). */
+  async groupBy(doctype: string, field: string, filters: Filter[]): Promise<GroupCountItem[]> {
+    const query = new URLSearchParams({ field, limit: '20' })
+    if (filters.length > 0) query.set('filters', JSON.stringify(toApiFilters(filters)))
+    return (await request<{ data: GroupCountItem[] }>('GET', `${resource(doctype)}/group-by?${query}`)).data
+  },
+
+  /** Comment counts for the documents on screen, keyed by name. */
+  async commentCounts(doctype: string, names: string[]): Promise<Record<string, number>> {
+    if (names.length === 0) return {}
+    const query = new URLSearchParams({ names: JSON.stringify(names) })
+    return (await request<{ data: Record<string, number> }>('GET', `${resource(doctype)}/comment-counts?${query}`)).data
   },
 
   /** Change one field on, or delete, several documents; each is reported on its own. */

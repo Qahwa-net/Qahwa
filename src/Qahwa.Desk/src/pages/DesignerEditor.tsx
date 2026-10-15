@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { keepPreviousData, useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ApiError, api } from '../api/client.ts'
-import type { DesignerDetail, DocTypeMeta, FieldError, FieldTypeInfo } from '../api/types.ts'
+import type { DesignerDetail, DocTypeMeta, FieldError, FieldTypeInfo, IndicatorColor } from '../api/types.ts'
 import { useAuth } from '../auth.tsx'
 import { FieldControl, type InputValue } from '../controls/FieldControl.tsx'
 import { TableControl } from '../controls/TableControl.tsx'
@@ -280,6 +280,7 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
                     onChange={(e) => patch({ trackChanges: e.target.checked })} />
                   Keep an updates log (who changed what, and when)
                 </label>}
+                {!draft.isSingle && <StatusSettings draft={draft} disabled={disabled} patch={patch} />}
                 {!draft.isSingle && <label className="check-line">
                   <input type="checkbox" checked={draft.allowRename} disabled={disabled}
                     onChange={(e) => patch({ allowRename: e.target.checked })} />
@@ -509,6 +510,43 @@ function PreviewForm({ draft }: { draft: Draft }) {
           With this data, saving would be refused:
           <ul>{failing.map((r, i) => <li key={i}>{r.message || r.expression}</li>)}</ul>
         </div>
+      )}
+    </div>
+  )
+}
+
+const COLORS: IndicatorColor[] = ['gray', 'blue', 'green', 'orange', 'red', 'purple']
+
+/** Pick the field shown as a coloured status in lists, and a colour for each of its values. */
+function StatusSettings({ draft, disabled, patch }: { draft: Draft; disabled: boolean; patch: (changes: Partial<Draft>) => void }) {
+  const candidates = draft.fields.filter((f) => f.type === 'Select' || f.type === 'Data' || f.type === 'Link')
+  const field = candidates.find((f) => f.name === draft.statusField)
+  const values = field?.type === 'Select' ? (field.options ?? '').split('\n').map((o) => o.trim()).filter(Boolean) : []
+  const colorOf = (value: string) => draft.indicators.find((i) => i.value === value)?.color ?? ''
+  const setColor = (value: string, color: string) => patch({
+    indicators: [...draft.indicators.filter((i) => i.value !== value), ...(color ? [{ value, color: color as IndicatorColor }] : [])],
+  })
+
+  return (
+    <div className="status-settings">
+      <label className="field"><span>Status field (shown as a coloured label in lists)</span>
+        <select value={draft.statusField} disabled={disabled} onChange={(e) => patch({ statusField: e.target.value, indicators: [] })}>
+          <option value="">None</option>
+          {candidates.map((f) => <option key={f.key} value={f.name}>{f.label || f.name}</option>)}
+        </select>
+      </label>
+      {values.length > 0 && (
+        <ul className="status-colors">
+          {values.map((value) => (
+            <li key={value}>
+              <span className={`pill pill-${colorOf(value) || 'gray'}`}>{value}</span>
+              <select aria-label={`Colour of ${value}`} value={colorOf(value)} disabled={disabled} onChange={(e) => setColor(value, e.target.value)}>
+                <option value="">Grey</option>
+                {COLORS.filter((c) => c !== 'gray').map((c) => <option key={c} value={c}>{c[0]!.toUpperCase() + c.slice(1)}</option>)}
+              </select>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   )

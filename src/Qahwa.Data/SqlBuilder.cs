@@ -40,6 +40,18 @@ public sealed class SqlBuilder(ISqlDialect dialect)
         return new SqlStatement(sql.ToString(), parameters);
     }
 
+    /// <summary>Counts documents per value of one column. The column must belong to the DocType (whitelist); values are parameters.</summary>
+    public SqlStatement GroupCount(DocTypeMeta meta, string field, IReadOnlyList<QueryFilter> filters, int limit)
+    {
+        var columns = meta.ColumnTypes();
+        var column = dialect.Quote(Require(columns, field));
+        var parameters = new List<object?>();
+        var sql = new StringBuilder("SELECT ").Append(column).Append(", COUNT(*) FROM ").Append(dialect.TableName(meta.Name));
+        AppendWhere(sql, columns, filters, parameters);
+        sql.Append(" GROUP BY ").Append(column).Append(" ORDER BY COUNT(*) DESC, ").Append(column).Append(" ASC ").Append(dialect.Page(limit, 0));
+        return new SqlStatement(sql.ToString(), parameters);
+    }
+
     public SqlStatement Get(DocTypeMeta meta, string name) =>
         Select(meta, new ListQuery
         {

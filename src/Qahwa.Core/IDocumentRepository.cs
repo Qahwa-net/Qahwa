@@ -16,6 +16,9 @@ public sealed record ChildChanges(
 /// <param name="WhereField">Only rows where this column equals <paramref name="WhereValue"/> are updated (for text references that name a DocType).</param>
 public sealed record ReferenceUpdate(DocTypeMeta Meta, string Field, string? WhereField = null, string? WhereValue = null);
 
+/// <summary>How many documents have one value of a field.</summary>
+public sealed record GroupCount(object? Value, long Count);
+
 /// <summary>A naming series counter: the last number handed out for a prefix.</summary>
 public sealed record SeriesCounter(string Prefix, long Current);
 
@@ -68,6 +71,10 @@ public interface IDocumentRepository
     Task<IReadOnlyList<Dictionary<string, object?>>> ListAsync(DocTypeMeta meta, ListQuery query, CancellationToken ct = default);
 
     Task<long> CountAsync(DocTypeMeta meta, ListQuery query, CancellationToken ct = default);
+
+    /// <summary>The most common values of one field among the documents matching the filters, with how many each has (most first).</summary>
+    Task<IReadOnlyList<GroupCount>> GroupCountAsync(
+        DocTypeMeta meta, string field, IReadOnlyList<QueryFilter> filters, int limit, CancellationToken ct = default);
 
     /// <summary>Atomically increments and returns the counter for a naming series prefix.</summary>
     Task<long> NextSeriesAsync(string prefix, CancellationToken ct = default);

@@ -1,5 +1,5 @@
 import type {
-  DesignerDetail, DocField, DocPerm, DocTypeDefinition, FieldError, FieldType, FieldTypeInfo, ValidationRule,
+  DesignerDetail, DocField, DocPerm, DocTypeDefinition, FieldError, FieldType, FieldTypeInfo, Indicator, ValidationRule,
 } from '../api/types.ts'
 
 /** A field being edited. `key` is a stable id for React; `locked` marks fields that already exist in the database. */
@@ -24,6 +24,9 @@ export interface Draft {
   allowRename: boolean
   /** Keep the updates log (who changed what, when). On unless the DocType opts out. */
   trackChanges: boolean
+  /** The field shown as a coloured status in lists, and the colour chosen for each of its values. */
+  statusField: string
+  indicators: Indicator[]
   isNew: boolean
   editable: boolean
   name: string
@@ -111,6 +114,8 @@ export function emptyDraft(): Draft {
     isTree: false,
     allowRename: false,
     trackChanges: true,
+    statusField: '',
+    indicators: [],
     isNew: true,
     editable: true,
     name: '',
@@ -158,6 +163,8 @@ export function fromDetail(detail: DesignerDetail): Draft {
     isTree: def.isTree ?? false,
     allowRename: def.allowRename ?? false,
     trackChanges: def.trackChanges ?? true,
+    statusField: def.statusField ?? '',
+    indicators: (def.indicators ?? []).map((i) => ({ ...i })),
     isNew: false,
     editable: detail.editable,
     name: def.name,
@@ -207,6 +214,9 @@ export function toDefinition(draft: Draft): DocTypeDefinition {
     allowRename: (!draft.isChildTable && !draft.isSingle && draft.allowRename) || undefined,
     // The log is on by default; only an opt-out is written.
     trackChanges: draft.trackChanges ? undefined : false,
+    statusField: (!draft.isChildTable && draft.statusField) || undefined,
+    // Colours only mean something for a status field, and only values given a colour are kept.
+    indicators: !draft.isChildTable && draft.statusField && draft.indicators.length > 0 ? draft.indicators.filter((i) => i.value.trim() !== '') : undefined,
     fields: draft.fields.map((f) => ({
       name: f.name,
       type: f.type,

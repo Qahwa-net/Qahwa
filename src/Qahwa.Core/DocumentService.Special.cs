@@ -7,6 +7,9 @@ public sealed record ExportResult(IReadOnlyList<string> Columns, IReadOnlyList<D
 /// <summary>One choice in a Link field: the stored value, what to show for it, and a smaller hint (usually the ID).</summary>
 public sealed record LinkOption(string Value, string Label, string? Description);
 
+/// <summary>How many documents have one value of a field (null is "empty").</summary>
+public sealed record GroupCountItem(string? Value, long Count);
+
 public sealed record ReportRow(string? Group, decimal Value);
 
 public sealed record ReportResult(IReadOnlyList<ReportRow> Rows, bool Truncated);
@@ -231,6 +234,43 @@ public sealed partial class DocumentService
             Limit = MaxLinkTitles,
         }, user, ct)).Data;
         return rows.Select(r => ToOption(r, labelField)).ToDictionary(o => o.Value, o => o, StringComparer.Ordinal);
+    }
+
+    // ---- Group-by counts (the list sidebar) -------------------------------------------------------------------
+
+    public const int MaxGroups = 50;
+
+    private static readonly HashSet<FieldType> Groupable = [FieldType.Select, FieldType.Link, FieldType.Check, FieldType.Data, FieldType.Email, FieldType.Phone, FieldType.Int];
+    private static readonly string[] GroupableStandard = ["owner", "modified_by", "docstatus"];
+
+    private static string? Plain(object? value) => value switch
+    {
+        null => null,
+        bool b => b ? "1" : "0",
+        DateTime d => d.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", System.Globalization.CultureInfo.InvariantCulture),
+        DateOnly d => d.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
+        IFormattable f => f.ToString(null, System.Globalization.CultureInfo.InvariantCulture),
+        _ => value.ToString(),
+    };
+
+    /// <summary>
+    /// How many documents have each value of a field, among the documents this person could list with these filters: the same
+    /// permission layers as the list, so counts never include a document the person could not see. Only fields they may read.
+    /// </summary>
+    public async Task<IReadOnlyList<GroupCountItem>> GroupByAsync(
+        string doctype, string field, ListRequest request, int limit, IUserContext user, CancellationToken ct = default)
+    {
+        var meta = RequireTopLevel(registry.Get(doctype));
+        var query = await PrepareListQueryAsync(meta, request with { Fields = null, OrderBy = null, Offset = 0 }, user, ct);
+
+        var access = permissions.FieldAccessFor(meta, user, documentOwner: null, creating: false);
+        var allowed = meta.Fields.Where(f => Groupable.Contains(f.Type) && FieldTypes.HasColumn(f.Type) && access.CanRead(f)).Select(f => f.Name)
+            .Concat(GroupableStandard).ToHashSet(StringComparer.Ordinal);
+        if (!allowed.Contains(field ?? string.Empty))
+            throw new DocumentValidationException([new FieldError("group_by", "You cannot group by this field.")]);
+
+        var counts = await repository.GroupCountAsync(meta, field!, query.Filters, Math.Clamp(limit, 1, MaxGroups), ct);
+        return counts.Select(c => new GroupCountItem(Plain(c.Value), c.Count)).ToList();
     }
 
     // ---- Export and reports ---------------------------------------------------------------------------------------

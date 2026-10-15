@@ -36,6 +36,8 @@ A DocType is a JSON file (one per DocType, in a folder listed in `Qahwa:DocTypeP
 | `isSingle` | One document named after the DocType (settings). No list, cannot be deleted. Fixed at creation. |
 | `isTree` | Adds `parent_node` and `is_group`; nodes form a tree. Fixed at creation. |
 | `allowRename` | Documents can be renamed or merged. |
+| `statusField` | A Select, Data or Link field shown as a coloured status in lists. |
+| `indicators` | `[{ value, color }]`: the colour of each value of `statusField` (gray, blue, green, orange, red, purple); unlisted values are grey. At most 50. |
 | `trackChanges` | Keep the updates log (`Version` rows). **On by default**; set `false` to opt out. Child tables are never logged on their own. |
 | `fields` | See below. Up to the framework limit per DocType. |
 | `permissions` | See [Permissions and access](05-permissions-and-access.md). |

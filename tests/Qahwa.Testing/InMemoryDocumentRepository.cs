@@ -158,6 +158,22 @@ public sealed class InMemoryDocumentRepository : IDocumentRepository
         }
     }
 
+    public Task<IReadOnlyList<GroupCount>> GroupCountAsync(
+        DocTypeMeta meta, string field, IReadOnlyList<QueryFilter> filters, int limit, CancellationToken ct = default)
+    {
+        lock (_gate)
+        {
+            var groups = Filter(meta, new ListQuery { Filters = filters })
+                .GroupBy(r => r.GetValueOrDefault(field))
+                .Select(g => new GroupCount(g.Key, g.Count()))
+                .OrderByDescending(g => g.Count)
+                .ThenBy(g => g.Value?.ToString(), StringComparer.Ordinal)
+                .Take(limit)
+                .ToList();
+            return Task.FromResult<IReadOnlyList<GroupCount>>(groups);
+        }
+    }
+
     public Task<IReadOnlyList<SeriesCounter>> ListSeriesAsync(CancellationToken ct = default)
     {
         lock (_gate)

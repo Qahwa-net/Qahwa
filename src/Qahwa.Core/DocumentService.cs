@@ -392,6 +392,18 @@ public sealed partial class DocumentService(
         CancellationToken ct = default)
     {
         var meta = RequireTopLevel(registry.Get(doctype));
+        var query = await PrepareListQueryAsync(meta, request, user, ct);
+        var rows = await repository.ListAsync(meta, query, ct);
+        var total = await repository.CountAsync(meta, query, ct);
+        return new ListResult(rows.ToList(), total);
+    }
+
+    /// <summary>
+    /// The request as it will really run for this person: validated, and limited by every layer that decides which documents
+    /// they may see (own-only roles, shares, User Permissions, blocked modules). Lists and counts both start here.
+    /// </summary>
+    private async Task<ListQuery> PrepareListQueryAsync(DocTypeMeta meta, ListRequest request, IUserContext user, CancellationToken ct)
+    {
         await EnsureModuleAsync(meta, user, ct);
         var access = permissions.Evaluate(meta, user, PermAction.Read);
         var sharedNames = access == AccessLevel.All || shares is null
@@ -414,9 +426,7 @@ public sealed partial class DocumentService(
             };
         }
 
-        var rows = await repository.ListAsync(meta, query, ct);
-        var total = await repository.CountAsync(meta, query, ct);
-        return new ListResult(rows.ToList(), total);
+        return query;
     }
 
     /// <summary>

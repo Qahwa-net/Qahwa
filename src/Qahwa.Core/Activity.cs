@@ -159,6 +159,32 @@ public sealed class ActivityService(
         return data.Count == 0 ? null : data;
     }
 
+    /// <summary>
+    /// How many comments each of these documents has, for the list view. Only documents the person may read are counted
+    /// (the names are filtered through the ordinary list first), so this cannot show that an unreadable document has comments.
+    /// </summary>
+    public async Task<IReadOnlyDictionary<string, long>> CommentCountsAsync(
+        string doctype, IReadOnlyCollection<string> names, IUserContext user, CancellationToken ct = default)
+    {
+        var wanted = names.Where(n => !string.IsNullOrEmpty(n)).Distinct(StringComparer.Ordinal).Take(MaxPage).ToList();
+        if (wanted.Count == 0 || !registry.TryGet(HistoryRecorder.CommentDocType, out var commentMeta))
+            return new Dictionary<string, long>();
+
+        var readable = (await documents.ListAsync(doctype, new ListRequest
+        {
+            Filters = [new RawFilter("name", "in", wanted)], Fields = ["name"], OrderBy = "name", Descending = false, Limit = MaxPage,
+        }, user, ct)).Data.Select(r => (string)r["name"]!).ToList();
+        if (readable.Count == 0)
+            return new Dictionary<string, long>();
+
+        var counts = await repository.GroupCountAsync(commentMeta, "reference_name", [
+            new QueryFilter("reference_doctype", FilterOp.Eq, doctype),
+            new QueryFilter("comment_type", FilterOp.Eq, "Comment"),
+            new QueryFilter("reference_name", FilterOp.In, readable.Cast<object?>().ToList()),
+        ], MaxPage, ct);
+        return counts.Where(c => c.Value is string).ToDictionary(c => (string)c.Value!, c => c.Count, StringComparer.Ordinal);
+    }
+
     // ---- comments --------------------------------------------------------------------------------------------
 
     private static string CheckContent(string? content)

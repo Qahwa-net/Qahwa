@@ -22,6 +22,8 @@ Required, unique, show in list, default value, help text, hidden, read only, and
 
 The expression help (Fields and functions) lists what you can use; see also [the expression language](../../expressions.md).
 
+You can also pick a **status field** (a choice, text or link field) and give each of its values a colour: lists then show the status as a coloured label.
+
 ## Child tables
 
 Create a DocType marked as a child table with the columns you need, then add a **Table** field in the parent DocType pointing at it.

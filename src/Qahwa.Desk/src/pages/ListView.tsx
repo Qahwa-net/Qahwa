@@ -6,6 +6,8 @@ import type { DocField } from '../api/types.ts'
 import { BulkBar, type BulkReport } from '../controls/BulkBar.tsx'
 import { ColumnsPanel } from '../controls/ColumnsPanel.tsx'
 import { FilterBar } from '../controls/FilterBar.tsx'
+import { GroupBySidebar } from '../controls/GroupBySidebar.tsx'
+import { RowStatus } from '../controls/StatusPill.tsx'
 import { SavedFilters } from '../controls/SavedFilters.tsx'
 import { ReportPanel } from './ReportPanel.tsx'
 import { STANDARD_FIELDS, formatCell, hasColumn, labelOf } from '../lib/fields.ts'
@@ -19,6 +21,7 @@ export function ListView() {
   const [params, setParams] = useSearchParams()
   const [reporting, setReporting] = useState(false)
   const [columnsOpen, setColumnsOpen] = useState(false)
+  const [groupOpen, setGroupOpen] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [bulkReport, setBulkReport] = useState<BulkReport | null>(null)
 
@@ -80,7 +83,10 @@ export function ListView() {
   }, [searchText])
 
   const effectiveFilters: Filter[] = q ? [...filters, { field: searchField, op: 'like', value: q }] : filters
-  const fields = ['name', ...new Set([...(titleField ? [titleField] : []), ...otherColumns.map((c) => c.name), 'modified'])]
+  const fields = ['name', ...new Set([
+    ...(titleField ? [titleField] : []), ...otherColumns.map((c) => c.name), 'modified',
+    ...(meta?.statusField ? [meta.statusField] : []), ...(meta?.isSubmittable ? ['docstatus'] : []),
+  ])]
 
   // What is ticked belongs to the rows on screen: a new page, filter or sort starts afresh.
   const filtersKey = encodeFilters(effectiveFilters)
@@ -117,6 +123,15 @@ export function ListView() {
     return label ?? formatCell(column, value)
   }
 
+  // How many comments each row on screen has (only documents the server lets me read are counted).
+  const rowNames = (list.data?.data ?? []).map((d) => d.name)
+  const commentCounts = useQuery({
+    queryKey: ['comment-counts', doctype, rowNames],
+    queryFn: () => api.commentCounts(doctype, rowNames),
+    enabled: rowNames.length > 0 && meta?.trackChanges !== false,
+    retry: false,
+  })
+
   if (metaQuery.isError) {
     const forbidden = metaQuery.error instanceof ApiError && (metaQuery.error.status === 403 || metaQuery.error.status === 404)
     return <div className="banner error" role="alert">
@@ -146,6 +161,7 @@ export function ListView() {
       <div className="page-head">
         <h1>{doctype}</h1>
         <span className="spacer" />
+        <button className="btn" aria-expanded={groupOpen} onClick={() => setGroupOpen(!groupOpen)}>Group by</button>
         <button className="btn" aria-expanded={columnsOpen} onClick={() => setColumnsOpen(!columnsOpen)}>Columns</button>
         {meta.isTree && <Link className="btn" to={`${base}/tree`}>Tree view</Link>}
         {perms?.report && <button className="btn" aria-expanded={reporting} onClick={() => setReporting(!reporting)}>Report</button>}
@@ -186,6 +202,13 @@ export function ListView() {
         </div>
       )}
 
+      <div className={groupOpen ? 'list-layout' : undefined}>
+      {groupOpen && (
+        <GroupBySidebar doctype={doctype} filters={effectiveFilters} applied={filters}
+          fields={[...meta.fields.filter((f) => ['Select', 'Link', 'Check'].includes(f.type) && f.type !== undefined), ...STANDARD_FIELDS.filter((f) => f.name === 'owner' || (f.name === 'docstatus' && meta.isSubmittable))]}
+          onChange={(next) => update({ f: encodeFilters(next) })} />
+      )}
+      <div className="list-main">
       <div className={`table-wrap${list.isFetching ? ' busy' : ''}`}>
         <table>
           <thead>
@@ -211,6 +234,10 @@ export function ListView() {
                   <Link to={`${base}/${encodeURIComponent(doc.name)}`} onClick={(e) => e.stopPropagation()}>
                     {String((titleField ? doc[titleField] : null) || doc.name)}
                   </Link>
+                  {(commentCounts.data?.[doc.name] ?? 0) > 0 && (
+                    <span className="comment-count" title={`${commentCounts.data![doc.name]} comment(s)`} aria-label={`${commentCounts.data![doc.name]} comments`}> 💬 {commentCounts.data![doc.name]}</span>
+                  )}
+                  <RowStatus meta={meta} doc={doc} />
                   {titleField && <div className="muted small-text">{doc.name}</div>}
                 </td>
                 {otherColumns.map((c) => <td key={c.name}>{cellText(c, doc[c.name])}</td>)}
@@ -231,6 +258,8 @@ export function ListView() {
         <span className="spacer" />
         <button className="btn small" disabled={page <= 1} onClick={() => update({ page: String(page - 1) }, false)}>Previous</button>
         <button className="btn small" disabled={last >= total} onClick={() => update({ page: String(page + 1) }, false)}>Next</button>
+      </div>
+      </div>
       </div>
     </>
   )

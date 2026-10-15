@@ -41,6 +41,9 @@ Tools → Customize Form. Adds fields to Core/App DocTypes (names `custom_...`, 
 ## List settings, saved filters and bulk actions ([ADR-016](../../adr/016-list-settings-saved-filters-bulk.md))
 `ListSettingsService` (per-person `List Setting` rows, shared or private `Saved Filter` rows, validation against the person's readable columns) and `BulkService` (per-document calls into `DocumentService`, max 100, per-document results). Endpoints in `ListEndpoints.cs`; Desk: `ColumnsPanel`, `SavedFilters`, `BulkBar`, and the selection column in `ListView`. Limits: no group-by sidebar, row indicators, comment counts, default views per DocType, or bulk assign/export yet.
 
+## Group-by, status colours and comment counts ([ADR-017](../../adr/017-list-sidebar-status-comment-counts.md))
+`DocumentService.GroupByAsync` (via `IDocumentRepository.GroupCountAsync`, one `GROUP BY` with the list's own filters), `statusField` and `indicators` on the DocType (validated in `DocTypeLoader`), `ActivityService.CommentCountsAsync`. Desk: `GroupBySidebar`, `RowStatus`/`StatusPill`, the 💬 count in `ListView`, and status settings in the designer. Limits: no assignments/tags group-by, no condition-based colours, not in the Customize Form.
+
 ## Authentication ([ADR-002](../../adr/002-authentication.md))
 Cookie sessions, ASP.NET Identity password hashing, lockout, login rate limit; `User`, `Role`, `Has Role` DocTypes. Roles are cached per session for `SessionCacheSeconds`.
 

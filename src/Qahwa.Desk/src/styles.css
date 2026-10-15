@@ -234,6 +234,24 @@ tbody tr:last-child td { border-block-end: 0; }
 .rule .expression { grid-column: 1 / -1; }
 .check-line.plain { font-weight: 400; }
 
+/* List sidebar, status pills, comment counts */
+.list-layout { display: grid; grid-template-columns: 14rem 1fr; gap: 1.25rem; align-items: start; }
+.list-main { min-width: 0; }
+.group-by { display: grid; gap: .5rem; }
+.group-by ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .15rem; }
+.group-by li button { display: flex; justify-content: space-between; width: 100%; padding: .3rem .5rem; border: 0; border-radius: 6px; background: none; cursor: pointer; text-align: left; }
+.group-by li button:hover, .group-by li button.active { background: var(--accent-soft, rgba(0, 0, 0, .06)); }
+.group-by li button.active { font-weight: 600; }
+.pill { display: inline-block; padding: .05rem .5rem; border-radius: 999px; font-size: .75em; font-weight: 600; margin-left: .4rem; white-space: nowrap; }
+.pill-gray { background: #e8eaed; color: #3c4043; }
+.pill-blue { background: #d6e6ff; color: #174ea6; }
+.pill-green { background: #d4f1dc; color: #146c2e; }
+.pill-orange { background: #ffe5c2; color: #8a4b00; }
+.pill-red { background: #fbd5d1; color: #a52714; }
+.pill-purple { background: #e6d9fb; color: #5a2d9c; }
+.comment-count { font-size: .8em; color: var(--muted, #667085); margin-left: .35rem; }
+@media (max-width: 800px) { .list-layout { grid-template-columns: 1fr; } }
+
 /* List power */
 .saved-filters { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
 .save-filter { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
@@ -321,3 +339,9 @@ tbody tr:last-child td { border-block-end: 0; }
 .badge.status-0 { background: var(--warn-soft, #fff4d6); }
 .badge.status-1 { background: var(--ok-soft, #dff5e3); }
 .badge.status-2 { background: var(--danger-soft, #fde2e2); }
+
+/* Designer: status colours */
+.status-settings { margin: .5rem 0; }
+.status-colors { list-style: none; margin: .5rem 0 0; padding: 0; display: grid; gap: .35rem; }
+.status-colors li { display: flex; gap: .75rem; align-items: center; }
+.row-status { white-space: nowrap; }

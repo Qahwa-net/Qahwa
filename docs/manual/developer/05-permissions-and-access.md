@@ -52,6 +52,10 @@ Assigning needs the same right as sharing; the assignee is given a read share if
 
 List settings and saved filters only ever name columns the caller may read (validated on save and again on read). A saved filter is applied through the ordinary list request, so every layer above still limits the result. Bulk actions call `DocumentService` per document, so each document is authorised, validated, locked, logged and notified exactly as a single request; the caller needs the write (or delete) right on the DocType to start one.
 
+## Group-by and comment counts
+
+Group-by counts run through the same query preparation as the list (own-only roles, shares, User Permissions, blocked modules), so they never include a document the caller could not list; the field must be a groupable column the caller may read. Comment counts only count documents that the ordinary list returns for the caller.
+
 ## What the API never reveals
 
 - A document you may not read looks like it does not exist where possible (checks run before the document is loaded).

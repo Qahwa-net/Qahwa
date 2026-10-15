@@ -136,6 +136,21 @@ describe('draft conversion', () => {
     expect(toDefinition(draft).fields[0]!.permLevel).toBeUndefined()
   })
 
+  it('writes the status field and only the colours that were chosen', () => {
+    const draft = fromDetail(detail)
+    draft.statusField = draft.fields[0]!.name
+    draft.indicators = [{ value: 'Open', color: 'orange' }, { value: ' ', color: 'red' }]
+
+    const definition = toDefinition(draft)
+    expect(definition.statusField).toBe(draft.fields[0]!.name)
+    expect(definition.indicators).toEqual([{ value: 'Open', color: 'orange' }])
+
+    draft.statusField = ''
+    expect(toDefinition(draft).statusField).toBeUndefined()
+    expect(toDefinition(draft).indicators).toBeUndefined() // colours need a status field
+    expect(fromDetail({ ...detail, definition: { ...detail.definition, statusField: 'x', indicators: [{ value: 'A', color: 'green' }] } }).indicators).toEqual([{ value: 'A', color: 'green' }])
+  })
+
   it('keeps the updates log on by default and writes only an opt-out', () => {
     const draft = fromDetail({ ...detail, definition: { ...detail.definition, trackChanges: true } })
     expect(draft.trackChanges).toBe(true)

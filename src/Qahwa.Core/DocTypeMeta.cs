@@ -21,6 +21,12 @@ public sealed record DocTypeMeta
     /// <summary>One document only, named after the DocType (settings pages). It has no list and cannot be deleted.</summary>
     public bool IsSingle { get; init; }
 
+    /// <summary>The field whose value is shown as a coloured status in lists (usually a Select such as Status).</summary>
+    public string? StatusField { get; init; }
+
+    /// <summary>The colour of each value of <see cref="StatusField"/>; values not listed are grey.</summary>
+    public IReadOnlyList<IndicatorMeta> Indicators { get; init; } = [];
+
     /// <summary>Documents form a tree through <see cref="DocTypeMetaExtensions.TreeParentField"/> and <see cref="DocTypeMetaExtensions.TreeGroupField"/>.</summary>
     public bool IsTree { get; init; }
 
@@ -31,6 +37,15 @@ public sealed record DocTypeMeta
     public IReadOnlyList<DocFieldMeta> Fields { get; init; } = [];
     public IReadOnlyList<DocPermMeta> Permissions { get; init; } = [];
     public IReadOnlyList<ValidationRule> Validations { get; init; } = [];
+}
+
+/// <summary>The colour a value of the status field is shown in: one of gray, blue, green, orange, red, purple.</summary>
+public sealed record IndicatorMeta
+{
+    public static readonly IReadOnlySet<string> Colors = new HashSet<string>(["gray", "blue", "green", "orange", "red", "purple"]);
+
+    public required string Value { get; init; }
+    public required string Color { get; init; }
 }
 
 public sealed record DocFieldMeta

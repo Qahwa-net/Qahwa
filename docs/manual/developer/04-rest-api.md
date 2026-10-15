@@ -46,6 +46,8 @@ Base path `/api`. JSON in and out. Authentication is a cookie session from `POST
 | `GET /resource/{doctype}/export` | CSV download (export right); same query parameters as the list |
 | `GET /resource/{doctype}/report?group_by=&aggregate=&field=` | Grouped summary (report right): `count`, `sum`, `avg`, `min`, `max` |
 | `GET /tree/{doctype}?parent=` | One level of a tree |
+| `GET /resource/{doctype}/group-by?field=&filters=&limit=` | Counts per value of a field under the list filters: `[{ value, count }]` (`value` null = empty; Check fields give "1"/"0"). Select, Link, Check, Data, Email, Phone, Int fields you may read, or `owner`, `modified_by`, `docstatus`; max 50 groups |
+| `GET /resource/{doctype}/comment-counts?names=["a","b"]` | `{ name: count }` for the documents you may read (max 100 names; system notes not counted) |
 
 **Filters** are `[[field, operator, value], ...]` or an object of equality pairs. Operators: `=` `!=` `>` `<` `>=` `<=` `like` `in` `is` (`"set"` / `"not set"`). Fields must be columns the user may read. Text matching is case-insensitive.
 

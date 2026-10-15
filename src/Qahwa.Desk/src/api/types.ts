@@ -4,6 +4,13 @@ export type FieldType =
   | 'Attach' | 'AttachImage' | 'Json' | 'Password' | 'Email' | 'Phone' | 'Url' | 'Code'
   | 'Markdown' | 'SectionBreak' | 'ColumnBreak' | 'TabBreak'
 
+export type IndicatorColor = 'gray' | 'blue' | 'green' | 'orange' | 'red' | 'purple'
+
+export interface Indicator {
+  value: string
+  color: IndicatorColor
+}
+
 export interface DocField {
   name: string
   type: FieldType
@@ -66,6 +73,9 @@ export interface DocTypeMeta {
   isTree?: boolean
   /** Documents may be renamed or merged. */
   allowRename?: boolean
+  /** The field shown as a coloured status in lists, and the colour of each of its values. */
+  statusField?: string | null
+  indicators?: Indicator[]
   trackChanges: boolean
   fields: DocField[]
   permissions?: DocPerm[]
@@ -84,6 +94,8 @@ export interface DocTypeDefinition {
   isTree?: boolean
   allowRename?: boolean
   trackChanges?: boolean
+  statusField?: string
+  indicators?: Indicator[]
   fields: (Partial<DocField> & Pick<DocField, 'name' | 'type'>)[]
   permissions: DocPerm[]
   validations?: ValidationRule[]
@@ -316,6 +328,12 @@ export interface BulkResult {
   name: string
   ok: boolean
   error?: string | null
+}
+
+/** How many documents have one value of a field (null is "empty"). */
+export interface GroupCountItem {
+  value: string | null
+  count: number
 }
 
 export interface TreeNode {
