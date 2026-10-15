@@ -1,0 +1,14 @@
+{
+  "name": "Workspace",
+  "module": "Core",
+  "trackChanges": false,
+  "fields": [
+    { "name": "title", "type": "Data", "label": "Title", "required": true, "inListView": true },
+    { "name": "sequence", "type": "Int", "label": "Position", "inListView": true },
+    { "name": "roles", "type": "Text", "label": "Roles" },
+    { "name": "blocks", "type": "LongText", "label": "Blocks" }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "delete": true }
+  ]
+}

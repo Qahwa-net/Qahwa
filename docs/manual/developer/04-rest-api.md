@@ -147,6 +147,13 @@ A tile is `{ id, type: Number|Chart|List, title, docType, function, valueField, 
 | `GET/PUT/DELETE /print-formats[/{name}]`, `POST /print-formats/preview` | Manage formats and preview one on a document (System Manager). `PUT` takes `{ name, docType, html, isDefault, letterHead }` |
 | `GET/PUT/DELETE /letter-heads[/{name}]` | Manage letter heads (`{ name, header, footer, isDefault }`) |
 
+## Workspaces ([ADR-026](../../adr/026-workspaces.md))
+
+| Call | Purpose |
+|---|---|
+| `GET /workspaces/mine` | The workspaces for the caller's roles, in order, with shortcuts and dashboards filtered to what the caller may use: `{ id, title, blocks: [{ type, text?, shortcuts?: [{ label, kind, path }], dashboardId?, dashboardTitle? }] }` |
+| `GET/POST /workspaces`, `GET/PUT/DELETE /workspaces/{id}` | Manage (System Manager): `{ title, sequence, roles[], blocks[] }` where a block is `{ type: Heading|Shortcuts|Dashboard, text?, items?: [{ label, kind: DocType|Dashboard|Page, target }], dashboardId? }` |
+
 ## Link fields
 
 | Call | Purpose |

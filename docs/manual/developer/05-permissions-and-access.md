@@ -84,6 +84,10 @@ Numbers and charts need read **and report** access to the DocType; lists need re
 
 A printout is read with the viewer's own permissions, so hidden fields are absent. Formats and letter heads are managed by System Managers; their HTML is refused if it has scripts, forms, event attributes or dangerous URLs, and the page is served with a CSP that only allows its own nonce-protected Print button script.
 
+## Workspaces
+
+Managing workspaces needs a System Manager. Reading is filtered on every request: by role, and per shortcut by what the caller may open (DocType read access, visible dashboards, tool pages for System Managers only). Shortcuts to anything else (arbitrary URLs, unknown pages) are refused when saved.
+
 ## What the API never reveals
 
 - A document you may not read looks like it does not exist where possible (checks run before the document is loaded).

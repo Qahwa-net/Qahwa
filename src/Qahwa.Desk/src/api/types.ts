@@ -641,3 +641,43 @@ export interface LetterHeadDetail {
   footer: string
   isDefault: boolean
 }
+
+export interface WorkspaceShortcut {
+  label: string
+  kind: 'DocType' | 'Dashboard' | 'Page'
+  target: string
+}
+
+export interface WorkspaceBlock {
+  type: 'Heading' | 'Shortcuts' | 'Dashboard'
+  text?: string | null
+  items: WorkspaceShortcut[]
+  dashboardId?: string | null
+}
+
+export interface WorkspaceInfo {
+  id: string
+  title: string
+  sequence: number
+  roles: string[]
+  blocks: number
+}
+
+export interface WorkspaceDetail {
+  info: WorkspaceInfo
+  blocks: WorkspaceBlock[]
+}
+
+export interface WorkspaceBlockView {
+  type: 'Heading' | 'Shortcuts' | 'Dashboard'
+  text?: string | null
+  shortcuts?: { label: string; kind: string; path: string }[] | null
+  dashboardId?: string | null
+  dashboardTitle?: string | null
+}
+
+export interface WorkspaceView {
+  id: string
+  title: string
+  blocks: WorkspaceBlockView[]
+}

@@ -104,6 +104,10 @@ Desk: `NotificationRules.tsx`, `controls/ChipPicker.tsx`, `lib/notificationRules
 
 `Print.cs`: `PrintTemplate` (parser, `Validate`, `Render`, `UnsafeReason`); `PrintService.cs`: choices, rendering (`RenderAsync`), preview, formats and letter heads CRUD, the default layout and the page wrapper with its nonce; Core DocTypes `print_format.json` and `letter_head.json`; `PrintEndpoints.cs` (sets the CSP headers). Desk: `PrintDialog.tsx` (sandboxed preview, opens the page in a tab), `PrintFormats.tsx` (builder). To extend the language add a node type in `PrintTemplate`'s `Parse`, `Validate` and `Render`, and test it against hostile values. Tests: `PrintTests`, `PrintApiTests`, `PostgresPrintTests`.
 
+## Workspaces ([ADR-026](../../adr/026-workspaces.md))
+
+`Workspaces.cs`: `WorkspaceBlock`, `WorkspaceShortcut`, `WorkspaceService` (`MineAsync`, list, get, create, update, delete; `Pages` is the whitelist of Desk pages), the Core DocType `workspace.json`, `WorkspaceEndpoints.cs`. Desk: `WorkspaceHome.tsx` (tabs and blocks on the home page), `Workspaces.tsx` (builder), `Dashboards.tsx` exports `DashboardTiles` for embedding, `lib/workspaces.ts` (its `PAGES` must match the server's whitelist). To add a Desk page as a shortcut target, add it to both. Tests: `WorkspaceTests`, `WorkspaceApiTests`, `PostgresWorkspaceTests`.
+
 ## Authentication ([ADR-002](../../adr/002-authentication.md))
 Cookie sessions, ASP.NET Identity password hashing, lockout, login rate limit; `User`, `Role`, `Has Role` DocTypes. Roles are cached per session for `SessionCacheSeconds`.
 

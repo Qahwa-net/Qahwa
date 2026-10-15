@@ -580,3 +580,11 @@ kbd { font: .75rem ui-monospace, Consolas, monospace; padding: .05rem .35rem; bo
 .print-frame { inline-size: 100%; block-size: 26rem; border: 1px solid var(--border); border-radius: 10px; background: #fff; margin-block-start: .6rem; }
 .insert-row { display: flex; gap: .5rem; flex-wrap: wrap; margin-block-start: .35rem; }
 .preview-row { grid-template-columns: 1fr auto; }
+
+/* Workspaces */
+.workspace { margin-block: 1rem 1.5rem; }
+.workspace-heading { margin: 1.25rem 0 .5rem; font-size: 1rem; }
+.workspace-heading a { color: inherit; }
+.workspace-links { list-style: none; padding: 0; margin-block-start: 0; }
+.shortcut-row { display: grid; grid-template-columns: 1fr 1.2fr 1.2fr auto; gap: .4rem; align-items: center; margin-block-end: .4rem; }
+@media (max-width: 700px) { .shortcut-row { grid-template-columns: 1fr; } }

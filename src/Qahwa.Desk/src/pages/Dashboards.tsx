@@ -65,8 +65,7 @@ function DashboardView({ id }: { id: string }) {
   if (detail.isError) return <div className="banner error" role="alert">This dashboard does not exist, or is not shared with you. <Link to="/dashboards">Back to dashboards</Link></div>
   if (!detail.data) return <p className="muted" role="status">Loading…</p>
   const { info, items, canEdit } = detail.data
-  const results = new Map((data.data ?? []).map((r) => [r.id, r]))
-
+  
   return (
     <>
       <header className="doc-bar">
@@ -84,14 +83,31 @@ function DashboardView({ id }: { id: string }) {
         </div>
       </header>
       {items.length === 0 && <p className="empty-note">This dashboard has no tiles yet.{canEdit && ' Use the pencil to add some.'}</p>}
-      <div className="tile-grid">
-        {items.map((item) => <Tile key={item.id} item={item} result={results.get(item.id)} loading={data.isPending} />)}
-      </div>
+      <TileGrid items={items} data={data.data} loading={data.isPending} />
       {editing && <DashboardEditor id={id} initial={detail.data} onClose={() => setEditing(false)} onSaved={() => setEditing(false)} />}
       {deleting && <ConfirmDialog title="Delete this dashboard?" tone="danger" confirmLabel="Delete" busy={remove.isPending} onClose={() => setDeleting(false)} onConfirm={() => remove.mutate()}
         message={`"${info.title}" will be deleted for everyone it is shared with.`} />}
     </>
   )
+}
+
+/** The tiles of a dashboard as a grid. */
+export function TileGrid({ items, data, loading }: { items: DashboardItem[]; data?: DashboardResult[]; loading?: boolean }) {
+  const results = new Map((data ?? []).map((r) => [r.id, r]))
+  return (
+    <div className="tile-grid">
+      {items.map((item) => <Tile key={item.id} item={item} result={results.get(item.id)} loading={loading} />)}
+    </div>
+  )
+}
+
+/** A dashboard's tiles, loaded by id, for pages that embed one (the home page). */
+export function DashboardTiles({ id }: { id: string }) {
+  const detail = useQuery({ queryKey: ['dashboard', id], queryFn: () => api.dashboards.get(id), retry: false })
+  const data = useQuery({ queryKey: ['dashboard', 'data', id], queryFn: () => api.dashboards.data(id), retry: false, staleTime: 0 })
+  if (detail.isError) return null
+  if (!detail.data) return <p className="muted" role="status">Loading…</p>
+  return <TileGrid items={detail.data.items} data={data.data} loading={data.isPending} />
 }
 
 /** One tile. A tile the viewer may not see says so instead of showing anything. */
