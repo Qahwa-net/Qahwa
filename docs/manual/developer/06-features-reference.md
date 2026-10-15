@@ -92,8 +92,12 @@ Desk: `AssignmentRules.tsx`, helpers in `lib/assignmentRules.ts`. Tests: `Assign
 
 Desk: `NotificationRules.tsx`, `controls/ChipPicker.tsx`, `lib/notificationRules.ts`. Tests: `NotificationRuleTests`, `NotificationRuleApiTests`, `PostgresNotificationRuleTests`.
 
+## Email ([ADR-023](../../adr/023-email-queue-and-templates.md))
+
+`Email.cs`: `IEmailSender`, `EmailService` (`EnqueueAsync`, `TemplatesAsync`, `PreviewAsync`, `SendFromDocumentAsync`, `SendPendingAsync`, static `ValidAddress`) and the Core DocTypes `email_template.json` and `email_queue.json`. `Qahwa.Server/EmailSenders.cs` has `SmtpEmailSender` (System.Net.Mail) and the logging `LogEmailSender`, chosen in `Program.cs` by whether `Qahwa:Email:Host` is set; to use another provider (an API, SendGrid, a cloud mailer) implement `IEmailSender` and register it instead. `SchedulerService` calls `SendPendingAsync` every tick. `NotificationRule.Email` enqueues mail from `NotificationRuleEngine`. A claim must change `modified` (see `SendPendingAsync`) because it is the version other servers compare with. Endpoints: `EmailEndpoints.cs`. Desk: `EmailDialog.tsx`, `lib/email.ts`. Tests: `EmailTests` (with `FakeEmailSender`), `EmailApiTests`, `PostgresEmailTests`.
+
 ## Authentication ([ADR-002](../../adr/002-authentication.md))
 Cookie sessions, ASP.NET Identity password hashing, lockout, login rate limit; `User`, `Role`, `Has Role` DocTypes. Roles are cached per session for `SessionCacheSeconds`.
 
 ## Planned next
-Email channels, email templates and the email queue (L8), reports and dashboards. The plan lists everything with its status.
+Incoming mail, HTML mail, Slack and SMS channels (L8), reports and dashboards. The plan lists everything with its status.

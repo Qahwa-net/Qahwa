@@ -247,6 +247,7 @@ function RuleCard({ index, rule, count, errors, view, readOnly, onChange, onMove
           <div className="check-row">
             <label className="switch"><input type="checkbox" checked={rule.notifyOwner} disabled={readOnly} onChange={(e) => onChange({ notifyOwner: e.target.checked })} /><span>The person who created it</span></label>
             <label className="switch"><input type="checkbox" checked={rule.notifyFollowers} disabled={readOnly} onChange={(e) => onChange({ notifyFollowers: e.target.checked })} /><span>Everyone following it</span></label>
+            <label className="switch"><input type="checkbox" checked={rule.email} disabled={readOnly} onChange={(e) => onChange({ email: e.target.checked })} /><span>Also send an email</span></label>
           </div>
         </div>
 

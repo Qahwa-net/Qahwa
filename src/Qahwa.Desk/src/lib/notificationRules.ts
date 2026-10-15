@@ -17,7 +17,7 @@ export const newRule = (existing: NotificationRule[]): NotificationRule => {
   while (existing.some((r) => r.name === `Rule ${n}`)) n++
   return {
     name: `Rule ${n}`, active: true, event: 'New', field: null, dateField: null, days: null, condition: '',
-    users: [], roles: [], userFields: [], notifyOwner: false, notifyFollowers: false, message: '',
+    users: [], roles: [], userFields: [], notifyOwner: false, notifyFollowers: false, email: false, message: '',
   }
 }
 

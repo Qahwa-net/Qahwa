@@ -6,7 +6,7 @@ using Qahwa.Core;
 /// code that is safe to run on several servers at once, so no leader election is needed. Turn it off with
 /// <c>Qahwa:Scheduler:Enabled = false</c>; change the pace with <c>Qahwa:Scheduler:IntervalSeconds</c> (10 to 3600, default 300).
 /// </summary>
-public sealed class SchedulerService(AutoRepeatService autoRepeat, NotificationRuleEngine notificationRules, IConfiguration configuration, ILogger<SchedulerService> logger) : BackgroundService
+public sealed class SchedulerService(AutoRepeatService autoRepeat, NotificationRuleEngine notificationRules, EmailService email, IConfiguration configuration, ILogger<SchedulerService> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -30,6 +30,17 @@ public sealed class SchedulerService(AutoRepeatService autoRepeat, NotificationR
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 logger.LogError(ex, "The scheduler could not run auto repeat.");
+            }
+
+            try
+            {
+                var mail = await email.SendPendingAsync(stoppingToken);
+                if (mail.Sent + mail.Failed > 0)
+                    logger.LogInformation("Email queue: {Sent} sent, {Failed} failed.", mail.Sent, mail.Failed);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.LogError(ex, "The scheduler could not send queued email.");
             }
 
             // Rules counted in days from a date: once an hour is plenty, and each person is told once per day whatever happens.

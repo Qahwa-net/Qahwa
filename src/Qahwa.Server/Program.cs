@@ -20,6 +20,12 @@ builder.Services.AddQahwaPostgres(sp =>
     ?? throw new InvalidOperationException("ConnectionStrings:Default is not configured."));
 builder.Services.AddQahwaApi();
 
+var emailSettings = builder.Configuration.GetSection("Qahwa:Email").Get<EmailSettings>() ?? new EmailSettings();
+builder.Services.AddSingleton(emailSettings);
+if (string.IsNullOrWhiteSpace(emailSettings.Host))
+    builder.Services.AddSingleton<IEmailSender, LogEmailSender>();
+else
+    builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
 builder.Services.AddHostedService<SchedulerService>();
 
 var app = builder.Build();

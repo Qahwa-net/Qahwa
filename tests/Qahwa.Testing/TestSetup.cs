@@ -108,7 +108,9 @@ public sealed class TestEngine
         Designer = new DocTypeDesigner(Registry, DocTypeStore, Schema, Repository, Clock);
         Customization = new CustomizationManager(Registry, CustomizationStore, Schema, Permissions, Clock);
         AssignmentRules = new AssignmentRuleEngine(AssignmentRuleCatalog, Registry, Repository, Assignments, Notifications);
-        NotificationRules = new NotificationRuleEngine(NotificationRuleCatalog, Registry, Repository, Documents, Notifications, Follows, Clock);
+        EmailSender = new FakeEmailSender();
+        Email = new EmailService(Registry, Repository, Documents, Permissions, History, EmailSender);
+        NotificationRules = new NotificationRuleEngine(NotificationRuleCatalog, Registry, Repository, Documents, Notifications, Follows, Email, Clock);
         NotificationRuleManager = new NotificationRuleManager(Registry, NotificationRuleStore, NotificationRuleCatalog, Repository, Permissions, Clock);
         AssignmentRuleManager = new AssignmentRuleManager(Registry, AssignmentRuleStore, AssignmentRuleCatalog, Repository, Permissions, Clock);
         Workflows = new WorkflowManager(Registry, WorkflowStore, WorkflowCatalog, Permissions, Clock);
@@ -146,6 +148,8 @@ public sealed class TestEngine
     public NotificationRuleCatalog NotificationRuleCatalog { get; }
     public InMemoryNotificationRuleStore NotificationRuleStore { get; }
     public NotificationRuleEngine NotificationRules { get; }
+    public FakeEmailSender EmailSender { get; }
+    public EmailService Email { get; }
     public NotificationRuleManager NotificationRuleManager { get; }
     public ProfileService Profiles { get; }
     public HistoryRecorder History { get; }

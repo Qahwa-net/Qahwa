@@ -298,7 +298,7 @@ public sealed class AutoRepeatService(
             var following = AutoRepeatSchedule.On(start, frequency, occurrence + 1);
             var claim = new Dictionary<string, object?>
             {
-                ["occurrence"] = occurrence + 1, ["next_date"] = following, ["modified"] = history.Now(),
+                ["occurrence"] = occurrence + 1, ["next_date"] = following, ["modified"] = history.Now() > (DateTime)row["modified"]! ? history.Now() : ((DateTime)row["modified"]!).AddTicks(10),
                 ["status"] = end is { } last && following > last ? "Finished" : "Active",
             };
             if (!await repository.UpdateAsync(Meta, id, claim, (DateTime)row["modified"]!, null, ct))

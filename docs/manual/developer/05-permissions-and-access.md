@@ -72,6 +72,10 @@ Setting a repeat up needs read access to the document and create access to its D
 
 Managing rules needs a System Manager. Whatever a rule says, `NotificationService.NotifyAsync` only writes a notification for an enabled user who may read the document, so a rule cannot disclose a document. Time-based rules run as the system (the notification shows "Administrator" as the sender).
 
+## Email
+
+Emailing about a document needs write access to it, is limited to 10 recipients per request and 50 emails per person per day, and uses addresses only in plain `name@host.tld` form. The Email Queue is readable and deletable only by System Managers; Email Templates are managed by System Managers and offered to anyone signed in for the DocTypes they fit.
+
 ## What the API never reveals
 
 - A document you may not read looks like it does not exist where possible (checks run before the document is loaded).

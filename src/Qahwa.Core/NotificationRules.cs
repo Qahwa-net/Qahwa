@@ -51,6 +51,9 @@ public sealed record NotificationRule
     public bool NotifyOwner { get; init; }
     public bool NotifyFollowers { get; init; }
 
+    /// <summary>Also send the message by email to the people told (only those who were notified, so only people who may read the document).</summary>
+    public bool Email { get; init; }
+
     /// <summary>What the notification says. <c>{{field}}</c> is replaced by the document's value; also <c>{{name}}</c>, <c>{{doctype}}</c> and <c>{{user}}</c> (who did it).</summary>
     public string Message { get; init; } = string.Empty;
 }
@@ -420,6 +423,7 @@ public sealed class NotificationRuleEngine(
     DocumentService documents,
     NotificationService notifications,
     FollowService follows,
+    EmailService email,
     TimeProvider clock)
 {
     public const int MaxRecipients = 200;
@@ -522,10 +526,18 @@ public sealed class NotificationRuleEngine(
             _ => doc.GetValueOrDefault(name),
         });
 
-        var sent = 0;
+        var told = new List<string>();
         foreach (var person in await RecipientsAsync(meta, docName, rule, doc, ct))
-            sent += await notifications.NotifyAsync(person, "Alert", meta.Name, docName, actor.User, subject, ct, rule.Name, ruleKey) ? 1 : 0;
-        return sent;
+        {
+            if (await notifications.NotifyAsync(person, "Alert", meta.Name, docName, actor.User, subject, ct, rule.Name, ruleKey))
+                told.Add(person);
+        }
+
+        // Users are named by their email address. Anyone who could not be told (no access, or already told today) gets no email either.
+        var addresses = told.Where(EmailService.ValidAddress).ToList();
+        if (rule.Email && addresses.Count > 0)
+            await email.EnqueueAsync(addresses, subject, $"{subject}\n\n{meta.Name} {docName}", meta.Name, docName, "Administrator", ct, MaxRecipients);
+        return told.Count;
     }
 
     private async Task<IReadOnlyList<string>> RecipientsAsync(DocTypeMeta meta, string docName, NotificationRule rule, IReadOnlyDictionary<string, object?> doc, CancellationToken ct)

@@ -117,6 +117,14 @@ Building workflows is under *Tools* below. Writing the state field through `PUT 
 
 Someone else's repeat answers 404.
 
+## Email ([ADR-023](../../adr/023-email-queue-and-templates.md))
+
+| Call | Purpose |
+|---|---|
+| `GET /email/templates?doctype=` | Email templates offered for a DocType (name, DocType) |
+| `POST /resource/{doctype}/{name}/email/preview` `{ template }` | The subject and message a template gives for the document |
+| `POST /resource/{doctype}/{name}/email` `{ to[], subject?, message?, template? }` | Queue emails (202 `{ queued }`). Needs write access; 10 addresses, 50 a day per person; 400 for bad addresses or text |
+
 ## Link fields
 
 | Call | Purpose |

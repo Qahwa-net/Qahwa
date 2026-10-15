@@ -523,6 +523,7 @@ export interface NotificationRule {
   userFields: string[]
   notifyOwner: boolean
   notifyFollowers: boolean
+  email: boolean
   message: string
 }
 
@@ -550,4 +551,14 @@ export interface NotificationRuleView {
   fields: string[]
   dateFields: string[]
   canEdit: boolean
+}
+
+export interface EmailTemplateInfo {
+  name: string
+  docType?: string | null
+}
+
+export interface EmailPreview {
+  subject: string
+  message: string
 }

@@ -97,6 +97,7 @@ public static class QahwaEndpoints
         app.MapQahwaAssignmentRules();
         app.MapQahwaAutoRepeat();
         app.MapQahwaNotificationRules();
+        app.MapQahwaEmail();
         return app;
     }
 

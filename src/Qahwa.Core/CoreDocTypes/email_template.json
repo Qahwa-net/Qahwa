@@ -1,0 +1,15 @@
+{
+  "name": "Email Template",
+  "module": "Core",
+  "autoname": "field:template_name",
+  "titleField": "template_name",
+  "fields": [
+    { "name": "template_name", "type": "Data", "label": "Template name", "required": true, "inListView": true },
+    { "name": "reference_doctype", "type": "Data", "label": "For DocType (optional)", "inListView": true },
+    { "name": "subject", "type": "Data", "label": "Subject", "required": true },
+    { "name": "body", "type": "LongText", "label": "Message", "required": true }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "write": true, "create": true, "delete": true }
+  ]
+}

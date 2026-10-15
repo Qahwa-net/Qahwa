@@ -1,0 +1,19 @@
+{
+  "name": "Email Queue",
+  "module": "Core",
+  "trackChanges": false,
+  "fields": [
+    { "name": "recipient", "type": "Data", "label": "To", "required": true, "indexed": true, "inListView": true },
+    { "name": "subject", "type": "Data", "label": "Subject", "inListView": true },
+    { "name": "body", "type": "LongText", "label": "Message" },
+    { "name": "status", "type": "Select", "options": "Pending\nSending\nSent\nFailed", "default": "Pending", "label": "Status", "indexed": true, "inListView": true },
+    { "name": "attempts", "type": "Int", "label": "Attempts" },
+    { "name": "last_error", "type": "Text", "label": "Last error" },
+    { "name": "reference_doctype", "type": "Data", "label": "DocType", "indexed": true },
+    { "name": "reference_name", "type": "Data", "label": "Document", "indexed": true },
+    { "name": "sent_at", "type": "Datetime", "label": "Sent at" }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "delete": true }
+  ]
+}
