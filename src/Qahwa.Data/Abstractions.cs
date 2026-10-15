@@ -38,6 +38,12 @@ public interface ISqlDialect
     /// <summary>Increments the counter named by parameter 0 and returns the new value.</summary>
     string NextSeriesSql { get; }
 
+    /// <summary>Lists every counter: prefix, current.</summary>
+    string ListSeriesSql { get; }
+
+    /// <summary>Sets the counter named by parameter 0 to parameter 1.</summary>
+    string SetSeriesSql { get; }
+
     bool IsUniqueViolation(Exception exception);
 
     /// <summary>The table or index being created already exists (another instance got there first).</summary>

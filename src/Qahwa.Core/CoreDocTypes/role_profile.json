@@ -1,0 +1,13 @@
+{
+  "name": "Role Profile",
+  "module": "Core",
+  "autoname": "field:role_profile",
+  "titleField": "role_profile",
+  "fields": [
+    { "name": "role_profile", "type": "Data", "label": "Profile Name", "required": true, "inListView": true },
+    { "name": "roles", "type": "Table", "options": "Role Profile Role", "label": "Roles" }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "write": true, "create": true, "delete": true }
+  ]
+}

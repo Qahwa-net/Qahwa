@@ -22,6 +22,8 @@ Working today:
 - **User Permissions**: restrict a person to some documents (for example only the North territory) with a `User Permission` document; lists, reads, writes and links all respect it ([ADR-007](docs/adr/007-user-permissions.md))
 - **Sharing**: share one document with one person (read or edit) from the form, without changing anyone's role ([ADR-008](docs/adr/008-sharing.md))
 - **Submittable documents**: draft, submitted and cancelled states with submit and cancel rights; submitted documents are locked except fields marked "allow on submit" ([ADR-009](docs/adr/009-submittable-documents.md))
+- **Role and Module Profiles, export and report rights**: hand out roles or hide modules by profile; export CSV and grouped reports as separate rights ([ADR-010](docs/adr/010-profiles-export-report.md))
+- **Single and tree DocTypes, naming series manager, rename and merge**: settings pages, hierarchies with a tree view, series counters you can set, and renaming that updates every link ([ADR-011](docs/adr/011-special-doctypes.md))
 - Desk (React + TypeScript): login, DocType sidebar, generic list view (search, dynamic filters kept in the URL, sorting, paging) and form view (field controls per type, server-side validation errors inline, concurrent-edit detection, delete), account page with change password. Layout is right-to-left ready and works on phones.
 
 Not yet: child tables, submit/cancel, versions, comments/share/assign/follow, saved filters and per-user list settings, attachments, the Frappe-style form sidebar.

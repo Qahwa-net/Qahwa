@@ -8,6 +8,8 @@ import { FormView } from './pages/FormView.tsx'
 import { HomePage } from './pages/HomePage.tsx'
 import { PermissionManagerPage } from './pages/PermissionManager.tsx'
 import { ListView } from './pages/ListView.tsx'
+import { NamingSeriesPage } from './pages/NamingSeriesPage.tsx'
+import { TreeView } from './pages/TreeView.tsx'
 import { LoginPage } from './pages/LoginPage.tsx'
 
 function RequireAuth() {
@@ -36,6 +38,8 @@ export function App() {
           <Route path="permissions" element={<PermissionManagerPage />} />
           <Route path="permissions/:name" element={<PermissionManagerPage />} />
           <Route path="app/:doctype" element={<ListView />} />
+          <Route path="naming" element={<NamingSeriesPage />} />
+          <Route path="app/:doctype/tree" element={<TreeView />} />
           <Route path="app/:doctype/new" element={<FormView />} />
           <Route path="app/:doctype/:name" element={<FormView />} />
         </Route>

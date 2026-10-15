@@ -81,8 +81,10 @@ public sealed class TestEngine
         PermissionStore = new InMemoryPermissionStore();
         PermissionManager = new PermissionManager(Registry, PermissionStore, Overrides, Clock);
         Shares = new ShareStore(Registry, Repository);
+        Profiles = new ProfileService(Registry, Repository, Clock);
+        NamingSeries = new NamingSeriesManager(Registry, Repository, Permissions);
         Documents = new DocumentService(
-            Registry, Repository, Permissions, new NamingService(Repository), Clock, new UserPermissionService(Registry, Repository), Shares);
+            Registry, Repository, Permissions, new NamingService(Repository), Clock, new UserPermissionService(Registry, Repository), Shares, Profiles);
         ShareManager = new ShareManager(Registry, Repository, Documents, Permissions, Shares);
         DocTypeStore = new InMemoryDocTypeStore();
         Schema = new InMemorySchemaManager();
@@ -108,6 +110,8 @@ public sealed class TestEngine
     public InMemoryPermissionStore PermissionStore { get; }
     public PermissionManager PermissionManager { get; }
     public ShareStore Shares { get; }
+    public ProfileService Profiles { get; }
+    public NamingSeriesManager NamingSeries { get; }
     public ShareManager ShareManager { get; }
     public InMemoryDocTypeStore DocTypeStore { get; }
     public InMemorySchemaManager Schema { get; }

@@ -1,0 +1,13 @@
+{
+  "name": "Module Profile",
+  "module": "Core",
+  "autoname": "field:module_profile",
+  "titleField": "module_profile",
+  "fields": [
+    { "name": "module_profile", "type": "Data", "label": "Profile Name", "required": true, "inListView": true },
+    { "name": "blocked_modules", "type": "Table", "options": "Block Module", "label": "Blocked Modules", "description": "Users with this profile do not see these modules." }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "write": true, "create": true, "delete": true }
+  ]
+}

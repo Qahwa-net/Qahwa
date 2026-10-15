@@ -154,6 +154,75 @@ public sealed class InMemoryDocumentRepository : IDocumentRepository
         }
     }
 
+    public Task<IReadOnlyList<SeriesCounter>> ListSeriesAsync(CancellationToken ct = default)
+    {
+        lock (_gate)
+            return Task.FromResult<IReadOnlyList<SeriesCounter>>(_series.OrderBy(kv => kv.Key, StringComparer.Ordinal).Select(kv => new SeriesCounter(kv.Key, kv.Value)).ToList());
+    }
+
+    public Task SetSeriesAsync(string prefix, long current, CancellationToken ct = default)
+    {
+        lock (_gate)
+            _series[prefix] = current;
+        return Task.CompletedTask;
+    }
+
+    public Task RenameAsync(
+        DocTypeMeta meta,
+        string oldName,
+        string newName,
+        bool merge,
+        IReadOnlyList<DocTypeMeta> childTables,
+        IReadOnlyList<ReferenceUpdate> references,
+        CancellationToken ct = default)
+    {
+        lock (_gate)
+        {
+            var table = Table(meta);
+            if (!table.ContainsKey(oldName))
+                throw new NotFoundException($"{meta.Name} '{oldName}' was not found.");
+            if (!merge && table.ContainsKey(newName))
+                throw new ConflictException($"A {meta.Name} named '{newName}' or with the same unique value already exists.");
+
+            foreach (var reference in references)
+            {
+                foreach (var row in Table(reference.Meta).Values)
+                {
+                    if (Equals(row.GetValueOrDefault(reference.Field), oldName)
+                        && (reference.WhereField is null || Equals(row.GetValueOrDefault(reference.WhereField), reference.WhereValue)))
+                    {
+                        row[reference.Field] = newName;
+                    }
+                }
+            }
+
+            if (merge)
+            {
+                foreach (var child in childTables)
+                {
+                    var childTable = Table(child);
+                    foreach (var key in childTable.Where(kv => Equals(kv.Value["parent"], oldName) && Equals(kv.Value["parenttype"], meta.Name)).Select(kv => kv.Key).ToList())
+                        childTable.Remove(key);
+                }
+
+                table.Remove(oldName);
+                return Task.CompletedTask;
+            }
+
+            var document = table[oldName];
+            table.Remove(oldName);
+            document["name"] = newName;
+            table[newName] = document;
+            foreach (var child in childTables)
+            {
+                foreach (var row in Table(child).Values.Where(r => Equals(r["parent"], oldName) && Equals(r["parenttype"], meta.Name)))
+                    row["parent"] = newName;
+            }
+        }
+
+        return Task.CompletedTask;
+    }
+
     private void ApplyChildren(IReadOnlyList<ChildChanges>? children)
     {
         foreach (var change in children ?? [])

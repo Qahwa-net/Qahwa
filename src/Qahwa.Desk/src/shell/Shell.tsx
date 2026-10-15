@@ -51,6 +51,7 @@ export function Shell() {
             <ul>
               <li><NavLink to="/designer">DocType Designer</NavLink></li>
               <li><NavLink to="/permissions">Role Permissions</NavLink></li>
+              <li><NavLink to="/naming">Naming Series</NavLink></li>
             </ul>
           </section>
         )}

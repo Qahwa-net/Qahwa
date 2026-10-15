@@ -25,6 +25,8 @@ public enum PermAction
     Delete,
     Submit,
     Cancel,
+    Export,
+    Report,
 }
 
 public enum AccessLevel
@@ -37,7 +39,7 @@ public enum AccessLevel
     All,
 }
 
-public sealed record EffectivePermissions(bool Read, bool Write, bool Create, bool Delete, bool Submit = false, bool Cancel = false);
+public sealed record EffectivePermissions(bool Read, bool Write, bool Create, bool Delete, bool Submit = false, bool Cancel = false, bool Export = false, bool Report = false);
 
 /// <summary>A DocType as one person may see it (see <see cref="DocumentService.GetMetaView"/>).</summary>
 public sealed record MetaView(
@@ -173,6 +175,8 @@ public sealed class PermissionService(IPermissionOverrides? overrides = null)
         PermAction.Delete => perm.Delete,
         PermAction.Submit => perm.Submit,
         PermAction.Cancel => perm.Cancel,
+        PermAction.Export => perm.Export,
+        PermAction.Report => perm.Report,
         _ => false,
     };
 }

@@ -18,7 +18,7 @@ public static class QahwaEndpoints
         api.MapGet("/meta", async (HttpContext http, DocumentService docs, IUserContextResolver users, CancellationToken ct) =>
             Results.Ok(new
             {
-                data = docs.ListMetas(await users.ResolveAsync(http, ct)).Select(m => new { m.Name, m.Module, m.TitleField }),
+                data = (await docs.ListMetasAsync(await users.ResolveAsync(http, ct), ct)).Select(m => new { m.Name, m.Module, m.TitleField }),
             }));
 
         api.MapGet("/meta/{doctype}", async (
@@ -88,6 +88,7 @@ public static class QahwaEndpoints
         app.MapQahwaDesigner();
         app.MapQahwaPermissions();
         app.MapQahwaSharing();
+        app.MapQahwaSpecial();
         return app;
     }
 

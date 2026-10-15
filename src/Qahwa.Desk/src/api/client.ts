@@ -1,6 +1,6 @@
 import type {
   DesignerDetail, DocPerm, DesignerItem, DesignerPreview, Doc, DocTypeDefinition, FieldError, FieldTypeInfo,
-  ListResponse, MetaResponse, MetaSummary, PermissionItem, PermissionView, SessionUser, ShareInfo,
+  ListResponse, MetaResponse, MetaSummary, PermissionItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
 } from './types.ts'
 import type { Filter } from '../lib/filters.ts'
 import { toApiFilters } from '../lib/filters.ts'
@@ -110,6 +110,36 @@ export const api = {
   },
 
   remove: (doctype: string, name: string) => request<unknown>('DELETE', resource(doctype, name)),
+
+  /** Renames a document, or merges it into an existing one. Returns the new name. */
+  async rename(doctype: string, name: string, newName: string, merge: boolean): Promise<string> {
+    return (await request<{ data: { name: string } }>('POST', `${resource(doctype, name)}/rename`, { newName, merge })).data.name
+  },
+
+  async tree(doctype: string, parent: string | null): Promise<TreeNode[]> {
+    const query = parent ? `?parent=${encodeURIComponent(parent)}` : ''
+    return (await request<{ data: TreeNode[] }>('GET', `/api/tree/${encodeURIComponent(doctype)}${query}`)).data
+  },
+
+  /** A link the browser can follow to download the matching documents as CSV. */
+  exportUrl(doctype: string, filters: Filter[]): string {
+    const query = new URLSearchParams()
+    if (filters.length > 0) query.set('filters', JSON.stringify(toApiFilters(filters)))
+    return `${resource(doctype)}/export${query.size > 0 ? `?${query}` : ''}`
+  },
+
+  async report(doctype: string, groupBy: string, aggregate: string, field: string | null, filters: Filter[]) {
+    const query = new URLSearchParams({ group_by: groupBy, aggregate })
+    if (field) query.set('field', field)
+    if (filters.length > 0) query.set('filters', JSON.stringify(toApiFilters(filters)))
+    return request<{ data: ReportRow[]; truncated: boolean }>('GET', `${resource(doctype)}/report?${query}`)
+  },
+
+  naming: {
+    list: async () => (await request<{ data: SeriesInfo[] }>('GET', '/api/naming/series')).data,
+    set: async (prefix: string, current: number) =>
+      (await request<{ data: SeriesInfo[] }>('PUT', '/api/naming/series', { prefix, current })).data,
+  },
 
   /** Submittable DocTypes: draft (0) to submitted (1) to cancelled (2). */
   async submit(doctype: string, name: string, modified: unknown): Promise<Doc> {

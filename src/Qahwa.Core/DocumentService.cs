@@ -9,14 +9,15 @@ namespace Qahwa.Core;
 /// The document engine: permission checks, validation, naming, standard fields, child tables and optimistic
 /// concurrency on top of an <see cref="IDocumentRepository"/>.
 /// </summary>
-public sealed class DocumentService(
+public sealed partial class DocumentService(
     IMetaRegistry registry,
     IDocumentRepository repository,
     PermissionService permissions,
     NamingService naming,
     TimeProvider clock,
     UserPermissionService? userPermissions = null,
-    ShareStore? shares = null)
+    ShareStore? shares = null,
+    ProfileService? profiles = null)
 {
     private readonly DocumentLogic _logic = new(registry, repository, permissions, clock);
 
@@ -66,7 +67,9 @@ public sealed class DocumentService(
         permissions.Evaluate(meta, user, PermAction.Create) != AccessLevel.None && !meta.IsChildTable,
         permissions.Evaluate(meta, user, PermAction.Delete) != AccessLevel.None,
         meta.IsSubmittable && permissions.Evaluate(meta, user, PermAction.Submit) != AccessLevel.None,
-        meta.IsSubmittable && permissions.Evaluate(meta, user, PermAction.Cancel) != AccessLevel.None);
+        meta.IsSubmittable && permissions.Evaluate(meta, user, PermAction.Cancel) != AccessLevel.None,
+        permissions.Evaluate(meta, user, PermAction.Export) != AccessLevel.None,
+        permissions.Evaluate(meta, user, PermAction.Report) != AccessLevel.None);
 
     public async Task<Dictionary<string, object?>> InsertAsync(
         string doctype,
@@ -76,12 +79,14 @@ public sealed class DocumentService(
     {
         var meta = RequireTopLevel(registry.Get(doctype));
         permissions.Require(meta, user, PermAction.Create);
+        await EnsureModuleAsync(meta, user, ct);
         var fieldAccess = permissions.FieldAccessFor(meta, user, user.User, creating: true);
         var restrictions = await RestrictionsAsync(meta, user, ct);
 
         var errors = new List<FieldError>();
         var values = Coerce(meta, input, errors, meta.Autoname == "prompt", out var promptName, access: fieldAccess);
         CheckRestrictedValues(restrictions, values, errors);
+        CheckProfileAssignment(meta, values, user, errors);
         var tables = ReadTables(meta, input, errors);
         foreach (var table in tables.Where(t => t.Rows.Count > 0 && !fieldAccess.CanWrite(t.Field)))
             errors.Add(new FieldError(table.Field.Name, "You do not have permission to fill in this table."));
@@ -101,10 +106,11 @@ public sealed class DocumentService(
             await ValidateTableAsync(table, null, errors, values, user, isNew: true, ct);
         CheckRequiredTables(meta, tables, errors, onlyIfProvided: false);
         ValidateRules(meta, tables, values, context, user, isNew: true, errors);
+        await ValidateTreeAsync(meta, null, values, null, errors, ct);
         if (errors.Count > 0)
             throw new DocumentValidationException(errors);
 
-        var name = await naming.NextNameAsync(meta, values, promptName, ct);
+        var name = meta.IsSingle ? meta.Name : await naming.NextNameAsync(meta, values, promptName, ct);
         var now = Now();
         values["name"] = name;
         values["creation"] = now;
@@ -119,6 +125,7 @@ public sealed class DocumentService(
             .Where(c => !c.IsEmpty)
             .ToList();
         await repository.InsertAsync(meta, values, children, ct);
+        await AfterSaveAsync(meta, name, values.Keys.ToHashSet(StringComparer.Ordinal), isNew: true, ct);
         return await LoadForAsync(meta, name, user, ct)
             ?? throw new InvalidOperationException($"{meta.Name} '{name}' vanished after insert.");
     }
@@ -132,7 +139,7 @@ public sealed class DocumentService(
         var meta = RequireTopLevel(registry.Get(doctype));
         var (level, share) = await PreAuthorizeAsync(meta, user, PermAction.Read, name, ct);
         var doc = await LoadAsync(meta, name, ct)
-            ?? throw new NotFoundException($"{meta.Name} '{name}' was not found.");
+            ?? (meta.IsSingle && name == meta.Name ? SingleSkeleton(meta) : throw new NotFoundException($"{meta.Name} '{name}' was not found."));
         var viaShare = Settle(level, share, PermAction.Read, doc, user);
         RequireRestrictions(await RestrictionsAsync(meta, user, ct), doc, meta);
         return Strip(meta, doc, SharedAccess(permissions.FieldAccessFor(meta, user, doc.GetValueOrDefault("owner") as string, creating: false), viaShare, share));
@@ -158,6 +165,12 @@ public sealed class DocumentService(
     private static Dictionary<string, object?> TransitionInput(DateTime? modified) =>
         modified is null ? [] : new() { ["modified"] = modified };
 
+    private async Task AfterSaveAsync(DocTypeMeta meta, string name, IReadOnlySet<string> changed, bool isNew, CancellationToken ct)
+    {
+        if (profiles is not null && await LoadAsync(meta, name, ct) is { } saved)
+            await profiles.AfterSaveAsync(meta, saved, changed, isNew, ct);
+    }
+
     private static DocumentValidationException General(string message) => new([new FieldError(string.Empty, message)]);
 
     private async Task<Dictionary<string, object?>> UpdateCoreAsync(
@@ -171,8 +184,15 @@ public sealed class DocumentService(
         var meta = RequireTopLevel(registry.Get(doctype));
         var action = transition switch { 1 => PermAction.Submit, 2 => PermAction.Cancel, _ => PermAction.Write };
         var (level, share) = await PreAuthorizeAsync(meta, user, action, name, ct);
-        var existing = await repository.GetAsync(meta, name, ct)
-            ?? throw new NotFoundException($"{meta.Name} '{name}' was not found.");
+        var existing = await repository.GetAsync(meta, name, ct);
+        if (existing is null && meta.IsSingle && name == meta.Name && transition is null)
+        {
+            // A single DocType has no document until it is first saved; saving creates it.
+            return await InsertAsync(doctype, input, user, ct);
+        }
+
+        if (existing is null)
+            throw new NotFoundException($"{meta.Name} '{name}' was not found.");
         var viaShare = Settle(level, share, action, existing, user);
 
         var status = Convert.ToInt32(existing.GetValueOrDefault("docstatus") ?? 0);
@@ -200,6 +220,7 @@ public sealed class DocumentService(
         }
 
         CheckRestrictedValues(restrictions, changes, errors);
+        CheckProfileAssignment(meta, changes, user, errors);
 
         // After submit only the fields marked "allow on submit" may change.
         if (transition is null && meta.IsSubmittable && status == 1)
@@ -289,6 +310,7 @@ public sealed class DocumentService(
 
         CheckRequiredTables(meta, tables.Where(t => t.Provided).ToList(), errors, onlyIfProvided: true);
         ValidateRules(meta, tables, merged, context, user, isNew: false, errors);
+        await ValidateTreeAsync(meta, name, merged, existing, errors, ct);
         if (transition == 2)
             errors.Clear(); // an old document that no longer passes today's rules can still be cancelled
         if (errors.Count > 0)
@@ -309,6 +331,7 @@ public sealed class DocumentService(
         if (!await repository.UpdateAsync(meta, name, changes, stored, children, ct))
             throw new ConflictException($"{meta.Name} '{name}' was changed or deleted by someone else. Reload and try again.");
 
+        await AfterSaveAsync(meta, name, changes.Keys.ToHashSet(StringComparer.Ordinal), isNew: false, ct);
         return await LoadForAsync(meta, name, user, ct)
             ?? throw new NotFoundException($"{meta.Name} '{name}' was not found.");
     }
@@ -316,6 +339,9 @@ public sealed class DocumentService(
     public async Task DeleteAsync(string doctype, string name, IUserContext user, CancellationToken ct = default)
     {
         var meta = RequireTopLevel(registry.Get(doctype));
+        await EnsureModuleAsync(meta, user, ct);
+        if (meta.IsSingle)
+            throw General($"{meta.Name} has a single document and it cannot be deleted.");
         var access = permissions.Require(meta, user, PermAction.Delete);
         var existing = await repository.GetAsync(meta, name, ct)
             ?? throw new NotFoundException($"{meta.Name} '{name}' was not found.");
@@ -323,6 +349,8 @@ public sealed class DocumentService(
         RequireRestrictions(await RestrictionsAsync(meta, user, ct), existing, meta);
         if (meta.IsSubmittable && Convert.ToInt32(existing.GetValueOrDefault("docstatus") ?? 0) == 1)
             throw General("A submitted document cannot be deleted. Cancel it first.");
+        if (meta.IsTree && await HasChildrenAsync(meta, name, ct))
+            throw General($"'{name}' has child nodes. Move or delete them first.");
 
         var childTables = TableFields(meta).Select(f => registry.Get(f.Options!)).ToList();
         if (!await repository.DeleteAsync(meta, name, childTables, ct))
@@ -338,6 +366,7 @@ public sealed class DocumentService(
         CancellationToken ct = default)
     {
         var meta = RequireTopLevel(registry.Get(doctype));
+        await EnsureModuleAsync(meta, user, ct);
         var access = permissions.Evaluate(meta, user, PermAction.Read);
         var sharedNames = access == AccessLevel.All || shares is null
             ? []
@@ -371,6 +400,7 @@ public sealed class DocumentService(
     private async Task<(AccessLevel Level, ShareGrant Share)> PreAuthorizeAsync(
         DocTypeMeta meta, IUserContext user, PermAction action, string name, CancellationToken ct)
     {
+        await EnsureModuleAsync(meta, user, ct);
         var level = permissions.Evaluate(meta, user, action);
         var share = level == AccessLevel.All || shares is null ? ShareGrant.None : await shares.ForDocumentAsync(meta.Name, name, user, ct);
         if (level == AccessLevel.None && !share.Allows(action))
@@ -465,6 +495,7 @@ public sealed class DocumentService(
     public async Task<MetaView> GetMetaViewAsync(string doctype, IUserContext user, CancellationToken ct = default)
     {
         var meta = RequireTopLevel(registry.Get(doctype));
+        await EnsureModuleAsync(meta, user, ct);
         if (permissions.Evaluate(meta, user, PermAction.Read) != AccessLevel.None || shares is null)
             return GetMetaView(doctype, user);
 

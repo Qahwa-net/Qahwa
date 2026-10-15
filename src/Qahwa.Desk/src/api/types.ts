@@ -49,6 +49,8 @@ export interface DocPerm {
   permLevel?: number
   submit?: boolean
   cancel?: boolean
+  export?: boolean
+  report?: boolean
 }
 
 export interface DocTypeMeta {
@@ -58,6 +60,12 @@ export interface DocTypeMeta {
   autoname?: string | null
   isChildTable: boolean
   isSubmittable: boolean
+  /** One document, named after the DocType (settings). It has no list. */
+  isSingle?: boolean
+  /** Documents form a tree through parent_node and is_group. */
+  isTree?: boolean
+  /** Documents may be renamed or merged. */
+  allowRename?: boolean
   trackChanges: boolean
   fields: DocField[]
   permissions?: DocPerm[]
@@ -72,6 +80,9 @@ export interface DocTypeDefinition {
   autoname?: string
   isChildTable?: boolean
   isSubmittable?: boolean
+  isSingle?: boolean
+  isTree?: boolean
+  allowRename?: boolean
   fields: (Partial<DocField> & Pick<DocField, 'name' | 'type'>)[]
   permissions: DocPerm[]
   validations?: ValidationRule[]
@@ -132,6 +143,8 @@ export interface Permissions {
   delete: boolean
   submit?: boolean
   cancel?: boolean
+  export?: boolean
+  report?: boolean
 }
 
 export interface MetaResponse {
@@ -168,6 +181,24 @@ export interface ShareInfo {
   user: string
   read: boolean
   write: boolean
+}
+
+export interface TreeNode {
+  name: string
+  is_group: boolean
+  [field: string]: unknown
+}
+
+export interface ReportRow {
+  group: string | null
+  value: number
+}
+
+export interface SeriesInfo {
+  prefix: string
+  digits: number
+  current: number
+  docTypes: string[]
 }
 
 export type Doc = Record<string, unknown> & { name: string }

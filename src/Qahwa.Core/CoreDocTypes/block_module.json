@@ -1,0 +1,8 @@
+{
+  "name": "Block Module",
+  "module": "Core",
+  "isChildTable": true,
+  "fields": [
+    { "name": "module", "type": "Data", "label": "Module", "required": true, "inListView": true }
+  ]
+}

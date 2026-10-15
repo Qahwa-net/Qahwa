@@ -106,3 +106,84 @@ public class PostgresShareTests(PostgresFixture postgres) : IClassFixture<Postgr
         Assert.Empty(await db.Shares.RowsForDocumentAsync("Customer", mine));
     }
 }
+
+public class PostgresSpecialTests(PostgresFixture postgres) : IClassFixture<PostgresFixture>
+{
+    private static readonly UserContext Editor = new("editor@example.com", ["Editor"]);
+
+    private async Task<PgStack> StackAsync()
+    {
+        Skip.IfNot(postgres.Available, postgres.SkipReason);
+        var db = await postgres.CreateStackAsync();
+        foreach (var json in new[]
+        {
+            """{ "name": "Team Member", "isChildTable": true, "fields": [ { "name": "person", "type": "Data" } ] }""",
+            """
+            { "name": "Team", "autoname": "field:team_name", "allowRename": true,
+              "fields": [ { "name": "team_name", "type": "Data", "required": true }, { "name": "members", "type": "Table", "options": "Team Member" } ],
+              "permissions": [ { "role": "Editor", "read": true, "write": true, "create": true, "delete": true } ] }
+            """,
+            """
+            { "name": "Work Item", "autoname": "WI-.####",
+              "fields": [ { "name": "title", "type": "Data" }, { "name": "team", "type": "Link", "options": "Team" } ],
+              "permissions": [ { "role": "Editor", "read": true, "write": true, "create": true } ] }
+            """,
+            """
+            { "name": "Region", "isTree": true, "autoname": "field:region_name",
+              "fields": [ { "name": "region_name", "type": "Data", "required": true } ],
+              "permissions": [ { "role": "Editor", "read": true, "write": true, "create": true, "delete": true } ] }
+            """,
+            """
+            { "name": "App Settings", "isSingle": true, "fields": [ { "name": "limit", "type": "Int" } ],
+              "permissions": [ { "role": "Editor", "read": true, "write": true, "create": true } ] }
+            """,
+        })
+        {
+            var meta = DocTypeLoader.Parse(json);
+            db.Registry.Add(meta);
+            await db.Sync.ApplyAsync(await db.Sync.PlanAsync(meta));
+        }
+
+        return db;
+    }
+
+    [SkippableFact]
+    public async Task Rename_and_merge_run_in_one_transaction_against_postgres()
+    {
+        await using var db = await StackAsync();
+        await db.Documents.InsertAsync("Team", Values(("team_name", "Alpha"), ("members", new[] { Values(("person", "Ann")) })), Editor);
+        await db.Documents.InsertAsync("Team", Values(("team_name", "Beta"), ("members", new[] { Values(("person", "Bob")) })), Editor);
+        var item = (string)(await db.Documents.InsertAsync("Work Item", Values(("title", "T"), ("team", "Alpha")), Editor))["name"]!;
+
+        await db.Documents.RenameAsync("Team", "Alpha", "Alpha 2", false, Editor);
+        Assert.Equal("Alpha 2", (await db.Documents.GetAsync("Work Item", item, Editor))["team"]);
+        var members = (IEnumerable<Dictionary<string, object?>>)(await db.Documents.GetAsync("Team", "Alpha 2", Editor))["members"]!;
+        Assert.Equal(["Ann"], members.Select(m => m["person"]));
+
+        await Assert.ThrowsAsync<ConflictException>(() => db.Documents.RenameAsync("Team", "Alpha 2", "Beta", false, Editor));
+        await db.Documents.RenameAsync("Team", "Alpha 2", "Beta", true, Editor);
+        Assert.Equal("Beta", (await db.Documents.GetAsync("Work Item", item, Editor))["team"]);
+        Assert.Equal(1, (await db.Documents.ListAsync("Team", new ListRequest(), Editor)).Total);
+        Assert.Equal(1, await db.ScalarAsync("SELECT COUNT(*) FROM \"tabTeam Member\""));
+    }
+
+    [SkippableFact]
+    public async Task Series_counters_trees_and_singles_work_against_postgres()
+    {
+        await using var db = await StackAsync();
+        var manager = new NamingSeriesManager(db.Registry, db.Repository, new PermissionService(db.Overrides));
+        await db.Documents.InsertAsync("Work Item", Values(("title", "one")), Editor);
+
+        Assert.Equal(1, (await manager.ListAsync(TestUsers.SystemManager)).Single(s => s.Prefix == "WI-").Current);
+        await manager.SetAsync("WI-", 50, TestUsers.SystemManager);
+        Assert.Equal("WI-0051", (await db.Documents.InsertAsync("Work Item", Values(("title", "two")), Editor))["name"]);
+
+        await db.Documents.InsertAsync("Region", Values(("region_name", "World"), ("is_group", true)), Editor);
+        await db.Documents.InsertAsync("Region", Values(("region_name", "Europe"), ("parent_node", "World")), Editor);
+        Assert.Equal(["Europe"], (await db.Documents.TreeChildrenAsync("Region", "World", Editor)).Select(r => r["name"]));
+        await Assert.ThrowsAsync<DocumentValidationException>(() => db.Documents.DeleteAsync("Region", "World", Editor));
+
+        await db.Documents.UpdateAsync("App Settings", "App Settings", Values(("limit", 3)), Editor);
+        Assert.Equal(7, (await db.Documents.UpdateAsync("App Settings", "App Settings", Values(("limit", 7)), Editor))["limit"]);
+    }
+}

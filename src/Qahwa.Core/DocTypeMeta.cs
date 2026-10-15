@@ -17,6 +17,15 @@ public sealed record DocTypeMeta
 
     public bool IsChildTable { get; init; }
     public bool IsSubmittable { get; init; }
+
+    /// <summary>One document only, named after the DocType (settings pages). It has no list and cannot be deleted.</summary>
+    public bool IsSingle { get; init; }
+
+    /// <summary>Documents form a tree through <see cref="DocTypeMetaExtensions.TreeParentField"/> and <see cref="DocTypeMetaExtensions.TreeGroupField"/>.</summary>
+    public bool IsTree { get; init; }
+
+    /// <summary>Documents may be renamed, or merged into another, by people who can write them.</summary>
+    public bool AllowRename { get; init; }
     public bool TrackChanges { get; init; }
     public IReadOnlyList<DocFieldMeta> Fields { get; init; } = [];
     public IReadOnlyList<DocPermMeta> Permissions { get; init; } = [];
@@ -95,6 +104,12 @@ public sealed record DocPermMeta
     public bool Create { get; init; }
     public bool Delete { get; init; }
 
+    /// <summary>May export documents (CSV).</summary>
+    public bool Export { get; init; }
+
+    /// <summary>May use grouped reports over the documents.</summary>
+    public bool Report { get; init; }
+
     /// <summary>Submittable DocTypes: may submit a draft (docstatus 0 to 1).</summary>
     public bool Submit { get; init; }
 
@@ -110,6 +125,12 @@ public sealed record DocPermMeta
 
 public static class DocTypeMetaExtensions
 {
+    /// <summary>The Link field of a tree DocType that points at its own parent node.</summary>
+    public const string TreeParentField = "parent_node";
+
+    /// <summary>The Check field of a tree DocType: only group nodes can have children.</summary>
+    public const string TreeGroupField = "is_group";
+
     private static readonly ConditionalWeakTable<DocTypeMeta, IReadOnlyDictionary<string, FieldType>> Cache = new();
 
     /// <summary>

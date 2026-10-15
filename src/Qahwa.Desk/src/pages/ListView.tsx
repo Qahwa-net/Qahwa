@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ApiError, api } from '../api/client.ts'
 import type { DocField } from '../api/types.ts'
 import { FilterBar } from '../controls/FilterBar.tsx'
+import { ReportPanel } from './ReportPanel.tsx'
 import { STANDARD_FIELDS, formatCell, hasColumn, labelOf } from '../lib/fields.ts'
 import { decodeFilters, encodeFilters, type Filter } from '../lib/filters.ts'
 
@@ -13,6 +14,7 @@ export function ListView() {
   const { doctype = '' } = useParams()
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
+  const [reporting, setReporting] = useState(false)
 
   const metaQuery = useQuery({ queryKey: ['meta', doctype], queryFn: () => api.meta(doctype), retry: false })
   const meta = metaQuery.data?.data
@@ -82,6 +84,8 @@ export function ListView() {
     </div>
   }
   if (!meta) return <p className="muted" role="status">Loading…</p>
+  // A single DocType has one document and no list: go straight to it.
+  if (meta.isSingle) return <Navigate to={`/app/${encodeURIComponent(doctype)}/${encodeURIComponent(doctype)}`} replace />
 
   const total = list.data?.total ?? 0
   const first = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1
@@ -102,8 +106,13 @@ export function ListView() {
       <div className="page-head">
         <h1>{doctype}</h1>
         <span className="spacer" />
+        {meta.isTree && <Link className="btn" to={`${base}/tree`}>Tree view</Link>}
+        {perms?.report && <button className="btn" aria-expanded={reporting} onClick={() => setReporting(!reporting)}>Report</button>}
+        {perms?.export && <a className="btn" href={api.exportUrl(doctype, effectiveFilters)} download>Export</a>}
         {perms?.create && <Link className="btn primary" to={`${base}/new`}>+ New {doctype}</Link>}
       </div>
+
+      {reporting && <ReportPanel doctype={doctype} fields={allFields} filters={effectiveFilters} onClose={() => setReporting(false)} />}
 
       <div className="toolbar">
         <input type="search" className="search" placeholder={`Search by ${searchField.replace(/_/g, ' ')}…`}

@@ -1,3 +1,4 @@
+import { RenamePanel } from './RenamePanel.tsx'
 import { SharePanel } from './SharePanel.tsx'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -109,6 +110,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
   const [tables, setTables] = useState<Tables>(originalTables)
   const [promptName, setPromptName] = useState('')
   const [sharing, setSharing] = useState(false)
+  const [renaming, setRenaming] = useState(false)
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [banner, setBanner] = useState<{ text: string; conflict: boolean } | null>(null)
 
@@ -251,11 +253,12 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
     <>
       <div className="page-head">
         <div>
-          <Link to={base} className="muted back">← {meta.name}</Link>
+          {!meta.isSingle && <Link to={base} className="muted back">← {meta.name}</Link>}
           <h1>{title} {!isNew && dirty && <span className="badge">Not saved</span>}</h1>
         </div>
         <span className="spacer" />
-        {!isNew && perms.write && docstatus !== 2 && <button className="btn" onClick={() => setSharing(!sharing)} aria-expanded={sharing}>Share</button>}
+        {!isNew && meta.allowRename && perms.write && docstatus !== 1 && <button className="btn" onClick={() => setRenaming(!renaming)} aria-expanded={renaming}>Rename</button>}
+        {!isNew && !meta.isSingle && perms.write && docstatus !== 2 && <button className="btn" onClick={() => setSharing(!sharing)} aria-expanded={sharing}>Share</button>}
         {!isNew && meta.isSubmittable && (
           <span className={`badge status-${docstatus}`}>{['Draft', 'Submitted', 'Cancelled'][docstatus]}</span>
         )}
@@ -271,7 +274,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
             Cancel document
           </button>
         )}
-        {!isNew && perms.delete && docstatus !== 1 && (
+        {!isNew && !meta.isSingle && perms.delete && docstatus !== 1 && (
           <button className="btn danger" disabled={remove.isPending}
             onClick={() => { if (window.confirm(`Delete ${meta.name} "${doc.name}"? This cannot be undone.`)) remove.mutate() }}>
             Delete
@@ -284,6 +287,12 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
         )}
       </div>
 
+      {renaming && doc && <RenamePanel doctype={meta.name} name={doc.name} onClose={() => setRenaming(false)}
+        onRenamed={async (newName) => {
+          await queryClient.invalidateQueries({ queryKey: ['list', meta.name] })
+          queryClient.removeQueries({ queryKey: ['doc', meta.name, doc.name] })
+          navigate(`${base}/${encodeURIComponent(newName)}`, { replace: true })
+        }} />}
       {sharing && doc && <SharePanel doctype={meta.name} name={doc.name} onClose={() => setSharing(false)} />}
       {docstatus === 2 && <div className="banner info" role="status">This document is cancelled and cannot be changed.</div>}
       {docstatus === 1 && editable && <div className="banner info" role="status">This document is submitted. Only some fields can still be changed.</div>}

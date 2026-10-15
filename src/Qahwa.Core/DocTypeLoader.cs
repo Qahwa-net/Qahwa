@@ -60,6 +60,7 @@ public static partial class DocTypeLoader
         if (meta is null)
             throw new DocTypeValidationException("DocType JSON is empty.");
 
+        meta = WithTreeFields(meta);
         Validate(meta);
         return meta;
     }
@@ -133,6 +134,7 @@ public static partial class DocTypeLoader
         CheckLogic(meta, seen, Add);
 
         errors.AddRange(CheckPermissionRules(meta.Permissions, "permissions"));
+        CheckSpecial(meta, Add);
         if (meta.IsSubmittable && meta.IsChildTable)
             errors.Add(new FieldError("isSubmittable", "A child table cannot be submittable; its rows follow their document."));
         if (!meta.IsSubmittable)
@@ -153,6 +155,44 @@ public static partial class DocTypeLoader
     }
 
     public const int MaxPermLevel = 9;
+
+    private static void CheckSpecial(DocTypeMeta meta, Action<string, string> add)
+    {
+        if (meta.IsChildTable && (meta.IsSingle || meta.IsTree || meta.AllowRename))
+            add("isChildTable", "A child table cannot be single, a tree, or renamable.");
+        if (meta.IsSingle && meta.IsTree)
+            add("isSingle", "A DocType cannot be both single and a tree.");
+        if (meta.IsSingle && meta.AllowRename)
+            add("allowRename", "A single DocType has one document, named after the DocType, so it cannot be renamed.");
+        if (meta.IsSingle && meta.IsSubmittable)
+            add("isSingle", "A single DocType cannot be submittable.");
+        if (meta.IsSingle && meta.Autoname is not (null or "hash"))
+            add("autoname", "A single DocType has one document named after the DocType; remove the naming rule.");
+
+        if (!meta.IsTree)
+            return;
+
+        var parent = meta.Fields.FirstOrDefault(f => f.Name == DocTypeMetaExtensions.TreeParentField);
+        if (parent is not { Type: FieldType.Link } || !string.Equals(parent.Options, meta.Name, StringComparison.OrdinalIgnoreCase))
+            add("isTree", $"A tree needs a Link field '{DocTypeMetaExtensions.TreeParentField}' pointing at the DocType itself.");
+        var group = meta.Fields.FirstOrDefault(f => f.Name == DocTypeMetaExtensions.TreeGroupField);
+        if (group is not { Type: FieldType.Check })
+            add("isTree", $"A tree needs a Check field '{DocTypeMetaExtensions.TreeGroupField}'.");
+    }
+
+    /// <summary>A tree DocType always has its parent and group fields; add them when the definition does not list them yet.</summary>
+    public static DocTypeMeta WithTreeFields(DocTypeMeta meta)
+    {
+        if (!meta.IsTree || meta.IsChildTable)
+            return meta;
+
+        var fields = meta.Fields.ToList();
+        if (fields.All(f => f.Name != DocTypeMetaExtensions.TreeParentField))
+            fields.Add(new DocFieldMeta { Name = DocTypeMetaExtensions.TreeParentField, Type = FieldType.Link, Label = "Parent", Options = meta.Name });
+        if (fields.All(f => f.Name != DocTypeMetaExtensions.TreeGroupField))
+            fields.Add(new DocFieldMeta { Name = DocTypeMetaExtensions.TreeGroupField, Type = FieldType.Check, Label = "Is Group" });
+        return fields.Count == meta.Fields.Count ? meta : meta with { Fields = fields };
+    }
 
     /// <summary>Checks a list of permission rules (from a definition or from the Role Permission Manager).</summary>
     public static IReadOnlyList<FieldError> CheckPermissionRules(IReadOnlyList<DocPermMeta> rules, string path)
@@ -175,8 +215,8 @@ public static partial class DocTypeLoader
 
             if (rule.PermLevel is < 0 or > MaxPermLevel)
                 errors.Add(new FieldError($"{at}.permLevel", $"The permission level must be between 0 and {MaxPermLevel}."));
-            else if (rule.PermLevel > 0 && (rule.Create || rule.Delete || rule.Submit || rule.Cancel))
-                errors.Add(new FieldError($"{at}.permLevel", "Create, delete, submit and cancel only apply at level 0."));
+            else if (rule.PermLevel > 0 && (rule.Create || rule.Delete || rule.Submit || rule.Cancel || rule.Export || rule.Report))
+                errors.Add(new FieldError($"{at}.permLevel", "Create, delete, submit, cancel, export and report only apply at level 0."));
         }
 
         return errors;

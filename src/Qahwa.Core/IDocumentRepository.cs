@@ -12,6 +12,13 @@ public sealed record ChildChanges(
     public bool IsEmpty => Inserts.Count == 0 && Updates.Count == 0 && Deletes.Count == 0;
 }
 
+/// <summary>One place that stores the name of another document: set <see cref="Field"/> to the new name where it holds the old one.</summary>
+/// <param name="WhereField">Only rows where this column equals <paramref name="WhereValue"/> are updated (for text references that name a DocType).</param>
+public sealed record ReferenceUpdate(DocTypeMeta Meta, string Field, string? WhereField = null, string? WhereValue = null);
+
+/// <summary>A naming series counter: the last number handed out for a prefix.</summary>
+public sealed record SeriesCounter(string Prefix, long Current);
+
 /// <summary>
 /// Persistence for documents. Implementations receive already validated, storage-typed values
 /// and must still treat column names as untrusted (see the whitelist in <see cref="DocTypeMetaExtensions.ColumnTypes"/>).
@@ -62,4 +69,23 @@ public interface IDocumentRepository
 
     /// <summary>Atomically increments and returns the counter for a naming series prefix.</summary>
     Task<long> NextSeriesAsync(string prefix, CancellationToken ct = default);
+
+    Task<IReadOnlyList<SeriesCounter>> ListSeriesAsync(CancellationToken ct = default);
+
+    /// <summary>Sets the counter for a prefix (the next document gets <paramref name="current"/> + 1).</summary>
+    Task SetSeriesAsync(string prefix, long current, CancellationToken ct = default);
+
+    /// <summary>
+    /// Renames a document, or merges it into <paramref name="newName"/> (which must already exist): its child rows follow it,
+    /// every reference to it is updated, and with a merge the old document is removed. All in one transaction.
+    /// </summary>
+    /// <exception cref="ConflictException">The new name (or a unique value) is already taken.</exception>
+    Task RenameAsync(
+        DocTypeMeta meta,
+        string oldName,
+        string newName,
+        bool merge,
+        IReadOnlyList<DocTypeMeta> childTables,
+        IReadOnlyList<ReferenceUpdate> references,
+        CancellationToken ct = default);
 }

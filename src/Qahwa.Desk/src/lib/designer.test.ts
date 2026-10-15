@@ -136,6 +136,31 @@ describe('draft conversion', () => {
     expect(toDefinition(draft).fields[0]!.permLevel).toBeUndefined()
   })
 
+  it('writes single, tree and rename settings, and drops them for child tables', () => {
+    const draft = fromDetail(detail)
+    draft.isTree = true
+    draft.allowRename = true
+    expect(toDefinition(draft)).toMatchObject({ isTree: true, allowRename: true })
+    expect(toDefinition(draft).isSingle).toBeUndefined()
+
+    draft.isTree = false
+    draft.isSingle = true
+    const single = toDefinition(draft)
+    expect(single.isSingle).toBe(true)
+    expect(single.allowRename).toBeUndefined() // a single cannot be renamed
+
+    draft.isChildTable = true
+    const child = toDefinition(draft)
+    expect(child.isSingle).toBeUndefined()
+    expect(child.isTree).toBeUndefined()
+  })
+
+  it('keeps the export and report rights of permission rules', () => {
+    const draft = fromDetail({ ...detail, definition: { ...detail.definition, permissions: [{ role: 'A', read: true, write: false, create: false, delete: false, ifOwner: false, export: true, report: true }] } })
+    expect(draft.permissions[0]).toMatchObject({ export: true, report: true })
+    expect(toDefinition(draft).permissions[0]).toMatchObject({ export: true, report: true })
+  })
+
   it('writes submittable settings only for submittable DocTypes', () => {
     const draft = fromDetail(detail)
     draft.isSubmittable = true

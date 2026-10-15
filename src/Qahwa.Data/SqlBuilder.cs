@@ -99,6 +99,35 @@ public sealed class SqlBuilder(ISqlDialect dialect)
             $"AND {dialect.Quote("parenttype")} = {dialect.Parameter(1)}",
             [parent, parentDocType]);
 
+    /// <summary>Gives a document a new name (the primary key). Every identifier comes from the DocType, every value is a parameter.</summary>
+    public SqlStatement Rename(DocTypeMeta meta, string oldName, string newName) =>
+        new($"UPDATE {dialect.TableName(meta.Name)} SET {dialect.Quote("name")} = {dialect.Parameter(0)} WHERE {dialect.Quote("name")} = {dialect.Parameter(1)}",
+            [newName, oldName]);
+
+    /// <summary>Points the child rows of a renamed parent at its new name.</summary>
+    public SqlStatement RenameChildren(DocTypeMeta childMeta, string parentDocType, string oldName, string newName) =>
+        new($"UPDATE {dialect.TableName(childMeta.Name)} SET {dialect.Quote("parent")} = {dialect.Parameter(0)} " +
+            $"WHERE {dialect.Quote("parent")} = {dialect.Parameter(1)} AND {dialect.Quote("parenttype")} = {dialect.Parameter(2)}",
+            [newName, oldName, parentDocType]);
+
+    /// <summary>Updates a column that holds the name of another document. The column must exist in the DocType (whitelist).</summary>
+    public SqlStatement RenameReference(ReferenceUpdate reference, string oldName, string newName)
+    {
+        var columns = reference.Meta.ColumnTypes();
+        var sql = new StringBuilder("UPDATE ")
+            .Append(dialect.TableName(reference.Meta.Name))
+            .Append(" SET ").Append(dialect.Quote(Require(columns, reference.Field))).Append(" = ").Append(dialect.Parameter(0))
+            .Append(" WHERE ").Append(dialect.Quote(reference.Field)).Append(" = ").Append(dialect.Parameter(1));
+        List<object?> parameters = [newName, oldName];
+        if (reference.WhereField is not null)
+        {
+            sql.Append(" AND ").Append(dialect.Quote(Require(columns, reference.WhereField))).Append(" = ").Append(dialect.Parameter(2));
+            parameters.Add(reference.WhereValue);
+        }
+
+        return new SqlStatement(sql.ToString(), parameters);
+    }
+
     public SqlStatement Delete(DocTypeMeta meta, string name) =>
         new($"DELETE FROM {dialect.TableName(meta.Name)} WHERE {dialect.Quote("name")} = {dialect.Parameter(0)}", [name]);
 

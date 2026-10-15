@@ -72,7 +72,8 @@ public sealed class PgStack : IAsyncDisposable
         PermissionManager = new PermissionManager(Registry, PermissionStore, Overrides, Clock);
         var permissions = new PermissionService(Overrides);
         Shares = new ShareStore(Registry, Repository);
-        Documents = new DocumentService(Registry, Repository, permissions, new NamingService(Repository), Clock, new UserPermissionService(Registry, Repository), Shares);
+        Profiles = new ProfileService(Registry, Repository, Clock);
+        Documents = new DocumentService(Registry, Repository, permissions, new NamingService(Repository), Clock, new UserPermissionService(Registry, Repository), Shares, Profiles);
         ShareManager = new ShareManager(Registry, Repository, Documents, permissions, Shares);
         DocTypeStore = new DocTypeStore(_connections, Dialect, new PostgresSchemaInspector(_connections));
         SchemaManager = new SchemaManager(Sync, Dialect);
@@ -89,6 +90,7 @@ public sealed class PgStack : IAsyncDisposable
     public PermissionStore PermissionStore { get; }
     public PermissionManager PermissionManager { get; }
     public ShareStore Shares { get; }
+    public ProfileService Profiles { get; }
     public ShareManager ShareManager { get; }
     public DocTypeStore DocTypeStore { get; }
     public SchemaManager SchemaManager { get; }

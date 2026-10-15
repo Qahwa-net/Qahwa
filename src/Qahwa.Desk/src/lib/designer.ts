@@ -17,6 +17,11 @@ export interface Draft {
   isChildTable: boolean
   /** Documents go draft, submitted, cancelled and are locked once submitted. */
   isSubmittable: boolean
+  /** One document only (settings). Chosen when the DocType is created. */
+  isSingle: boolean
+  /** Documents form a tree. Chosen when the DocType is created. */
+  isTree: boolean
+  allowRename: boolean
   isNew: boolean
   editable: boolean
   name: string
@@ -100,6 +105,9 @@ export function emptyDraft(): Draft {
   return {
     isChildTable: false,
     isSubmittable: false,
+    isSingle: false,
+    isTree: false,
+    allowRename: false,
     isNew: true,
     editable: true,
     name: '',
@@ -143,6 +151,9 @@ export function fromDetail(detail: DesignerDetail): Draft {
   return {
     isChildTable: def.isChildTable,
     isSubmittable: def.isSubmittable ?? false,
+    isSingle: def.isSingle ?? false,
+    isTree: def.isTree ?? false,
+    allowRename: def.allowRename ?? false,
     isNew: false,
     editable: detail.editable,
     name: def.name,
@@ -168,7 +179,7 @@ export function fromDetail(detail: DesignerDetail): Draft {
       permLevel: f.permLevel ?? 0,
       allowOnSubmit: f.allowOnSubmit ?? false,
     })),
-    permissions: (def.permissions ?? []).map((p) => ({ ...p, ifOwner: p.ifOwner ?? false, permLevel: p.permLevel ?? 0, submit: p.submit ?? false, cancel: p.cancel ?? false })),
+    permissions: (def.permissions ?? []).map((p) => ({ ...p, ifOwner: p.ifOwner ?? false, permLevel: p.permLevel ?? 0, submit: p.submit ?? false, cancel: p.cancel ?? false, export: p.export ?? false, report: p.report ?? false })),
     validations: (def.validations ?? []).map((r) => ({ expression: r.expression, message: r.message, field: r.field ?? null })),
     modified: detail.modified ?? null,
     documentCount: detail.documentCount ?? null,
@@ -187,6 +198,9 @@ export function toDefinition(draft: Draft): DocTypeDefinition {
     autoname: draft.isChildTable ? undefined : buildAutoname(draft),
     isChildTable: draft.isChildTable || undefined,
     isSubmittable: (!draft.isChildTable && draft.isSubmittable) || undefined,
+    isSingle: (!draft.isChildTable && draft.isSingle) || undefined,
+    isTree: (!draft.isChildTable && draft.isTree) || undefined,
+    allowRename: (!draft.isChildTable && !draft.isSingle && draft.allowRename) || undefined,
     fields: draft.fields.map((f) => ({
       name: f.name,
       type: f.type,

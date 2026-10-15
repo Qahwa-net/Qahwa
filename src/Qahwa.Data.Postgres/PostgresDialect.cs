@@ -71,6 +71,11 @@ public sealed class PostgresDialect : ISqlDialect
         "\"password_changed\" timestamp with time zone NOT NULL, " +
         "\"user_created\" timestamp with time zone NOT NULL)";
 
+    public string ListSeriesSql => "SELECT \"name\", \"current\" FROM \"tabSeries\" ORDER BY \"name\"";
+
+    public string SetSeriesSql =>
+        "INSERT INTO \"tabSeries\" (\"name\", \"current\") VALUES (@p0, @p1) ON CONFLICT (\"name\") DO UPDATE SET \"current\" = EXCLUDED.\"current\"";
+
     public string NextSeriesSql =>
         "INSERT INTO \"tabSeries\" (\"name\", \"current\") VALUES (@p0, 1) " +
         "ON CONFLICT (\"name\") DO UPDATE SET \"current\" = \"tabSeries\".\"current\" + 1 RETURNING \"current\"";

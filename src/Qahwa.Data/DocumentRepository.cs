@@ -126,6 +126,66 @@ public sealed class DocumentRepository(
     public async Task<long> NextSeriesAsync(string prefix, CancellationToken ct = default) =>
         Convert.ToInt64(await ExecuteScalarAsync(new SqlStatement(dialect.NextSeriesSql, [prefix]), ct));
 
+    public async Task<IReadOnlyList<SeriesCounter>> ListSeriesAsync(CancellationToken ct = default)
+    {
+        await using var connection = await connections.OpenAsync(ct);
+        await using var command = connection.CreateCommand();
+        command.CommandText = dialect.ListSeriesSql;
+        await using var reader = await command.ExecuteReaderAsync(ct);
+        var result = new List<SeriesCounter>();
+        while (await reader.ReadAsync(ct))
+            result.Add(new SeriesCounter(reader.GetString(0), reader.GetInt64(1)));
+        return result;
+    }
+
+    public async Task SetSeriesAsync(string prefix, long current, CancellationToken ct = default) =>
+        await ExecuteScalarAsync(new SqlStatement(dialect.SetSeriesSql, [prefix, current]), ct);
+
+    public async Task RenameAsync(
+        DocTypeMeta meta,
+        string oldName,
+        string newName,
+        bool merge,
+        IReadOnlyList<DocTypeMeta> childTables,
+        IReadOnlyList<ReferenceUpdate> references,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            await using var connection = await connections.OpenAsync(ct);
+            await using var transaction = await connection.BeginTransactionAsync(ct);
+            try
+            {
+                foreach (var reference in references)
+                    await ExecuteAsync(connection, transaction, sql.RenameReference(reference, oldName, newName), ct);
+
+                if (merge)
+                {
+                    foreach (var child in childTables.DistinctBy(c => c.Name))
+                        await ExecuteAsync(connection, transaction, sql.DeleteChildren(child, meta.Name, oldName), ct);
+                    await ExecuteAsync(connection, transaction, sql.Delete(meta, oldName), ct);
+                }
+                else
+                {
+                    await ExecuteAsync(connection, transaction, sql.Rename(meta, oldName, newName), ct);
+                    foreach (var child in childTables.DistinctBy(c => c.Name))
+                        await ExecuteAsync(connection, transaction, sql.RenameChildren(child, meta.Name, oldName, newName), ct);
+                }
+
+                await transaction.CommitAsync(ct);
+            }
+            catch
+            {
+                await transaction.RollbackAsync(CancellationToken.None);
+                throw;
+            }
+        }
+        catch (DbException ex) when (dialect.IsUniqueViolation(ex))
+        {
+            throw new ConflictException($"A {meta.Name} named '{newName}' or with the same unique value already exists.");
+        }
+    }
+
     private async Task ApplyChildrenAsync(
         DbConnection connection, DbTransaction transaction, IReadOnlyList<ChildChanges>? children, CancellationToken ct)
     {

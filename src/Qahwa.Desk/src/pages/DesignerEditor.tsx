@@ -264,6 +264,29 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
                 </small>
                 {errors.isSubmittable && <small className="error-text" role="alert">{errors.isSubmittable}</small>}
               </div>}
+              {!draft.isChildTable && <div className="field full">
+                <label className="check-line">
+                  <input type="checkbox" checked={draft.isSingle} disabled={disabled || !draft.isNew || draft.isTree}
+                    onChange={(e) => patch({ isSingle: e.target.checked, allowRename: e.target.checked ? false : draft.allowRename })} />
+                  Only one document exists (settings)
+                </label>
+                <label className="check-line">
+                  <input type="checkbox" checked={draft.isTree} disabled={disabled || !draft.isNew || draft.isSingle}
+                    onChange={(e) => patch({ isTree: e.target.checked })} />
+                  Documents form a tree (each can have a parent)
+                </label>
+                {!draft.isSingle && <label className="check-line">
+                  <input type="checkbox" checked={draft.allowRename} disabled={disabled}
+                    onChange={(e) => patch({ allowRename: e.target.checked })} />
+                  Documents can be renamed or merged
+                </label>}
+                <small className="muted">
+                  A single DocType has one document named after it, with no list. A tree adds the fields Parent and Is Group. Neither can be changed after the DocType is created.
+                </small>
+                {errors.isSingle && <small className="error-text" role="alert">{errors.isSingle}</small>}
+                {errors.isTree && <small className="error-text" role="alert">{errors.isTree}</small>}
+                {errors.allowRename && <small className="error-text" role="alert">{errors.allowRename}</small>}
+              </div>}
               {!draft.isChildTable && <label className="field">
                 <span>Title field</span>
                 <select value={draft.titleField} disabled={disabled} onChange={(e) => patch({ titleField: e.target.value })}>

@@ -109,11 +109,11 @@ public sealed class DocTypeDesigner(
     }
 
     public Task<DesignerDetail> CreateAsync(DocTypeMeta definition, IUserContext user, CancellationToken ct = default) =>
-        SerializedAsync(() => CreateCoreAsync(definition, user, ct), ct);
+        SerializedAsync(() => CreateCoreAsync(DocTypeLoader.WithTreeFields(definition), user, ct), ct);
 
     public Task<DesignerDetail> UpdateAsync(
         string name, DocTypeMeta definition, DateTime? expectedModified, IUserContext user, CancellationToken ct = default) =>
-        SerializedAsync(() => UpdateCoreAsync(name, definition, expectedModified, user, ct), ct);
+        SerializedAsync(() => UpdateCoreAsync(name, DocTypeLoader.WithTreeFields(definition), expectedModified, user, ct), ct);
 
     public Task DeleteAsync(string name, IUserContext user, CancellationToken ct = default) =>
         SerializedAsync(async () => { await DeleteCoreAsync(name, user, ct); return true; }, ct);
@@ -193,6 +193,13 @@ public sealed class DocTypeDesigner(
             throw new ConflictException($"'{name}' is used by {string.Join(", ", referencing)}. Remove those fields first.");
 
         var preview = await schema.PreviewAsync(meta, ct);
+        if (preview.TableExists && meta.IsSingle)
+        {
+            // The single document cannot be deleted through the API, so it must not keep the DocType from being removed.
+            var rows = meta.Fields.Where(f => f.Type == FieldType.Table && f.Options is not null).Select(f => registry.Get(f.Options!)).DistinctBy(c => c.Name).ToList();
+            await repository.DeleteAsync(meta, meta.Name, rows, ct);
+        }
+
         if (preview.TableExists)
         {
             var count = await repository.CountAsync(meta, new ListQuery(), ct);
@@ -219,6 +226,8 @@ public sealed class DocTypeDesigner(
 
         if (existing is not null && existing.IsChildTable != definition.IsChildTable)
             errors.Add(new FieldError("isChildTable", "A DocType cannot be turned into a child table, or back, after it is created."));
+        if (existing is not null && (existing.IsSingle != definition.IsSingle || existing.IsTree != definition.IsTree))
+            errors.Add(new FieldError(existing.IsSingle != definition.IsSingle ? "isSingle" : "isTree", "A DocType cannot become single or a tree, or stop being one, after it is created."));
         if (existing is not null && existing.IsSubmittable != definition.IsSubmittable)
             errors.Add(new FieldError("isSubmittable", "A DocType cannot be made submittable, or stop being submittable, after it is created."));
 

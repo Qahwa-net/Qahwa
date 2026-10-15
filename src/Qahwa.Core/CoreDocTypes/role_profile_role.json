@@ -1,0 +1,8 @@
+{
+  "name": "Role Profile Role",
+  "module": "Core",
+  "isChildTable": true,
+  "fields": [
+    { "name": "role", "type": "Link", "options": "Role", "label": "Role", "required": true, "inListView": true }
+  ]
+}
