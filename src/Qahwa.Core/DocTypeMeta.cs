@@ -72,6 +72,9 @@ public sealed record DocFieldMeta
     /// and editable to roles that have a permission rule at that level.
     /// </summary>
     public int PermLevel { get; init; }
+
+    /// <summary>Submittable DocTypes: the field may still be changed after the document is submitted.</summary>
+    public bool AllowOnSubmit { get; init; }
 }
 
 /// <summary>A rule on a whole document (or table row): while the expression is false, saving is refused with the message.</summary>
@@ -91,6 +94,12 @@ public sealed record DocPermMeta
     public bool Write { get; init; }
     public bool Create { get; init; }
     public bool Delete { get; init; }
+
+    /// <summary>Submittable DocTypes: may submit a draft (docstatus 0 to 1).</summary>
+    public bool Submit { get; init; }
+
+    /// <summary>Submittable DocTypes: may cancel a submitted document (docstatus 1 to 2).</summary>
+    public bool Cancel { get; init; }
 
     /// <summary>Restrict this rule to documents the user owns.</summary>
     public bool IfOwner { get; init; }

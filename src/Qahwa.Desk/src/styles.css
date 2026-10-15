@@ -248,3 +248,8 @@ tbody tr:last-child td { border-block-end: 0; }
 .share-list li span { flex: 1; }
 .share-add { display: flex; gap: .75rem; align-items: center; flex-wrap: wrap; }
 .share-add input[type=email] { flex: 1; min-width: 12rem; }
+
+/* Document status */
+.badge.status-0 { background: var(--warn-soft, #fff4d6); }
+.badge.status-1 { background: var(--ok-soft, #dff5e3); }
+.badge.status-2 { background: var(--danger-soft, #fde2e2); }

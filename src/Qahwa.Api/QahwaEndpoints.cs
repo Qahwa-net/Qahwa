@@ -6,6 +6,9 @@ using Qahwa.Core;
 
 namespace Qahwa.Api;
 
+/// <summary>The optional body of submit and cancel: the "modified" value the client loaded, for conflict detection.</summary>
+public sealed record TransitionRequest(DateTime? Modified = null);
+
 public static class QahwaEndpoints
 {
     public static IEndpointRouteBuilder MapQahwaApi(this IEndpointRouteBuilder app)
@@ -62,6 +65,17 @@ public static class QahwaEndpoints
                 data = await docs.UpdateAsync(doctype, name, ToValues(body), await users.ResolveAsync(http, ct), ct),
             }));
 
+        // Submittable DocTypes: docstatus 0 (draft) to 1 (submitted) to 2 (cancelled). The body may carry the "modified" the client saw.
+        resource.MapPost("/{name}/submit", async (
+            string doctype, string name, HttpContext http,
+            DocumentService docs, IUserContextResolver users, CancellationToken ct) =>
+                Results.Ok(new { data = await docs.SubmitAsync(doctype, name, await users.ResolveAsync(http, ct), (await ReadTransitionAsync(http, ct))?.Modified, ct) }));
+
+        resource.MapPost("/{name}/cancel", async (
+            string doctype, string name, HttpContext http,
+            DocumentService docs, IUserContextResolver users, CancellationToken ct) =>
+                Results.Ok(new { data = await docs.CancelAsync(doctype, name, await users.ResolveAsync(http, ct), (await ReadTransitionAsync(http, ct))?.Modified, ct) }));
+
         resource.MapDelete("/{name}", async (
             string doctype, string name, HttpContext http,
             DocumentService docs, IUserContextResolver users, CancellationToken ct) =>
@@ -76,6 +90,10 @@ public static class QahwaEndpoints
         app.MapQahwaSharing();
         return app;
     }
+
+    /// <summary>The body of submit and cancel is optional, so a plain POST with no body works.</summary>
+    private static async Task<TransitionRequest?> ReadTransitionAsync(HttpContext http, CancellationToken ct) =>
+        http.Request.ContentLength is > 0 ? await http.Request.ReadFromJsonAsync<TransitionRequest>(ct) : null;
 
     private static Dictionary<string, object?> ToValues(Dictionary<string, JsonElement> body) =>
         body.ToDictionary(kv => kv.Key, kv => (object?)kv.Value, StringComparer.Ordinal);

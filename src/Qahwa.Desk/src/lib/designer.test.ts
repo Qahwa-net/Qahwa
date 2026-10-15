@@ -136,6 +136,24 @@ describe('draft conversion', () => {
     expect(toDefinition(draft).fields[0]!.permLevel).toBeUndefined()
   })
 
+  it('writes submittable settings only for submittable DocTypes', () => {
+    const draft = fromDetail(detail)
+    draft.isSubmittable = true
+    draft.fields[0]!.allowOnSubmit = true
+    draft.permissions[0] = { ...draft.permissions[0]!, submit: true, cancel: true }
+
+    const definition = toDefinition(draft)
+    expect(definition.isSubmittable).toBe(true)
+    expect(definition.fields[0]!.allowOnSubmit).toBe(true)
+    expect(definition.permissions[0]).toMatchObject({ submit: true, cancel: true })
+
+    draft.isSubmittable = false
+    const plain = toDefinition(draft)
+    expect(plain.isSubmittable).toBeUndefined()
+    expect(plain.fields[0]!.allowOnSubmit).toBeUndefined()
+    expect(plain.permissions[0]!.submit).toBeUndefined()
+  })
+
   it('writes the logic properties and rules, and leaves them out when empty', () => {
     const draft = fromDetail(detail)
     draft.fields[0]!.dependsOn = "status == 'Open'"

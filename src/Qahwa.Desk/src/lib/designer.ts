@@ -15,6 +15,8 @@ export type AutonameKind = 'hash' | 'prompt' | 'field' | 'series'
 export interface Draft {
   /** A child table: its rows live inside other documents and it has no list or form of its own. */
   isChildTable: boolean
+  /** Documents go draft, submitted, cancelled and are locked once submitted. */
+  isSubmittable: boolean
   isNew: boolean
   editable: boolean
   name: string
@@ -82,6 +84,7 @@ export function newField(info: FieldTypeInfo, taken: string[]): DraftField {
     fetchFrom: null,
     fetchIfEmpty: false,
     permLevel: 0,
+    allowOnSubmit: false,
   }
 }
 
@@ -96,6 +99,7 @@ export function moveItem<T>(items: T[], from: number, to: number): T[] {
 export function emptyDraft(): Draft {
   return {
     isChildTable: false,
+    isSubmittable: false,
     isNew: true,
     editable: true,
     name: '',
@@ -138,6 +142,7 @@ export function fromDetail(detail: DesignerDetail): Draft {
   const def = detail.definition
   return {
     isChildTable: def.isChildTable,
+    isSubmittable: def.isSubmittable ?? false,
     isNew: false,
     editable: detail.editable,
     name: def.name,
@@ -161,8 +166,9 @@ export function fromDetail(detail: DesignerDetail): Draft {
       fetchFrom: f.fetchFrom ?? null,
       fetchIfEmpty: f.fetchIfEmpty ?? false,
       permLevel: f.permLevel ?? 0,
+      allowOnSubmit: f.allowOnSubmit ?? false,
     })),
-    permissions: (def.permissions ?? []).map((p) => ({ ...p, ifOwner: p.ifOwner ?? false, permLevel: p.permLevel ?? 0 })),
+    permissions: (def.permissions ?? []).map((p) => ({ ...p, ifOwner: p.ifOwner ?? false, permLevel: p.permLevel ?? 0, submit: p.submit ?? false, cancel: p.cancel ?? false })),
     validations: (def.validations ?? []).map((r) => ({ expression: r.expression, message: r.message, field: r.field ?? null })),
     modified: detail.modified ?? null,
     documentCount: detail.documentCount ?? null,
@@ -180,6 +186,7 @@ export function toDefinition(draft: Draft): DocTypeDefinition {
     // Rows of a child table are named automatically.
     autoname: draft.isChildTable ? undefined : buildAutoname(draft),
     isChildTable: draft.isChildTable || undefined,
+    isSubmittable: (!draft.isChildTable && draft.isSubmittable) || undefined,
     fields: draft.fields.map((f) => ({
       name: f.name,
       type: f.type,
@@ -201,9 +208,12 @@ export function toDefinition(draft: Draft): DocTypeDefinition {
       fetchIfEmpty: (f.fetchFrom && f.fetchIfEmpty) || undefined,
       // Rows of a child table follow the access of the document, so they have no levels of their own.
       permLevel: (!draft.isChildTable && f.permLevel) || undefined,
+      allowOnSubmit: (draft.isSubmittable && !draft.isChildTable && f.allowOnSubmit) || undefined,
     })) as DocTypeDefinition['fields'],
     // Child table rows follow the permissions of the document they belong to.
-    permissions: draft.isChildTable ? [] : draft.permissions.filter((p) => p.role.trim() !== ''),
+    permissions: draft.isChildTable ? [] : draft.permissions
+      .filter((p) => p.role.trim() !== '')
+      .map((p) => (draft.isSubmittable ? p : { ...p, submit: undefined, cancel: undefined })),
     // Rules left completely blank are dropped; a half-filled rule is kept so the server can say what is missing.
     validations: draft.validations.some((r) => r.expression.trim() || r.message.trim())
       ? draft.validations

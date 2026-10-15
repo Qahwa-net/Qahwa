@@ -133,6 +133,22 @@ public static partial class DocTypeLoader
         CheckLogic(meta, seen, Add);
 
         errors.AddRange(CheckPermissionRules(meta.Permissions, "permissions"));
+        if (meta.IsSubmittable && meta.IsChildTable)
+            errors.Add(new FieldError("isSubmittable", "A child table cannot be submittable; its rows follow their document."));
+        if (!meta.IsSubmittable)
+        {
+            for (var i = 0; i < meta.Permissions.Count; i++)
+            {
+                if (meta.Permissions[i].Submit || meta.Permissions[i].Cancel)
+                    errors.Add(new FieldError($"permissions[{i}].submit", "Submit and cancel only apply to submittable DocTypes."));
+            }
+
+            for (var i = 0; i < meta.Fields.Count; i++)
+            {
+                if (meta.Fields[i].AllowOnSubmit)
+                    errors.Add(new FieldError($"fields[{i}].allowOnSubmit", "Allow on submit only applies to submittable DocTypes."));
+            }
+        }
         return errors;
     }
 
@@ -159,8 +175,8 @@ public static partial class DocTypeLoader
 
             if (rule.PermLevel is < 0 or > MaxPermLevel)
                 errors.Add(new FieldError($"{at}.permLevel", $"The permission level must be between 0 and {MaxPermLevel}."));
-            else if (rule.PermLevel > 0 && (rule.Create || rule.Delete))
-                errors.Add(new FieldError($"{at}.permLevel", "Create and delete only apply at level 0."));
+            else if (rule.PermLevel > 0 && (rule.Create || rule.Delete || rule.Submit || rule.Cancel))
+                errors.Add(new FieldError($"{at}.permLevel", "Create, delete, submit and cancel only apply at level 0."));
         }
 
         return errors;

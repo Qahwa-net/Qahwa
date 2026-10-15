@@ -29,6 +29,8 @@ export interface DocField {
   fetchIfEmpty?: boolean
   /** 0 is the document's own access; 1–9 need rules at that level (see the Role Permission Manager). */
   permLevel?: number
+  /** Submittable DocTypes: may still be changed after the document is submitted. */
+  allowOnSubmit?: boolean
 }
 
 export interface ValidationRule {
@@ -45,6 +47,8 @@ export interface DocPerm {
   delete: boolean
   ifOwner: boolean
   permLevel?: number
+  submit?: boolean
+  cancel?: boolean
 }
 
 export interface DocTypeMeta {
@@ -67,6 +71,7 @@ export interface DocTypeDefinition {
   titleField?: string
   autoname?: string
   isChildTable?: boolean
+  isSubmittable?: boolean
   fields: (Partial<DocField> & Pick<DocField, 'name' | 'type'>)[]
   permissions: DocPerm[]
   validations?: ValidationRule[]
@@ -125,6 +130,8 @@ export interface Permissions {
   write: boolean
   create: boolean
   delete: boolean
+  submit?: boolean
+  cancel?: boolean
 }
 
 export interface MetaResponse {
@@ -154,6 +161,7 @@ export interface PermissionView {
   /** Fields above level 0, so the matrix can say what each level protects. */
   fields: { name: string; label?: string | null; level: number }[]
   canEdit: boolean
+  isSubmittable?: boolean
 }
 
 export interface ShareInfo {

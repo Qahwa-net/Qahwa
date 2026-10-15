@@ -146,7 +146,7 @@ function Editor({ view, roles, onSaved }: { view: PermissionView; roles: string[
         Level 0 is access to the document itself. A level above 0 protects the fields placed at that level: only roles with a rule at that level can see or
         change them. Administrators can always use everything.
       </p>
-      <PermissionsEditor permissions={rules} roles={roles} disabled={disabled} errors={errors} errorPrefix="rules" onChange={setRules} />
+      <PermissionsEditor submittable={view.isSubmittable} permissions={rules} roles={roles} disabled={disabled} errors={errors} errorPrefix="rules" onChange={setRules} />
 
       {levels.length > 0 && (
         <div className="card">

@@ -252,6 +252,18 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
                 </small>
                 {errors.isChildTable && <small className="error-text" role="alert">{errors.isChildTable}</small>}
               </div>
+              {!draft.isChildTable && <div className="field full">
+                <label className="check-line">
+                  <input type="checkbox" checked={draft.isSubmittable} disabled={disabled || !draft.isNew}
+                    onChange={(e) => patch({ isSubmittable: e.target.checked })} />
+                  Documents are submitted and then locked (submittable)
+                </label>
+                <small className="muted">
+                  {draft.isNew ? 'Drafts can be edited freely. Submitting locks them except for fields marked as editable after submit; cancelling locks them for good. This cannot be changed after it is created.'
+                    : draft.isSubmittable ? 'Submittable. This cannot be changed after it is created.' : 'Not submittable. This cannot be changed after it is created.'}
+                </small>
+                {errors.isSubmittable && <small className="error-text" role="alert">{errors.isSubmittable}</small>}
+              </div>}
               {!draft.isChildTable && <label className="field">
                 <span>Title field</span>
                 <select value={draft.titleField} disabled={disabled} onChange={(e) => patch({ titleField: e.target.value })}>
@@ -324,7 +336,7 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
                 <FieldCard key={field.key} field={field} index={index} total={draft.fields.length}
                   expanded={open === field.key} info={typeInfo.get(field.type)} disabled={disabled}
                   otherNames={draft.fields.filter((f) => f.key !== field.key).map((f) => f.name)}
-                  doctypes={linkable} childTables={childTargets} inChildTable={draft.isChildTable} errors={errors}
+                  doctypes={linkable} childTables={childTargets} inChildTable={draft.isChildTable} submittable={draft.isSubmittable} errors={errors}
                   fieldNames={draft.fields.map((f) => f.name)} linkFields={draft.fields.filter((f) => f.type === 'Link')}
                   onToggle={() => setOpen(open === field.key ? null : field.key)}
                   onChange={(changes) => patchField(field.key, changes)}
@@ -349,7 +361,7 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
           {!draft.isChildTable && <section className="card">
             <h2>Who can use it</h2>
             <p className="muted">Administrators can always use every DocType. Add the roles that should be allowed to read, write, create or delete documents.</p>
-            <PermissionsEditor permissions={draft.permissions} roles={(roles.data?.data ?? []).map((r) => r.name)}
+            <PermissionsEditor submittable={draft.isSubmittable} permissions={draft.permissions} roles={(roles.data?.data ?? []).map((r) => r.name)}
               disabled={disabled} errors={errors} onChange={(permissions) => patch({ permissions })} />
           </section>}
         </div>
@@ -423,7 +435,7 @@ function PreviewForm({ draft }: { draft: Draft }) {
   })
 
   const meta: DocTypeMeta = {
-    name: draft.name || 'New DocType', isChildTable: draft.isChildTable, isSubmittable: false, trackChanges: false,
+    name: draft.name || 'New DocType', isChildTable: draft.isChildTable, isSubmittable: draft.isSubmittable, trackChanges: false,
     fields: draft.fields, validations: draft.validations,
   }
   const session: Session = { user: user?.user ?? '', roles: user?.roles ?? [], isNew: true }

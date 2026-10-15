@@ -18,6 +18,8 @@ interface Props {
   childTables: string[]
   /** The DocType being designed is itself a child table. */
   inChildTable: boolean
+  /** The DocType is submittable, so a field may be marked as editable after submit. */
+  submittable?: boolean
   /** Every field of the DocType being designed: what its expressions may read. */
   fieldNames: string[]
   /** The Link fields of the DocType being designed, for "fetch from". */
@@ -86,7 +88,7 @@ function Err({ message }: { message?: string }) {
 }
 
 export function FieldCard({
-  field, index, total, expanded, info, otherNames, doctypes, childTables, inChildTable, fieldNames, linkFields, errors, disabled,
+  field, index, total, expanded, info, otherNames, doctypes, childTables, inChildTable, submittable, fieldNames, linkFields, errors, disabled,
   onToggle, onChange, onMove, onRemove,
 }: Props) {
   const path = `fields[${index}]`
@@ -210,6 +212,11 @@ export function FieldCard({
                 <Err message={errors[`${path}.permLevel`]} />
               </label>}
 
+              {submittable && !inChildTable && <label className="check-line">
+                <input type="checkbox" checked={field.allowOnSubmit ?? false} disabled={disabled} onChange={(e) => onChange({ allowOnSubmit: e.target.checked })} />
+                Can still be changed after the document is submitted
+              </label>}
+
               <label className="field">
                 <span>Help text</span>
                 <input value={field.description ?? ''} disabled={disabled} onChange={(e) => onChange({ description: e.target.value })} />
@@ -258,7 +265,7 @@ export function FieldCard({
   )
 }
 
-export function PermissionsEditor({ permissions, roles, disabled, errors, onChange, errorPrefix = 'permissions' }: {
+export function PermissionsEditor({ permissions, roles, disabled, errors, onChange, errorPrefix = 'permissions', submittable = false }: {
   permissions: DocPerm[]
   roles: string[]
   disabled: boolean
@@ -266,9 +273,13 @@ export function PermissionsEditor({ permissions, roles, disabled, errors, onChan
   onChange: (next: DocPerm[]) => void
   /** The prefix of this table's error paths: the designer reports `permissions[0]`, the manager `rules[0]`. */
   errorPrefix?: string
+  /** Submittable DocTypes also have Submit and Cancel rights. */
+  submittable?: boolean
 }) {
-  const flags = ['read', 'write', 'create', 'delete', 'ifOwner'] as const
-  const labels = { read: 'Read', write: 'Write', create: 'Create', delete: 'Delete', ifOwner: 'Own only' } as const
+  const flags = (submittable
+    ? ['read', 'write', 'create', 'delete', 'submit', 'cancel', 'ifOwner']
+    : ['read', 'write', 'create', 'delete', 'ifOwner']) as ('read' | 'write' | 'create' | 'delete' | 'submit' | 'cancel' | 'ifOwner')[]
+  const labels = { read: 'Read', write: 'Write', create: 'Create', delete: 'Delete', submit: 'Submit', cancel: 'Cancel', ifOwner: 'Own only' } as const
 
   const update = (index: number, patch: Partial<DocPerm>) =>
     onChange(permissions.map((p, i) => (i === index ? { ...p, ...patch } : p)))
@@ -289,14 +300,14 @@ export function PermissionsEditor({ permissions, roles, disabled, errors, onChan
                 </td>
                 <td>
                   <select aria-label={`Level for ${p.role || 'role'}`} value={p.permLevel ?? 0} disabled={disabled}
-                    onChange={(e) => { const level = Number(e.target.value); update(i, level > 0 ? { permLevel: level, create: false, delete: false } : { permLevel: level }) }}>
+                    onChange={(e) => { const level = Number(e.target.value); update(i, level > 0 ? { permLevel: level, create: false, delete: false, submit: false, cancel: false } : { permLevel: level }) }}>
                     {Array.from({ length: 10 }, (_, n) => <option key={n} value={n}>{n}</option>)}
                   </select>
                   {errors[`${errorPrefix}[${i}].permLevel`] && <small className="error-text" role="alert">{errors[`${errorPrefix}[${i}].permLevel`]}</small>}
                 </td>
                 {flags.map((f) => (
                   <td key={f}>
-                    <input type="checkbox" aria-label={`${labels[f]} for ${p.role || 'role'}`} checked={p[f]} disabled={disabled || ((p.permLevel ?? 0) > 0 && (f === 'create' || f === 'delete'))}
+                    <input type="checkbox" aria-label={`${labels[f]} for ${p.role || 'role'}`} checked={p[f] ?? false} disabled={disabled || ((p.permLevel ?? 0) > 0 && (f === 'create' || f === 'delete' || f === 'submit' || f === 'cancel'))}
                       onChange={(e) => update(i, { [f]: e.target.checked })} />
                   </td>
                 ))}
@@ -304,12 +315,12 @@ export function PermissionsEditor({ permissions, roles, disabled, errors, onChan
                   onClick={() => onChange(permissions.filter((_, n) => n !== i))}>✕</button></td>
               </tr>
             ))}
-            {permissions.length === 0 && <tr><td colSpan={8} className="empty">No rules: only Administrators can use this DocType.</td></tr>}
+            {permissions.length === 0 && <tr><td colSpan={flags.length + 3} className="empty">No rules: only Administrators can use this DocType.</td></tr>}
           </tbody>
         </table>
       </div>
       <button type="button" className="btn small btn-gap" disabled={disabled}
-        onClick={() => onChange([...permissions, { role: '', read: true, write: false, create: false, delete: false, ifOwner: false, permLevel: 0 }])}>
+        onClick={() => onChange([...permissions, { role: '', read: true, write: false, create: false, delete: false, ifOwner: false, permLevel: 0, submit: false, cancel: false }])}>
         + Add rule
       </button>
     </div>

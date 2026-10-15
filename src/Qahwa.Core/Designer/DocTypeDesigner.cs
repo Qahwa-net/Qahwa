@@ -219,8 +219,8 @@ public sealed class DocTypeDesigner(
 
         if (existing is not null && existing.IsChildTable != definition.IsChildTable)
             errors.Add(new FieldError("isChildTable", "A DocType cannot be turned into a child table, or back, after it is created."));
-        if (definition.IsSubmittable)
-            errors.Add(new FieldError("isSubmittable", "Submittable DocTypes are not supported yet."));
+        if (existing is not null && existing.IsSubmittable != definition.IsSubmittable)
+            errors.Add(new FieldError("isSubmittable", "A DocType cannot be made submittable, or stop being submittable, after it is created."));
 
         errors.AddRange(registry.CheckReferences(definition));
 

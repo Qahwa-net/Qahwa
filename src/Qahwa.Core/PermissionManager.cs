@@ -30,7 +30,8 @@ public sealed record PermissionView(
     IReadOnlyList<DocPermMeta> Rules,
     IReadOnlyList<DocPermMeta> DefaultRules,
     IReadOnlyList<FieldLevelInfo> Fields,
-    bool CanEdit);
+    bool CanEdit,
+    bool IsSubmittable = false);
 
 /// <summary>
 /// The Role Permission Manager: who may read, write, create and delete documents of any DocType, at which field
@@ -76,7 +77,8 @@ public sealed class PermissionManager(
             custom ?? meta.Permissions,
             meta.Permissions,
             meta.Fields.Where(f => f.PermLevel > 0).Select(f => new FieldLevelInfo(f.Name, f.Label, f.PermLevel)).ToList(),
-            CanEdit(source, user));
+            CanEdit(source, user),
+            meta.IsSubmittable);
     }
 
     public async Task<PermissionView> SaveAsync(

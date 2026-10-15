@@ -89,9 +89,12 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
   const { user } = useAuth()
   const isNew = doc === null
   const editable = isNew ? perms.create : perms.write
+  /** Submittable DocTypes: 0 draft, 1 submitted (locked except "allow on submit" fields), 2 cancelled (locked). */
+  const docstatus = meta.isSubmittable && doc ? Number(doc.docstatus ?? 0) : 0
+  const locked = (f: DocField) => docstatus === 2 || (docstatus === 1 && !f.allowOnSubmit)
   const base = `/app/${encodeURIComponent(meta.name)}`
   /** Fields above level 0 are only editable by people with write rules at that level. */
-  const canWriteField = (f: DocField) => editable && ((f.permLevel ?? 0) === 0 || (writableLevels?.includes(f.permLevel!) ?? false))
+  const canWriteField = (f: DocField) => editable && !locked(f) && ((f.permLevel ?? 0) === 0 || (writableLevels?.includes(f.permLevel!) ?? false))
 
   const session = useMemo<Session>(
     () => ({ user: user?.user ?? '', roles: user?.roles ?? [], isNew }),
@@ -211,6 +214,21 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
     },
   })
 
+  const transition = useMutation({
+    mutationFn: (kind: 'submit' | 'cancel') => (kind === 'submit' ? api.submit : api.cancel)(meta.name, doc!.name, doc!.modified),
+    onSuccess: async (saved) => {
+      setFieldErrors({})
+      setBanner(null)
+      await queryClient.invalidateQueries({ queryKey: ['list', meta.name] })
+      queryClient.setQueryData(['doc', meta.name, saved.name], saved)
+    },
+    onError: (error) => {
+      if (!(error instanceof ApiError)) return setBanner({ text: 'Could not complete this. Please try again.', conflict: false })
+      const general = error.details.map((d) => d.message).join(' ')
+      setBanner({ text: general || error.message, conflict: error.status === 409 })
+    },
+  })
+
   const remove = useMutation({
     mutationFn: () => api.remove(meta.name, doc!.name),
     onSuccess: async () => {
@@ -237,14 +255,29 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
           <h1>{title} {!isNew && dirty && <span className="badge">Not saved</span>}</h1>
         </div>
         <span className="spacer" />
-        {!isNew && perms.write && <button className="btn" onClick={() => setSharing(!sharing)} aria-expanded={sharing}>Share</button>}
-        {!isNew && perms.delete && (
+        {!isNew && perms.write && docstatus !== 2 && <button className="btn" onClick={() => setSharing(!sharing)} aria-expanded={sharing}>Share</button>}
+        {!isNew && meta.isSubmittable && (
+          <span className={`badge status-${docstatus}`}>{['Draft', 'Submitted', 'Cancelled'][docstatus]}</span>
+        )}
+        {!isNew && docstatus === 0 && meta.isSubmittable && perms.submit && (
+          <button className="btn" disabled={dirty || transition.isPending} title={dirty ? 'Save your changes first' : undefined}
+            onClick={() => { if (window.confirm(`Submit ${meta.name} "${doc!.name}"? It will be locked afterwards.`)) transition.mutate('submit') }}>
+            Submit
+          </button>
+        )}
+        {!isNew && docstatus === 1 && perms.cancel && (
+          <button className="btn danger" disabled={dirty || transition.isPending}
+            onClick={() => { if (window.confirm(`Cancel ${meta.name} "${doc!.name}"? It cannot be changed afterwards.`)) transition.mutate('cancel') }}>
+            Cancel document
+          </button>
+        )}
+        {!isNew && perms.delete && docstatus !== 1 && (
           <button className="btn danger" disabled={remove.isPending}
             onClick={() => { if (window.confirm(`Delete ${meta.name} "${doc.name}"? This cannot be undone.`)) remove.mutate() }}>
             Delete
           </button>
         )}
-        {editable && (
+        {editable && docstatus !== 2 && (
           <button className="btn primary" disabled={!dirty || save.isPending} onClick={() => save.mutate()}>
             {save.isPending ? 'Saving…' : 'Save'}
           </button>
@@ -252,6 +285,8 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
       </div>
 
       {sharing && doc && <SharePanel doctype={meta.name} name={doc.name} onClose={() => setSharing(false)} />}
+      {docstatus === 2 && <div className="banner info" role="status">This document is cancelled and cannot be changed.</div>}
+      {docstatus === 1 && editable && <div className="banner info" role="status">This document is submitted. Only some fields can still be changed.</div>}
       {!editable && (
         <div className="banner info" role="status">
           {isNew ? 'You are not allowed to create this document.' : 'You have read-only access to this document.'}

@@ -111,6 +111,15 @@ export const api = {
 
   remove: (doctype: string, name: string) => request<unknown>('DELETE', resource(doctype, name)),
 
+  /** Submittable DocTypes: draft (0) to submitted (1) to cancelled (2). */
+  async submit(doctype: string, name: string, modified: unknown): Promise<Doc> {
+    return (await request<{ data: Doc }>('POST', `${resource(doctype, name)}/submit`, { modified })).data
+  },
+
+  async cancel(doctype: string, name: string, modified: unknown): Promise<Doc> {
+    return (await request<{ data: Doc }>('POST', `${resource(doctype, name)}/cancel`, { modified })).data
+  },
+
   share: {
     list: async (doctype: string, name: string) =>
       (await request<{ data: ShareInfo[] }>('GET', `/api/share/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}`)).data,

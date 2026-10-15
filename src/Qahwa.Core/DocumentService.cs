@@ -64,7 +64,9 @@ public sealed class DocumentService(
         permissions.Evaluate(meta, user, PermAction.Read) != AccessLevel.None,
         permissions.Evaluate(meta, user, PermAction.Write) != AccessLevel.None,
         permissions.Evaluate(meta, user, PermAction.Create) != AccessLevel.None && !meta.IsChildTable,
-        permissions.Evaluate(meta, user, PermAction.Delete) != AccessLevel.None);
+        permissions.Evaluate(meta, user, PermAction.Delete) != AccessLevel.None,
+        meta.IsSubmittable && permissions.Evaluate(meta, user, PermAction.Submit) != AccessLevel.None,
+        meta.IsSubmittable && permissions.Evaluate(meta, user, PermAction.Cancel) != AccessLevel.None);
 
     public async Task<Dictionary<string, object?>> InsertAsync(
         string doctype,
@@ -136,18 +138,52 @@ public sealed class DocumentService(
         return Strip(meta, doc, SharedAccess(permissions.FieldAccessFor(meta, user, doc.GetValueOrDefault("owner") as string, creating: false), viaShare, share));
     }
 
-    public async Task<Dictionary<string, object?>> UpdateAsync(
+    public Task<Dictionary<string, object?>> UpdateAsync(
         string doctype,
         string name,
         IReadOnlyDictionary<string, object?> input,
         IUserContext user,
-        CancellationToken ct = default)
+        CancellationToken ct = default) => UpdateCoreAsync(doctype, name, input, user, transition: null, ct);
+
+    /// <summary>Submits a draft of a submittable DocType (docstatus 0 to 1). The document is validated as for a save.</summary>
+    public Task<Dictionary<string, object?>> SubmitAsync(
+        string doctype, string name, IUserContext user, DateTime? modified = null, CancellationToken ct = default) =>
+        UpdateCoreAsync(doctype, name, TransitionInput(modified), user, transition: 1, ct);
+
+    /// <summary>Cancels a submitted document (docstatus 1 to 2). A cancelled document can no longer be changed.</summary>
+    public Task<Dictionary<string, object?>> CancelAsync(
+        string doctype, string name, IUserContext user, DateTime? modified = null, CancellationToken ct = default) =>
+        UpdateCoreAsync(doctype, name, TransitionInput(modified), user, transition: 2, ct);
+
+    private static Dictionary<string, object?> TransitionInput(DateTime? modified) =>
+        modified is null ? [] : new() { ["modified"] = modified };
+
+    private static DocumentValidationException General(string message) => new([new FieldError(string.Empty, message)]);
+
+    private async Task<Dictionary<string, object?>> UpdateCoreAsync(
+        string doctype,
+        string name,
+        IReadOnlyDictionary<string, object?> input,
+        IUserContext user,
+        int? transition,
+        CancellationToken ct)
     {
         var meta = RequireTopLevel(registry.Get(doctype));
-        var (level, share) = await PreAuthorizeAsync(meta, user, PermAction.Write, name, ct);
+        var action = transition switch { 1 => PermAction.Submit, 2 => PermAction.Cancel, _ => PermAction.Write };
+        var (level, share) = await PreAuthorizeAsync(meta, user, action, name, ct);
         var existing = await repository.GetAsync(meta, name, ct)
             ?? throw new NotFoundException($"{meta.Name} '{name}' was not found.");
-        var viaShare = Settle(level, share, PermAction.Write, existing, user);
+        var viaShare = Settle(level, share, action, existing, user);
+
+        var status = Convert.ToInt32(existing.GetValueOrDefault("docstatus") ?? 0);
+        if (transition is not null && !meta.IsSubmittable)
+            throw General($"{meta.Name} is not a submittable DocType.");
+        if (transition == 1 && status != 0)
+            throw General("Only a draft can be submitted.");
+        if (transition == 2 && status != 1)
+            throw General("Only a submitted document can be cancelled.");
+        if (transition is null && meta.IsSubmittable && status == 2)
+            throw General("A cancelled document cannot be changed.");
         var restrictions = await RestrictionsAsync(meta, user, ct);
         RequireRestrictions(restrictions, existing, meta);
         var fieldAccess = SharedAccess(permissions.FieldAccessFor(meta, user, existing.GetValueOrDefault("owner") as string, creating: false), viaShare, share);
@@ -164,6 +200,16 @@ public sealed class DocumentService(
         }
 
         CheckRestrictedValues(restrictions, changes, errors);
+
+        // After submit only the fields marked "allow on submit" may change.
+        if (transition is null && meta.IsSubmittable && status == 1)
+        {
+            foreach (var key in changes.Keys)
+            {
+                if (meta.Fields.FirstOrDefault(f => f.Name == key) is { AllowOnSubmit: false })
+                    errors.Add(new FieldError(key, "This field cannot be changed after the document is submitted."));
+            }
+        }
 
         // A client may echo back values it was shown; it may not change fields above its permission level.
         foreach (var key in changes.Keys)
@@ -232,8 +278,19 @@ public sealed class DocumentService(
                 errors.Add(new FieldError(table.Field.Name, "You do not have permission to change this table."));
         }
 
+        if (transition is null && meta.IsSubmittable && status == 1)
+        {
+            foreach (var table in tables.Where(t => t.Provided && !t.Field.AllowOnSubmit))
+            {
+                if (!BuildChanges(table, meta, name, currentRows[table.Field.Name], Now(), user).IsEmpty)
+                    errors.Add(new FieldError(table.Field.Name, "This table cannot be changed after the document is submitted."));
+            }
+        }
+
         CheckRequiredTables(meta, tables.Where(t => t.Provided).ToList(), errors, onlyIfProvided: true);
         ValidateRules(meta, tables, merged, context, user, isNew: false, errors);
+        if (transition == 2)
+            errors.Clear(); // an old document that no longer passes today's rules can still be cancelled
         if (errors.Count > 0)
             throw new DocumentValidationException(errors);
 
@@ -242,6 +299,8 @@ public sealed class DocumentService(
             .Select(t => BuildChanges(t, meta, name, currentRows[t.Field.Name], now, user))
             .Where(c => !c.IsEmpty)
             .ToList();
+        if (transition is not null)
+            changes["docstatus"] = transition.Value;
         if (changes.Count == 0 && children.Count == 0)
             return (await LoadForAsync(meta, name, user, ct))!;
 
@@ -262,6 +321,8 @@ public sealed class DocumentService(
             ?? throw new NotFoundException($"{meta.Name} '{name}' was not found.");
         permissions.RequireOwnership(access, existing, user);
         RequireRestrictions(await RestrictionsAsync(meta, user, ct), existing, meta);
+        if (meta.IsSubmittable && Convert.ToInt32(existing.GetValueOrDefault("docstatus") ?? 0) == 1)
+            throw General("A submitted document cannot be deleted. Cancel it first.");
 
         var childTables = TableFields(meta).Select(f => registry.Get(f.Options!)).ToList();
         if (!await repository.DeleteAsync(meta, name, childTables, ct))
