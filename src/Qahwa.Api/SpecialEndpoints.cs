@@ -77,6 +77,27 @@ public static class SpecialEndpoints
             return Results.Ok(new { data = result.Rows, truncated = result.Truncated });
         });
 
+        // Link fields: type-ahead search, and the friendly names of values already chosen.
+        app.MapGet("/api/link/{doctype}/search", async (
+            string doctype, string? q, int? limit, HttpContext http, DocumentService docs, IUserContextResolver users, CancellationToken ct) =>
+            Results.Ok(new { data = await docs.SearchLinkAsync(doctype, q, limit ?? 10, await users.ResolveAsync(http, ct), ct) }));
+
+        app.MapGet("/api/link/{doctype}/titles", async (
+            string doctype, string? names, HttpContext http, DocumentService docs, IUserContextResolver users, CancellationToken ct) =>
+        {
+            List<string> wanted;
+            try
+            {
+                wanted = string.IsNullOrWhiteSpace(names) ? [] : System.Text.Json.JsonSerializer.Deserialize<List<string>>(names) ?? [];
+            }
+            catch (System.Text.Json.JsonException)
+            {
+                throw new DocumentValidationException("'names' must be a JSON array of names.");
+            }
+
+            return Results.Ok(new { data = await docs.LinkTitlesAsync(doctype, wanted, await users.ResolveAsync(http, ct), ct) });
+        });
+
         app.MapGet("/api/tree/{doctype}", async (
             string doctype, string? parent, HttpContext http, DocumentService docs, IUserContextResolver users, CancellationToken ct) =>
             Results.Ok(new { data = await docs.TreeChildrenAsync(doctype, parent, await users.ResolveAsync(http, ct), ct) }));

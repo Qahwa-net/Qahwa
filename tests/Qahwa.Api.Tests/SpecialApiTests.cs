@@ -138,3 +138,52 @@ public sealed class SpecialApiTests : IAsyncDisposable
         Assert.Equal(HttpStatusCode.NotFound, (await sysmgr.PutAsJsonAsync("/api/naming/series", new { prefix = "NOPE-", current = 1 })).StatusCode);
     }
 }
+
+public sealed class LinkApiTests : IAsyncDisposable
+{
+    private readonly QahwaFactory _factory = new();
+
+    public ValueTask DisposeAsync() => _factory.DisposeAsync();
+
+    private static async Task<JsonElement> JsonOf(HttpResponseMessage response) =>
+        (await response.Content.ReadFromJsonAsync<JsonElement>()).Clone();
+
+    [Fact]
+    public async Task Link_search_and_titles_show_friendly_names()
+    {
+        var manager = _factory.ClientFor("m@example.com", "Sales Manager");
+        var id = (await JsonOf(await manager.PostAsJsonAsync("/api/resource/Customer", new { customer_name = "Acme Trading" }))).GetProperty("data").GetProperty("name").GetString();
+
+        var search = await JsonOf(await manager.GetAsync("/api/link/Customer/search?q=acme"));
+        var option = search.GetProperty("data")[0];
+        Assert.Equal(id, option.GetProperty("value").GetString());
+        Assert.Equal("Acme Trading", option.GetProperty("label").GetString());
+
+        var names = Uri.EscapeDataString($"[\"{id}\",\"MISSING\"]");
+        var titles = await JsonOf(await manager.GetAsync($"/api/link/Customer/titles?names={names}"));
+        Assert.Equal("Acme Trading", titles.GetProperty("data").GetProperty(id!).GetProperty("label").GetString());
+        Assert.False(titles.GetProperty("data").TryGetProperty("MISSING", out _));
+
+        Assert.Equal(HttpStatusCode.BadRequest, (await manager.GetAsync("/api/link/Customer/titles?names=not-json")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await _factory.ClientFor("n@example.com", "Nobody").GetAsync("/api/link/Customer/search?q=")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateClient().GetAsync("/api/link/Customer/search?q=")).StatusCode);
+    }
+
+    [Fact]
+    public async Task The_share_picker_lists_people_by_name()
+    {
+        var admin = _factory.ClientFor("Administrator");
+        await admin.PostAsJsonAsync("/api/resource/User", new { email = "ann@example.com", full_name = "Ann Lee" });
+        var seller = _factory.ClientFor("a@example.com", "Sales User");
+        var id = (await JsonOf(await seller.PostAsJsonAsync("/api/resource/Customer", new { customer_name = "Acme" }))).GetProperty("data").GetProperty("name").GetString();
+
+        var found = await JsonOf(await seller.GetAsync($"/api/share/Customer/{id}/users?q=ann"));
+        Assert.Equal("Ann Lee", found.GetProperty("data")[0].GetProperty("label").GetString());
+
+        await seller.PutAsJsonAsync($"/api/share/Customer/{id}", new { user = "ann@example.com", read = true });
+        var shares = await JsonOf(await seller.GetAsync($"/api/share/Customer/{id}"));
+        Assert.Equal("Ann Lee", shares.GetProperty("data")[0].GetProperty("fullName").GetString());
+
+        Assert.Equal(HttpStatusCode.Forbidden, (await _factory.ClientFor("b@example.com", "Sales User").GetAsync($"/api/share/Customer/{id}/users?q=a")).StatusCode);
+    }
+}

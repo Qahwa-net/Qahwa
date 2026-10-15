@@ -234,6 +234,18 @@ tbody tr:last-child td { border-block-end: 0; }
 .rule .expression { grid-column: 1 / -1; }
 .check-line.plain { font-weight: 400; }
 
+/* Link select */
+.link-select { position: relative; }
+.link-select input { width: 100%; padding-right: 1.75rem; }
+.link-clear { position: absolute; right: .25rem; top: 50%; transform: translateY(-50%); border: 0; background: none; cursor: pointer; opacity: .6; }
+.link-clear:hover { opacity: 1; }
+.link-options { position: absolute; z-index: 20; left: 0; right: 0; margin: .15rem 0 0; padding: .25rem 0; list-style: none; max-height: 16rem; overflow: auto;
+  background: var(--surface, #fff); border: 1px solid var(--border, #d0d5dd); border-radius: 6px; box-shadow: 0 6px 18px rgba(0, 0, 0, .12); }
+.link-options li { display: flex; justify-content: space-between; gap: 1rem; padding: .4rem .75rem; cursor: pointer; }
+.link-options li.active { background: var(--accent-soft, rgba(0, 0, 0, .06)); }
+.link-options li.link-note { cursor: default; color: var(--muted, #667085); }
+.share-user { flex: 1; min-width: 14rem; }
+
 /* Report, tree, rename */
 .report-panel, .rename-panel { margin-bottom: 1rem; }
 .report-form { display: flex; gap: 1rem; align-items: end; flex-wrap: wrap; }

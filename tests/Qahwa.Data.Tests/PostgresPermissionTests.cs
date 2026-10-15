@@ -187,3 +187,20 @@ public class PostgresSpecialTests(PostgresFixture postgres) : IClassFixture<Post
         Assert.Equal(7, (await db.Documents.UpdateAsync("App Settings", "App Settings", Values(("limit", 7)), Editor))["limit"]);
     }
 }
+
+public class PostgresLinkSearchTests(PostgresFixture postgres) : IClassFixture<PostgresFixture>
+{
+    [SkippableFact]
+    public async Task Link_search_ignores_case_and_shows_titles_against_postgres()
+    {
+        Skip.IfNot(postgres.Available, postgres.SkipReason);
+        await using var db = await postgres.CreateStackAsync();
+        await db.Documents.InsertAsync("Customer", Values(("customer_name", "Acme Trading")), TestUsers.Admin);
+        await db.Documents.InsertAsync("Customer", Values(("customer_name", "Globex")), TestUsers.Admin);
+
+        var found = await db.Documents.SearchLinkAsync("Customer", "ACME", 10, TestUsers.Admin);
+
+        Assert.Equal("Acme Trading", Assert.Single(found).Label);
+        Assert.Equal(["Acme Trading"], (await db.Documents.SearchLinkAsync("Customer", "trad", 10, TestUsers.Admin)).Select(o => o.Label));
+    }
+}

@@ -1,6 +1,6 @@
 import type {
   DesignerDetail, DocPerm, DesignerItem, DesignerPreview, Doc, DocTypeDefinition, FieldError, FieldTypeInfo,
-  ListResponse, MetaResponse, MetaSummary, PermissionItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
+  ListResponse, MetaResponse, MetaSummary, PermissionItem, LinkOption, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
 } from './types.ts'
 import type { Filter } from '../lib/filters.ts'
 import { toApiFilters } from '../lib/filters.ts'
@@ -111,6 +111,19 @@ export const api = {
 
   remove: (doctype: string, name: string) => request<unknown>('DELETE', resource(doctype, name)),
 
+  /** Type-ahead choices for a Link field: documents of the target DocType matching the text, by name or title. */
+  async linkSearch(doctype: string, text: string): Promise<LinkOption[]> {
+    const query = new URLSearchParams({ q: text, limit: '10' })
+    return (await request<{ data: LinkOption[] }>('GET', `/api/link/${encodeURIComponent(doctype)}/search?${query}`)).data
+  },
+
+  /** The friendly names of documents already chosen, keyed by their stored name. */
+  async linkTitles(doctype: string, names: string[]): Promise<Record<string, LinkOption>> {
+    if (names.length === 0) return {}
+    const query = new URLSearchParams({ names: JSON.stringify(names) })
+    return (await request<{ data: Record<string, LinkOption> }>('GET', `/api/link/${encodeURIComponent(doctype)}/titles?${query}`)).data
+  },
+
   /** Renames a document, or merges it into an existing one. Returns the new name. */
   async rename(doctype: string, name: string, newName: string, merge: boolean): Promise<string> {
     return (await request<{ data: { name: string } }>('POST', `${resource(doctype, name)}/rename`, { newName, merge })).data.name
@@ -151,6 +164,8 @@ export const api = {
   },
 
   share: {
+    users: async (doctype: string, name: string, text: string) =>
+      (await request<{ data: LinkOption[] }>('GET', `/api/share/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}/users?${new URLSearchParams({ q: text })}`)).data,
     list: async (doctype: string, name: string) =>
       (await request<{ data: ShareInfo[] }>('GET', `/api/share/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}`)).data,
     set: async (doctype: string, name: string, user: string, read: boolean, write: boolean) =>

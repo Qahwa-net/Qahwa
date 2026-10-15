@@ -18,7 +18,7 @@ public readonly record struct ShareGrant(bool Read, bool Write)
 }
 
 /// <summary>A document shared with someone, as shown to the person managing the shares.</summary>
-public sealed record ShareInfo(string User, bool Read, bool Write);
+public sealed record ShareInfo(string User, bool Read, bool Write, string? FullName = null);
 
 /// <summary>Reads the DocShare rows the engine needs to decide access. Managing them is <see cref="ShareManager"/>'s job.</summary>
 public sealed class ShareStore(IMetaRegistry registry, IDocumentRepository repository)
@@ -100,8 +100,57 @@ public sealed class ShareManager(
     public async Task<IReadOnlyList<ShareInfo>> ListAsync(string doctype, string name, IUserContext actor, CancellationToken ct = default)
     {
         await RequireSharerAsync(doctype, name, actor, ct);
-        return (await store.RowsForDocumentAsync(doctype, name, ct))
-            .Select(r => { var g = ShareStore.GrantOf(r); return new ShareInfo((string)r["user"]!, g.Read || g.Write, g.Write); })
+        var result = new List<ShareInfo>();
+        foreach (var row in await store.RowsForDocumentAsync(doctype, name, ct))
+        {
+            var user = (string)row["user"]!;
+            var full = registry.TryGet("User", out var userMeta) ? (await repository.GetAsync(userMeta, user, ct))?.GetValueOrDefault("full_name") as string : null;
+            var grant = ShareStore.GrantOf(row);
+            result.Add(new ShareInfo(user, grant.Read || grant.Write, grant.Write, full));
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Users the document could be shared with, matching what was typed (by name or email), for the Share panel's picker.
+    /// Only people who may share this document can ask, and only enabled users other than themselves are offered.
+    /// </summary>
+    public async Task<IReadOnlyList<LinkOption>> SearchUsersAsync(
+        string doctype, string name, string? search, IUserContext actor, CancellationToken ct = default)
+    {
+        await RequireSharerAsync(doctype, name, actor, ct);
+        if (!registry.TryGet("User", out var userMeta))
+            return [];
+
+        search = (search ?? string.Empty).Trim();
+        if (search.Length > 100)
+            search = search[..100];
+
+        async Task<IReadOnlyList<Dictionary<string, object?>>> Find(string field) =>
+            await repository.ListAsync(userMeta, new ListQuery
+            {
+                Filters = [new QueryFilter("enabled", FilterOp.Eq, true), .. (search.Length == 0 ? [] : new[] { new QueryFilter(field, FilterOp.Like, "%" + search + "%") })],
+                Fields = ["name", "email", "full_name"],
+                OrderBy = field == "email" ? "email" : "full_name",
+                Descending = false,
+                Limit = 20,
+            }, ct);
+
+        var rows = new List<Dictionary<string, object?>>(await Find("full_name"));
+        if (search.Length > 0)
+        {
+            foreach (var row in await Find("email"))
+            {
+                if (rows.All(r => !Equals(r["name"], row["name"])))
+                    rows.Add(row);
+            }
+        }
+
+        return rows
+            .Where(r => !string.Equals(r["name"] as string, actor.User, StringComparison.Ordinal))
+            .Take(20)
+            .Select(r => new LinkOption((string)r["name"]!, r.GetValueOrDefault("full_name") as string is { Length: > 0 } full ? full : (string)r["name"]!, (string)r["name"]!))
             .ToList();
     }
 

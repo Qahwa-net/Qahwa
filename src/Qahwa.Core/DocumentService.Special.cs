@@ -4,6 +4,9 @@ namespace Qahwa.Core;
 
 public sealed record ExportResult(IReadOnlyList<string> Columns, IReadOnlyList<Dictionary<string, object?>> Rows, bool Truncated);
 
+/// <summary>One choice in a Link field: the stored value, what to show for it, and a smaller hint (usually the ID).</summary>
+public sealed record LinkOption(string Value, string Label, string? Description);
+
 public sealed record ReportRow(string? Group, decimal Value);
 
 public sealed record ReportResult(IReadOnlyList<ReportRow> Rows, bool Truncated);
@@ -152,6 +155,82 @@ public sealed partial class DocumentService
             Limit = MaxLimit,
         }, user, ct);
         return result.Data.Select(r => new Dictionary<string, object?>(r)).ToList();
+    }
+
+    // ---- Link fields: search and friendly names ------------------------------------------------------------------
+
+    public const int MaxLinkResults = 20;
+    public const int MaxLinkTitles = 50;
+    private const int MaxSearchLength = 100;
+
+    /// <summary>The field that gives a document its human name: the title field, if the DocType has one.</summary>
+    private static string? LabelField(DocTypeMeta meta) =>
+        meta.TitleField is { } title && title != "name" && meta.Fields.Any(f => f.Name == title && FieldTypes.HasColumn(f.Type)) ? title : null;
+
+    private static LinkOption ToOption(Dictionary<string, object?> row, string? labelField)
+    {
+        var name = (string)row["name"]!;
+        var label = labelField is not null && row.GetValueOrDefault(labelField) is string { Length: > 0 } title ? title : name;
+        return new LinkOption(name, label, label == name ? null : name);
+    }
+
+    /// <summary>
+    /// Documents of the linked DocType matching what the user typed, by name or by title. Goes through the normal list
+    /// rules, so the user only sees documents they may read; an empty search gives the most recent ones.
+    /// </summary>
+    public async Task<IReadOnlyList<LinkOption>> SearchLinkAsync(
+        string doctype, string? search, int limit, IUserContext user, CancellationToken ct = default)
+    {
+        var meta = RequireTopLevel(registry.Get(doctype));
+        search = (search ?? string.Empty).Trim();
+        if (search.Length > MaxSearchLength)
+            search = search[..MaxSearchLength];
+        limit = Math.Clamp(limit, 1, MaxLinkResults);
+
+        var labelField = LabelField(meta);
+        var fields = labelField is null ? new List<string> { "name" } : ["name", labelField];
+        async Task<IReadOnlyList<Dictionary<string, object?>>> Find(string field) =>
+            (await ListAsync(doctype, new ListRequest
+            {
+                Filters = search.Length == 0 ? [] : [new RawFilter(field, "like", "%" + search + "%")],
+                Fields = fields,
+                OrderBy = search.Length == 0 ? "modified" : "name",
+                Descending = search.Length == 0,
+                Limit = limit,
+            }, user, ct)).Data;
+
+        var rows = new List<Dictionary<string, object?>>(await Find("name"));
+        if (search.Length > 0 && labelField is not null)
+        {
+            foreach (var row in await Find(labelField))
+            {
+                if (rows.All(r => !Equals(r["name"], row["name"])))
+                    rows.Add(row);
+            }
+        }
+
+        return rows.Take(limit).Select(r => ToOption(r, labelField)).ToList();
+    }
+
+    /// <summary>The friendly names of documents already chosen (for showing "Acme Ltd" instead of "CUST-00001"). Unreadable ones are left out.</summary>
+    public async Task<IReadOnlyDictionary<string, LinkOption>> LinkTitlesAsync(
+        string doctype, IReadOnlyCollection<string> names, IUserContext user, CancellationToken ct = default)
+    {
+        var meta = RequireTopLevel(registry.Get(doctype));
+        var wanted = names.Where(n => !string.IsNullOrEmpty(n)).Distinct(StringComparer.Ordinal).Take(MaxLinkTitles).ToList();
+        if (wanted.Count == 0)
+            return new Dictionary<string, LinkOption>();
+
+        var labelField = LabelField(meta);
+        var rows = (await ListAsync(doctype, new ListRequest
+        {
+            Filters = [new RawFilter("name", "in", wanted)],
+            Fields = labelField is null ? ["name"] : ["name", labelField],
+            OrderBy = "name",
+            Descending = false,
+            Limit = MaxLinkTitles,
+        }, user, ct)).Data;
+        return rows.Select(r => ToOption(r, labelField)).ToDictionary(o => o.Value, o => o, StringComparer.Ordinal);
     }
 
     // ---- Export and reports ---------------------------------------------------------------------------------------

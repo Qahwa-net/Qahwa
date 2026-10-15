@@ -71,6 +71,8 @@ public sealed class PostgresDialect : ISqlDialect
         "\"password_changed\" timestamp with time zone NOT NULL, " +
         "\"user_created\" timestamp with time zone NOT NULL)";
 
+    public string LikeOperator => "ILIKE";
+
     public string ListSeriesSql => "SELECT \"name\", \"current\" FROM \"tabSeries\" ORDER BY \"name\"";
 
     public string SetSeriesSql =>

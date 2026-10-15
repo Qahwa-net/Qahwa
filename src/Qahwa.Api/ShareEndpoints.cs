@@ -17,6 +17,10 @@ public static class ShareEndpoints
             string doctype, string name, HttpContext http, IUserContextResolver users, ShareManager shares, CancellationToken ct) =>
             Results.Ok(new { data = await shares.ListAsync(doctype, name, await users.ResolveAsync(http, ct), ct) }));
 
+        group.MapGet("/users", async (
+            string doctype, string name, string? q, HttpContext http, IUserContextResolver users, ShareManager shares, CancellationToken ct) =>
+            Results.Ok(new { data = await shares.SearchUsersAsync(doctype, name, q, await users.ResolveAsync(http, ct), ct) }));
+
         group.MapPut("", async (
             string doctype, string name, ShareRequest body, HttpContext http, IUserContextResolver users, ShareManager shares, CancellationToken ct) =>
         {

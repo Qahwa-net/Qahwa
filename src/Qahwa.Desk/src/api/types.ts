@@ -177,8 +177,16 @@ export interface PermissionView {
   isSubmittable?: boolean
 }
 
+/** One choice in a link field: the stored value, what to show, and a smaller hint (usually the ID). */
+export interface LinkOption {
+  value: string
+  label: string
+  description?: string | null
+}
+
 export interface ShareInfo {
   user: string
+  fullName?: string | null
   read: boolean
   write: boolean
 }

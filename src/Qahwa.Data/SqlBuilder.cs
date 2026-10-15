@@ -212,7 +212,7 @@ public sealed class SqlBuilder(ISqlDialect dialect)
         }
     }
 
-    private static string Symbol(FilterOp op) => op switch
+    private string Symbol(FilterOp op) => op switch
     {
         FilterOp.Eq => "=",
         FilterOp.Ne => "<>",
@@ -220,7 +220,7 @@ public sealed class SqlBuilder(ISqlDialect dialect)
         FilterOp.Lt => "<",
         FilterOp.Ge => ">=",
         FilterOp.Le => "<=",
-        FilterOp.Like => "LIKE",
+        FilterOp.Like => dialect.LikeOperator,
         _ => throw new ArgumentOutOfRangeException(nameof(op), op, "Unsupported operator."),
     };
 

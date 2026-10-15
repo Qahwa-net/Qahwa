@@ -1,9 +1,9 @@
-import { useId, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useId } from 'react'
 import { api } from '../api/client.ts'
 import type { DocField } from '../api/types.ts'
 import { isEditable, labelOf, selectOptions } from '../lib/fields.ts'
 import type { FieldState } from '../lib/logic.ts'
+import { LinkSelect } from './LinkSelect.tsx'
 
 export type InputValue = string | boolean
 
@@ -18,36 +18,23 @@ interface InputProps {
   ariaLabel?: string
 }
 
-/** Suggests existing documents of the linked DocType as the user types. */
+/** Choose an existing document of the linked DocType by typing part of its name; shows friendly names, not IDs. */
 function LinkInput({ field, value, onChange, readOnly, id, invalid, ariaLabel }: InputProps) {
-  const listId = useId()
-  const [search, setSearch] = useState('')
   const target = field.options ?? ''
-  const suggestions = useQuery({
-    queryKey: ['link', target, search],
-    enabled: Boolean(target) && !readOnly && field.type === 'Link',
-    queryFn: () =>
-      api.list(target, {
-        fields: ['name'],
-        filters: search ? [{ field: 'name', op: 'like', value: search }] : [],
-        orderBy: 'modified',
-        descending: true,
-        limit: 10,
-        offset: 0,
-      }),
-    // A user who cannot read the target DocType simply gets no suggestions.
-    retry: false,
-  })
+  if (field.type !== 'Link' || !target) {
+    // Dynamic links name their target in another field, so there is nothing to search yet.
+    return <input id={id} type="text" value={String(value)} readOnly={readOnly} aria-invalid={invalid} aria-label={ariaLabel}
+      autoComplete="off" onChange={(e) => onChange(e.target.value)} />
+  }
 
   return (
-    <>
-      <input id={id} list={listId} type="text" value={String(value)} readOnly={readOnly} aria-invalid={invalid}
-        aria-label={ariaLabel} autoComplete="off"
-        onChange={(e) => { onChange(e.target.value); setSearch(e.target.value) }} />
-      <datalist id={listId}>
-        {suggestions.data?.data.map((doc) => <option key={doc.name} value={doc.name} />)}
-      </datalist>
-    </>
+    <LinkSelect
+      id={id} ariaLabel={ariaLabel} invalid={invalid} readOnly={readOnly} value={String(value)}
+      cacheKey={['link', target]}
+      search={(text) => api.linkSearch(target, text)}
+      resolve={async (name) => (await api.linkTitles(target, [name]))[name]}
+      onChange={(next) => onChange(next)}
+    />
   )
 }
 

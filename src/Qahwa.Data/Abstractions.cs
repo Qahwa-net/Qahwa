@@ -49,6 +49,9 @@ public interface ISqlDialect
     /// <summary>The table or index being created already exists (another instance got there first).</summary>
     bool IsDuplicateObject(Exception exception);
 
+    /// <summary>The text-matching operator. Searches are case-insensitive, so a typed "acme" finds "Acme Ltd".</summary>
+    string LikeOperator => "LIKE";
+
     string TableName(string docType) => Quote("tab" + docType);
 }
 

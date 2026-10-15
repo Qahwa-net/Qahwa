@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { keepPreviousData, useQueries, useQuery } from '@tanstack/react-query'
 import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ApiError, api } from '../api/client.ts'
 import type { DocField } from '../api/types.ts'
@@ -77,6 +77,26 @@ export function ListView() {
       }),
   })
 
+  // Link columns show the linked document's friendly name instead of its ID.
+  const linkColumns = columns.filter((c) => c.type === 'Link' && c.options)
+  const labelQueries = useQueries({
+    queries: linkColumns.map((c) => {
+      const names = [...new Set((list.data?.data ?? []).map((d) => d[c.name]).filter((v): v is string => typeof v === 'string' && v !== ''))].sort()
+      return {
+        queryKey: ['link', c.options, 'titles', names],
+        queryFn: () => api.linkTitles(c.options!, names),
+        enabled: names.length > 0,
+        retry: false,
+        staleTime: 60_000,
+      }
+    }),
+  })
+  const cellText = (column: DocField, value: unknown): string => {
+    const index = linkColumns.findIndex((c) => c.name === column.name)
+    const label = index >= 0 && typeof value === 'string' ? labelQueries[index]?.data?.[value]?.label : undefined
+    return label ?? formatCell(column, value)
+  }
+
   if (metaQuery.isError) {
     const forbidden = metaQuery.error instanceof ApiError && (metaQuery.error.status === 403 || metaQuery.error.status === 404)
     return <div className="banner error" role="alert">
@@ -144,7 +164,7 @@ export function ListView() {
                   </Link>
                   {titleField && <div className="muted small-text">{doc.name}</div>}
                 </td>
-                {otherColumns.map((c) => <td key={c.name}>{formatCell(c, doc[c.name])}</td>)}
+                {otherColumns.map((c) => <td key={c.name}>{cellText(c, doc[c.name])}</td>)}
                 <td className="nowrap">{formatCell({ ...STANDARD_FIELDS[4]! }, doc.modified)}</td>
               </tr>
             ))}
