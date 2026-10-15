@@ -74,9 +74,14 @@ public sealed class PgStack : IAsyncDisposable
         Shares = new ShareStore(Registry, Repository);
         Profiles = new ProfileService(Registry, Repository, Clock);
         History = new HistoryRecorder(Registry, Repository, Clock);
-        Documents = new DocumentService(Registry, Repository, permissions, new NamingService(Repository), Clock, new UserPermissionService(Registry, Repository), Shares, Profiles, History);
-        ShareManager = new ShareManager(Registry, Repository, Documents, permissions, Shares, History);
-        Activity = new ActivityService(Registry, Repository, Documents, permissions, History);
+        var lazyDocuments = new Lazy<DocumentService>(() => Documents!);
+        Notifications = new NotificationService(Registry, Repository, lazyDocuments, History);
+        Follows = new FollowService(Registry, Repository, lazyDocuments, History);
+        Collaboration = new CollaborationHooks(Follows, Notifications, Registry, Repository);
+        Documents = new DocumentService(Registry, Repository, permissions, new NamingService(Repository), Clock, new UserPermissionService(Registry, Repository), Shares, Profiles, History, Collaboration);
+        ShareManager = new ShareManager(Registry, Repository, Documents, permissions, Shares, History, Notifications);
+        Activity = new ActivityService(Registry, Repository, Documents, permissions, History, Collaboration);
+        Assignments = new AssignmentService(Registry, Repository, Documents, permissions, ShareManager, Notifications, Follows, History);
         DocTypeStore = new DocTypeStore(_connections, Dialect, new PostgresSchemaInspector(_connections));
         SchemaManager = new SchemaManager(Sync, Dialect);
         Designer = new DocTypeDesigner(Registry, DocTypeStore, SchemaManager, Repository, Clock);
@@ -99,6 +104,10 @@ public sealed class PgStack : IAsyncDisposable
     public ProfileService Profiles { get; }
     public HistoryRecorder History { get; }
     public ActivityService Activity { get; }
+    public NotificationService Notifications { get; }
+    public FollowService Follows { get; }
+    public CollaborationHooks Collaboration { get; }
+    public AssignmentService Assignments { get; }
     public ShareManager ShareManager { get; }
     public DocTypeStore DocTypeStore { get; }
     public SchemaManager SchemaManager { get; }

@@ -1,6 +1,6 @@
 import type {
   DesignerDetail, DocPerm, DesignerItem, DesignerPreview, Doc, DocTypeDefinition, FieldError, FieldTypeInfo,
-  ListResponse, MetaResponse, MetaSummary, PermissionItem, ActivityItem, Customization, CustomizationItem, CustomizationView, LinkOption, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
+  ListResponse, MetaResponse, MetaSummary, PermissionItem, ActivityItem, AssignmentInfo, Customization, CustomizationItem, CustomizationView, FollowState, LinkOption, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
 } from './types.ts'
 import type { Filter } from '../lib/filters.ts'
 import { toApiFilters } from '../lib/filters.ts'
@@ -170,6 +170,30 @@ export const api = {
       (await request<{ data: ShareInfo[] }>('GET', `/api/share/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}`)).data,
     set: async (doctype: string, name: string, user: string, read: boolean, write: boolean) =>
       (await request<{ data: ShareInfo[] }>('PUT', `/api/share/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}`, { user, read, write })).data,
+  },
+
+  notifications: {
+    list: async (unreadOnly: boolean) =>
+      (await request<{ data: NotificationItem[] }>('GET', `/api/notifications?limit=30${unreadOnly ? '&unread=true' : ''}`)).data,
+    unread: async () => (await request<{ data: { unread: number } }>('GET', '/api/notifications/count')).data.unread,
+    read: (id: string) => request<unknown>('POST', `/api/notifications/${encodeURIComponent(id)}/read`),
+    readAll: () => request<unknown>('POST', '/api/notifications/read-all'),
+  },
+
+  follow: {
+    get: async (doctype: string, name: string) => (await request<{ data: FollowState }>('GET', `${resource(doctype, name)}/follow`)).data,
+    set: async (doctype: string, name: string) => (await request<{ data: FollowState }>('POST', `${resource(doctype, name)}/follow`)).data,
+    unset: async (doctype: string, name: string) => (await request<{ data: FollowState }>('DELETE', `${resource(doctype, name)}/follow`)).data,
+  },
+
+  assignments: {
+    forDocument: async (doctype: string, name: string) =>
+      (await request<{ data: AssignmentInfo[] }>('GET', `${resource(doctype, name)}/assignments`)).data,
+    assign: async (doctype: string, name: string, user: string, description: string, date: string, priority: string) =>
+      (await request<{ data: AssignmentInfo[] }>('POST', `${resource(doctype, name)}/assignments`, { user, description, date: date || null, priority })).data,
+    mine: async () => (await request<{ data: AssignmentInfo[] }>('GET', '/api/assignments/mine')).data,
+    complete: (id: string) => request<unknown>('POST', `/api/assignments/${encodeURIComponent(id)}/complete`),
+    remove: (id: string) => request<unknown>('DELETE', `/api/assignments/${encodeURIComponent(id)}`),
   },
 
   activity: {

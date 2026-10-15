@@ -1,4 +1,6 @@
 import { ActivityPanel } from './ActivityPanel.tsx'
+import { AssignPanel } from './AssignPanel.tsx'
+import { FollowButton } from './FollowButton.tsx'
 import { RenamePanel } from './RenamePanel.tsx'
 import { SharePanel } from './SharePanel.tsx'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -258,6 +260,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
           <h1>{title} {!isNew && dirty && <span className="badge">Not saved</span>}</h1>
         </div>
         <span className="spacer" />
+        {!isNew && doc && <FollowButton doctype={meta.name} name={doc.name} />}
         {!isNew && meta.allowRename && perms.write && docstatus !== 1 && <button className="btn" onClick={() => setRenaming(!renaming)} aria-expanded={renaming}>Rename</button>}
         {!isNew && !meta.isSingle && perms.write && docstatus !== 2 && <button className="btn" onClick={() => setSharing(!sharing)} aria-expanded={sharing}>Share</button>}
         {!isNew && meta.isSubmittable && (
@@ -361,6 +364,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
         <button type="submit" hidden />
       </form>
 
+      {doc && <AssignPanel doctype={meta.name} name={doc.name} canAssign={perms.write} />}
       {doc && <ActivityPanel meta={meta} childMetas={childMetas} name={doc.name} />}
 
       {!isNew && (

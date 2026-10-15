@@ -1,0 +1,17 @@
+{
+  "name": "Notification Log",
+  "module": "Core",
+  "trackChanges": false,
+  "fields": [
+    { "name": "for_user", "type": "Data", "label": "For", "required": true, "indexed": true, "inListView": true },
+    { "name": "notification_type", "type": "Select", "options": "Mention\nAssignment\nComment\nUpdate\nShare", "label": "Type", "inListView": true },
+    { "name": "document_type", "type": "Data", "label": "DocType" },
+    { "name": "document_name", "type": "Data", "label": "Document" },
+    { "name": "from_user", "type": "Data", "label": "From" },
+    { "name": "subject", "type": "Text", "label": "Subject" },
+    { "name": "is_read", "type": "Check", "label": "Read" }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true }
+  ]
+}

@@ -68,6 +68,19 @@ curl -b jar.txt "http://localhost:5101/api/resource/Customer?filters=[[\"custome
 
 For versions `data` is `{ changed: [[field, before, after], ...], tables: { field: { added, removed, changed } } }` limited to fields the caller may read; `event` is Insert, Update, Submit, Cancel, Rename, Merge or Delete. Comments are plain text; `event` is Comment or Info (system note).
 
+## Assignments, following and notifications
+
+| Call | Purpose |
+|---|---|
+| `GET /resource/{doctype}/{name}/assignments` | Who it is assigned to (open and done) |
+| `POST /resource/{doctype}/{name}/assignments` `{ user, description, date, priority }` | Assign (needs the right to share it); `date` is `yyyy-MM-dd`, `priority` Low, Medium or High |
+| `GET /assignments/mine?status=Open\|Closed` | My assignments, with the document each refers to |
+| `POST /assignments/{id}/complete`, `DELETE /assignments/{id}` | Mark done, or take back (assignee, assigner or Administrator) |
+| `GET\|POST\|DELETE /resource/{doctype}/{name}/follow` | State `{ following, followers }`, follow, unfollow (needs read access) |
+| `GET /notifications?unread=true&limit=&before=` | My notifications, newest first |
+| `GET /notifications/count` | `{ unread }` |
+| `POST /notifications/{id}/read`, `POST /notifications/read-all` | Mark mine read |
+
 ## Link fields
 
 | Call | Purpose |

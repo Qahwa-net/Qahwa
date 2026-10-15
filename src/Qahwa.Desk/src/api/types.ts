@@ -254,6 +254,39 @@ export interface ActivityItem {
   canEdit: boolean
 }
 
+export interface NotificationItem {
+  id: string
+  type: 'Mention' | 'Assignment' | 'Comment' | 'Update' | 'Share'
+  docType: string
+  docName: string
+  from: string
+  fromName?: string | null
+  subject: string
+  read: boolean
+  at: string
+}
+
+export interface FollowState {
+  following: boolean
+  followers: number
+}
+
+export interface AssignmentInfo {
+  id: string
+  user: string
+  userName?: string | null
+  assignedBy: string
+  assignedByName?: string | null
+  status: 'Open' | 'Closed' | 'Cancelled'
+  priority: 'Low' | 'Medium' | 'High'
+  due?: string | null
+  description?: string | null
+  at: string
+  /** Only in "my assignments": the document it is about. */
+  docType?: string | null
+  docName?: string | null
+}
+
 export interface TreeNode {
   name: string
   is_group: boolean

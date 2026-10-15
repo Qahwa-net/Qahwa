@@ -35,8 +35,11 @@ Tools → Customize Form. Adds fields to Core/App DocTypes (names `custom_...`, 
 ## Updates log and comments ([ADR-014](../../adr/014-updates-log-and-comments.md))
 `Version` rows (field-level diffs, table row changes, delete snapshots) are written for **every** DocType unless it sets `trackChanges: false`, **in the same transaction** as the change: `HistoryRecorder` builds the rows and `DocumentService` hands them to the repository as side writes (`ChildChanges` for another table; `DeleteAsync`/`RenameAsync` accept them too). `ActivityService` is the read side and the comments: `TimelineAsync`, `AddCommentAsync`, `UpdateCommentAsync`, `DeleteCommentAsync`. Sharing adds system notes (`Info` comments); rename and merge repoint the log and comments. Endpoints in `ActivityEndpoints.cs`; Desk `ActivityPanel`. Limits: no retention or restore yet; mentions are highlighted but not notified.
 
+## Assign, follow and notifications ([ADR-015](../../adr/015-assign-follow-notifications.md))
+`AssignmentService`, `FollowService`, `NotificationService` and `CollaborationHooks` (called by `DocumentService` after a save and by `ActivityService` after a comment; they reach back to `DocumentService` through `Lazy<DocumentService>` to check read access). Creating, commenting on or being assigned a document makes you a follower; followers are notified of others' changes and comments; @mentions (`Mentions.Find`) notify with an excerpt. Deleting removes the rows; rename and merge repoint them. Endpoints in `CollaborationEndpoints.cs`; Desk: `NotificationBell`, `AssignPanel`, `FollowButton`, `MyAssignments`. Limits: in-app only; no assignment rules, due-date reminders or preferences yet.
+
 ## Authentication ([ADR-002](../../adr/002-authentication.md))
 Cookie sessions, ASP.NET Identity password hashing, lockout, login rate limit; `User`, `Role`, `Has Role` DocTypes. Roles are cached per session for `SessionCacheSeconds`.
 
 ## Planned next
-Assign and follow, notifications (L7/L8), saved filters, workflow, reports and dashboards. The plan lists everything with its status.
+Email and push notifications, assignment rules (L8), saved filters, workflow, reports and dashboards. The plan lists everything with its status.

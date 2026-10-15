@@ -44,6 +44,10 @@ Separate rights, level 0 only. Export (CSV) and report need `read` too, go throu
 
 The updates log and comments need read access to the document (every layer above applies first). History shows each reader only fields they may read, and the `Version` DocType is read-only for everyone, so history cannot be rewritten through the API. Comments: anyone who can read may comment; only the author edits; the author or an Administrator deletes.
 
+## Assignments, follows and notifications
+
+Assigning needs the same right as sharing; the assignee is given a read share if they cannot open the document. A notification is only written if the recipient is an enabled user who can read the document (checked with `DocumentService.GetAsync` using their roles from `Has Role`), so no notification, and no comment excerpt in a mention, reaches someone without access. Notifications and assignments are scoped to their owner/participants; others get "not found".
+
 ## What the API never reveals
 
 - A document you may not read looks like it does not exist where possible (checks run before the document is loaded).

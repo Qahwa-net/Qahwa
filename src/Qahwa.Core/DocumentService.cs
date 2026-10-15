@@ -18,7 +18,8 @@ public sealed partial class DocumentService(
     UserPermissionService? userPermissions = null,
     ShareStore? shares = null,
     ProfileService? profiles = null,
-    HistoryRecorder? history = null)
+    HistoryRecorder? history = null,
+    CollaborationHooks? collaboration = null)
 {
     private readonly DocumentLogic _logic = new(registry, repository, permissions, clock);
 
@@ -128,7 +129,7 @@ public sealed partial class DocumentService(
         if (history?.Version(meta, name, "Insert", null, user.User, now) is { } created)
             children.Add(created);
         await repository.InsertAsync(meta, values, children, ct);
-        await AfterSaveAsync(meta, name, values.Keys.ToHashSet(StringComparer.Ordinal), isNew: true, ct);
+        await AfterSaveAsync(meta, name, values.Keys.ToHashSet(StringComparer.Ordinal), isNew: true, user, ct);
         return await LoadForAsync(meta, name, user, ct)
             ?? throw new InvalidOperationException($"{meta.Name} '{name}' vanished after insert.");
     }
@@ -168,10 +169,12 @@ public sealed partial class DocumentService(
     private static Dictionary<string, object?> TransitionInput(DateTime? modified) =>
         modified is null ? [] : new() { ["modified"] = modified };
 
-    private async Task AfterSaveAsync(DocTypeMeta meta, string name, IReadOnlySet<string> changed, bool isNew, CancellationToken ct)
+    private async Task AfterSaveAsync(DocTypeMeta meta, string name, IReadOnlySet<string> changed, bool isNew, IUserContext user, CancellationToken ct)
     {
         if (profiles is not null && await LoadAsync(meta, name, ct) is { } saved)
             await profiles.AfterSaveAsync(meta, saved, changed, isNew, ct);
+        if (collaboration is not null)
+            await collaboration.AfterSaveAsync(meta, name, isNew, user, ct);
     }
 
     private static DocumentValidationException General(string message) => new([new FieldError(string.Empty, message)]);
@@ -343,7 +346,7 @@ public sealed partial class DocumentService(
         if (!await repository.UpdateAsync(meta, name, changes, stored, children, ct))
             throw new ConflictException($"{meta.Name} '{name}' was changed or deleted by someone else. Reload and try again.");
 
-        await AfterSaveAsync(meta, name, changes.Keys.ToHashSet(StringComparer.Ordinal), isNew: false, ct);
+        await AfterSaveAsync(meta, name, changes.Keys.ToHashSet(StringComparer.Ordinal), isNew: false, user, ct);
         return await LoadForAsync(meta, name, user, ct)
             ?? throw new NotFoundException($"{meta.Name} '{name}' was not found.");
     }
@@ -378,6 +381,8 @@ public sealed partial class DocumentService(
             await shares.DeleteForDocumentAsync(meta.Name, name, ct);
         if (history is not null)
             await history.DeleteCommentsAsync(meta.Name, name, ct);
+        if (collaboration is not null)
+            await collaboration.DeleteForDocumentAsync(meta.Name, name, ct);
     }
 
     public async Task<ListResult> ListAsync(

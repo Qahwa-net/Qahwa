@@ -398,6 +398,8 @@ public sealed partial class DocumentService
 
         if (history is not null)
             references.AddRange(history.References(meta.Name));
+        if (collaboration is not null)
+            references.AddRange(collaboration.References(meta.Name));
 
         var childTables = TableFields(meta).Select(f => registry.Get(f.Options!)).DistinctBy(c => c.Name).ToList();
         var log = history?.Version(meta, newName, merge ? "Merge" : "Rename", new Dictionary<string, object?> { ["from"] = name, ["to"] = newName }, user.User, history.Now());

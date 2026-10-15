@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client.ts'
 import { useAuth } from '../auth.tsx'
+import { MyAssignments } from './MyAssignments.tsx'
 
 export function HomePage() {
   const { user } = useAuth()
@@ -10,6 +11,7 @@ export function HomePage() {
   return (
     <>
       <h1>Welcome, {user?.full_name}</h1>
+      <MyAssignments />
       <p className="muted">Pick a DocType to see its documents.</p>
       <div className="tiles">
         {metas.data?.map((meta) => (

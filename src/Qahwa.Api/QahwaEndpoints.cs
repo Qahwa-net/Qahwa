@@ -91,6 +91,7 @@ public static class QahwaEndpoints
         app.MapQahwaSpecial();
         app.MapQahwaCustomize();
         app.MapQahwaActivity();
+        app.MapQahwaCollaboration();
         return app;
     }
 

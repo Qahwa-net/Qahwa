@@ -80,9 +80,14 @@ public sealed class ShareStore(IMetaRegistry registry, IDocumentRepository repos
 /// <summary>Share a document with someone, change what they may do, or stop sharing.</summary>
 public sealed class ShareManager(
     IMetaRegistry registry, IDocumentRepository repository, DocumentService documents, PermissionService permissions, ShareStore store,
-    HistoryRecorder? history = null)
+    HistoryRecorder? history = null,
+    NotificationService? notifications = null)
 {
     private static readonly UserContext System = new(UserContext.AdministratorRole, [UserContext.AdministratorRole]);
+
+    /// <summary>Proves the document exists and is readable by the actor, and that they could share it (the same right as assigning it).</summary>
+    public Task EnsureCanShareAsync(string doctype, string name, IUserContext actor, CancellationToken ct = default) =>
+        RequireSharerAsync(doctype, name, actor, ct);
 
     private async Task RequireSharerAsync(string doctype, string name, IUserContext actor, CancellationToken ct)
     {
@@ -192,6 +197,11 @@ public sealed class ShareManager(
         values["share_name"] = name;
         await documents.InsertAsync(ShareStore.DocTypeName, values, System, ct);
         await NoteAsync(doctype, name, $"Shared with {user} ({(write ? "can edit" : "can read")})", actor, ct);
+        if (notifications is not null)
+        {
+            var who = await notifications.NameOfAsync(actor.User, ct) ?? actor.User;
+            await notifications.NotifyAsync(user, "Share", doctype, name, actor.User, $"{who} shared {(doctype == name ? doctype : $"{doctype} {name}")} with you", ct);
+        }
     }
 
     /// <summary>Sharing is recorded in the document's comment thread as a system note.</summary>

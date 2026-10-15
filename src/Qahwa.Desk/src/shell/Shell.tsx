@@ -4,6 +4,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { api } from '../api/client.ts'
 import type { MetaSummary } from '../api/types.ts'
 import { useAuth } from '../auth.tsx'
+import { NotificationBell } from './NotificationBell.tsx'
 
 function groupByModule(metas: MetaSummary[]): [string, MetaSummary[]][] {
   const groups = new Map<string, MetaSummary[]>()
@@ -37,6 +38,7 @@ export function Shell() {
           onClick={() => setOpen(!open)}>☰</button>
         <Link to="/" className="brand">Qahwa</Link>
         <span className="spacer" />
+        <NotificationBell />
         <Link to="/account" className="user-chip" title={user?.user}>{user?.full_name}</Link>
         <button className="btn" onClick={() => void logout()}>Sign out</button>
       </header>

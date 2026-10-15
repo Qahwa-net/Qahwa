@@ -84,11 +84,16 @@ public sealed class TestEngine
         CustomizationStore = new InMemoryCustomizationStore();
         Profiles = new ProfileService(Registry, Repository, Clock);
         History = new HistoryRecorder(Registry, Repository, Clock);
+        var lazyDocuments = new Lazy<DocumentService>(() => Documents!);
+        Notifications = new NotificationService(Registry, Repository, lazyDocuments, History);
+        Follows = new FollowService(Registry, Repository, lazyDocuments, History);
+        Collaboration = new CollaborationHooks(Follows, Notifications, Registry, Repository);
         NamingSeries = new NamingSeriesManager(Registry, Repository, Permissions);
         Documents = new DocumentService(
-            Registry, Repository, Permissions, new NamingService(Repository), Clock, new UserPermissionService(Registry, Repository), Shares, Profiles, History);
-        ShareManager = new ShareManager(Registry, Repository, Documents, Permissions, Shares, History);
-        Activity = new ActivityService(Registry, Repository, Documents, Permissions, History);
+            Registry, Repository, Permissions, new NamingService(Repository), Clock, new UserPermissionService(Registry, Repository), Shares, Profiles, History, Collaboration);
+        ShareManager = new ShareManager(Registry, Repository, Documents, Permissions, Shares, History, Notifications);
+        Activity = new ActivityService(Registry, Repository, Documents, Permissions, History, Collaboration);
+        Assignments = new AssignmentService(Registry, Repository, Documents, Permissions, ShareManager, Notifications, Follows, History);
         DocTypeStore = new InMemoryDocTypeStore();
         Schema = new InMemorySchemaManager();
         Designer = new DocTypeDesigner(Registry, DocTypeStore, Schema, Repository, Clock);
@@ -119,6 +124,10 @@ public sealed class TestEngine
     public ProfileService Profiles { get; }
     public HistoryRecorder History { get; }
     public ActivityService Activity { get; }
+    public NotificationService Notifications { get; }
+    public FollowService Follows { get; }
+    public CollaborationHooks Collaboration { get; }
+    public AssignmentService Assignments { get; }
     public NamingSeriesManager NamingSeries { get; }
     public ShareManager ShareManager { get; }
     public InMemoryDocTypeStore DocTypeStore { get; }

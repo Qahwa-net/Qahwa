@@ -297,3 +297,73 @@ public sealed class ActivityApiTests : IAsyncDisposable
         Assert.Equal(HttpStatusCode.NotFound, (await seller.DeleteAsync($"/api/resource/Customer/{id}/comments/nope")).StatusCode);
     }
 }
+
+public sealed class CollaborationApiTests : IAsyncDisposable
+{
+    private readonly QahwaFactory _factory = new();
+
+    public ValueTask DisposeAsync() => _factory.DisposeAsync();
+
+    private static async Task<JsonElement> JsonOf(HttpResponseMessage response) =>
+        (await response.Content.ReadFromJsonAsync<JsonElement>()).Clone();
+
+    private async Task PersonAsync(string email, string name, string role)
+    {
+        var admin = _factory.ClientFor("Administrator");
+        await admin.PostAsJsonAsync("/api/resource/Role", new { role_name = role });
+        await admin.PostAsJsonAsync("/api/resource/User", new { email, full_name = name });
+        await admin.PostAsJsonAsync("/api/resource/Has Role", new { user = email, role = role });
+    }
+
+    [Fact]
+    public async Task Assign_follow_and_notifications_work_end_to_end()
+    {
+        await PersonAsync("a@example.com", "Ann", "Sales Manager");
+        await PersonAsync("b@example.com", "Bob", "Sales Manager");
+        var ann = _factory.ClientFor("a@example.com", "Sales Manager");
+        var bob = _factory.ClientFor("b@example.com", "Sales Manager");
+        var id = (await JsonOf(await ann.PostAsJsonAsync("/api/resource/Customer", new { customer_name = "Acme" }))).GetProperty("data").GetProperty("name").GetString();
+
+        var assigned = await ann.PostAsJsonAsync($"/api/resource/Customer/{id}/assignments", new { user = "b@example.com", description = "Call them", date = "2026-12-31", priority = "High" });
+        Assert.Equal(HttpStatusCode.Created, assigned.StatusCode);
+        var todo = (await JsonOf(assigned)).GetProperty("data")[0];
+        Assert.Equal("Bob", todo.GetProperty("userName").GetString());
+
+        var mine = (await JsonOf(await bob.GetAsync("/api/assignments/mine"))).GetProperty("data");
+        Assert.Equal(id, mine[0].GetProperty("docName").GetString());
+        var count = (await JsonOf(await bob.GetAsync("/api/notifications/count"))).GetProperty("data").GetProperty("unread").GetInt32();
+        Assert.Equal(1, count);
+        var inbox = (await JsonOf(await bob.GetAsync("/api/notifications?unread=true"))).GetProperty("data");
+        Assert.Equal("Assignment", inbox[0].GetProperty("type").GetString());
+
+        var notificationId = inbox[0].GetProperty("id").GetString();
+        Assert.Equal(HttpStatusCode.NotFound, (await ann.PostAsync($"/api/notifications/{notificationId}/read", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await bob.PostAsync($"/api/notifications/{notificationId}/read", null)).StatusCode);
+        Assert.Equal(0, (await JsonOf(await bob.GetAsync("/api/notifications/count"))).GetProperty("data").GetProperty("unread").GetInt32());
+
+        var done = await bob.PostAsync($"/api/assignments/{todo.GetProperty("id").GetString()}/complete", null);
+        Assert.Equal("Closed", (await JsonOf(done)).GetProperty("data").GetProperty("status").GetString());
+
+        var follow = await bob.GetAsync($"/api/resource/Customer/{id}/follow");
+        Assert.True((await JsonOf(follow)).GetProperty("data").GetProperty("following").GetBoolean());
+        var unfollowed = await bob.DeleteAsync($"/api/resource/Customer/{id}/follow");
+        Assert.False((await JsonOf(unfollowed)).GetProperty("data").GetProperty("following").GetBoolean());
+    }
+
+    [Fact]
+    public async Task The_collaboration_endpoints_check_who_asks()
+    {
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateClient().GetAsync("/api/notifications")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateClient().GetAsync("/api/assignments/mine")).StatusCode);
+
+        var seller = _factory.ClientFor("a@example.com", "Sales User");
+        var id = (await JsonOf(await seller.PostAsJsonAsync("/api/resource/Customer", new { customer_name = "Acme" }))).GetProperty("data").GetProperty("name").GetString();
+        var other = _factory.ClientFor("b@example.com", "Sales User");
+
+        Assert.Equal(HttpStatusCode.Forbidden, (await other.PostAsync($"/api/resource/Customer/{id}/follow", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await other.GetAsync($"/api/resource/Customer/{id}/assignments")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await seller.PostAsJsonAsync($"/api/resource/Customer/{id}/assignments", new { user = "ghost@example.com" })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await seller.GetAsync("/api/assignments/mine?status=Cancelled")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await seller.GetAsync("/api/notifications?before=garbage")).StatusCode);
+    }
+}

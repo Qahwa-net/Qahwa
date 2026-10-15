@@ -1,0 +1,17 @@
+{
+  "name": "ToDo",
+  "module": "Core",
+  "trackChanges": false,
+  "fields": [
+    { "name": "allocated_to", "type": "Data", "label": "Assigned to", "required": true, "indexed": true, "inListView": true },
+    { "name": "reference_doctype", "type": "Data", "label": "DocType", "required": true, "inListView": true },
+    { "name": "reference_name", "type": "Data", "label": "Document", "required": true, "indexed": true, "inListView": true },
+    { "name": "status", "type": "Select", "options": "Open\nClosed\nCancelled", "default": "Open", "label": "Status", "inListView": true },
+    { "name": "priority", "type": "Select", "options": "Low\nMedium\nHigh", "default": "Medium", "label": "Priority" },
+    { "name": "date", "type": "Date", "label": "Due date" },
+    { "name": "description", "type": "Text", "label": "Description" }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true }
+  ]
+}

@@ -34,7 +34,8 @@ public sealed class HistoryRecorder(IMetaRegistry registry, IDocumentRepository 
 
     public DateTime Now() => Truncate(clock.GetUtcNow().UtcDateTime);
 
-    private static Dictionary<string, object?> Standard(string user, DateTime now) => new()
+    /// <summary>The standard columns every row has (name, owner, creation, ...), for rows the framework writes itself.</summary>
+    public static Dictionary<string, object?> Standard(string user, DateTime now) => new()
     {
         ["name"] = Guid.NewGuid().ToString("N")[..10],
         ["creation"] = now,

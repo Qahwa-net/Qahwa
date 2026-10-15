@@ -25,9 +25,10 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **Searchable Link fields**: every Link field (and the Share panel) is a type-ahead select that shows friendly names, not IDs ([ADR-012](docs/adr/012-link-fields.md))
 - **Customize Form** (Tools → Customize Form): add fields to framework and app DocTypes, change labels, required, hidden, defaults and conditions of existing fields, and reorder them, with a reset that restores the original ([ADR-013](docs/adr/013-customize-form.md))
 - **Updates log and comments on every document**: who changed what and when (field-level, in the same transaction as the change), and a comment thread with @mentions, in an Activity panel under every form ([ADR-014](docs/adr/014-updates-log-and-comments.md))
+- **Assign, follow and notifications**: assign a document to a person, follow what you care about, and get in-app notifications (a bell) for mentions, assignments, comments, changes and shares, only for documents you may open ([ADR-015](docs/adr/015-assign-follow-notifications.md))
 - Desk (React + TypeScript): login, DocType sidebar, generic list view (search, dynamic filters kept in the URL, sorting, paging) and form view (field controls per type, server-side validation errors inline, concurrent-edit detection, delete), account page with change password. Layout is right-to-left ready and works on phones.
 
-Not yet (see the [plan](docs/PLAN.md)): assign and follow, notifications, saved filters and per-user list settings, attachments, workflow, reports and dashboards, import, scripting.
+Not yet (see the [plan](docs/PLAN.md)): email notifications, saved filters and per-user list settings, attachments, workflow, reports and dashboards, import, scripting.
 
 ## Try it
 

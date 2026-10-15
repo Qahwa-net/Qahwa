@@ -96,7 +96,7 @@ Expressions are documented in [the expression language](../../expressions.md).
 
 ## Core DocTypes
 
-`User` (with `role_profile`, `module_profile`), `Role`, `Has Role`, `Role Profile` (+ child `Role Profile Role`), `Module Profile` (+ child `Block Module`), `DocShare`, `User Permission`, `Version` (the updates log, read-only even for System Managers) and `Comment`. They live in `src/Qahwa.Core/CoreDocTypes` as embedded JSON.
+`User` (with `role_profile`, `module_profile`), `Role`, `Has Role`, `Role Profile` (+ child `Role Profile Role`), `Module Profile` (+ child `Block Module`), `DocShare`, `User Permission`, `Version` (the updates log, read-only even for System Managers), `Comment`, `ToDo` (assignments), `Document Follow` and `Notification Log`. The last five are written by services, never through the generic API. They live in `src/Qahwa.Core/CoreDocTypes` as embedded JSON.
 
 ## Tables the framework creates besides DocType tables
 

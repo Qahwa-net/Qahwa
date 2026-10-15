@@ -277,3 +277,39 @@ public class PostgresActivityTests(PostgresFixture postgres) : IClassFixture<Pos
         Assert.Equal(0, await db.ScalarAsync("SELECT COUNT(*) FROM \"tabComment\" WHERE \"reference_name\" = 'Papers'"));
     }
 }
+
+public class PostgresCollaborationTests(PostgresFixture postgres) : IClassFixture<PostgresFixture>
+{
+    [SkippableFact]
+    public async Task Assignments_follows_and_notifications_run_on_postgres()
+    {
+        Skip.IfNot(postgres.Available, postgres.SkipReason);
+        await using var db = await postgres.CreateStackAsync();
+        db.Registry.Add(DocTypeLoader.Parse("""
+            { "name": "Deal", "fields": [ { "name": "title", "type": "Data" } ],
+              "permissions": [ { "role": "Clerk", "read": true, "write": true, "create": true } ] }
+            """));
+        await db.MigrateAsync();
+        var ann = new UserContext("ann@example.com", ["Clerk"]);
+        var bob = new UserContext("bob@example.com", ["Clerk"]);
+        await db.Documents.InsertAsync("Role", Values(("role_name", "Clerk")), TestUsers.Admin);
+        foreach (var (person, name) in new[] { (ann, "Ann"), (bob, "Bob") })
+        {
+            await db.Documents.InsertAsync("User", Values(("email", person.User), ("full_name", name)), TestUsers.Admin);
+            await db.Documents.InsertAsync("Has Role", Values(("user", person.User), ("role", "Clerk")), TestUsers.Admin);
+        }
+
+        var id = (string)(await db.Documents.InsertAsync("Deal", Values(("title", "T")), ann))["name"]!;
+        var todo = await db.Assignments.AssignAsync("Deal", id, bob.User, "Call", "2026-12-31", "High", ann);
+        db.Clock.Advance(TimeSpan.FromMinutes(1));
+        await db.Activity.AddCommentAsync("Deal", id, "hello @bob@example.com", ann);
+        await db.Documents.UpdateAsync("Deal", id, Values(("title", "T2")), bob);
+
+        Assert.Equal("2026-12-31", todo.Due);
+        Assert.Equal(["Mention", "Assignment"], (await db.Notifications.ListAsync(bob, false, 10, null)).Select(n => n.Type));
+        Assert.Equal(1, await db.Notifications.UnreadCountAsync(ann));
+        Assert.True((await db.Follows.StateAsync("Deal", id, bob)).Following);
+        Assert.Equal("Closed", (await db.Assignments.CompleteAsync(todo.Id, bob)).Status);
+        Assert.Equal(1, await db.ScalarAsync("SELECT COUNT(*) FROM pg_indexes WHERE schemaname = current_schema() AND tablename = 'tabNotification Log' AND indexdef LIKE '%(for_user)%'"));
+    }
+}

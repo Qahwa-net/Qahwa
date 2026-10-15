@@ -25,6 +25,7 @@ DocTypes you may use are grouped by module. **Tools** (System Managers only) hol
 - Leaving a form with unsaved changes asks for confirmation.
 - Buttons in the top right: **Share**, **Rename** (where allowed), **Submit / Cancel document** (where it applies), **Delete**, **Save**.
 
+- **Follow** (top right) tells you about changes and comments; **Assigned to** under the form hands the document to someone; the **bell** in the top bar lists your notifications: see [Assigning, following and notifications](07-assign-follow-notifications.md).
 - Under the form, **Activity** shows the document's history and comments: see [History and comments](06-history-and-comments.md).
 
 ## Choosing a linked document

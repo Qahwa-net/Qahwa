@@ -28,7 +28,8 @@ public sealed class ActivityService(
     IDocumentRepository repository,
     DocumentService documents,
     PermissionService permissions,
-    HistoryRecorder history)
+    HistoryRecorder history,
+    CollaborationHooks? collaboration = null)
 {
     public const int MaxPage = 100;
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
@@ -179,6 +180,8 @@ public sealed class ActivityService(
         var text = CheckContent(content);
         var row = history.CommentRow(doctype, name, "Comment", text, user.User, history.Now());
         await repository.InsertAsync(CommentMeta(), row, null, ct);
+        if (collaboration is not null)
+            await collaboration.AfterCommentAsync(doctype, name, text, user, ct);
         return (await WithNamesAsync([ToItem(row, user)], ct))[0];
     }
 

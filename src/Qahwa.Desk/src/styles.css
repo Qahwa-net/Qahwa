@@ -234,6 +234,22 @@ tbody tr:last-child td { border-block-end: 0; }
 .rule .expression { grid-column: 1 / -1; }
 .check-line.plain { font-weight: 400; }
 
+/* Notifications and assignments */
+.bell { position: relative; }
+.bell-count { background: var(--danger, #d92d20); color: #fff; border-radius: 999px; font-size: .7em; padding: 0 .35em; margin-left: .25em; }
+.bell-panel { position: absolute; right: 0; top: 110%; width: 22rem; max-width: 90vw; max-height: 26rem; overflow: auto; z-index: 30;
+  background: var(--surface, #fff); border: 1px solid var(--border, #d0d5dd); border-radius: 8px; box-shadow: 0 8px 24px rgba(0, 0, 0, .15); }
+.bell-head { display: flex; justify-content: space-between; align-items: center; padding: .6rem .8rem; border-bottom: 1px solid var(--border, #e4e7ec); }
+.bell-panel ul { list-style: none; margin: 0; padding: 0; }
+.bell-panel li button { display: grid; gap: .15rem; width: 100%; text-align: left; padding: .6rem .8rem; border: 0; background: none; cursor: pointer; }
+.bell-panel li.unread button { background: var(--accent-soft, rgba(0, 0, 0, .05)); font-weight: 600; }
+.assign { margin-top: 1rem; }
+.assignments { list-style: none; margin: 0 0 .75rem; padding: 0; display: grid; gap: .4rem; }
+.assignments li { display: flex; justify-content: space-between; gap: 1rem; }
+.assignments li.done > span:first-child { text-decoration: line-through; opacity: .7; }
+.assign-form { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; }
+.assign-form input:not([type=date]) { flex: 1; min-width: 10rem; }
+
 /* Activity */
 .activity { margin-top: 1rem; }
 .comment-box textarea { width: 100%; resize: vertical; }
