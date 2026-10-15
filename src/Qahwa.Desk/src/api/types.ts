@@ -83,6 +83,7 @@ export interface DocTypeDefinition {
   isSingle?: boolean
   isTree?: boolean
   allowRename?: boolean
+  trackChanges?: boolean
   fields: (Partial<DocField> & Pick<DocField, 'name' | 'type'>)[]
   permissions: DocPerm[]
   validations?: ValidationRule[]
@@ -234,6 +235,22 @@ export interface CustomizationView {
   /** The DocType as it works now. */
   effective: DocTypeMeta
   customization: Customization
+  canEdit: boolean
+}
+
+/** One entry of a document's timeline: an update from the log, or a comment or system note. */
+export interface ActivityItem {
+  kind: 'version' | 'comment'
+  id: string
+  /** For versions Insert, Update, Submit, Cancel, Rename, Merge or Delete; for comments Comment or Info. */
+  event: string
+  user: string
+  userName?: string | null
+  at: string
+  /** For versions: `changed` ([field, before, after] entries) and `tables`, limited to what the viewer may read. */
+  data?: { changed?: unknown[]; tables?: Record<string, unknown>; from?: string; to?: string } | null
+  content?: string | null
+  edited: boolean
   canEdit: boolean
 }
 

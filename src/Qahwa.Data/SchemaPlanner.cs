@@ -65,6 +65,9 @@ public sealed class SchemaPlanner(ISqlDialect dialect)
         foreach (var column in wantedUnique)
             AddIndex(statements, existingIndexes, quotedTable, table, column, unique: true);
 
+        foreach (var column in meta.Fields.Where(f => f.Indexed && !f.Unique && FieldTypes.HasColumn(f.Type)).Select(f => f.Name))
+            AddIndex(statements, existingIndexes, quotedTable, table, column, unique: false);
+
         // A column that is no longer unique (or no longer in the DocType) must stop enforcing uniqueness.
         // Only the index goes; the column and its data stay.
         foreach (var column in current?.Columns.Keys ?? Enumerable.Empty<string>())

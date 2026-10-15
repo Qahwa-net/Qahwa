@@ -17,7 +17,8 @@ public sealed partial class DocumentService(
     TimeProvider clock,
     UserPermissionService? userPermissions = null,
     ShareStore? shares = null,
-    ProfileService? profiles = null)
+    ProfileService? profiles = null,
+    HistoryRecorder? history = null)
 {
     private readonly DocumentLogic _logic = new(registry, repository, permissions, clock);
 
@@ -124,6 +125,8 @@ public sealed partial class DocumentService(
             .Select(t => BuildChanges(t, meta, name, new Dictionary<string, Dictionary<string, object?>>(), now, user))
             .Where(c => !c.IsEmpty)
             .ToList();
+        if (history?.Version(meta, name, "Insert", null, user.User, now) is { } created)
+            children.Add(created);
         await repository.InsertAsync(meta, values, children, ct);
         await AfterSaveAsync(meta, name, values.Keys.ToHashSet(StringComparer.Ordinal), isNew: true, ct);
         return await LoadForAsync(meta, name, user, ct)
@@ -317,10 +320,11 @@ public sealed partial class DocumentService(
             throw new DocumentValidationException(errors);
 
         var now = Now();
-        var children = tables
-            .Select(t => BuildChanges(t, meta, name, currentRows[t.Field.Name], now, user))
-            .Where(c => !c.IsEmpty)
+        var built = tables
+            .Select(t => (Table: t, Change: BuildChanges(t, meta, name, currentRows[t.Field.Name], now, user)))
+            .Where(x => !x.Change.IsEmpty)
             .ToList();
+        var children = built.Select(x => x.Change).ToList();
         if (transition is not null)
             changes["docstatus"] = transition.Value;
         if (changes.Count == 0 && children.Count == 0)
@@ -328,6 +332,14 @@ public sealed partial class DocumentService(
 
         changes["modified"] = now;
         changes["modified_by"] = user.User;
+        if (history is not null)
+        {
+            var eventName = transition switch { 1 => "Submit", 2 => "Cancel", _ => "Update" };
+            var data = history.UpdateData(meta, existing, changes, built.Select(x => (x.Table.Field, x.Table.Child, x.Change)).ToList(), currentRows);
+            if (history.Version(meta, name, eventName, data, user.User, now) is { } logged)
+                children.Add(logged);
+        }
+
         if (!await repository.UpdateAsync(meta, name, changes, stored, children, ct))
             throw new ConflictException($"{meta.Name} '{name}' was changed or deleted by someone else. Reload and try again.");
 
@@ -353,10 +365,19 @@ public sealed partial class DocumentService(
             throw General($"'{name}' has child nodes. Move or delete them first.");
 
         var childTables = TableFields(meta).Select(f => registry.Get(f.Options!)).ToList();
-        if (!await repository.DeleteAsync(meta, name, childTables, ct))
+        List<ChildChanges>? log = null;
+        if (history is not null && history.Tracks(meta) && await LoadAsync(meta, name, ct) is { } snapshot
+            && history.Version(meta, name, "Delete", history.DeleteData(meta, snapshot), user.User, history.Now()) is { } deleted)
+        {
+            log = [deleted];
+        }
+
+        if (!await repository.DeleteAsync(meta, name, childTables, ct, log))
             throw new NotFoundException($"{meta.Name} '{name}' was not found.");
         if (shares is not null)
             await shares.DeleteForDocumentAsync(meta.Name, name, ct);
+        if (history is not null)
+            await history.DeleteCommentsAsync(meta.Name, name, ct);
     }
 
     public async Task<ListResult> ListAsync(

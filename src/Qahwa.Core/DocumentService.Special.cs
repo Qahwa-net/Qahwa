@@ -396,8 +396,12 @@ public sealed partial class DocumentService
         if (registry.TryGet(UserPermissionService.DocTypeName, out var permissionMeta))
             references.Add(new ReferenceUpdate(permissionMeta, "for_value", "allow", meta.Name));
 
+        if (history is not null)
+            references.AddRange(history.References(meta.Name));
+
         var childTables = TableFields(meta).Select(f => registry.Get(f.Options!)).DistinctBy(c => c.Name).ToList();
-        await repository.RenameAsync(meta, name, newName, merge, childTables, references, ct);
+        var log = history?.Version(meta, newName, merge ? "Merge" : "Rename", new Dictionary<string, object?> { ["from"] = name, ["to"] = newName }, user.User, history.Now());
+        await repository.RenameAsync(meta, name, newName, merge, childTables, references, ct, log is null ? null : [log]);
         return newName;
     }
 }

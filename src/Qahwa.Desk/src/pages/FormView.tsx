@@ -1,3 +1,4 @@
+import { ActivityPanel } from './ActivityPanel.tsx'
 import { RenamePanel } from './RenamePanel.tsx'
 import { SharePanel } from './SharePanel.tsx'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -359,6 +360,8 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
         {!hasFields && <p className="muted full">This DocType has no editable fields.</p>}
         <button type="submit" hidden />
       </form>
+
+      {doc && <ActivityPanel meta={meta} childMetas={childMetas} name={doc.name} />}
 
       {!isNew && (
         <p className="muted meta-line">

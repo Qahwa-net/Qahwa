@@ -242,3 +242,38 @@ public class PostgresCustomizationTests(PostgresFixture postgres) : IClassFixtur
         return (string?)await command.ExecuteScalarAsync();
     }
 }
+
+public class PostgresActivityTests(PostgresFixture postgres) : IClassFixture<PostgresFixture>
+{
+    [SkippableFact]
+    public async Task The_log_is_written_with_the_change_survives_rename_and_delete_and_is_indexed_on_postgres()
+    {
+        Skip.IfNot(postgres.Available, postgres.SkipReason);
+        await using var db = await postgres.CreateStackAsync();
+        db.Registry.Add(DocTypeLoader.Parse("""
+            { "name": "Folder", "autoname": "field:label", "allowRename": true,
+              "fields": [ { "name": "label", "type": "Data", "required": true }, { "name": "note", "type": "Data" } ],
+              "permissions": [ { "role": "Editor", "read": true, "write": true, "create": true, "delete": true } ] }
+            """));
+        await db.MigrateAsync();
+        var editor = new UserContext("editor@example.com", ["Editor"]);
+
+        await db.Documents.InsertAsync("Folder", Values(("label", "Docs"), ("note", "a")), editor);
+        db.Clock.Advance(TimeSpan.FromMinutes(1));
+        await db.Documents.UpdateAsync("Folder", "Docs", Values(("note", "b")), editor);
+        await db.Activity.AddCommentAsync("Folder", "Docs", "Looks fine – مرحبا", editor);
+        db.Clock.Advance(TimeSpan.FromMinutes(1));
+        await db.Documents.RenameAsync("Folder", "Docs", "Papers", false, editor);
+
+        var timeline = await db.Activity.TimelineAsync("Folder", "Papers", editor);
+        Assert.Equal(["Rename", "Update", "Insert"], timeline.Where(i => i.Kind == "version").Select(i => i.Event));
+        Assert.Equal("note", timeline.First(i => i.Event == "Update").Data!["changed"]![0]![0]!.ToString());
+        Assert.Equal("Looks fine – مرحبا", timeline.Single(i => i.Kind == "comment").Content);
+
+        Assert.Equal(1, await db.ScalarAsync("SELECT COUNT(*) FROM pg_indexes WHERE schemaname = current_schema() AND tablename = 'tabVersion' AND indexdef LIKE '%(ref_docname)%'"));
+        db.Clock.Advance(TimeSpan.FromMinutes(1));
+        await db.Documents.DeleteAsync("Folder", "Papers", editor);
+        Assert.Equal(1, await db.ScalarAsync("SELECT COUNT(*) FROM \"tabVersion\" WHERE \"ref_docname\" = 'Papers' AND \"event\" = 'Delete'"));
+        Assert.Equal(0, await db.ScalarAsync("SELECT COUNT(*) FROM \"tabComment\" WHERE \"reference_name\" = 'Papers'"));
+    }
+}

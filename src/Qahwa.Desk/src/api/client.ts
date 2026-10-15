@@ -1,6 +1,6 @@
 import type {
   DesignerDetail, DocPerm, DesignerItem, DesignerPreview, Doc, DocTypeDefinition, FieldError, FieldTypeInfo,
-  ListResponse, MetaResponse, MetaSummary, PermissionItem, Customization, CustomizationItem, CustomizationView, LinkOption, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
+  ListResponse, MetaResponse, MetaSummary, PermissionItem, ActivityItem, Customization, CustomizationItem, CustomizationView, LinkOption, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
 } from './types.ts'
 import type { Filter } from '../lib/filters.ts'
 import { toApiFilters } from '../lib/filters.ts'
@@ -170,6 +170,20 @@ export const api = {
       (await request<{ data: ShareInfo[] }>('GET', `/api/share/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}`)).data,
     set: async (doctype: string, name: string, user: string, read: boolean, write: boolean) =>
       (await request<{ data: ShareInfo[] }>('PUT', `/api/share/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}`, { user, read, write })).data,
+  },
+
+  activity: {
+    timeline: async (doctype: string, name: string, before?: string) => {
+      const query = new URLSearchParams({ limit: '30' })
+      if (before) query.set('before', before)
+      return (await request<{ data: ActivityItem[] }>('GET', `${resource(doctype, name)}/timeline?${query}`)).data
+    },
+    addComment: async (doctype: string, name: string, content: string) =>
+      (await request<{ data: ActivityItem }>('POST', `${resource(doctype, name)}/comments`, { content })).data,
+    updateComment: async (doctype: string, name: string, id: string, content: string) =>
+      (await request<{ data: ActivityItem }>('PUT', `${resource(doctype, name)}/comments/${encodeURIComponent(id)}`, { content })).data,
+    deleteComment: (doctype: string, name: string, id: string) =>
+      request<unknown>('DELETE', `${resource(doctype, name)}/comments/${encodeURIComponent(id)}`),
   },
 
   customize: {

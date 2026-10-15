@@ -83,10 +83,12 @@ public sealed class TestEngine
         Shares = new ShareStore(Registry, Repository);
         CustomizationStore = new InMemoryCustomizationStore();
         Profiles = new ProfileService(Registry, Repository, Clock);
+        History = new HistoryRecorder(Registry, Repository, Clock);
         NamingSeries = new NamingSeriesManager(Registry, Repository, Permissions);
         Documents = new DocumentService(
-            Registry, Repository, Permissions, new NamingService(Repository), Clock, new UserPermissionService(Registry, Repository), Shares, Profiles);
-        ShareManager = new ShareManager(Registry, Repository, Documents, Permissions, Shares);
+            Registry, Repository, Permissions, new NamingService(Repository), Clock, new UserPermissionService(Registry, Repository), Shares, Profiles, History);
+        ShareManager = new ShareManager(Registry, Repository, Documents, Permissions, Shares, History);
+        Activity = new ActivityService(Registry, Repository, Documents, Permissions, History);
         DocTypeStore = new InMemoryDocTypeStore();
         Schema = new InMemorySchemaManager();
         Designer = new DocTypeDesigner(Registry, DocTypeStore, Schema, Repository, Clock);
@@ -115,6 +117,8 @@ public sealed class TestEngine
     public InMemoryCustomizationStore CustomizationStore { get; }
     public CustomizationManager Customization { get; }
     public ProfileService Profiles { get; }
+    public HistoryRecorder History { get; }
+    public ActivityService Activity { get; }
     public NamingSeriesManager NamingSeries { get; }
     public ShareManager ShareManager { get; }
     public InMemoryDocTypeStore DocTypeStore { get; }

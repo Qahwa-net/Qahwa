@@ -136,6 +136,16 @@ describe('draft conversion', () => {
     expect(toDefinition(draft).fields[0]!.permLevel).toBeUndefined()
   })
 
+  it('keeps the updates log on by default and writes only an opt-out', () => {
+    const draft = fromDetail({ ...detail, definition: { ...detail.definition, trackChanges: true } })
+    expect(draft.trackChanges).toBe(true)
+    expect(toDefinition(draft).trackChanges).toBeUndefined()
+
+    draft.trackChanges = false
+    expect(toDefinition(draft).trackChanges).toBe(false)
+    expect(fromDetail({ ...detail, definition: { ...detail.definition, trackChanges: false } }).trackChanges).toBe(false)
+  })
+
   it('writes single, tree and rename settings, and drops them for child tables', () => {
     const draft = fromDetail(detail)
     draft.isTree = true

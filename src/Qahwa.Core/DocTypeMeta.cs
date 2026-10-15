@@ -26,7 +26,8 @@ public sealed record DocTypeMeta
 
     /// <summary>Documents may be renamed, or merged into another, by people who can write them.</summary>
     public bool AllowRename { get; init; }
-    public bool TrackChanges { get; init; }
+    /// <summary>Keep an updates log (a Version row per change, in the same transaction). On unless a DocType opts out.</summary>
+    public bool TrackChanges { get; init; } = true;
     public IReadOnlyList<DocFieldMeta> Fields { get; init; } = [];
     public IReadOnlyList<DocPermMeta> Permissions { get; init; } = [];
     public IReadOnlyList<ValidationRule> Validations { get; init; } = [];
@@ -43,6 +44,9 @@ public sealed record DocFieldMeta
 
     public bool Required { get; init; }
     public bool Unique { get; init; }
+
+    /// <summary>Create a database index on this field (for fields that are searched or joined on).</summary>
+    public bool Indexed { get; init; }
     public bool InListView { get; init; }
     public string? Default { get; init; }
 

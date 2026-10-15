@@ -22,6 +22,8 @@ export interface Draft {
   /** Documents form a tree. Chosen when the DocType is created. */
   isTree: boolean
   allowRename: boolean
+  /** Keep the updates log (who changed what, when). On unless the DocType opts out. */
+  trackChanges: boolean
   isNew: boolean
   editable: boolean
   name: string
@@ -108,6 +110,7 @@ export function emptyDraft(): Draft {
     isSingle: false,
     isTree: false,
     allowRename: false,
+    trackChanges: true,
     isNew: true,
     editable: true,
     name: '',
@@ -154,6 +157,7 @@ export function fromDetail(detail: DesignerDetail): Draft {
     isSingle: def.isSingle ?? false,
     isTree: def.isTree ?? false,
     allowRename: def.allowRename ?? false,
+    trackChanges: def.trackChanges ?? true,
     isNew: false,
     editable: detail.editable,
     name: def.name,
@@ -201,6 +205,8 @@ export function toDefinition(draft: Draft): DocTypeDefinition {
     isSingle: (!draft.isChildTable && draft.isSingle) || undefined,
     isTree: (!draft.isChildTable && draft.isTree) || undefined,
     allowRename: (!draft.isChildTable && !draft.isSingle && draft.allowRename) || undefined,
+    // The log is on by default; only an opt-out is written.
+    trackChanges: draft.trackChanges ? undefined : false,
     fields: draft.fields.map((f) => ({
       name: f.name,
       type: f.type,

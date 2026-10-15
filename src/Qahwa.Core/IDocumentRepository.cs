@@ -55,11 +55,13 @@ public interface IDocumentRepository
         CancellationToken ct = default);
 
     /// <summary>Deletes the document together with all of its rows in <paramref name="childTables"/>, atomically.</summary>
+    /// <param name="sideWrites">Rows to insert into other tables in the same transaction (the updates log).</param>
     Task<bool> DeleteAsync(
         DocTypeMeta meta,
         string name,
         IReadOnlyList<DocTypeMeta>? childTables = null,
-        CancellationToken ct = default);
+        CancellationToken ct = default,
+        IReadOnlyList<ChildChanges>? sideWrites = null);
 
     Task<bool> ExistsAsync(DocTypeMeta meta, string name, CancellationToken ct = default);
 
@@ -87,5 +89,6 @@ public interface IDocumentRepository
         bool merge,
         IReadOnlyList<DocTypeMeta> childTables,
         IReadOnlyList<ReferenceUpdate> references,
-        CancellationToken ct = default);
+        CancellationToken ct = default,
+        IReadOnlyList<ChildChanges>? sideWrites = null);
 }

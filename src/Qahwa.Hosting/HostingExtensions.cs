@@ -79,6 +79,8 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<NamingService>();
         services.TryAddSingleton<UserPermissionService>();
         services.TryAddSingleton<ProfileService>();
+        services.TryAddSingleton<HistoryRecorder>();
+        services.TryAddSingleton<ActivityService>();
         services.TryAddSingleton<NamingSeriesManager>();
         services.TryAddSingleton<ShareStore>();
         services.TryAddSingleton<ShareManager>();

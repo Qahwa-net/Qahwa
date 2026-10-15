@@ -79,7 +79,8 @@ public sealed class ShareStore(IMetaRegistry registry, IDocumentRepository repos
 
 /// <summary>Share a document with someone, change what they may do, or stop sharing.</summary>
 public sealed class ShareManager(
-    IMetaRegistry registry, IDocumentRepository repository, DocumentService documents, PermissionService permissions, ShareStore store)
+    IMetaRegistry registry, IDocumentRepository repository, DocumentService documents, PermissionService permissions, ShareStore store,
+    HistoryRecorder? history = null)
 {
     private static readonly UserContext System = new(UserContext.AdministratorRole, [UserContext.AdministratorRole]);
 
@@ -170,6 +171,8 @@ public sealed class ShareManager(
         {
             foreach (var row in existing)
                 await documents.DeleteAsync(ShareStore.DocTypeName, (string)row["name"]!, System, ct);
+            if (existing.Count > 0)
+                await NoteAsync(doctype, name, $"Stopped sharing with {user}", actor, ct);
             return;
         }
 
@@ -179,6 +182,8 @@ public sealed class ShareManager(
             await documents.UpdateAsync(ShareStore.DocTypeName, (string)existing[0]["name"]!, values, System, ct);
             foreach (var extra in existing.Skip(1))
                 await documents.DeleteAsync(ShareStore.DocTypeName, (string)extra["name"]!, System, ct);
+            if (ShareStore.GrantOf(existing[0]).Write != write)
+                await NoteAsync(doctype, name, $"Sharing with {user} changed ({(write ? "can edit" : "can read")})", actor, ct);
             return;
         }
 
@@ -186,5 +191,13 @@ public sealed class ShareManager(
         values["share_doctype"] = doctype;
         values["share_name"] = name;
         await documents.InsertAsync(ShareStore.DocTypeName, values, System, ct);
+        await NoteAsync(doctype, name, $"Shared with {user} ({(write ? "can edit" : "can read")})", actor, ct);
+    }
+
+    /// <summary>Sharing is recorded in the document's comment thread as a system note.</summary>
+    private async Task NoteAsync(string doctype, string name, string text, IUserContext actor, CancellationToken ct)
+    {
+        if (history?.InfoNote(doctype, name, text, actor.User, history.Now()) is { } note)
+            await repository.InsertAsync(note.Meta, note.Inserts[0], null, ct);
     }
 }

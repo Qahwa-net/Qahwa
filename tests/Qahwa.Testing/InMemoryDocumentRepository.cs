@@ -95,7 +95,8 @@ public sealed class InMemoryDocumentRepository : IDocumentRepository
     }
 
     public Task<bool> DeleteAsync(
-        DocTypeMeta meta, string name, IReadOnlyList<DocTypeMeta>? childTables = null, CancellationToken ct = default)
+        DocTypeMeta meta, string name, IReadOnlyList<DocTypeMeta>? childTables = null, CancellationToken ct = default,
+        IReadOnlyList<ChildChanges>? sideWrites = null)
     {
         lock (_gate)
         {
@@ -106,7 +107,10 @@ public sealed class InMemoryDocumentRepository : IDocumentRepository
                     table.Remove(key);
             }
 
-            return Task.FromResult(Table(meta).Remove(name));
+            var deleted = Table(meta).Remove(name);
+            if (deleted)
+                ApplyChildren(sideWrites);
+            return Task.FromResult(deleted);
         }
     }
 
@@ -174,7 +178,8 @@ public sealed class InMemoryDocumentRepository : IDocumentRepository
         bool merge,
         IReadOnlyList<DocTypeMeta> childTables,
         IReadOnlyList<ReferenceUpdate> references,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        IReadOnlyList<ChildChanges>? sideWrites = null)
     {
         lock (_gate)
         {
@@ -206,6 +211,7 @@ public sealed class InMemoryDocumentRepository : IDocumentRepository
                 }
 
                 table.Remove(oldName);
+                ApplyChildren(sideWrites);
                 return Task.CompletedTask;
             }
 
@@ -218,6 +224,8 @@ public sealed class InMemoryDocumentRepository : IDocumentRepository
                 foreach (var row in Table(child).Values.Where(r => Equals(r["parent"], oldName) && Equals(r["parenttype"], meta.Name)))
                     row["parent"] = newName;
             }
+
+            ApplyChildren(sideWrites);
         }
 
         return Task.CompletedTask;

@@ -93,7 +93,8 @@ public sealed class DocumentRepository(
     }
 
     public async Task<bool> DeleteAsync(
-        DocTypeMeta meta, string name, IReadOnlyList<DocTypeMeta>? childTables = null, CancellationToken ct = default)
+        DocTypeMeta meta, string name, IReadOnlyList<DocTypeMeta>? childTables = null, CancellationToken ct = default,
+        IReadOnlyList<ChildChanges>? sideWrites = null)
     {
         await using var connection = await connections.OpenAsync(ct);
         await using var transaction = await connection.BeginTransactionAsync(ct);
@@ -103,6 +104,8 @@ public sealed class DocumentRepository(
                 await ExecuteAsync(connection, transaction, sql.DeleteChildren(child, meta.Name, name), ct);
 
             var deleted = await ExecuteAsync(connection, transaction, sql.Delete(meta, name), ct) > 0;
+            if (deleted)
+                await ApplyChildrenAsync(connection, transaction, sideWrites, ct);
             await transaction.CommitAsync(ct);
             return deleted;
         }
@@ -148,7 +151,8 @@ public sealed class DocumentRepository(
         bool merge,
         IReadOnlyList<DocTypeMeta> childTables,
         IReadOnlyList<ReferenceUpdate> references,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        IReadOnlyList<ChildChanges>? sideWrites = null)
     {
         try
         {
@@ -172,6 +176,7 @@ public sealed class DocumentRepository(
                         await ExecuteAsync(connection, transaction, sql.RenameChildren(child, meta.Name, oldName, newName), ct);
                 }
 
+                await ApplyChildrenAsync(connection, transaction, sideWrites, ct);
                 await transaction.CommitAsync(ct);
             }
             catch

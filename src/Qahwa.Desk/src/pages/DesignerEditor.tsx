@@ -275,6 +275,11 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
                     onChange={(e) => patch({ isTree: e.target.checked })} />
                   Documents form a tree (each can have a parent)
                 </label>
+                {!draft.isChildTable && <label className="check-line">
+                  <input type="checkbox" checked={draft.trackChanges} disabled={disabled}
+                    onChange={(e) => patch({ trackChanges: e.target.checked })} />
+                  Keep an updates log (who changed what, and when)
+                </label>}
                 {!draft.isSingle && <label className="check-line">
                   <input type="checkbox" checked={draft.allowRename} disabled={disabled}
                     onChange={(e) => patch({ allowRename: e.target.checked })} />
@@ -458,7 +463,7 @@ function PreviewForm({ draft }: { draft: Draft }) {
   })
 
   const meta: DocTypeMeta = {
-    name: draft.name || 'New DocType', isChildTable: draft.isChildTable, isSubmittable: draft.isSubmittable, trackChanges: false,
+    name: draft.name || 'New DocType', isChildTable: draft.isChildTable, isSubmittable: draft.isSubmittable, trackChanges: draft.trackChanges,
     fields: draft.fields, validations: draft.validations,
   }
   const session: Session = { user: user?.user ?? '', roles: user?.roles ?? [], isNew: true }

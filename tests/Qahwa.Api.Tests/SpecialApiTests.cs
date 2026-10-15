@@ -242,3 +242,58 @@ public sealed class CustomizeApiTests : IAsyncDisposable
         Assert.Equal(HttpStatusCode.NotFound, (await sysmgr.GetAsync("/api/customize/doctypes/Nope")).StatusCode);
     }
 }
+
+public sealed class ActivityApiTests : IAsyncDisposable
+{
+    private readonly QahwaFactory _factory = new();
+
+    public ValueTask DisposeAsync() => _factory.DisposeAsync();
+
+    private static async Task<JsonElement> JsonOf(HttpResponseMessage response) =>
+        (await response.Content.ReadFromJsonAsync<JsonElement>()).Clone();
+
+    [Fact]
+    public async Task The_timeline_shows_updates_and_comments_for_people_who_can_read_the_document()
+    {
+        var seller = _factory.ClientFor("a@example.com", "Sales User");
+        var id = (await JsonOf(await seller.PostAsJsonAsync("/api/resource/Customer", new { customer_name = "Acme" }))).GetProperty("data").GetProperty("name").GetString();
+        await seller.PutAsJsonAsync($"/api/resource/Customer/{id}", new { credit_limit = 500 });
+
+        var comment = await seller.PostAsJsonAsync($"/api/resource/Customer/{id}/comments", new { content = "Call them <b>Monday</b>" });
+        Assert.Equal(HttpStatusCode.Created, comment.StatusCode);
+        var commentId = (await JsonOf(comment)).GetProperty("data").GetProperty("id").GetString();
+
+        var timeline = (await JsonOf(await seller.GetAsync($"/api/resource/Customer/{id}/timeline"))).GetProperty("data");
+        var kinds = timeline.EnumerateArray().Select(i => i.GetProperty("kind").GetString()).ToList();
+        Assert.Contains("comment", kinds);
+        Assert.Equal(2, kinds.Count(k => k == "version"));
+        var update = timeline.EnumerateArray().First(i => i.GetProperty("event").GetString() == "Update");
+        Assert.Equal("credit_limit", update.GetProperty("data").GetProperty("changed")[0][0].GetString());
+        // Comments are returned as plain text; the Desk escapes them, the server never interprets markup.
+        Assert.Equal("Call them <b>Monday</b>", timeline.EnumerateArray().First(i => i.GetProperty("kind").GetString() == "comment").GetProperty("content").GetString());
+
+        Assert.Equal(HttpStatusCode.OK, (await seller.PutAsJsonAsync($"/api/resource/Customer/{id}/comments/{commentId}", new { content = "edited" })).StatusCode);
+        var comments = (await JsonOf(await seller.GetAsync($"/api/resource/Customer/{id}/comments"))).GetProperty("data");
+        Assert.Equal("edited", comments[0].GetProperty("content").GetString());
+        Assert.Equal(HttpStatusCode.OK, (await seller.DeleteAsync($"/api/resource/Customer/{id}/comments/{commentId}")).StatusCode);
+    }
+
+    [Fact]
+    public async Task Only_readers_comment_only_authors_edit_and_bad_input_is_refused()
+    {
+        var seller = _factory.ClientFor("a@example.com", "Sales User");
+        var other = _factory.ClientFor("b@example.com", "Sales User");
+        var id = (await JsonOf(await seller.PostAsJsonAsync("/api/resource/Customer", new { customer_name = "Acme" }))).GetProperty("data").GetProperty("name").GetString();
+        var commentId = (await JsonOf(await seller.PostAsJsonAsync($"/api/resource/Customer/{id}/comments", new { content = "mine" }))).GetProperty("data").GetProperty("id").GetString();
+
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateClient().GetAsync($"/api/resource/Customer/{id}/timeline")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await other.GetAsync($"/api/resource/Customer/{id}/timeline")).StatusCode); // own-only role, not their document
+        Assert.Equal(HttpStatusCode.Forbidden, (await other.PostAsJsonAsync($"/api/resource/Customer/{id}/comments", new { content = "hi" })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await seller.PostAsJsonAsync($"/api/resource/Customer/{id}/comments", new { content = "  " })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await seller.GetAsync($"/api/resource/Customer/{id}/timeline?before=garbage")).StatusCode);
+
+        var manager = _factory.ClientFor("m@example.com", "Sales Manager");
+        Assert.Equal(HttpStatusCode.Forbidden, (await manager.PutAsJsonAsync($"/api/resource/Customer/{id}/comments/{commentId}", new { content = "hijack" })).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await seller.DeleteAsync($"/api/resource/Customer/{id}/comments/nope")).StatusCode);
+    }
+}

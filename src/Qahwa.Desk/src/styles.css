@@ -234,6 +234,18 @@ tbody tr:last-child td { border-block-end: 0; }
 .rule .expression { grid-column: 1 / -1; }
 .check-line.plain { font-weight: 400; }
 
+/* Activity */
+.activity { margin-top: 1rem; }
+.comment-box textarea { width: 100%; resize: vertical; }
+.comment-actions { display: flex; gap: .75rem; align-items: center; justify-content: space-between; margin-top: .35rem; }
+.timeline { list-style: none; margin: 1rem 0 .5rem; padding: 0; display: grid; gap: .85rem; }
+.entry { border-left: 3px solid var(--border, #e4e7ec); padding-left: .75rem; }
+.entry.comment { border-left-color: var(--accent, #7a5230); }
+.entry.note { color: var(--muted, #667085); font-size: .9em; }
+.changes { margin: .25rem 0 0; padding-left: 1.1rem; }
+.comment-text { margin: .25rem 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.mention { color: var(--accent, #7a5230); }
+
 /* Customize Form */
 .custom-rows { list-style: none; margin: 0 0 1rem; padding: 0; }
 .custom-row { border-bottom: 1px solid var(--border, #e4e7ec); padding: .35rem 0; }
