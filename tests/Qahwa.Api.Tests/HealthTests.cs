@@ -46,6 +46,7 @@ public sealed class QahwaFactory(
         builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Qahwa:AutoMigrate"] = "false",
+            ["Qahwa:Scheduler:Enabled"] = "false",
             ["Qahwa:Auth:HashIterations"] = "1000",
             ["Qahwa:Auth:SessionCacheSeconds"] = "0",
             ["Qahwa:Auth:LoginPermitsPerMinute"] = loginPermitsPerMinute.ToString(),
@@ -61,6 +62,8 @@ public sealed class QahwaFactory(
             services.AddSingleton<IMutableMetaRegistry>(registry);
             services.RemoveAll<IDocTypeStore>();
             services.AddSingleton<IDocTypeStore>(new InMemoryDocTypeStore());
+            services.RemoveAll<IWebhookStore>();
+            services.AddSingleton<IWebhookStore>(new InMemoryWebhookStore());
             services.RemoveAll<INotificationRuleStore>();
             services.AddSingleton<INotificationRuleStore>(new InMemoryNotificationRuleStore());
             services.RemoveAll<IAssignmentRuleStore>();

@@ -172,6 +172,16 @@ A tile is `{ id, type: Number|Chart|List, title, docType, function, valueField, 
 | `POST /import/{doctype}/preview` `{ csv, mode }` | Check a file without importing: `{ columns: [{ header, field, label }], rows, sample, errors: [{ row, field, message }], moreErrors }` |
 | `POST /import/{doctype}` `{ csv, mode, stopOnError }` | Import: `{ created, updated, failed, errors, stopped, moreErrors }`. 403 when the first row is refused for permission, 400 for a bad file (empty, unclosed quote, too big, no matching column) or mode |
 
+## Webhooks ([ADR-029](../../adr/029-webhooks.md))
+
+| Call | Purpose |
+|---|---|
+| `GET /webhooks/doctypes[/{name}]` | List DocTypes with their hook counts, or one DocType's hooks (secrets are never returned: `secretSet` says whether one is stored) |
+| `PUT /webhooks/doctypes/{name}` `{ hooks: { docType, hooks: [{ name, active, event, condition?, url, secret?, fields[] }] }, modified? }` | Replace the hooks. A blank `secret` keeps the stored one; a new hook needs one (16 to 200 characters). 400 for non-https or non-public addresses, 409 for a stale `modified` |
+| `DELETE /webhooks/doctypes/{name}` | Remove them |
+
+Receivers verify a delivery like this (pseudo-code): `expected = hex(HMAC_SHA256(secret, t + "." + rawBody))` where `t` comes from `X-Qahwa-Signature: t=...,v1=...`; compare with `v1` in constant time and reject if `|now - t|` is large. `X-Qahwa-Delivery` is unique per delivery attempt chain: use it to ignore repeats.
+
 ## Link fields
 
 | Call | Purpose |

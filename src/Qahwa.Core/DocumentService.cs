@@ -22,7 +22,8 @@ public sealed partial class DocumentService(
     CollaborationHooks? collaboration = null,
     WorkflowCatalog? workflows = null,
     Lazy<AssignmentRuleEngine>? assignmentRules = null,
-    Lazy<NotificationRuleEngine>? notificationRules = null)
+    Lazy<NotificationRuleEngine>? notificationRules = null,
+    Lazy<WebhookService>? webhooks = null)
 {
     private readonly DocumentLogic _logic = new(registry, repository, permissions, clock);
 
@@ -187,6 +188,8 @@ public sealed partial class DocumentService(
             await assignmentRules.Value.AfterSaveAsync(meta, name, current, condition => ConditionHolds(condition, meta, current, user), user, ct);
         if (notificationRules is not null && AssignmentRuleManager.Applies(meta) && await LoadAsync(meta, name, ct) is { } latest)
             await notificationRules.Value.AfterSaveAsync(meta, name, isNew, before, latest, user, ct);
+        if (webhooks is not null && AssignmentRuleManager.Applies(meta) && await LoadAsync(meta, name, ct) is { } hooked)
+            await webhooks.Value.AfterSaveAsync(meta, name, isNew, before, hooked, ct);
     }
 
     private static DocumentValidationException General(string message) => new([new FieldError(string.Empty, message)]);
@@ -411,6 +414,8 @@ public sealed partial class DocumentService(
 
         if (!await repository.DeleteAsync(meta, name, childTables, ct, log))
             throw new NotFoundException($"{meta.Name} '{name}' was not found.");
+        if (webhooks is not null)
+            await webhooks.Value.AfterDeleteAsync(meta, name, existing, ct);
         if (shares is not null)
             await shares.DeleteForDocumentAsync(meta.Name, name, ct);
         if (history is not null)

@@ -28,6 +28,7 @@ Settings (`appsettings.json`, section `Qahwa`):
 | `DocTypePaths` | Folders of DocType JSON files (an app's definitions) loaded at start |
 | `AutoMigrate` | Run the schema sync at start |
 | `Qahwa:Email:Host`, `Port`, `UseSsl`, `User`, `Password`, `From` | Outgoing mail. Without a `Host` messages are only logged. Keep the password in user secrets or environment variables |
+| `Qahwa:Webhooks:AllowInsecure` | Development only: allow http and local addresses for webhooks. Never in production |
 | `Qahwa:Scheduler:Enabled`, `IntervalSeconds` | The background scheduler (auto repeat): on by default, every 300 seconds (10 to 3600) |
 | `Auth:MinPasswordLength`, `MaxFailedAttempts`, `LockoutMinutes` | Password and lockout policy |
 | `Auth:LoginPermitsPerMinute` | Login rate limit |

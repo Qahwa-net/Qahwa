@@ -26,6 +26,9 @@ if (string.IsNullOrWhiteSpace(emailSettings.Host))
     builder.Services.AddSingleton<IEmailSender, LogEmailSender>();
 else
     builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
+var webhookOptions = builder.Configuration.GetSection("Qahwa:Webhooks").Get<WebhookOptions>() ?? new WebhookOptions();
+builder.Services.AddSingleton(webhookOptions);
+builder.Services.AddSingleton<IWebhookSender, WebhookSender>();
 builder.Services.AddHostedService<SchedulerService>();
 
 var app = builder.Build();
@@ -89,6 +92,10 @@ foreach (var failure in await app.Services.GetRequiredService<CustomDocTypeLoade
 
 // Fields and properties customised in the Customize Form (a no-op if the migration already applied them).
 foreach (var failure in await app.Services.GetRequiredService<CustomizationManager>().LoadAsync())
+    app.Logger.LogError("{Failure}", failure);
+
+// Webhooks.
+foreach (var failure in await app.Services.GetRequiredService<WebhookManager>().LoadAsync())
     app.Logger.LogError("{Failure}", failure);
 
 // Notification rules.

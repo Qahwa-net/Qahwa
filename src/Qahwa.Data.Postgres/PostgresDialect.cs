@@ -51,6 +51,13 @@ public sealed class PostgresDialect : ISqlDialect
         "\"owner\" varchar(140) NOT NULL, " +
         "\"modified_by\" varchar(140) NOT NULL)";
 
+    public string CreateWebhookTableSql =>
+        "CREATE TABLE IF NOT EXISTS \"__webhook_set\" (" +
+        "\"name\" varchar(140) NOT NULL PRIMARY KEY, " +
+        "\"definition\" text NOT NULL, " +
+        "\"modified\" timestamp with time zone NOT NULL, " +
+        "\"modified_by\" varchar(140) NOT NULL)";
+
     public string CreateNotificationRuleTableSql =>
         "CREATE TABLE IF NOT EXISTS \"__notification_rule\" (" +
         "\"name\" varchar(140) NOT NULL PRIMARY KEY, " +

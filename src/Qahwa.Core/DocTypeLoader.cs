@@ -112,6 +112,21 @@ public static partial class DocTypeLoader
         }
     }
 
+    public static string SerializeWebhooks(WebhookSet set) => JsonSerializer.Serialize(set, Options);
+
+    public static WebhookSet ParseWebhooks(string json)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<WebhookSet>(json, Options)
+                ?? throw new DocTypeValidationException("The webhooks are empty.");
+        }
+        catch (JsonException ex)
+        {
+            throw new DocTypeValidationException($"Invalid webhooks: {ex.Message}");
+        }
+    }
+
     public static string SerializeCustomization(Customization customization) => JsonSerializer.Serialize(customization, Options);
 
     public static Customization ParseCustomization(string json)

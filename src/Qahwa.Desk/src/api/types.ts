@@ -727,3 +727,41 @@ export interface ApiKeyCreated {
   info: ApiKeyInfo
   token: string
 }
+
+export type WebhookEvent = 'New' | 'Update' | 'Submit' | 'Cancel' | 'Delete'
+
+export interface Webhook {
+  name: string
+  active: boolean
+  event: WebhookEvent
+  condition?: string | null
+  url: string
+  /** Write-only: blank keeps the stored secret. */
+  secret?: string | null
+  secretSet: boolean
+  fields: string[]
+}
+
+export interface WebhookSet {
+  docType: string
+  hooks: Webhook[]
+}
+
+export interface WebhookItem {
+  docType: string
+  module?: string | null
+  source: DocTypeSource
+  hasHooks: boolean
+  hooks: number
+  activeHooks: number
+}
+
+export interface WebhookView {
+  docType: string
+  source: DocTypeSource
+  exists: boolean
+  modified?: string | null
+  set: WebhookSet
+  fields: string[]
+  canEdit: boolean
+}

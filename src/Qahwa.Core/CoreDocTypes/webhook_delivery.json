@@ -1,0 +1,20 @@
+{
+  "name": "Webhook Delivery",
+  "module": "Core",
+  "trackChanges": false,
+  "fields": [
+    { "name": "webhook", "type": "Data", "label": "Webhook", "required": true, "indexed": true, "inListView": true },
+    { "name": "reference_doctype", "type": "Data", "label": "DocType", "required": true, "indexed": true, "inListView": true },
+    { "name": "reference_name", "type": "Data", "label": "Document", "inListView": true },
+    { "name": "event", "type": "Data", "label": "Event", "inListView": true },
+    { "name": "payload", "type": "LongText", "label": "Payload" },
+    { "name": "status", "type": "Select", "options": "Pending\nSending\nSent\nFailed", "default": "Pending", "label": "Status", "indexed": true, "inListView": true },
+    { "name": "attempts", "type": "Int", "label": "Attempts" },
+    { "name": "next_attempt", "type": "Datetime", "label": "Next attempt", "indexed": true },
+    { "name": "response_code", "type": "Int", "label": "Response" },
+    { "name": "last_error", "type": "Text", "label": "Last error" }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "delete": true }
+  ]
+}

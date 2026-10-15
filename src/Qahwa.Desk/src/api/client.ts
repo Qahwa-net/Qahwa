@@ -1,6 +1,6 @@
 import type {
   DesignerDetail, DocPerm, DesignerItem, DesignerPreview, Doc, DocTypeDefinition, FieldError, FieldTypeInfo,
-  ListResponse, ApiKeyCreated, ApiKeyInfo, ImportPreview, ImportResult, WorkspaceBlock, WorkspaceDetail, WorkspaceInfo, WorkspaceView, LetterHeadDetail, PrintChoices, PrintFormatDetail, PrintFormatInfo, DashboardDetail, DashboardInfo, DashboardItem, DashboardResult, EmailPreview, EmailTemplateInfo, NotificationRuleItem, NotificationRuleSet, NotificationRuleView, AutoRepeatInfo, AutoRepeatRequest, AssignmentRuleItem, AssignmentRuleSet, AssignmentRuleView, PendingAction, WorkflowDefinition, WorkflowItem, WorkflowStatus, WorkflowView, MetaResponse, MetaSummary, PermissionItem, ActivityItem, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, FollowState, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
+  ListResponse, WebhookItem, WebhookSet, WebhookView, ApiKeyCreated, ApiKeyInfo, ImportPreview, ImportResult, WorkspaceBlock, WorkspaceDetail, WorkspaceInfo, WorkspaceView, LetterHeadDetail, PrintChoices, PrintFormatDetail, PrintFormatInfo, DashboardDetail, DashboardInfo, DashboardItem, DashboardResult, EmailPreview, EmailTemplateInfo, NotificationRuleItem, NotificationRuleSet, NotificationRuleView, AutoRepeatInfo, AutoRepeatRequest, AssignmentRuleItem, AssignmentRuleSet, AssignmentRuleView, PendingAction, WorkflowDefinition, WorkflowItem, WorkflowStatus, WorkflowView, MetaResponse, MetaSummary, PermissionItem, ActivityItem, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, FollowState, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
 } from './types.ts'
 import type { Filter } from '../lib/filters.ts'
 import { toApiFilters } from '../lib/filters.ts'
@@ -249,6 +249,14 @@ export const api = {
       (await request<{ data: CustomizationView }>('PUT', `/api/customize/doctypes/${encodeURIComponent(name)}`, { customization, modified })).data,
     reset: async (name: string) =>
       (await request<{ data: CustomizationView }>('DELETE', `/api/customize/doctypes/${encodeURIComponent(name)}`)).data,
+  },
+
+  webhooks: {
+    list: async () => (await request<{ data: WebhookItem[] }>('GET', '/api/webhooks/doctypes')).data,
+    get: async (name: string) => (await request<{ data: WebhookView }>('GET', `/api/webhooks/doctypes/${encodeURIComponent(name)}`)).data,
+    save: async (name: string, hooks: WebhookSet, modified: string | null | undefined) =>
+      (await request<{ data: WebhookView }>('PUT', `/api/webhooks/doctypes/${encodeURIComponent(name)}`, { hooks, modified })).data,
+    remove: async (name: string) => { await request<unknown>('DELETE', `/api/webhooks/doctypes/${encodeURIComponent(name)}`) },
   },
 
   apiKeys: {

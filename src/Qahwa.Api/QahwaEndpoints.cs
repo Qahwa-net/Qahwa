@@ -103,6 +103,7 @@ public static class QahwaEndpoints
         app.MapQahwaWorkspaces();
         app.MapQahwaImport();
         app.MapQahwaApiKeys();
+        app.MapQahwaWebhooks();
         return app;
     }
 

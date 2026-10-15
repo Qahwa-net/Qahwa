@@ -86,6 +86,12 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<WorkspaceService>();
         services.TryAddSingleton<DataImportService>();
         services.TryAddSingleton<ApiKeyService>();
+        services.TryAddSingleton<IWebhookStore, WebhookStore>();
+        services.TryAddSingleton<WebhookCatalog>();
+        services.TryAddSingleton(sp => new WebhookManager(sp.GetRequiredService<IMetaRegistry>(), sp.GetRequiredService<IWebhookStore>(), sp.GetRequiredService<WebhookCatalog>(),
+            sp.GetRequiredService<PermissionService>(), sp.GetRequiredService<TimeProvider>(), sp.GetService<WebhookOptions>()?.AllowInsecure ?? false));
+        services.TryAddSingleton<WebhookService>();
+        services.TryAddSingleton(sp => new Lazy<WebhookService>(() => sp.GetRequiredService<WebhookService>()));
         services.TryAddSingleton<AssignmentRuleCatalog>();
         services.TryAddSingleton<AssignmentRuleManager>();
         services.TryAddSingleton<AssignmentRuleEngine>();

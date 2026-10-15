@@ -33,6 +33,9 @@ public interface ISqlDialect
     /// <summary>Table holding customisations of standard DocTypes made in the Customize Form.</summary>
     string CreateCustomizeTableSql { get; }
 
+    /// <summary>Table holding webhooks.</summary>
+    string CreateWebhookTableSql { get; }
+
     /// <summary>Table holding notification rules.</summary>
     string CreateNotificationRuleTableSql { get; }
 

@@ -96,6 +96,10 @@ Importing needs read and create access (read and write for updates). Each row is
 
 A key authenticates as its owner and is limited to the owner's current permissions; roles are re-read on every request. Read-only keys are limited to safe methods. Keys cannot make or delete keys. Only a SHA-256 hash of the secret is stored, in a permission-level-9 field that the API never returns.
 
+## Webhooks
+
+Managing hooks needs a System Manager. Posts go only to public https addresses (checked on save and again at connect time), the secret is write-only, payloads exclude passwords and fields above permission level 0 unless listed explicitly (passwords never), and redirects are never followed.
+
 ## What the API never reveals
 
 - A document you may not read looks like it does not exist where possible (checks run before the document is loaded).

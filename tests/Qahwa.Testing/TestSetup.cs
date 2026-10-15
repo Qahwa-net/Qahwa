@@ -87,6 +87,9 @@ public sealed class TestEngine
         AssignmentRuleCatalog = new AssignmentRuleCatalog();
         AssignmentRuleStore = new InMemoryAssignmentRuleStore();
         NotificationRuleCatalog = new NotificationRuleCatalog();
+        WebhookCatalog = new WebhookCatalog();
+        WebhookStore = new InMemoryWebhookStore();
+        WebhookSender = new FakeWebhookSender();
         NotificationRuleStore = new InMemoryNotificationRuleStore();
         Profiles = new ProfileService(Registry, Repository, Clock);
         History = new HistoryRecorder(Registry, Repository, Clock);
@@ -96,7 +99,7 @@ public sealed class TestEngine
         Collaboration = new CollaborationHooks(Follows, Notifications, Registry, Repository);
         NamingSeries = new NamingSeriesManager(Registry, Repository, Permissions);
         Documents = new DocumentService(
-            Registry, Repository, Permissions, new NamingService(Repository), Clock, new UserPermissionService(Registry, Repository), Shares, Profiles, History, Collaboration, WorkflowCatalog, new Lazy<AssignmentRuleEngine>(() => AssignmentRules!), new Lazy<NotificationRuleEngine>(() => NotificationRules!));
+            Registry, Repository, Permissions, new NamingService(Repository), Clock, new UserPermissionService(Registry, Repository), Shares, Profiles, History, Collaboration, WorkflowCatalog, new Lazy<AssignmentRuleEngine>(() => AssignmentRules!), new Lazy<NotificationRuleEngine>(() => NotificationRules!), new Lazy<WebhookService>(() => Webhooks!));
         ShareManager = new ShareManager(Registry, Repository, Documents, Permissions, Shares, History, Notifications);
         Activity = new ActivityService(Registry, Repository, Documents, Permissions, History, Collaboration);
         Assignments = new AssignmentService(Registry, Repository, Documents, Permissions, ShareManager, Notifications, Follows, History);
@@ -128,6 +131,8 @@ public sealed class TestEngine
             new PasswordHasher<string>(Options.Create(new PasswordHasherOptions { IterationCount = 1000 })),
             Options.Create(AuthOptions),
             Clock);
+        Webhooks = new WebhookService(WebhookCatalog, Registry, Repository, Documents, WebhookSender, History);
+        WebhookManager = new WebhookManager(Registry, WebhookStore, WebhookCatalog, Permissions, Clock, allowInsecure: false);
         ApiKeys = new ApiKeyService(Registry, Repository, Auth, Permissions, History);
     }
 
@@ -159,6 +164,11 @@ public sealed class TestEngine
     public WorkspaceService Workspaces { get; }
     public DataImportService DataImport { get; }
     public ApiKeyService ApiKeys { get; }
+    public WebhookCatalog WebhookCatalog { get; }
+    public InMemoryWebhookStore WebhookStore { get; }
+    public FakeWebhookSender WebhookSender { get; }
+    public WebhookService Webhooks { get; }
+    public WebhookManager WebhookManager { get; }
     public EmailService Email { get; }
     public NotificationRuleManager NotificationRuleManager { get; }
     public ProfileService Profiles { get; }
