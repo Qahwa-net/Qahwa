@@ -710,3 +710,20 @@ export interface ImportResult {
   stopped: boolean
   moreErrors: boolean
 }
+
+export interface ApiKeyInfo {
+  id: string
+  keyId: string
+  user: string
+  description?: string | null
+  readOnly: boolean
+  expiresOn?: string | null
+  created: string
+  lastUsed?: string | null
+  expired: boolean
+}
+
+export interface ApiKeyCreated {
+  info: ApiKeyInfo
+  token: string
+}

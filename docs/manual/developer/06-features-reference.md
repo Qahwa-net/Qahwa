@@ -112,6 +112,10 @@ Desk: `NotificationRules.tsx`, `controls/ChipPicker.tsx`, `lib/notificationRules
 
 `DataImport.cs`: `CsvReader` (RFC 4180 reader with limits) and `DataImportService` (`Template`, `PreviewAsync`, `RunAsync`, `ImportableFields`); `ImportEndpoints.cs`. Desk: `ImportDialog.tsx` on the list view, `lib/importFile.ts`. Rows go through `DocumentService.InsertAsync/UpdateAsync`, so new rules apply to imports for free. Tests: `DataImportTests`, `ImportApiTests`, `PostgresImportTests`.
 
+## API keys ([ADR-028](../../adr/028-api-keys.md))
+
+`ApiKeys.cs`: `ApiKeyService` (`CreateAsync`, `ListAsync`, `RevokeAsync`, `AuthenticateAsync`) and the Core DocType `api_key.json`. `CookieUserContextResolver` (in `ApiInfrastructure.cs`) checks the Bearer key first, sets `ViaApiKey` for the request and enforces read-only; `ApiKeyEndpoints.cs` refuses key-authenticated callers. Desk: `ApiKeysSection.tsx` on the Account page. Tests: `ApiKeyTests`, `ApiKeyApiTests` (real cookie login then the key on its own), `PostgresApiKeyTests`.
+
 ## Authentication ([ADR-002](../../adr/002-authentication.md))
 Cookie sessions, ASP.NET Identity password hashing, lockout, login rate limit; `User`, `Role`, `Has Role` DocTypes. Roles are cached per session for `SessionCacheSeconds`.
 

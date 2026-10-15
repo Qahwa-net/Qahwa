@@ -16,6 +16,16 @@ Base path `/api`. JSON in and out. Authentication is a cookie session from `POST
 | 404 | `not_found` | No such DocType or document (or you may not know it exists) |
 | 409 | `conflict` | Someone else changed it, or a unique value/name is taken |
 
+## API keys ([ADR-028](../../adr/028-api-keys.md))
+
+Instead of the cookie, a program sends `Authorization: Bearer qk_<id>.<secret>`. The request then acts as the key's owner with their current permissions. A bad, expired or revoked key is simply nobody (401); a read-only key answers 403 to anything but GET, HEAD and OPTIONS.
+
+| Call | Purpose |
+|---|---|
+| `GET /api-keys?all=true` | The caller's keys (all keys for a System Manager with `all=true`); never includes a secret |
+| `POST /api-keys` `{ description?, readOnly?, expiresOn? }` | Make a key for yourself (201): `{ info, token }`, the token only here. Needs a signed-in person, not a key |
+| `DELETE /api-keys/{id}` | Revoke (own key, or any for a System Manager). Needs a signed-in person |
+
 ## Authentication
 
 | Call | Purpose |

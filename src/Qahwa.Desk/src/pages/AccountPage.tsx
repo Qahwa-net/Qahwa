@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { ApiError, api } from '../api/client.ts'
 import { useAuth } from '../auth.tsx'
+import { ApiKeysSection } from './ApiKeysSection.tsx'
 
 export function AccountPage() {
   const { user } = useAuth()
@@ -56,6 +57,8 @@ export function AccountPage() {
             onChange={(e) => setRepeat(e.target.value)} /></label>
         <button className="btn primary" type="submit" disabled={busy}>Change password</button>
       </form>
+
+      <ApiKeysSection />
     </>
   )
 }

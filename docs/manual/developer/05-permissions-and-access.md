@@ -92,6 +92,10 @@ Managing workspaces needs a System Manager. Reading is filtered on every request
 
 Importing needs read and create access (read and write for updates). Each row is an ordinary insert or update by the importing person, so every rule of the document engine applies; a file cannot set owner, timestamps, passwords or calculated fields.
 
+## API keys
+
+A key authenticates as its owner and is limited to the owner's current permissions; roles are re-read on every request. Read-only keys are limited to safe methods. Keys cannot make or delete keys. Only a SHA-256 hash of the secret is stored, in a permission-level-9 field that the API never returns.
+
 ## What the API never reveals
 
 - A document you may not read looks like it does not exist where possible (checks run before the document is loaded).

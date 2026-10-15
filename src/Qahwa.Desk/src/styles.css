@@ -593,3 +593,5 @@ kbd { font: .75rem ui-monospace, Consolas, monospace; padding: .05rem .35rem; bo
 .import-problems { max-block-size: 12rem; overflow-y: auto; border: 1px solid var(--border); border-radius: 10px; padding: .5rem .9rem; margin-block: .6rem; font-size: .9rem; }
 .import-problems ul { margin: 0; padding-inline-start: 1.1rem; }
 .import-problems p { margin: .25rem 0; font-weight: 600; }
+
+.api-keys { margin-block-start: 1rem; max-inline-size: 44rem; }

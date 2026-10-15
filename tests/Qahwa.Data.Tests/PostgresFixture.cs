@@ -113,6 +113,7 @@ public sealed class PgStack : IAsyncDisposable
             Registry, Repository, Documents, AuthStore,
             new PasswordHasher<string>(Options.Create(new PasswordHasherOptions { IterationCount = 1000 })),
             Options.Create(AuthOptions), Clock);
+        ApiKeys = new ApiKeyService(Registry, Repository, Auth, permissions, History);
     }
 
     public PermissionOverrides Overrides { get; }
@@ -137,6 +138,7 @@ public sealed class PgStack : IAsyncDisposable
     public PrintService Print { get; }
     public WorkspaceService Workspaces { get; }
     public DataImportService DataImport { get; }
+    public ApiKeyService ApiKeys { get; }
     public EmailService Email { get; }
     public NotificationRuleManager NotificationRuleManager { get; }
     public ProfileService Profiles { get; }

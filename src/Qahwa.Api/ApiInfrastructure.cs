@@ -29,10 +29,12 @@ public interface IUserContextResolver
 /// </summary>
 internal sealed class CookieUserContextResolver(
     AuthService auth,
+    ApiKeyService apiKeys,
     IMemoryCache cache,
     IOptions<AuthOptions> options) : IUserContextResolver
 {
     private static readonly object ItemKey = new();
+    internal static readonly object ViaApiKey = new();
 
     public async ValueTask<IUserContext> ResolveAsync(HttpContext context, CancellationToken ct = default)
     {
@@ -46,6 +48,18 @@ internal sealed class CookieUserContextResolver(
 
     private async Task<IUserContext> ResolveCoreAsync(HttpContext context, CancellationToken ct)
     {
+        // A program acting with an API key: "Authorization: Bearer qk_...". A bad key is simply nobody (401 where a person is needed).
+        if (context.Request.Headers.Authorization.ToString() is { } header && header.StartsWith("Bearer qk_", StringComparison.Ordinal))
+        {
+            var identity = await apiKeys.AuthenticateAsync(header["Bearer ".Length..].Trim(), ct);
+            if (identity is null)
+                return UserContext.Anonymous;
+            if (identity.ReadOnly && !HttpMethods.IsGet(context.Request.Method) && !HttpMethods.IsHead(context.Request.Method) && !HttpMethods.IsOptions(context.Request.Method))
+                throw new PermissionDeniedException("This API key is read-only.");
+            context.Items[ViaApiKey] = true;
+            return identity.User;
+        }
+
         var principal = context.User;
         if (principal.Identity?.IsAuthenticated != true)
             return UserContext.Anonymous;

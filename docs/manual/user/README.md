@@ -19,6 +19,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 15. [Printing documents](15-printing.md)
 16. [Workspaces: your starting page](16-workspaces.md)
 17. [Importing data from a spreadsheet](17-importing-data.md)
+18. [API keys: let a program act as you](18-api-keys.md)
 
 **Words used**
 
