@@ -20,7 +20,8 @@ public sealed partial class DocumentService(
     ProfileService? profiles = null,
     HistoryRecorder? history = null,
     CollaborationHooks? collaboration = null,
-    WorkflowCatalog? workflows = null)
+    WorkflowCatalog? workflows = null,
+    Lazy<AssignmentRuleEngine>? assignmentRules = null)
 {
     private readonly DocumentLogic _logic = new(registry, repository, permissions, clock);
 
@@ -180,6 +181,8 @@ public sealed partial class DocumentService(
             await profiles.AfterSaveAsync(meta, saved, changed, isNew, ct);
         if (collaboration is not null)
             await collaboration.AfterSaveAsync(meta, name, isNew, user, ct);
+        if (assignmentRules is not null && AssignmentRuleManager.Applies(meta) && await LoadAsync(meta, name, ct) is { } current)
+            await assignmentRules.Value.AfterSaveAsync(meta, name, current, condition => ConditionHolds(condition, meta, current, user), user, ct);
     }
 
     private static DocumentValidationException General(string message) => new([new FieldError(string.Empty, message)]);

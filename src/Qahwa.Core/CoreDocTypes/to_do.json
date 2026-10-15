@@ -9,7 +9,8 @@
     { "name": "status", "type": "Select", "options": "Open\nClosed\nCancelled", "default": "Open", "label": "Status", "inListView": true },
     { "name": "priority", "type": "Select", "options": "Low\nMedium\nHigh", "default": "Medium", "label": "Priority" },
     { "name": "date", "type": "Date", "label": "Due date" },
-    { "name": "description", "type": "Text", "label": "Description" }
+    { "name": "description", "type": "Text", "label": "Description" },
+    { "name": "assignment_rule", "type": "Data", "label": "Assignment rule", "indexed": true }
   ],
   "permissions": [
     { "role": "System Manager", "read": true }

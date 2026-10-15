@@ -36,7 +36,7 @@ Tools → Customize Form. Adds fields to Core/App DocTypes (names `custom_...`, 
 `Version` rows (field-level diffs, table row changes, delete snapshots) are written for **every** DocType unless it sets `trackChanges: false`, **in the same transaction** as the change: `HistoryRecorder` builds the rows and `DocumentService` hands them to the repository as side writes (`ChildChanges` for another table; `DeleteAsync`/`RenameAsync` accept them too). `ActivityService` is the read side and the comments: `TimelineAsync`, `AddCommentAsync`, `UpdateCommentAsync`, `DeleteCommentAsync`. Sharing adds system notes (`Info` comments); rename and merge repoint the log and comments. Endpoints in `ActivityEndpoints.cs`; Desk `ActivityPanel`. Limits: no retention or restore yet; mentions are highlighted but not notified.
 
 ## Assign, follow and notifications ([ADR-015](../../adr/015-assign-follow-notifications.md))
-`AssignmentService`, `FollowService`, `NotificationService` and `CollaborationHooks` (called by `DocumentService` after a save and by `ActivityService` after a comment; they reach back to `DocumentService` through `Lazy<DocumentService>` to check read access). Creating, commenting on or being assigned a document makes you a follower; followers are notified of others' changes and comments; @mentions (`Mentions.Find`) notify with an excerpt. Deleting removes the rows; rename and merge repoint them. Endpoints in `CollaborationEndpoints.cs`; Desk: `NotificationBell`, `AssignDialog`, `FollowButton`, `MyAssignments`. Limits: in-app only; no assignment rules, due-date reminders or preferences yet.
+`AssignmentService`, `FollowService`, `NotificationService` and `CollaborationHooks` (called by `DocumentService` after a save and by `ActivityService` after a comment; they reach back to `DocumentService` through `Lazy<DocumentService>` to check read access). Creating, commenting on or being assigned a document makes you a follower; followers are notified of others' changes and comments; @mentions (`Mentions.Find`) notify with an excerpt. Deleting removes the rows; rename and merge repoint them. Endpoints in `CollaborationEndpoints.cs`; Desk: `NotificationBell`, `AssignDialog`, `FollowButton`, `MyAssignments`. Limits: in-app only; no due-date reminders or preferences yet (assignment rules: see below).
 
 ## List settings, saved filters and bulk actions ([ADR-016](../../adr/016-list-settings-saved-filters-bulk.md))
 `ListSettingsService` (per-person `List Setting` rows, shared or private `Saved Filter` rows, validation against the person's readable columns) and `BulkService` (per-document calls into `DocumentService`, max 100, per-document results). Endpoints in `ListEndpoints.cs`; Desk: `ColumnsPanel`, `SavedFilters`, `BulkBar`, and the selection column in `ListView`. Limits: no group-by sidebar, row indicators, comment counts, default views per DocType, or bulk assign/export yet.
@@ -60,8 +60,22 @@ Tools → Customize Form. Adds fields to Core/App DocTypes (names `custom_...`, 
 
 Desk: `WorkflowBuilder`, `WorkflowBar` (on the form), `WorkflowInbox` (home), pure helpers in `lib/workflow.ts`. Tests: `WorkflowTests` (Core), `WorkflowApiTests`, `PostgresWorkflowTests`.
 
+## Assignment rules ([ADR-020](../../adr/020-assignment-rules.md))
+
+`AssignmentRules.cs`: `AssignmentRule` / `AssignmentRuleSet` records, `AssignmentRuleCatalog`, `AssignmentRuleManager` (list, get, save, delete, load, static `ValidateShape`) and `AssignmentRuleEngine` (picks a person and calls `AssignmentService.AssignByRuleAsync` / `WithdrawForRuleAsync`). `DocumentService.AfterSaveAsync` calls the engine through `Lazy<AssignmentRuleEngine>` (to break the DI cycle) with a delegate that evaluates conditions on the saved document. Store: `AssignmentRuleStore` (`__assignment_rule`). Endpoints: `AssignmentRuleEndpoints.cs`. A rule set is JSON:
+
+```json
+{ "docType": "Ticket", "rules": [
+  { "name": "Urgent", "active": true, "strategy": "LoadBalancing", "users": ["a@x.com", "b@x.com"],
+    "condition": "urgency == 'High'", "closeCondition": "status == 'Resolved'",
+    "description": "Look at this first", "dueInDays": 1, "priority": "High" },
+  { "name": "Owner", "strategy": "Field", "userField": "handler" } ] }
+```
+
+Desk: `AssignmentRules.tsx`, helpers in `lib/assignmentRules.ts`. Tests: `AssignmentRuleTests` (Core), `AssignmentRuleApiTests`, `PostgresAssignmentRuleTests`.
+
 ## Authentication ([ADR-002](../../adr/002-authentication.md))
 Cookie sessions, ASP.NET Identity password hashing, lockout, login rate limit; `User`, `Role`, `Has Role` DocTypes. Roles are cached per session for `SessionCacheSeconds`.
 
 ## Planned next
-Email and push notifications, assignment rules and auto repeat (L8), reports and dashboards. The plan lists everything with its status.
+Email and push notifications, auto repeat, notification rules and email templates (L8), reports and dashboards. The plan lists everything with its status.

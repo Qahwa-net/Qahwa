@@ -82,6 +82,21 @@ public static partial class DocTypeLoader
         }
     }
 
+    public static string SerializeAssignmentRules(AssignmentRuleSet set) => JsonSerializer.Serialize(set, Options);
+
+    public static AssignmentRuleSet ParseAssignmentRules(string json)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<AssignmentRuleSet>(json, Options)
+                ?? throw new DocTypeValidationException("The assignment rules are empty.");
+        }
+        catch (JsonException ex)
+        {
+            throw new DocTypeValidationException($"Invalid assignment rules: {ex.Message}");
+        }
+    }
+
     public static string SerializeCustomization(Customization customization) => JsonSerializer.Serialize(customization, Options);
 
     public static Customization ParseCustomization(string json)

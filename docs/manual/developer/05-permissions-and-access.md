@@ -60,6 +60,10 @@ Group-by counts run through the same query preparation as the list (own-only rol
 
 Building workflows needs a System Manager (Administrator for framework DocTypes). Doing an action needs read access to the document and one of the transition's roles (Administrators pass); it does not need write access. The state field can only be changed by an action, and `editRoles` of the current state limit who may edit the document. The inbox lists only documents the caller may read.
 
+## Assignment rules
+
+Managing rules needs a System Manager. Rules run as the system after a save: the assignee is given read access directly (`ShareManager.GrantReadAsync`) when their roles cannot open the document, which is why only people a System Manager named (or a document field names) can be chosen. Users named in a rule must exist when it is saved and be enabled when it runs.
+
 ## What the API never reveals
 
 - A document you may not read looks like it does not exist where possible (checks run before the document is loaded).

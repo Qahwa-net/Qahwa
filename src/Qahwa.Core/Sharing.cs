@@ -204,6 +204,21 @@ public sealed class ShareManager(
         }
     }
 
+    /// <summary>
+    /// Gives a user read access to a document without the checks of a person sharing it, for assignment rules. Does nothing if they
+    /// already have a share.
+    /// </summary>
+    public async Task GrantReadAsync(string doctype, string name, string user, CancellationToken ct = default)
+    {
+        var existing = await store.RowsForDocumentAsync(doctype, name, ct);
+        if (existing.Any(r => string.Equals(r["user"] as string, user, StringComparison.Ordinal)))
+            return;
+        await documents.InsertAsync(ShareStore.DocTypeName, new Dictionary<string, object?>
+        {
+            ["can_read"] = true, ["can_write"] = false, ["user"] = user, ["share_doctype"] = doctype, ["share_name"] = name,
+        }, System, ct);
+    }
+
     /// <summary>Sharing is recorded in the document's comment thread as a system note.</summary>
     private async Task NoteAsync(string doctype, string name, string text, IUserContext actor, CancellationToken ct)
     {

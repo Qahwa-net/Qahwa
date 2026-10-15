@@ -127,6 +127,7 @@ Building workflows is under *Tools* below. Writing the state field through `PUT 
 | `GET/PUT/DELETE /permissions/doctypes[/{name}]` | Role Permission Manager (customise, reset) |
 | `GET/PUT/DELETE /customize/doctypes[/{name}]` | Customize Form |
 | `GET/PUT/DELETE /workflows/doctypes[/{name}]` | Workflow Builder: `PUT` takes `{ workflow, modified }`; `GET` returns `{ docType, source, exists, modified, workflow, stateFields, canEdit }` |
+| `GET/PUT/DELETE /assignment-rules/doctypes[/{name}]` | Assignment Rules: `PUT` takes `{ rules: { docType, rules: [...] }, modified }`; `GET` returns `{ docType, source, exists, modified, set, userFields, canEdit }` |
 | `GET/PUT /naming/series` | Naming series counters |
 
 PUT bodies carry the version you loaded (`modified`) and fail with 409 if someone else changed it.

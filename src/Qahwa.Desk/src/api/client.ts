@@ -1,6 +1,6 @@
 import type {
   DesignerDetail, DocPerm, DesignerItem, DesignerPreview, Doc, DocTypeDefinition, FieldError, FieldTypeInfo,
-  ListResponse, PendingAction, WorkflowDefinition, WorkflowItem, WorkflowStatus, WorkflowView, MetaResponse, MetaSummary, PermissionItem, ActivityItem, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, FollowState, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
+  ListResponse, AssignmentRuleItem, AssignmentRuleSet, AssignmentRuleView, PendingAction, WorkflowDefinition, WorkflowItem, WorkflowStatus, WorkflowView, MetaResponse, MetaSummary, PermissionItem, ActivityItem, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, FollowState, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
 } from './types.ts'
 import type { Filter } from '../lib/filters.ts'
 import { toApiFilters } from '../lib/filters.ts'
@@ -249,6 +249,15 @@ export const api = {
       (await request<{ data: CustomizationView }>('PUT', `/api/customize/doctypes/${encodeURIComponent(name)}`, { customization, modified })).data,
     reset: async (name: string) =>
       (await request<{ data: CustomizationView }>('DELETE', `/api/customize/doctypes/${encodeURIComponent(name)}`)).data,
+  },
+
+  assignmentRules: {
+    list: async () => (await request<{ data: AssignmentRuleItem[] }>('GET', '/api/assignment-rules/doctypes')).data,
+    get: async (name: string) =>
+      (await request<{ data: AssignmentRuleView }>('GET', `/api/assignment-rules/doctypes/${encodeURIComponent(name)}`)).data,
+    save: async (name: string, rules: AssignmentRuleSet, modified: string | null | undefined) =>
+      (await request<{ data: AssignmentRuleView }>('PUT', `/api/assignment-rules/doctypes/${encodeURIComponent(name)}`, { rules, modified })).data,
+    remove: async (name: string) => { await request<unknown>('DELETE', `/api/assignment-rules/doctypes/${encodeURIComponent(name)}`) },
   },
 
   workflows: {

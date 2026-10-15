@@ -83,6 +83,10 @@ foreach (var failure in await app.Services.GetRequiredService<CustomDocTypeLoade
 foreach (var failure in await app.Services.GetRequiredService<CustomizationManager>().LoadAsync())
     app.Logger.LogError("{Failure}", failure);
 
+// Assignment rules.
+foreach (var failure in await app.Services.GetRequiredService<AssignmentRuleManager>().LoadAsync())
+    app.Logger.LogError("{Failure}", failure);
+
 // Workflows built in the Workflow Builder.
 foreach (var failure in await app.Services.GetRequiredService<WorkflowManager>().LoadAsync())
     app.Logger.LogError("{Failure}", failure);

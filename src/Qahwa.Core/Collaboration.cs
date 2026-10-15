@@ -415,18 +415,29 @@ public sealed class AssignmentService(
             dueDate = parsed;
         }
 
+        return await CreateAsync(doctype, name, person, description, priority, dueDate, rule: null, actor, ct);
+    }
+
+    private async Task<AssignmentInfo> CreateAsync(
+        string doctype, string name, UserContext person, string description, string priority, DateOnly? dueDate, string? rule, IUserContext actor, CancellationToken ct)
+    {
         var existing = await repository.ListAsync(Meta, new ListQuery
         {
             Filters = [new("reference_doctype", FilterOp.Eq, doctype), new("reference_name", FilterOp.Eq, name),
                        new("allocated_to", FilterOp.Eq, person.User), new("status", FilterOp.Eq, "Open")],
             Limit = 1,
         }, ct);
-        if (existing.Count > 0)
+        if (existing.Count > 0 && rule is null)
             return await ToInfoAsync(existing[0], false, ct); // already assigned to them: nothing to add
 
         // The assignee must be able to open what they are asked to work on.
         if (!await notifications.CanReadAsync(person, doctype, name, ct))
-            await shares.SetAsync(doctype, name, person.User, read: true, write: false, actor, ct);
+        {
+            if (rule is null)
+                await shares.SetAsync(doctype, name, person.User, read: true, write: false, actor, ct);
+            else
+                await shares.GrantReadAsync(doctype, name, person.User, ct);
+        }
 
         var row = HistoryRecorder.Standard(actor.User, history.Now());
         row["allocated_to"] = person.User;
@@ -436,15 +447,49 @@ public sealed class AssignmentService(
         row["priority"] = priority;
         row["date"] = dueDate;
         row["description"] = description.Length == 0 ? null : description;
+        row["assignment_rule"] = rule;
         await repository.InsertAsync(Meta, row, null, ct);
 
         var who = await notifications.NameOfAsync(actor.User, ct) ?? actor.User;
         var target = await notifications.NameOfAsync(person.User, ct) ?? person.User;
-        await NoteAsync(doctype, name, $"Assigned to {target}", actor.User, ct);
+        await NoteAsync(doctype, name, rule is null ? $"Assigned to {target}" : $"Assigned to {target} by the rule \"{rule}\"", actor.User, ct);
         await follows.EnsureAsync(doctype, name, person.User, ct);
+        var what = doctype == name ? doctype : $"{doctype} {name}";
+        var detail = description.Length > 0 ? ": " + (description.Length > 100 ? description[..100] + "…" : description) : string.Empty;
         await notifications.NotifyAsync(person.User, "Assignment", doctype, name, actor.User,
-            $"{who} assigned you {(doctype == name ? doctype : $"{doctype} {name}")}{(description.Length > 0 ? ": " + (description.Length > 100 ? description[..100] + "…" : description) : string.Empty)}", ct);
+            rule is null ? $"{who} assigned you {what}{detail}" : $"You were assigned {what} by the rule \"{rule}\"{detail}", ct);
         return await ToInfoAsync(row, false, ct);
+    }
+
+    /// <summary>The assignments assignment rules made for a document (any status), for the rule engine.</summary>
+    internal async Task<IReadOnlyList<Dictionary<string, object?>>> RuleAssignmentsAsync(string doctype, string name, CancellationToken ct)
+    {
+        var rows = await repository.ListAsync(Meta, new ListQuery
+        {
+            Filters = [new("reference_doctype", FilterOp.Eq, doctype), new("reference_name", FilterOp.Eq, name)],
+            OrderBy = "creation", Descending = false, Limit = 200,
+        }, ct);
+        return rows.Where(r => r["assignment_rule"] is string { Length: > 0 }).ToList();
+    }
+
+    /// <summary>A rule gives a document to someone. The person who saved the document is shown as the one who assigned it.</summary>
+    internal Task<AssignmentInfo> AssignByRuleAsync(string doctype, string name, UserContext person, AssignmentRule rule, IUserContext actor, CancellationToken ct)
+    {
+        DateOnly? due = rule.DueInDays is { } days ? DateOnly.FromDateTime(history.Now()).AddDays(days) : null;
+        return CreateAsync(doctype, name, person, rule.Description ?? string.Empty, rule.Priority, due, rule.Name, actor, ct);
+    }
+
+    /// <summary>A rule's close condition holds: the assignment is withdrawn.</summary>
+    internal async Task WithdrawForRuleAsync(string id, string rule, IUserContext actor, CancellationToken ct)
+    {
+        var row = await repository.GetAsync(Meta, id, ct);
+        if (row is null || row["status"] as string != "Open")
+            return;
+
+        await repository.UpdateAsync(Meta, id, new Dictionary<string, object?> { ["status"] = "Cancelled", ["modified"] = history.Now(), ["modified_by"] = actor.User }, null, null, ct);
+        var assignee = (string)row["allocated_to"]!;
+        await NoteAsync((string)row["reference_doctype"]!, (string)row["reference_name"]!,
+            $"Assignment of {await notifications.NameOfAsync(assignee, ct) ?? assignee} withdrawn by the rule \"{rule}\"", actor.User, ct);
     }
 
     private async Task<Dictionary<string, object?>> RequireAssignmentAsync(string id, IUserContext user, CancellationToken ct)

@@ -33,7 +33,7 @@ export function toDefinition(draft: WorkflowDefinition): WorkflowDefinition {
 }
 
 /** Server errors are keyed like `states[1].name` or `transitions[0].roles`; pick those of one row. */
-export function rowErrors(errors: Record<string, string>, list: 'states' | 'transitions', index: number): Record<string, string> {
+export function rowErrors(errors: Record<string, string>, list: string, index: number): Record<string, string> {
   const prefix = `${list}[${index}]`
   return Object.fromEntries(Object.entries(errors)
     .filter(([path]) => path === prefix || path.startsWith(`${prefix}.`))

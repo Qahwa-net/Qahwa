@@ -515,3 +515,17 @@ kbd { font: .75rem ui-monospace, Consolas, monospace; padding: .05rem .35rem; bo
 .timeline .entry.note { grid-template-columns: 2rem 1fr; align-items: center; color: var(--muted); font-size: .85rem; }
 .timeline .entry.note > * { grid-column: auto; }
 .note-dot { justify-self: center; inline-size: .45rem; block-size: .45rem; border-radius: 50%; background: var(--border); }
+
+/* Assignment rules */
+.rule-list { list-style: none; margin: 0 0 1rem; padding: 0; display: grid; gap: .85rem; }
+.rule-card.off { opacity: .7; }
+.rule-card.has-error { border-color: var(--danger); }
+.rule-head { display: flex; align-items: center; gap: .6rem; margin-block-end: .85rem; flex-wrap: wrap; }
+.rule-no { display: inline-grid; place-items: center; inline-size: 1.7rem; block-size: 1.7rem; border-radius: 50%; background: var(--accent-soft); font-weight: 700; font-size: .85rem; }
+.rule-name { flex: 1; min-inline-size: 8rem; font-weight: 600; }
+.rot-up svg { transform: rotate(90deg); }
+.rot-down svg { transform: rotate(-90deg); }
+.chip-list { list-style: none; margin: 0 0 .4rem; padding: 0; display: flex; flex-wrap: wrap; gap: .35rem; }
+.person-chip { display: inline-flex; align-items: center; gap: .35rem; padding: .15rem .25rem .15rem .35rem; border-radius: 999px; background: var(--surface-2); font-size: .85rem; }
+.person-chip .icon-btn { inline-size: 1.4rem; block-size: 1.4rem; }
+.form-actions { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }

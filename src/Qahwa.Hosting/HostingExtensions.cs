@@ -79,6 +79,11 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<IWorkflowStore, WorkflowStore>();
         services.TryAddSingleton<WorkflowCatalog>();
         services.TryAddSingleton<WorkflowManager>();
+        services.TryAddSingleton<IAssignmentRuleStore, AssignmentRuleStore>();
+        services.TryAddSingleton<AssignmentRuleCatalog>();
+        services.TryAddSingleton<AssignmentRuleManager>();
+        services.TryAddSingleton<AssignmentRuleEngine>();
+        services.TryAddSingleton(sp => new Lazy<AssignmentRuleEngine>(() => sp.GetRequiredService<AssignmentRuleEngine>()));
         services.TryAddSingleton<NamingService>();
         services.TryAddSingleton<UserPermissionService>();
         services.TryAddSingleton<ProfileService>();

@@ -84,6 +84,8 @@ public sealed class TestEngine
         CustomizationStore = new InMemoryCustomizationStore();
         WorkflowCatalog = new WorkflowCatalog();
         WorkflowStore = new InMemoryWorkflowStore();
+        AssignmentRuleCatalog = new AssignmentRuleCatalog();
+        AssignmentRuleStore = new InMemoryAssignmentRuleStore();
         Profiles = new ProfileService(Registry, Repository, Clock);
         History = new HistoryRecorder(Registry, Repository, Clock);
         var lazyDocuments = new Lazy<DocumentService>(() => Documents!);
@@ -92,7 +94,7 @@ public sealed class TestEngine
         Collaboration = new CollaborationHooks(Follows, Notifications, Registry, Repository);
         NamingSeries = new NamingSeriesManager(Registry, Repository, Permissions);
         Documents = new DocumentService(
-            Registry, Repository, Permissions, new NamingService(Repository), Clock, new UserPermissionService(Registry, Repository), Shares, Profiles, History, Collaboration, WorkflowCatalog);
+            Registry, Repository, Permissions, new NamingService(Repository), Clock, new UserPermissionService(Registry, Repository), Shares, Profiles, History, Collaboration, WorkflowCatalog, new Lazy<AssignmentRuleEngine>(() => AssignmentRules!));
         ShareManager = new ShareManager(Registry, Repository, Documents, Permissions, Shares, History, Notifications);
         Activity = new ActivityService(Registry, Repository, Documents, Permissions, History, Collaboration);
         Assignments = new AssignmentService(Registry, Repository, Documents, Permissions, ShareManager, Notifications, Follows, History);
@@ -102,6 +104,8 @@ public sealed class TestEngine
         Schema = new InMemorySchemaManager();
         Designer = new DocTypeDesigner(Registry, DocTypeStore, Schema, Repository, Clock);
         Customization = new CustomizationManager(Registry, CustomizationStore, Schema, Permissions, Clock);
+        AssignmentRules = new AssignmentRuleEngine(AssignmentRuleCatalog, Registry, Repository, Assignments, Notifications);
+        AssignmentRuleManager = new AssignmentRuleManager(Registry, AssignmentRuleStore, AssignmentRuleCatalog, Repository, Permissions, Clock);
         Workflows = new WorkflowManager(Registry, WorkflowStore, WorkflowCatalog, Permissions, Clock);
         AuthStore = new InMemoryAuthStore();
         AuthOptions = new AuthOptions { HashIterations = 1000 };
@@ -129,6 +133,10 @@ public sealed class TestEngine
     public WorkflowCatalog WorkflowCatalog { get; }
     public InMemoryWorkflowStore WorkflowStore { get; }
     public WorkflowManager Workflows { get; }
+    public AssignmentRuleCatalog AssignmentRuleCatalog { get; }
+    public InMemoryAssignmentRuleStore AssignmentRuleStore { get; }
+    public AssignmentRuleEngine AssignmentRules { get; }
+    public AssignmentRuleManager AssignmentRuleManager { get; }
     public ProfileService Profiles { get; }
     public HistoryRecorder History { get; }
     public ActivityService Activity { get; }

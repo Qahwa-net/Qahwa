@@ -439,3 +439,42 @@ export interface PendingAction {
   modified: string
   actions: WorkflowAction[]
 }
+
+export type AssignmentStrategy = 'RoundRobin' | 'LoadBalancing' | 'Field'
+
+export interface AssignmentRule {
+  name: string
+  active: boolean
+  strategy: AssignmentStrategy
+  users: string[]
+  userField?: string | null
+  condition?: string | null
+  closeCondition?: string | null
+  description?: string | null
+  dueInDays?: number | null
+  priority: 'Low' | 'Medium' | 'High'
+}
+
+export interface AssignmentRuleSet {
+  docType: string
+  rules: AssignmentRule[]
+}
+
+export interface AssignmentRuleItem {
+  docType: string
+  module?: string | null
+  source: DocTypeSource
+  hasRules: boolean
+  rules: number
+  activeRules: number
+}
+
+export interface AssignmentRuleView {
+  docType: string
+  source: DocTypeSource
+  exists: boolean
+  modified?: string | null
+  set: AssignmentRuleSet
+  userFields: string[]
+  canEdit: boolean
+}
