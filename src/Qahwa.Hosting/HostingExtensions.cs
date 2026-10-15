@@ -84,6 +84,7 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<DashboardService>();
         services.TryAddSingleton<PrintService>();
         services.TryAddSingleton<WorkspaceService>();
+        services.TryAddSingleton<DataImportService>();
         services.TryAddSingleton<AssignmentRuleCatalog>();
         services.TryAddSingleton<AssignmentRuleManager>();
         services.TryAddSingleton<AssignmentRuleEngine>();

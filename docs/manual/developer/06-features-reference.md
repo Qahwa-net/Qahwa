@@ -108,6 +108,10 @@ Desk: `NotificationRules.tsx`, `controls/ChipPicker.tsx`, `lib/notificationRules
 
 `Workspaces.cs`: `WorkspaceBlock`, `WorkspaceShortcut`, `WorkspaceService` (`MineAsync`, list, get, create, update, delete; `Pages` is the whitelist of Desk pages), the Core DocType `workspace.json`, `WorkspaceEndpoints.cs`. Desk: `WorkspaceHome.tsx` (tabs and blocks on the home page), `Workspaces.tsx` (builder), `Dashboards.tsx` exports `DashboardTiles` for embedding, `lib/workspaces.ts` (its `PAGES` must match the server's whitelist). To add a Desk page as a shortcut target, add it to both. Tests: `WorkspaceTests`, `WorkspaceApiTests`, `PostgresWorkspaceTests`.
 
+## Data import ([ADR-027](../../adr/027-data-import.md))
+
+`DataImport.cs`: `CsvReader` (RFC 4180 reader with limits) and `DataImportService` (`Template`, `PreviewAsync`, `RunAsync`, `ImportableFields`); `ImportEndpoints.cs`. Desk: `ImportDialog.tsx` on the list view, `lib/importFile.ts`. Rows go through `DocumentService.InsertAsync/UpdateAsync`, so new rules apply to imports for free. Tests: `DataImportTests`, `ImportApiTests`, `PostgresImportTests`.
+
 ## Authentication ([ADR-002](../../adr/002-authentication.md))
 Cookie sessions, ASP.NET Identity password hashing, lockout, login rate limit; `User`, `Role`, `Has Role` DocTypes. Roles are cached per session for `SessionCacheSeconds`.
 

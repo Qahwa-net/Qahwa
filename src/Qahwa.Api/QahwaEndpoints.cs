@@ -101,6 +101,7 @@ public static class QahwaEndpoints
         app.MapQahwaDashboards();
         app.MapQahwaPrint();
         app.MapQahwaWorkspaces();
+        app.MapQahwaImport();
         return app;
     }
 

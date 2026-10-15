@@ -18,6 +18,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 14. [Dashboards: numbers, charts and lists](14-dashboards.md)
 15. [Printing documents](15-printing.md)
 16. [Workspaces: your starting page](16-workspaces.md)
+17. [Importing data from a spreadsheet](17-importing-data.md)
 
 **Words used**
 

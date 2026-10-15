@@ -88,6 +88,10 @@ A printout is read with the viewer's own permissions, so hidden fields are absen
 
 Managing workspaces needs a System Manager. Reading is filtered on every request: by role, and per shortcut by what the caller may open (DocType read access, visible dashboards, tool pages for System Managers only). Shortcuts to anything else (arbitrary URLs, unknown pages) are refused when saved.
 
+## Data import
+
+Importing needs read and create access (read and write for updates). Each row is an ordinary insert or update by the importing person, so every rule of the document engine applies; a file cannot set owner, timestamps, passwords or calculated fields.
+
 ## What the API never reveals
 
 - A document you may not read looks like it does not exist where possible (checks run before the document is loaded).

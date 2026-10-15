@@ -10,6 +10,7 @@ import { GroupBySidebar } from '../controls/GroupBySidebar.tsx'
 import { RowStatus } from '../controls/StatusPill.tsx'
 import { SavedFilters } from '../controls/SavedFilters.tsx'
 import { ReportPanel } from './ReportPanel.tsx'
+import { ImportDialog } from './ImportDialog.tsx'
 import { STANDARD_FIELDS, formatCell, hasColumn, labelOf } from '../lib/fields.ts'
 import { decodeFilters, encodeFilters, type Filter } from '../lib/filters.ts'
 
@@ -20,6 +21,7 @@ export function ListView() {
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
   const [reporting, setReporting] = useState(false)
+  const [importing, setImporting] = useState(false)
   const [columnsOpen, setColumnsOpen] = useState(false)
   const [groupOpen, setGroupOpen] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -166,8 +168,11 @@ export function ListView() {
         {meta.isTree && <Link className="btn" to={`${base}/tree`}>Tree view</Link>}
         {perms?.report && <button className="btn" aria-expanded={reporting} onClick={() => setReporting(!reporting)}>Report</button>}
         {perms?.export && <a className="btn" href={api.exportUrl(doctype, effectiveFilters)} download>Export</a>}
+        {perms?.create && !meta.isSingle && <button className="btn" onClick={() => setImporting(true)}>Import</button>}
         {perms?.create && <Link className="btn primary" to={`${base}/new`}>+ New {doctype}</Link>}
       </div>
+
+      {importing && <ImportDialog doctype={doctype} canUpdate={Boolean(perms?.write)} onClose={() => setImporting(false)} />}
 
       {columnsOpen && (
         <ColumnsPanel key={settings ? 'saved' : 'default'} doctype={doctype} fields={allFields.filter((f) => f.name !== 'name')}

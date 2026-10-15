@@ -154,6 +154,14 @@ A tile is `{ id, type: Number|Chart|List, title, docType, function, valueField, 
 | `GET /workspaces/mine` | The workspaces for the caller's roles, in order, with shortcuts and dashboards filtered to what the caller may use: `{ id, title, blocks: [{ type, text?, shortcuts?: [{ label, kind, path }], dashboardId?, dashboardTitle? }] }` |
 | `GET/POST /workspaces`, `GET/PUT/DELETE /workspaces/{id}` | Manage (System Manager): `{ title, sequence, roles[], blocks[] }` where a block is `{ type: Heading|Shortcuts|Dashboard, text?, items?: [{ label, kind: DocType|Dashboard|Page, target }], dashboardId? }` |
 
+## Data import ([ADR-027](../../adr/027-data-import.md))
+
+| Call | Purpose |
+|---|---|
+| `GET /import/{doctype}/template?mode=Insert|Update` | A CSV with the columns a file may fill in |
+| `POST /import/{doctype}/preview` `{ csv, mode }` | Check a file without importing: `{ columns: [{ header, field, label }], rows, sample, errors: [{ row, field, message }], moreErrors }` |
+| `POST /import/{doctype}` `{ csv, mode, stopOnError }` | Import: `{ created, updated, failed, errors, stopped, moreErrors }`. 403 when the first row is refused for permission, 400 for a bad file (empty, unclosed quote, too big, no matching column) or mode |
+
 ## Link fields
 
 | Call | Purpose |

@@ -98,6 +98,7 @@ public sealed class PgStack : IAsyncDisposable
         AssignmentRules = new AssignmentRuleEngine(AssignmentRuleCatalog, Registry, Repository, Assignments, Notifications);
         Print = new PrintService(Registry, Repository, Documents, permissions, History);
         Dashboards = new DashboardService(Registry, Repository, Documents, permissions, Notifications, History);
+        DataImport = new DataImportService(Registry, Documents, permissions);
         Workspaces = new WorkspaceService(Registry, Repository, Dashboards, permissions, History);
         EmailSender = new FakeEmailSender();
         Email = new EmailService(Registry, Repository, Documents, permissions, History, EmailSender);
@@ -135,6 +136,7 @@ public sealed class PgStack : IAsyncDisposable
     public DashboardService Dashboards { get; }
     public PrintService Print { get; }
     public WorkspaceService Workspaces { get; }
+    public DataImportService DataImport { get; }
     public EmailService Email { get; }
     public NotificationRuleManager NotificationRuleManager { get; }
     public ProfileService Profiles { get; }

@@ -681,3 +681,32 @@ export interface WorkspaceView {
   title: string
   blocks: WorkspaceBlockView[]
 }
+
+export interface ImportColumn {
+  header: string
+  field?: string | null
+  label?: string | null
+}
+
+export interface ImportRowError {
+  row: number
+  field?: string | null
+  message: string
+}
+
+export interface ImportPreview {
+  columns: ImportColumn[]
+  rows: number
+  sample: string[][]
+  errors: ImportRowError[]
+  moreErrors: boolean
+}
+
+export interface ImportResult {
+  created: number
+  updated: number
+  failed: number
+  errors: ImportRowError[]
+  stopped: boolean
+  moreErrors: boolean
+}
