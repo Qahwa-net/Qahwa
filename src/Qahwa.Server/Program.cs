@@ -79,6 +79,10 @@ if (app.Configuration.GetValue<bool>("Qahwa:AutoMigrate"))
 foreach (var failure in await app.Services.GetRequiredService<CustomDocTypeLoader>().LoadAsync())
     app.Logger.LogError("{Failure}", failure);
 
+// Fields and properties customised in the Customize Form (a no-op if the migration already applied them).
+foreach (var failure in await app.Services.GetRequiredService<CustomizationManager>().LoadAsync())
+    app.Logger.LogError("{Failure}", failure);
+
 // Permission rules customised in the Role Permission Manager.
 foreach (var failure in await app.Services.GetRequiredService<PermissionManager>().LoadAsync())
     app.Logger.LogError("{Failure}", failure);

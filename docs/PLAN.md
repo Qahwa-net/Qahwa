@@ -189,7 +189,7 @@ Document.Insert()/Save()/Submit()/Cancel()/Delete()
 - **Optimistic concurrency** using the `modified` timestamp (mirrors Frappe's TimestampMismatch)
 - **Child table handling**: diff by `name`/`idx`, upsert, delete removed rows
 - **Naming**: series (atomic counter table with row lock), field-based, prompt (user-supplied), hash, expression
-- **Versioning**: `Version` DocType stores field-level diffs when `trackChanges` is true
+- **Versioning**: `Version` DocType stores field-level diffs for **every** DocType by default (`trackChanges` on unless a DocType opts out), in the same transaction as the change (see 5.10.1)
 - **Docstatus**: 0 draft, 1 submitted, 2 cancelled (for submittable docs)
 - **Link validation and cascade policy**: restrict delete if linked (with a clear error listing references)
 
@@ -287,6 +287,26 @@ GET        /api/resource/{doctype}/{name}/timeline
 - Reading comments, assignments, and shares requires **read** permission on the parent document. Writing a comment requires read plus comment right. Sharing requires the `share` permission, so a user can never grant more than they hold.
 - All actions raise events on the event bus (`comment_added`, `assigned`, `shared`, `followed`). The notification system (Phase 3) subscribes to those events, so collaboration does not depend on the email subsystem.
 - Mentions and assignment are resolved against `User`, and disabled users are skipped.
+
+### 5.10.1 Updates log and comments on every document
+
+Every document, of every DocType (including ones made in the designer and customised ones), has a visible **history** and a **comment thread**, with no setup. This is a hard requirement, not an option.
+
+**Updates log (document history).**
+- Each insert, update, submit, cancel, rename, merge and delete writes one `Version` row: `(ref_doctype, ref_docname, event, changed_by, changed_at, data)`. The `data` is a field-level diff `[field, old, new]`, plus added, changed and removed child-table rows (keyed by row name) and the previous document for deletes (so "Deleted Documents" can restore it).
+- It is **on by default for all DocTypes** (`trackChanges` is on unless a DocType opts out with `"trackChanges": false`), written in the **same transaction** as the change, so history can never be missing or wrong.
+- Only real changes are logged (same rule as the update path: unchanged echoes are not changes). Password fields and fields the framework marks sensitive are logged as "changed" without values.
+- The form shows it as an **Updates** timeline: who, when, and "Status: Draft → Submitted", with collapsed long text. Fields the viewer may not read (permission levels) are hidden from the diff.
+- Reading it needs read permission on the document; nobody can edit or delete history (only an Administrator can purge by retention policy).
+- API: `GET /api/resource/{doctype}/{name}/versions`; the merged timeline (5.10) includes it.
+
+**Comments.**
+- Every document has a comment thread: add, edit and delete your own comment, `@mention` people (they are notified), and system events (assignment, share, attachment, rename) appear in the same thread as non-editable entries.
+- A comment never changes the document and does not need write permission (read plus comment right), and is not blocked by a submitted or cancelled status.
+- The list view shows a comment count; the form sidebar shows who is following and who has commented.
+- API: `GET/POST /api/resource/{doctype}/{name}/comments`, `PUT/DELETE` on a comment you wrote.
+
+Both are ordinary DocTypes (`Version`, `Comment`) written by the Document engine, so they inherit permissions, concurrency, backup and API access. They are built in step **L7**, with the backend (engine hook for the version row, comment endpoints) before the Desk timeline.
 
 ### 5.11 Dynamic filters and list settings (Frappe-style list view)
 
@@ -500,11 +520,11 @@ Rules that keep it honest:
 |---|---|---|
 | **L1: DocType Designer** | Create, edit and delete custom DocTypes in the Desk: fields, field properties, naming, title field, list columns, permissions, live form preview, SQL change preview, safe schema apply | **done (v1)**. Not yet: child tables (L2), rename, type change of saved fields, depends_on (L4), drag-and-drop ordering (up/down buttons today) |
 | L2: Child tables | `Table` fields, child DocTypes, grid editing in forms, designer support | **done (v1)**. Rows save atomically with the parent; the form has an editable grid. Not yet: Table MultiSelect, nested tables, import/export of rows, filters on child fields, row-level drag and drop (up/down buttons today) |
-| L3: Customize Form | Custom Fields and Property Setters on any DocType (standard included), reorder fields, hide/rename, per-DocType list settings | planned |
+| L3: Customize Form | Custom Fields and Property Setters on any DocType (standard included), reorder fields, hide/rename, per-DocType list settings | **done (v1)**. Custom fields (real columns, never dropped), property changes on standard fields (label, help, hidden, read-only, required, default, list, permission level, Select choices, conditions), order, title field, reset; framework DocTypes Administrator-only. Not yet: child tables, per-DocType list settings (L7), fixtures export (L12) |
 | L4: Field logic | `depends_on` family, `fetch_from`, default and validation expressions, expression language shared by server and client | **done (v1)**. A safe expression language (no code, no loops) evaluated identically on server and in the Desk, checked by 220+ shared test vectors. Show/require/read-only conditions, calculated fields (formulas, also in table rows, `parent.x`, `sum(table, 'field')`), expression defaults (`=today()`), fetch from a linked document, and document/row validation rules, all edited in the designer with live checks. Not yet: formulas that read other documents, rules across rows, per-field validation messages by type, date/time pickers in expressions |
 | L5: Permissions UI | Role Permission Manager, permission levels, User Permissions, Role/Module Profiles, sharing | **done (v1)**. Done: permission levels (0–9) on fields and rules, enforced on the server (hidden fields are absent from documents, lists, filters; unwritable fields are refused), the Role Permission Manager (customise, reset, per-level rules, Core DocTypes Administrator-only), designer support. User Permissions (restrict a user to some linked values, enforced in lists, reads, writes and link fields). Sharing a document with one person (read or write, from a Share panel on the form). Submittable documents with submit and cancel rights (draft, submitted, cancelled; locked after submit). Role Profiles and Module Profiles (roles from a profile; blocked modules), and the export (CSV) and report (grouped summary) rights. Not yet: import and share rights, amend |
 | L6: Special DocTypes | Single (settings) DocTypes, Tree DocTypes, Submittable, naming series manager, rename/merge | **done (v1)**. Submittable, Single (settings) DocTypes, Tree DocTypes with a tree view, the naming series manager, and rename/merge with every link updated. Not yet: tree drag and drop, descendants queries, renaming text references |
-| L7: Collaboration and list power | Comments, assign, share, follow, timeline, saved filters, user list settings, group-by sidebar, bulk edit | planned |
+| L7: Collaboration and list power | **Updates log (version history) and comments on every document** (see 5.10.1), assign, follow, timeline, saved filters, user list settings, group-by sidebar, bulk edit. Sharing is already done (L5) | planned; start with the updates log and comments |
 | L8: Process automation | Workflow Builder, Assignment Rules, Auto Repeat, Notification rules, Email Templates, scheduler UI | planned |
 | L9: Presentation | Report Builder, Dashboard Charts, Number Cards, Workspace Builder, Print Format Builder, Letter Head | planned |
 | L10: Data and outside world | Data Import / Export, Web Forms, Webhooks, API keys, OAuth, file manager | planned |
@@ -564,8 +584,8 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Server Script (DocType event, API, scheduler event, permission query) | sandboxed | ⬜ | L11 |
 | Client Script (form/list events, field change) | | ⬜ | L11 |
 | Hooks per app (doc events, scheduler events, fixtures, boot) | | ⬜ | L12 |
-| Versions (field-level change history) | | ⬜ | L7 |
-| Comments with @mentions, timeline | | ⬜ | L7 |
+| Versions: updates log on every document (field-level history, who/when, restore deleted) | on by default for all DocTypes, same transaction | ⬜ | L7 |
+| Comments on every document with @mentions, merged timeline | | ⬜ | L7 |
 | Assign (ToDo), Assignment Rules (round robin, load balancing, by field) | | ⬜ | L7, L8 |
 | Share (DocShare), Follow (Document Follow), Likes, Tags | | ⬜ | L7 |
 | Attachments, File manager (folders, private/public, thumbnails) | | ⬜ | L10 |

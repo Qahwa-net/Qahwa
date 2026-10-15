@@ -81,6 +81,7 @@ public sealed class TestEngine
         PermissionStore = new InMemoryPermissionStore();
         PermissionManager = new PermissionManager(Registry, PermissionStore, Overrides, Clock);
         Shares = new ShareStore(Registry, Repository);
+        CustomizationStore = new InMemoryCustomizationStore();
         Profiles = new ProfileService(Registry, Repository, Clock);
         NamingSeries = new NamingSeriesManager(Registry, Repository, Permissions);
         Documents = new DocumentService(
@@ -89,6 +90,7 @@ public sealed class TestEngine
         DocTypeStore = new InMemoryDocTypeStore();
         Schema = new InMemorySchemaManager();
         Designer = new DocTypeDesigner(Registry, DocTypeStore, Schema, Repository, Clock);
+        Customization = new CustomizationManager(Registry, CustomizationStore, Schema, Permissions, Clock);
         AuthStore = new InMemoryAuthStore();
         AuthOptions = new AuthOptions { HashIterations = 1000 };
         Auth = new AuthService(
@@ -110,6 +112,8 @@ public sealed class TestEngine
     public InMemoryPermissionStore PermissionStore { get; }
     public PermissionManager PermissionManager { get; }
     public ShareStore Shares { get; }
+    public InMemoryCustomizationStore CustomizationStore { get; }
+    public CustomizationManager Customization { get; }
     public ProfileService Profiles { get; }
     public NamingSeriesManager NamingSeries { get; }
     public ShareManager ShareManager { get; }

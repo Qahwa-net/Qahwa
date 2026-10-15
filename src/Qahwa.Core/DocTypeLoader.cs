@@ -67,6 +67,21 @@ public static partial class DocTypeLoader
 
     public static string Serialize(DocTypeMeta meta) => JsonSerializer.Serialize(meta, Options);
 
+    public static string SerializeCustomization(Customization customization) => JsonSerializer.Serialize(customization, Options);
+
+    public static Customization ParseCustomization(string json)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<Customization>(json, Options)
+                ?? throw new DocTypeValidationException("The customisation is empty.");
+        }
+        catch (JsonException ex)
+        {
+            throw new DocTypeValidationException($"Invalid customisation: {ex.Message}");
+        }
+    }
+
     public static string SerializeRules(IReadOnlyList<DocPermMeta> rules) => JsonSerializer.Serialize(rules, Options);
 
     public static IReadOnlyList<DocPermMeta> ParseRules(string json)

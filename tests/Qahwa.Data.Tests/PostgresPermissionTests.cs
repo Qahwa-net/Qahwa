@@ -204,3 +204,41 @@ public class PostgresLinkSearchTests(PostgresFixture postgres) : IClassFixture<P
         Assert.Equal(["Acme Trading"], (await db.Documents.SearchLinkAsync("Customer", "trad", 10, TestUsers.Admin)).Select(o => o.Label));
     }
 }
+
+public class PostgresCustomizationTests(PostgresFixture postgres) : IClassFixture<PostgresFixture>
+{
+    [SkippableFact]
+    public async Task A_custom_field_gets_a_real_column_survives_reload_and_keeps_its_data_after_reset()
+    {
+        Skip.IfNot(postgres.Available, postgres.SkipReason);
+        await using var db = await postgres.CreateStackAsync();
+        var customization = new Customization
+        {
+            CustomFields = [new DocFieldMeta { Name = "custom_phone", Type = Qahwa.Abstractions.FieldType.Data, Label = "Phone" }],
+            Overrides = new Dictionary<string, FieldOverride> { ["customer_type"] = new() { Label = "Kind" } },
+        };
+
+        var view = await db.Customization.SaveAsync("Customer", customization, null, TestUsers.SystemManager);
+        Assert.Equal(1, await db.ScalarAsync("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'tabCustomer' AND column_name = 'custom_phone'"));
+        var id = (string)(await db.Documents.InsertAsync("Customer", Values(("customer_name", "Acme"), ("custom_phone", "555")), TestUsers.Admin))["name"]!;
+
+        // "Restart": a fresh registry, the stored customisation applied again.
+        var fresh = TestMetas.Registry();
+        var failures = await new CustomizationManager(fresh, db.CustomizationStore, db.SchemaManager, new PermissionService(db.Overrides), db.Clock).LoadAsync();
+        Assert.Empty(failures);
+        Assert.Contains(fresh.Get("Customer").Fields, f => f.Name == "custom_phone");
+        Assert.Equal("Kind", fresh.Get("Customer").Fields.Single(f => f.Name == "customer_type").Label);
+
+        await Assert.ThrowsAsync<ConflictException>(() => db.Customization.SaveAsync("Customer", new Customization(), null, TestUsers.SystemManager)); // stale
+        await db.Customization.ResetAsync("Customer", TestUsers.SystemManager);
+        Assert.False((await db.Documents.GetAsync("Customer", id, TestUsers.Admin)).ContainsKey("custom_phone")); // hidden, not dropped
+        Assert.Equal("555", await ReadPhoneAsync(db, id));
+        Assert.NotNull(view.Modified);
+    }
+
+    private static async Task<string?> ReadPhoneAsync(PgStack db, string id)
+    {
+        await using var command = db.DataSource.CreateCommand($"SELECT \"custom_phone\" FROM \"tabCustomer\" WHERE \"name\" = '{id}'");
+        return (string?)await command.ExecuteScalarAsync();
+    }
+}

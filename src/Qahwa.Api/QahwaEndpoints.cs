@@ -89,6 +89,7 @@ public static class QahwaEndpoints
         app.MapQahwaPermissions();
         app.MapQahwaSharing();
         app.MapQahwaSpecial();
+        app.MapQahwaCustomize();
         return app;
     }
 

@@ -17,7 +17,7 @@ public sealed class QahwaOptions
 
 public sealed record MigrationResult(IReadOnlyList<SchemaPlan> Plans, bool Applied);
 
-public sealed class QahwaMigrator(IMetaRegistry registry, SchemaSync sync, CustomDocTypeLoader customLoader)
+public sealed class QahwaMigrator(IMetaRegistry registry, SchemaSync sync, CustomDocTypeLoader customLoader, CustomizationManager customization)
 {
     /// <summary>Plans (and unless <paramref name="planOnly"/>, applies) schema changes for every DocType.</summary>
     public async Task<MigrationResult> MigrateAsync(bool planOnly = false, CancellationToken ct = default)
@@ -27,6 +27,9 @@ public sealed class QahwaMigrator(IMetaRegistry registry, SchemaSync sync, Custo
 
         // DocTypes created in the designer are part of the schema too.
         await customLoader.LoadAsync(ct);
+
+        // So are the fields added to standard DocTypes in the Customize Form.
+        await customization.LoadAsync(ct);
 
         var plans = new List<SchemaPlan>();
         foreach (var meta in registry.All.OrderBy(m => m.Name, StringComparer.Ordinal))
@@ -71,6 +74,8 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<IPermissionStore, PermissionStore>();
         services.TryAddSingleton(sp => new PermissionService(sp.GetRequiredService<IPermissionOverrides>()));
         services.TryAddSingleton<PermissionManager>();
+        services.TryAddSingleton<ICustomizationStore, CustomizationStore>();
+        services.TryAddSingleton<CustomizationManager>();
         services.TryAddSingleton<NamingService>();
         services.TryAddSingleton<UserPermissionService>();
         services.TryAddSingleton<ProfileService>();

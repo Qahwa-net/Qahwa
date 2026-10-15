@@ -30,6 +30,9 @@ public interface ISqlDialect
     /// <summary>Table holding permission rules customised in the Role Permission Manager.</summary>
     string CreatePermissionsTableSql { get; }
 
+    /// <summary>Table holding customisations of standard DocTypes made in the Customize Form.</summary>
+    string CreateCustomizeTableSql { get; }
+
     string CreateSeriesTableSql { get; }
 
     /// <summary>Table holding password hashes and login counters (see <c>IAuthStore</c>).</summary>

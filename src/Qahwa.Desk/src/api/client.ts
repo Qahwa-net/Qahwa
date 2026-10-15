@@ -1,6 +1,6 @@
 import type {
   DesignerDetail, DocPerm, DesignerItem, DesignerPreview, Doc, DocTypeDefinition, FieldError, FieldTypeInfo,
-  ListResponse, MetaResponse, MetaSummary, PermissionItem, LinkOption, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
+  ListResponse, MetaResponse, MetaSummary, PermissionItem, Customization, CustomizationItem, CustomizationView, LinkOption, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
 } from './types.ts'
 import type { Filter } from '../lib/filters.ts'
 import { toApiFilters } from '../lib/filters.ts'
@@ -170,6 +170,16 @@ export const api = {
       (await request<{ data: ShareInfo[] }>('GET', `/api/share/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}`)).data,
     set: async (doctype: string, name: string, user: string, read: boolean, write: boolean) =>
       (await request<{ data: ShareInfo[] }>('PUT', `/api/share/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}`, { user, read, write })).data,
+  },
+
+  customize: {
+    list: async () => (await request<{ data: CustomizationItem[] }>('GET', '/api/customize/doctypes')).data,
+    get: async (name: string) =>
+      (await request<{ data: CustomizationView }>('GET', `/api/customize/doctypes/${encodeURIComponent(name)}`)).data,
+    save: async (name: string, customization: Customization, modified: string | null | undefined) =>
+      (await request<{ data: CustomizationView }>('PUT', `/api/customize/doctypes/${encodeURIComponent(name)}`, { customization, modified })).data,
+    reset: async (name: string) =>
+      (await request<{ data: CustomizationView }>('DELETE', `/api/customize/doctypes/${encodeURIComponent(name)}`)).data,
   },
 
   permissions: {

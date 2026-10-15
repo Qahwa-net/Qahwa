@@ -78,6 +78,8 @@ public sealed class PgStack : IAsyncDisposable
         DocTypeStore = new DocTypeStore(_connections, Dialect, new PostgresSchemaInspector(_connections));
         SchemaManager = new SchemaManager(Sync, Dialect);
         Designer = new DocTypeDesigner(Registry, DocTypeStore, SchemaManager, Repository, Clock);
+        CustomizationStore = new CustomizationStore(_connections, Dialect, new PostgresSchemaInspector(_connections));
+        Customization = new CustomizationManager(Registry, CustomizationStore, SchemaManager, permissions, Clock);
         AuthStore = new AuthStore(_connections, Dialect);
         AuthOptions = new AuthOptions { HashIterations = 1000 };
         Auth = new AuthService(
@@ -90,6 +92,8 @@ public sealed class PgStack : IAsyncDisposable
     public PermissionStore PermissionStore { get; }
     public PermissionManager PermissionManager { get; }
     public ShareStore Shares { get; }
+    public CustomizationStore CustomizationStore { get; }
+    public CustomizationManager Customization { get; }
     public ProfileService Profiles { get; }
     public ShareManager ShareManager { get; }
     public DocTypeStore DocTypeStore { get; }

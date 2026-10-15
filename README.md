@@ -25,6 +25,7 @@ Working today:
 - **Role and Module Profiles, export and report rights**: hand out roles or hide modules by profile; export CSV and grouped reports as separate rights ([ADR-010](docs/adr/010-profiles-export-report.md))
 - **Single and tree DocTypes, naming series manager, rename and merge**: settings pages, hierarchies with a tree view, series counters you can set, and renaming that updates every link ([ADR-011](docs/adr/011-special-doctypes.md))
 - **Searchable Link fields**: every Link field (and the Share panel) is a type-ahead select that shows friendly names, not IDs ([ADR-012](docs/adr/012-link-fields.md))
+- **Customize Form** (Tools → Customize Form): add fields to framework and app DocTypes, change labels, required, hidden, defaults and conditions of existing fields, and reorder them, with a reset that restores the original ([ADR-013](docs/adr/013-customize-form.md))
 - Desk (React + TypeScript): login, DocType sidebar, generic list view (search, dynamic filters kept in the URL, sorting, paging) and form view (field controls per type, server-side validation errors inline, concurrent-edit detection, delete), account page with change password. Layout is right-to-left ready and works on phones.
 
 Not yet: child tables, submit/cancel, versions, comments/share/assign/follow, saved filters and per-user list settings, attachments, the Frappe-style form sidebar.

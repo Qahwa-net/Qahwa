@@ -187,3 +187,58 @@ public sealed class LinkApiTests : IAsyncDisposable
         Assert.Equal(HttpStatusCode.Forbidden, (await _factory.ClientFor("b@example.com", "Sales User").GetAsync($"/api/share/Customer/{id}/users?q=a")).StatusCode);
     }
 }
+
+public sealed class CustomizeApiTests : IAsyncDisposable
+{
+    private readonly QahwaFactory _factory = new();
+
+    public ValueTask DisposeAsync() => _factory.DisposeAsync();
+
+    private static async Task<JsonElement> JsonOf(HttpResponseMessage response) =>
+        (await response.Content.ReadFromJsonAsync<JsonElement>()).Clone();
+
+    [Fact]
+    public async Task Add_a_custom_field_to_a_standard_doctype_over_the_api_and_use_it()
+    {
+        var sysmgr = _factory.ClientFor("s@example.com", "System Manager");
+        var put = await sysmgr.PutAsJsonAsync("/api/customize/doctypes/Customer", new
+        {
+            customization = new
+            {
+                customFields = new[] { new { name = "custom_phone", type = "Data", label = "Phone", required = false } },
+                overrides = new { customer_type = new { label = "Kind" } },
+            },
+        });
+        Assert.Equal(HttpStatusCode.OK, put.StatusCode);
+        var view = (await JsonOf(put)).GetProperty("data");
+        Assert.True(view.GetProperty("customized").GetBoolean());
+        Assert.Contains(view.GetProperty("effective").GetProperty("fields").EnumerateArray(), f => f.GetProperty("name").GetString() == "custom_phone");
+        Assert.DoesNotContain(view.GetProperty("definition").GetProperty("fields").EnumerateArray(), f => f.GetProperty("name").GetString() == "custom_phone");
+
+        var manager = _factory.ClientFor("m@example.com", "Sales Manager");
+        var meta = await JsonOf(await manager.GetAsync("/api/meta/Customer"));
+        Assert.Contains(meta.GetProperty("data").GetProperty("fields").EnumerateArray(), f => f.GetProperty("name").GetString() == "custom_phone");
+        var created = await manager.PostAsJsonAsync("/api/resource/Customer", new { customer_name = "Acme", custom_phone = "555" });
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        Assert.Equal("555", (await JsonOf(created)).GetProperty("data").GetProperty("custom_phone").GetString());
+
+        var reset = await sysmgr.DeleteAsync("/api/customize/doctypes/Customer");
+        Assert.Equal(HttpStatusCode.OK, reset.StatusCode);
+        Assert.False((await JsonOf(reset)).GetProperty("data").GetProperty("customized").GetBoolean());
+    }
+
+    [Fact]
+    public async Task The_customize_api_checks_who_asks_and_what_is_sent()
+    {
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateClient().GetAsync("/api/customize/doctypes")).StatusCode);
+        var manager = _factory.ClientFor("m@example.com", "Sales Manager");
+        Assert.Equal(HttpStatusCode.Forbidden, (await manager.GetAsync("/api/customize/doctypes")).StatusCode);
+
+        var sysmgr = _factory.ClientFor("s@example.com", "System Manager");
+        Assert.Equal(HttpStatusCode.OK, (await sysmgr.GetAsync("/api/customize/doctypes")).StatusCode);
+        var bad = await sysmgr.PutAsJsonAsync("/api/customize/doctypes/Customer", new { customization = new { customFields = new[] { new { name = "phone", type = "Data" } } } });
+        Assert.Equal(HttpStatusCode.BadRequest, bad.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await sysmgr.PutAsJsonAsync("/api/customize/doctypes/User", new { customization = new { customFields = Array.Empty<object>() } })).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await sysmgr.GetAsync("/api/customize/doctypes/Nope")).StatusCode);
+    }
+}

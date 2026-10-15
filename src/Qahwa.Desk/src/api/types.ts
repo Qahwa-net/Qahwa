@@ -191,6 +191,52 @@ export interface ShareInfo {
   write: boolean
 }
 
+/** Changes to a standard field's properties. Absent means unchanged; an empty text clears the value. */
+export interface FieldOverride {
+  label?: string
+  description?: string
+  hidden?: boolean
+  readOnly?: boolean
+  required?: boolean
+  default?: string
+  inListView?: boolean
+  permLevel?: number
+  options?: string
+  dependsOn?: string
+  mandatoryDependsOn?: string
+  readOnlyDependsOn?: string
+}
+
+/** What the Customize Form changed on a DocType: new fields, changed properties, order and title field. */
+export interface Customization {
+  customFields: DocField[]
+  overrides: Record<string, FieldOverride>
+  order: string[]
+  /** Empty restores the definition's title field; absent leaves it. */
+  titleField?: string | null
+}
+
+export interface CustomizationItem {
+  name: string
+  module?: string | null
+  source: DocTypeSource
+  customized: boolean
+  customFieldCount: number
+}
+
+export interface CustomizationView {
+  name: string
+  source: DocTypeSource
+  customized: boolean
+  modified?: string | null
+  /** The DocType as defined, before any customisation. */
+  definition: DocTypeMeta
+  /** The DocType as it works now. */
+  effective: DocTypeMeta
+  customization: Customization
+  canEdit: boolean
+}
+
 export interface TreeNode {
   name: string
   is_group: boolean
