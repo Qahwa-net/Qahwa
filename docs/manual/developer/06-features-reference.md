@@ -129,3 +129,7 @@ Cookie sessions, ASP.NET Identity password hashing, lockout, login rate limit; `
 
 ## Planned next
 Incoming mail, HTML mail, Slack and SMS channels (L8), reports and dashboards. The plan lists everything with its status.
+
+## Board and calendar views ([ADR-031](../../adr/031-board-and-calendar-views.md))
+
+Desk only. `pages/BoardView.tsx` and `pages/CalendarView.tsx`, routes `app/:doctype/board` and `app/:doctype/calendar` in `App.tsx`, toolbar links in `ListView.tsx`. Pure helpers: `lib/board.ts` (`columnsOf`, `groupCards`, `withMoved`, `boardFields`) and `lib/calendar.ts` (`monthGrid`, `monthRange`, `eventsByDay`). A move is an ordinary `api.update` with an optimistic cache change and rollback. Tests: `lib/views.test.ts`.

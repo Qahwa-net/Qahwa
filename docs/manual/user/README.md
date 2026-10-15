@@ -22,6 +22,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 18. [API keys: let a program act as you](18-api-keys.md)
 19. [Webhooks: tell other systems automatically](19-webhooks.md)
 20. [Attachments: files on a document](20-attachments.md)
+21. [Board and calendar views](21-board-and-calendar.md)
 
 **Words used**
 

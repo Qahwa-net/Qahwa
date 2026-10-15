@@ -18,6 +18,8 @@ import { HomePage } from './pages/HomePage.tsx'
 import { PermissionManagerPage } from './pages/PermissionManager.tsx'
 import { ListView } from './pages/ListView.tsx'
 import { NamingSeriesPage } from './pages/NamingSeriesPage.tsx'
+import { BoardView } from './pages/BoardView.tsx'
+import { CalendarView } from './pages/CalendarView.tsx'
 import { TreeView } from './pages/TreeView.tsx'
 import { LoginPage } from './pages/LoginPage.tsx'
 
@@ -64,6 +66,8 @@ export function App() {
           <Route path="app/:doctype" element={<ListView />} />
           <Route path="naming" element={<NamingSeriesPage />} />
           <Route path="app/:doctype/tree" element={<TreeView />} />
+          <Route path="app/:doctype/board" element={<BoardView />} />
+          <Route path="app/:doctype/calendar" element={<CalendarView />} />
           <Route path="app/:doctype/new" element={<FormView />} />
           <Route path="app/:doctype/:name" element={<FormView />} />
         </Route>
