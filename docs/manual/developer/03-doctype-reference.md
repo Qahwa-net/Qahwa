@@ -102,4 +102,4 @@ Expressions are documented in [the expression language](../../expressions.md).
 
 ## Tables the framework creates besides DocType tables
 
-`tabSeries` (naming counters), `__auth` (password hashes, lockout), `__doctype` (designer DocTypes), `__permissions` (permission overrides), `__customize` (Customize Form).
+`tabSeries` (naming counters), `__auth` (password hashes, lockout), `__doctype` (designer DocTypes), `__permissions` (permission overrides), `__customize` (Customize Form), `__workflow` (Workflow Builder).

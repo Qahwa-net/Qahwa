@@ -44,8 +44,20 @@ Tools → Customize Form. Adds fields to Core/App DocTypes (names `custom_...`, 
 ## Group-by, status colours and comment counts ([ADR-017](../../adr/017-list-sidebar-status-comment-counts.md))
 `DocumentService.GroupByAsync` (via `IDocumentRepository.GroupCountAsync`, one `GROUP BY` with the list's own filters), `statusField` and `indicators` on the DocType (validated in `DocTypeLoader`), `ActivityService.CommentCountsAsync`. Desk: `GroupBySidebar`, `RowStatus`/`StatusPill`, the 💬 count in `ListView`, and status settings in the designer. Limits: no assignments/tags group-by, no condition-based colours, not in the Customize Form.
 
+## Workflow engine ([ADR-018](../../adr/018-workflow-engine.md))
+
+`Workflow.cs` (records, `WorkflowCatalog`, `WorkflowManager`: list, get, save, delete, load, static `Validate(definition, meta)`), `DocumentService.Workflow.cs` (status, apply action, inbox), the `WorkflowStep` hook in `DocumentService.UpdateCoreAsync` (sets the state and docstatus through the ordinary update), `WorkflowStore` (`__workflow`), `WorkflowEndpoints.cs`. A workflow is JSON (`DocTypeLoader.SerializeWorkflow/ParseWorkflow`):
+
+```json
+{ "docType": "Expense", "stateField": "workflow_state", "active": true,
+  "states": [ { "name": "Draft" }, { "name": "Approved", "color": "green", "docStatus": 1, "editRoles": [] } ],
+  "transitions": [ { "from": "Draft", "action": "Approve", "to": "Approved", "roles": ["Boss"], "condition": "amount < 500", "allowSelfApproval": false } ] }
+```
+
+Desk: `WorkflowBuilder`, `WorkflowBar` (on the form), `WorkflowInbox` (home), pure helpers in `lib/workflow.ts`. Tests: `WorkflowTests` (Core), `WorkflowApiTests`, `PostgresWorkflowTests`.
+
 ## Authentication ([ADR-002](../../adr/002-authentication.md))
 Cookie sessions, ASP.NET Identity password hashing, lockout, login rate limit; `User`, `Role`, `Has Role` DocTypes. Roles are cached per session for `SessionCacheSeconds`.
 
 ## Planned next
-Email and push notifications, assignment rules (L8), saved filters, workflow, reports and dashboards. The plan lists everything with its status.
+Email and push notifications, assignment rules and auto repeat (L8), reports and dashboards. The plan lists everything with its status.

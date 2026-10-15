@@ -72,13 +72,14 @@ public sealed class PgStack : IAsyncDisposable
         PermissionManager = new PermissionManager(Registry, PermissionStore, Overrides, Clock);
         var permissions = new PermissionService(Overrides);
         Shares = new ShareStore(Registry, Repository);
+        WorkflowCatalog = new WorkflowCatalog();
         Profiles = new ProfileService(Registry, Repository, Clock);
         History = new HistoryRecorder(Registry, Repository, Clock);
         var lazyDocuments = new Lazy<DocumentService>(() => Documents!);
         Notifications = new NotificationService(Registry, Repository, lazyDocuments, History);
         Follows = new FollowService(Registry, Repository, lazyDocuments, History);
         Collaboration = new CollaborationHooks(Follows, Notifications, Registry, Repository);
-        Documents = new DocumentService(Registry, Repository, permissions, new NamingService(Repository), Clock, new UserPermissionService(Registry, Repository), Shares, Profiles, History, Collaboration);
+        Documents = new DocumentService(Registry, Repository, permissions, new NamingService(Repository), Clock, new UserPermissionService(Registry, Repository), Shares, Profiles, History, Collaboration, WorkflowCatalog);
         ShareManager = new ShareManager(Registry, Repository, Documents, permissions, Shares, History, Notifications);
         Activity = new ActivityService(Registry, Repository, Documents, permissions, History, Collaboration);
         Assignments = new AssignmentService(Registry, Repository, Documents, permissions, ShareManager, Notifications, Follows, History);
@@ -88,6 +89,8 @@ public sealed class PgStack : IAsyncDisposable
         SchemaManager = new SchemaManager(Sync, Dialect);
         Designer = new DocTypeDesigner(Registry, DocTypeStore, SchemaManager, Repository, Clock);
         CustomizationStore = new CustomizationStore(_connections, Dialect, new PostgresSchemaInspector(_connections));
+        WorkflowStore = new WorkflowStore(_connections, Dialect, new PostgresSchemaInspector(_connections));
+        Workflows = new WorkflowManager(Registry, WorkflowStore, WorkflowCatalog, permissions, Clock);
         Customization = new CustomizationManager(Registry, CustomizationStore, SchemaManager, permissions, Clock);
         AuthStore = new AuthStore(_connections, Dialect);
         AuthOptions = new AuthOptions { HashIterations = 1000 };
@@ -103,6 +106,9 @@ public sealed class PgStack : IAsyncDisposable
     public ShareStore Shares { get; }
     public CustomizationStore CustomizationStore { get; }
     public CustomizationManager Customization { get; }
+    public WorkflowCatalog WorkflowCatalog { get; }
+    public WorkflowStore WorkflowStore { get; }
+    public WorkflowManager Workflows { get; }
     public ProfileService Profiles { get; }
     public HistoryRecorder History { get; }
     public ActivityService Activity { get; }

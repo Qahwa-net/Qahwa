@@ -76,6 +76,9 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<PermissionManager>();
         services.TryAddSingleton<ICustomizationStore, CustomizationStore>();
         services.TryAddSingleton<CustomizationManager>();
+        services.TryAddSingleton<IWorkflowStore, WorkflowStore>();
+        services.TryAddSingleton<WorkflowCatalog>();
+        services.TryAddSingleton<WorkflowManager>();
         services.TryAddSingleton<NamingService>();
         services.TryAddSingleton<UserPermissionService>();
         services.TryAddSingleton<ProfileService>();

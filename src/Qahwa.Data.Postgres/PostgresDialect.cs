@@ -51,6 +51,13 @@ public sealed class PostgresDialect : ISqlDialect
         "\"owner\" varchar(140) NOT NULL, " +
         "\"modified_by\" varchar(140) NOT NULL)";
 
+    public string CreateWorkflowTableSql =>
+        "CREATE TABLE IF NOT EXISTS \"__workflow\" (" +
+        "\"name\" varchar(140) NOT NULL PRIMARY KEY, " +
+        "\"definition\" text NOT NULL, " +
+        "\"modified\" timestamp with time zone NOT NULL, " +
+        "\"modified_by\" varchar(140) NOT NULL)";
+
     public string CreateCustomizeTableSql =>
         "CREATE TABLE IF NOT EXISTS \"__customize\" (" +
         "\"name\" varchar(140) NOT NULL PRIMARY KEY, " +

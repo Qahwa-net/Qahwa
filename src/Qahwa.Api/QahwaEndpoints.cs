@@ -93,6 +93,7 @@ public static class QahwaEndpoints
         app.MapQahwaActivity();
         app.MapQahwaCollaboration();
         app.MapQahwaLists();
+        app.MapQahwaWorkflows();
         return app;
     }
 

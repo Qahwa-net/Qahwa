@@ -94,6 +94,16 @@ For versions `data` is `{ changed: [[field, before, after], ...], tables: { fiel
 | `DELETE /list-settings/{doctype}/filters/{id}` | Delete mine (or a shared one as Administrator) |
 | `POST /resource/{doctype}/bulk` `{ action: "update"\|"delete", names: [...], field, value }` | Up to 100 documents; returns `{ data: [{ name, ok, error }], succeeded, failed }`. 401/403 when not signed in / no write or delete right |
 
+## Workflows ([ADR-018](../../adr/018-workflow-engine.md))
+
+| Call | Purpose |
+|---|---|
+| `GET /resource/{doctype}/{name}/workflow` | Where the document is: `{ stateField, state, color, actions: [{ action, to }], canEdit }`, or `data: null` when the DocType has no active workflow. `actions` only holds what the caller may do now |
+| `POST /resource/{doctype}/{name}/workflow` `{ action, modified? }` | Do an action; answers with the new status. 403 for the wrong role or a failed condition, 400 for an unknown action, 409 for a stale `modified` |
+| `GET /workflow/pending` | Documents with an action the caller can take now, across workflows |
+
+Building workflows is under *Tools* below. Writing the state field through `PUT /resource` is refused with a validation error on that field.
+
 ## Link fields
 
 | Call | Purpose |
@@ -116,6 +126,7 @@ For versions `data` is `{ changed: [[field, before, after], ...], tables: { fiel
 | `GET/POST/PUT/DELETE /designer/doctypes[/{name}]`, `GET /designer/field-types`, `POST /designer/preview` | The DocType Designer |
 | `GET/PUT/DELETE /permissions/doctypes[/{name}]` | Role Permission Manager (customise, reset) |
 | `GET/PUT/DELETE /customize/doctypes[/{name}]` | Customize Form |
+| `GET/PUT/DELETE /workflows/doctypes[/{name}]` | Workflow Builder: `PUT` takes `{ workflow, modified }`; `GET` returns `{ docType, source, exists, modified, workflow, stateFields, canEdit }` |
 | `GET/PUT /naming/series` | Naming series counters |
 
 PUT bodies carry the version you loaded (`modified`) and fail with 409 if someone else changed it.

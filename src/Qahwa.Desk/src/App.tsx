@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './auth.tsx'
 import { Shell } from './shell/Shell.tsx'
 import { AccountPage } from './pages/AccountPage.tsx'
 import { CustomizeFormPage } from './pages/CustomizeForm.tsx'
+import { WorkflowBuilderPage } from './pages/WorkflowBuilder.tsx'
 import { DesignerEditor } from './pages/DesignerEditor.tsx'
 import { DesignerList } from './pages/DesignerList.tsx'
 import { FormView } from './pages/FormView.tsx'
@@ -38,6 +39,8 @@ export function App() {
           <Route path="designer/:name" element={<DesignerEditor />} />
           <Route path="customize" element={<CustomizeFormPage />} />
           <Route path="customize/:name" element={<CustomizeFormPage />} />
+          <Route path="workflows" element={<WorkflowBuilderPage />} />
+          <Route path="workflows/:name" element={<WorkflowBuilderPage />} />
           <Route path="permissions" element={<PermissionManagerPage />} />
           <Route path="permissions/:name" element={<PermissionManagerPage />} />
           <Route path="app/:doctype" element={<ListView />} />

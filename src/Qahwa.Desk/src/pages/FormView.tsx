@@ -1,3 +1,4 @@
+import { WorkflowBar } from './WorkflowBar.tsx'
 import { ActivityPanel } from './ActivityPanel.tsx'
 import { AssignPanel } from './AssignPanel.tsx'
 import { FollowButton } from './FollowButton.tsx'
@@ -92,13 +93,16 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
   const queryClient = useQueryClient()
   const { user } = useAuth()
   const isNew = doc === null
-  const editable = isNew ? perms.create : perms.write
+  const workflow = useQuery({ queryKey: ['workflow', meta.name, doc?.name], queryFn: () => api.workflows.status(meta.name, doc!.name), enabled: !isNew, retry: false })
+  const flow = workflow.data ?? null
+  // With a workflow the state decides who may edit, and the workflow alone moves the document on.
+  const editable = (isNew ? perms.create : perms.write) && (flow?.canEdit ?? true)
   /** Submittable DocTypes: 0 draft, 1 submitted (locked except "allow on submit" fields), 2 cancelled (locked). */
   const docstatus = meta.isSubmittable && doc ? Number(doc.docstatus ?? 0) : 0
   const locked = (f: DocField) => docstatus === 2 || (docstatus === 1 && !f.allowOnSubmit)
   const base = `/app/${encodeURIComponent(meta.name)}`
   /** Fields above level 0 are only editable by people with write rules at that level. */
-  const canWriteField = (f: DocField) => editable && !locked(f) && ((f.permLevel ?? 0) === 0 || (writableLevels?.includes(f.permLevel!) ?? false))
+  const canWriteField = (f: DocField) => editable && !locked(f) && f.name !== flow?.stateField && ((f.permLevel ?? 0) === 0 || (writableLevels?.includes(f.permLevel!) ?? false))
 
   const session = useMemo<Session>(
     () => ({ user: user?.user ?? '', roles: user?.roles ?? [], isNew }),
@@ -266,13 +270,13 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
         {!isNew && meta.isSubmittable && (
           <span className={`badge status-${docstatus}`}>{['Draft', 'Submitted', 'Cancelled'][docstatus]}</span>
         )}
-        {!isNew && docstatus === 0 && meta.isSubmittable && perms.submit && (
+        {!isNew && !flow && docstatus === 0 && meta.isSubmittable && perms.submit && (
           <button className="btn" disabled={dirty || transition.isPending} title={dirty ? 'Save your changes first' : undefined}
             onClick={() => { if (window.confirm(`Submit ${meta.name} "${doc!.name}"? It will be locked afterwards.`)) transition.mutate('submit') }}>
             Submit
           </button>
         )}
-        {!isNew && docstatus === 1 && perms.cancel && (
+        {!isNew && !flow && docstatus === 1 && perms.cancel && (
           <button className="btn danger" disabled={dirty || transition.isPending}
             onClick={() => { if (window.confirm(`Cancel ${meta.name} "${doc!.name}"? It cannot be changed afterwards.`)) transition.mutate('cancel') }}>
             Cancel document
@@ -290,6 +294,8 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
           </button>
         )}
       </div>
+
+      {flow && doc && <WorkflowBar doctype={meta.name} doc={doc} status={flow} disabled={dirty} onError={(text, conflict) => setBanner({ text, conflict })} />}
 
       {renaming && doc && <RenamePanel doctype={meta.name} name={doc.name} onClose={() => setRenaming(false)}
         onRenamed={async (newName) => {

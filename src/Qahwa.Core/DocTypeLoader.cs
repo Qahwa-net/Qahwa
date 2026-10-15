@@ -67,6 +67,21 @@ public static partial class DocTypeLoader
 
     public static string Serialize(DocTypeMeta meta) => JsonSerializer.Serialize(meta, Options);
 
+    public static string SerializeWorkflow(WorkflowDefinition workflow) => JsonSerializer.Serialize(workflow, Options);
+
+    public static WorkflowDefinition ParseWorkflow(string json)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<WorkflowDefinition>(json, Options)
+                ?? throw new DocTypeValidationException("The workflow is empty.");
+        }
+        catch (JsonException ex)
+        {
+            throw new DocTypeValidationException($"Invalid workflow: {ex.Message}");
+        }
+    }
+
     public static string SerializeCustomization(Customization customization) => JsonSerializer.Serialize(customization, Options);
 
     public static Customization ParseCustomization(string json)

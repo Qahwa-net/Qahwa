@@ -19,7 +19,8 @@ public sealed partial class DocumentService(
     ShareStore? shares = null,
     ProfileService? profiles = null,
     HistoryRecorder? history = null,
-    CollaborationHooks? collaboration = null)
+    CollaborationHooks? collaboration = null,
+    WorkflowCatalog? workflows = null)
 {
     private readonly DocumentLogic _logic = new(registry, repository, permissions, clock);
 
@@ -99,6 +100,10 @@ public sealed partial class DocumentService(
                 ApplyDefaults(table.Child, table.Rows[i].Values, errors, $"{table.Field.Name}[{i}].");
         }
 
+        // A new document starts in the workflow's first state, whatever was sent.
+        if (WorkflowOf(meta) is { } initialWorkflow)
+            values[initialWorkflow.StateField] = initialWorkflow.Initial.Name;
+
         // Expression defaults, "fetch from" values and formulas, then validation of the finished document.
         var changed = values.Keys.ToHashSet(StringComparer.Ordinal);
         await _logic.RunAsync(meta, values, changed, tables, user, isNew: true, errors, ct);
@@ -154,17 +159,17 @@ public sealed partial class DocumentService(
         string name,
         IReadOnlyDictionary<string, object?> input,
         IUserContext user,
-        CancellationToken ct = default) => UpdateCoreAsync(doctype, name, input, user, transition: null, ct);
+        CancellationToken ct = default) => UpdateCoreAsync(doctype, name, input, user, transition: null, step: null, ct);
 
     /// <summary>Submits a draft of a submittable DocType (docstatus 0 to 1). The document is validated as for a save.</summary>
     public Task<Dictionary<string, object?>> SubmitAsync(
         string doctype, string name, IUserContext user, DateTime? modified = null, CancellationToken ct = default) =>
-        UpdateCoreAsync(doctype, name, TransitionInput(modified), user, transition: 1, ct);
+        UpdateCoreAsync(doctype, name, TransitionInput(modified), user, transition: 1, step: null, ct);
 
     /// <summary>Cancels a submitted document (docstatus 1 to 2). A cancelled document can no longer be changed.</summary>
     public Task<Dictionary<string, object?>> CancelAsync(
         string doctype, string name, IUserContext user, DateTime? modified = null, CancellationToken ct = default) =>
-        UpdateCoreAsync(doctype, name, TransitionInput(modified), user, transition: 2, ct);
+        UpdateCoreAsync(doctype, name, TransitionInput(modified), user, transition: 2, step: null, ct);
 
     private static Dictionary<string, object?> TransitionInput(DateTime? modified) =>
         modified is null ? [] : new() { ["modified"] = modified };
@@ -185,10 +190,16 @@ public sealed partial class DocumentService(
         IReadOnlyDictionary<string, object?> input,
         IUserContext user,
         int? transition,
+        WorkflowStep? step,
         CancellationToken ct)
     {
         var meta = RequireTopLevel(registry.Get(doctype));
-        var action = transition switch { 1 => PermAction.Submit, 2 => PermAction.Cancel, _ => PermAction.Write };
+        // With a workflow, submitting and cancelling are steps of the workflow; a workflow step needs to read the document, not write it.
+        if (step is null && transition is not null && WorkflowOf(meta) is not null)
+            throw General($"{meta.Name} uses a workflow: use its actions to submit or cancel.");
+        if (step is not null)
+            transition = step.DocStatus;
+        var action = step is not null ? PermAction.Read : transition switch { 1 => PermAction.Submit, 2 => PermAction.Cancel, _ => PermAction.Write };
         var (level, share) = await PreAuthorizeAsync(meta, user, action, name, ct);
         var existing = await repository.GetAsync(meta, name, ct);
         if (existing is null && meta.IsSingle && name == meta.Name && transition is null)
@@ -228,8 +239,23 @@ public sealed partial class DocumentService(
         CheckRestrictedValues(restrictions, changes, errors);
         CheckProfileAssignment(meta, changes, user, errors);
 
+        // A workflow owns its state field, and can limit who edits a document in each state.
+        if (WorkflowOf(meta) is { } workflow)
+        {
+            if (step is null && changes.ContainsKey(workflow.StateField))
+                errors.Add(new FieldError(workflow.StateField, "Use the workflow actions to change this."));
+            if (step is not null)
+                changes[workflow.StateField] = step.State;
+            if (step is null)
+            {
+                var state = StateOf(workflow, existing);
+                if (state.EditRoles.Count > 0 && !HoldsRole(user, state.EditRoles) && (changes.Count > 0 || tables.Any(t => t.Provided)))
+                    errors.Add(new FieldError(string.Empty, $"In the state '{state.Name}' this can only be edited by: {string.Join(", ", state.EditRoles)}."));
+            }
+        }
+
         // After submit only the fields marked "allow on submit" may change.
-        if (transition is null && meta.IsSubmittable && status == 1)
+        if (transition is null && step is null && meta.IsSubmittable && status == 1)
         {
             foreach (var key in changes.Keys)
             {
@@ -242,7 +268,8 @@ public sealed partial class DocumentService(
         foreach (var key in changes.Keys)
         {
             var field = meta.Fields.FirstOrDefault(f => f.Name == key);
-            if (field is not null && !fieldAccess.CanWrite(field))
+            // A workflow step sets the state itself; the person only needs to be allowed to take the step.
+            if (field is not null && !fieldAccess.CanWrite(field) && !(step is not null && key == WorkflowOf(meta)?.StateField))
                 errors.Add(new FieldError(key, "You do not have permission to change this field."));
         }
 

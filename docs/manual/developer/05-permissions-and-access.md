@@ -56,6 +56,10 @@ List settings and saved filters only ever name columns the caller may read (vali
 
 Group-by counts run through the same query preparation as the list (own-only roles, shares, User Permissions, blocked modules), so they never include a document the caller could not list; the field must be a groupable column the caller may read. Comment counts only count documents that the ordinary list returns for the caller.
 
+## Workflows
+
+Building workflows needs a System Manager (Administrator for framework DocTypes). Doing an action needs read access to the document and one of the transition's roles (Administrators pass); it does not need write access. The state field can only be changed by an action, and `editRoles` of the current state limit who may edit the document. The inbox lists only documents the caller may read.
+
 ## What the API never reveals
 
 - A document you may not read looks like it does not exist where possible (checks run before the document is loaded).

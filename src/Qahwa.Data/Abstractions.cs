@@ -33,6 +33,9 @@ public interface ISqlDialect
     /// <summary>Table holding customisations of standard DocTypes made in the Customize Form.</summary>
     string CreateCustomizeTableSql { get; }
 
+    /// <summary>Table holding workflows built in the Workflow Builder.</summary>
+    string CreateWorkflowTableSql { get; }
+
     string CreateSeriesTableSql { get; }
 
     /// <summary>Table holding password hashes and login counters (see <c>IAuthStore</c>).</summary>

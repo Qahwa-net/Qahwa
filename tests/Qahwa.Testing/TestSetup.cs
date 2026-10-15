@@ -82,6 +82,8 @@ public sealed class TestEngine
         PermissionManager = new PermissionManager(Registry, PermissionStore, Overrides, Clock);
         Shares = new ShareStore(Registry, Repository);
         CustomizationStore = new InMemoryCustomizationStore();
+        WorkflowCatalog = new WorkflowCatalog();
+        WorkflowStore = new InMemoryWorkflowStore();
         Profiles = new ProfileService(Registry, Repository, Clock);
         History = new HistoryRecorder(Registry, Repository, Clock);
         var lazyDocuments = new Lazy<DocumentService>(() => Documents!);
@@ -90,7 +92,7 @@ public sealed class TestEngine
         Collaboration = new CollaborationHooks(Follows, Notifications, Registry, Repository);
         NamingSeries = new NamingSeriesManager(Registry, Repository, Permissions);
         Documents = new DocumentService(
-            Registry, Repository, Permissions, new NamingService(Repository), Clock, new UserPermissionService(Registry, Repository), Shares, Profiles, History, Collaboration);
+            Registry, Repository, Permissions, new NamingService(Repository), Clock, new UserPermissionService(Registry, Repository), Shares, Profiles, History, Collaboration, WorkflowCatalog);
         ShareManager = new ShareManager(Registry, Repository, Documents, Permissions, Shares, History, Notifications);
         Activity = new ActivityService(Registry, Repository, Documents, Permissions, History, Collaboration);
         Assignments = new AssignmentService(Registry, Repository, Documents, Permissions, ShareManager, Notifications, Follows, History);
@@ -100,6 +102,7 @@ public sealed class TestEngine
         Schema = new InMemorySchemaManager();
         Designer = new DocTypeDesigner(Registry, DocTypeStore, Schema, Repository, Clock);
         Customization = new CustomizationManager(Registry, CustomizationStore, Schema, Permissions, Clock);
+        Workflows = new WorkflowManager(Registry, WorkflowStore, WorkflowCatalog, Permissions, Clock);
         AuthStore = new InMemoryAuthStore();
         AuthOptions = new AuthOptions { HashIterations = 1000 };
         Auth = new AuthService(
@@ -123,6 +126,9 @@ public sealed class TestEngine
     public ShareStore Shares { get; }
     public InMemoryCustomizationStore CustomizationStore { get; }
     public CustomizationManager Customization { get; }
+    public WorkflowCatalog WorkflowCatalog { get; }
+    public InMemoryWorkflowStore WorkflowStore { get; }
+    public WorkflowManager Workflows { get; }
     public ProfileService Profiles { get; }
     public HistoryRecorder History { get; }
     public ActivityService Activity { get; }

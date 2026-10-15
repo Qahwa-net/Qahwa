@@ -1,6 +1,6 @@
 import type {
   DesignerDetail, DocPerm, DesignerItem, DesignerPreview, Doc, DocTypeDefinition, FieldError, FieldTypeInfo,
-  ListResponse, MetaResponse, MetaSummary, PermissionItem, ActivityItem, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, FollowState, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
+  ListResponse, PendingAction, WorkflowDefinition, WorkflowItem, WorkflowStatus, WorkflowView, MetaResponse, MetaSummary, PermissionItem, ActivityItem, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, FollowState, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
 } from './types.ts'
 import type { Filter } from '../lib/filters.ts'
 import { toApiFilters } from '../lib/filters.ts'
@@ -249,6 +249,20 @@ export const api = {
       (await request<{ data: CustomizationView }>('PUT', `/api/customize/doctypes/${encodeURIComponent(name)}`, { customization, modified })).data,
     reset: async (name: string) =>
       (await request<{ data: CustomizationView }>('DELETE', `/api/customize/doctypes/${encodeURIComponent(name)}`)).data,
+  },
+
+  workflows: {
+    list: async () => (await request<{ data: WorkflowItem[] }>('GET', '/api/workflows/doctypes')).data,
+    get: async (name: string) =>
+      (await request<{ data: WorkflowView }>('GET', `/api/workflows/doctypes/${encodeURIComponent(name)}`)).data,
+    save: async (name: string, workflow: WorkflowDefinition, modified: string | null | undefined) =>
+      (await request<{ data: WorkflowView }>('PUT', `/api/workflows/doctypes/${encodeURIComponent(name)}`, { workflow, modified })).data,
+    remove: async (name: string) => { await request<unknown>('DELETE', `/api/workflows/doctypes/${encodeURIComponent(name)}`) },
+    status: async (doctype: string, name: string) =>
+      (await request<{ data: WorkflowStatus | null }>('GET', `${resource(doctype, name)}/workflow`)).data,
+    apply: async (doctype: string, name: string, action: string, modified: string | null | undefined) =>
+      (await request<{ data: WorkflowStatus }>('POST', `${resource(doctype, name)}/workflow`, { action, modified })).data,
+    pending: async () => (await request<{ data: PendingAction[] }>('GET', '/api/workflow/pending')).data,
   },
 
   permissions: {

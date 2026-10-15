@@ -54,6 +54,7 @@ export function Shell() {
               <li><NavLink to="/designer">DocType Designer</NavLink></li>
               <li><NavLink to="/customize">Customize Form</NavLink></li>
               <li><NavLink to="/permissions">Role Permissions</NavLink></li>
+              <li><NavLink to="/workflows">Workflow Builder</NavLink></li>
               <li><NavLink to="/naming">Naming Series</NavLink></li>
             </ul>
           </section>

@@ -371,3 +371,71 @@ export interface SessionUser {
   full_name: string
   roles: string[]
 }
+
+/** One state of a workflow. docStatus: 0 draft, 1 submitted, 2 cancelled. */
+export interface WorkflowState {
+  name: string
+  color: IndicatorColor
+  docStatus: number
+  editRoles: string[]
+}
+
+export interface WorkflowTransition {
+  from: string
+  action: string
+  to: string
+  roles: string[]
+  condition?: string | null
+  allowSelfApproval: boolean
+}
+
+export interface WorkflowDefinition {
+  docType: string
+  stateField: string
+  active: boolean
+  states: WorkflowState[]
+  transitions: WorkflowTransition[]
+}
+
+export interface WorkflowItem {
+  docType: string
+  module?: string | null
+  source: DocTypeSource
+  hasWorkflow: boolean
+  active: boolean
+  states: number
+}
+
+export interface WorkflowView {
+  docType: string
+  source: DocTypeSource
+  exists: boolean
+  modified?: string | null
+  workflow: WorkflowDefinition
+  stateFields: string[]
+  canEdit: boolean
+}
+
+export interface WorkflowAction {
+  action: string
+  to: string
+}
+
+/** Where one document is in its workflow and what the current user can do with it. */
+export interface WorkflowStatus {
+  stateField: string
+  state: string
+  color: IndicatorColor
+  actions: WorkflowAction[]
+  canEdit: boolean
+}
+
+export interface PendingAction {
+  docType: string
+  name: string
+  title?: string | null
+  state: string
+  color: IndicatorColor
+  modified: string
+  actions: WorkflowAction[]
+}
