@@ -72,6 +72,9 @@ public sealed class AutoRepeatService(
 
     private DocTypeMeta Meta => registry.Get(DocTypeName);
 
+    /// <summary>A row version later than <paramref name="previous"/> even when the clock has not moved (see <see cref="EmailService"/>).</summary>
+    private DateTime Next(DateTime previous) => history.Now() > previous ? history.Now() : previous.AddTicks(10);
+
     private DateOnly Today() => DateOnly.FromDateTime(history.Now());
 
     private bool IsManager(IUserContext user) =>
@@ -210,7 +213,7 @@ public sealed class AutoRepeatService(
     {
         var row = await RequireAsync(id, user, ct);
         var meta = registry.Get((string)row["reference_doctype"]!);
-        var changes = new Dictionary<string, object?> { ["modified"] = history.Now(), ["modified_by"] = user.User };
+        var changes = new Dictionary<string, object?> { ["modified"] = Next((DateTime)row["modified"]!), ["modified_by"] = user.User };
 
         if (request.EndDate is not null)
         {
@@ -290,7 +293,7 @@ public sealed class AutoRepeatService(
             var occurrence = Convert.ToInt64(row["occurrence"] ?? 0L, CultureInfo.InvariantCulture);
             if (end is { } over && next > over)
             {
-                await repository.UpdateAsync(Meta, id, new Dictionary<string, object?> { ["status"] = "Finished", ["modified"] = history.Now() }, (DateTime)row["modified"]!, null, ct);
+                await repository.UpdateAsync(Meta, id, new Dictionary<string, object?> { ["status"] = "Finished", ["modified"] = Next((DateTime)row["modified"]!) }, (DateTime)row["modified"]!, null, ct);
                 break;
             }
 
@@ -298,7 +301,7 @@ public sealed class AutoRepeatService(
             var following = AutoRepeatSchedule.On(start, frequency, occurrence + 1);
             var claim = new Dictionary<string, object?>
             {
-                ["occurrence"] = occurrence + 1, ["next_date"] = following, ["modified"] = history.Now() > (DateTime)row["modified"]! ? history.Now() : ((DateTime)row["modified"]!).AddTicks(10),
+                ["occurrence"] = occurrence + 1, ["next_date"] = following, ["modified"] = Next((DateTime)row["modified"]!),
                 ["status"] = end is { } last && following > last ? "Finished" : "Active",
             };
             if (!await repository.UpdateAsync(Meta, id, claim, (DateTime)row["modified"]!, null, ct))
@@ -325,7 +328,7 @@ public sealed class AutoRepeatService(
                     outcome["status"] = "Paused"; // nothing will change by itself: wait for a person
             }
 
-            outcome["modified"] = history.Now();
+            outcome["modified"] = Next((DateTime)claim["modified"]!);
             await repository.UpdateAsync(Meta, id, outcome, null, null, ct);
             row = await repository.GetAsync(Meta, id, ct) ?? row;
             if (row["status"] as string != "Active")

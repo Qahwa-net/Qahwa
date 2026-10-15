@@ -48,6 +48,9 @@ public sealed class EmailService(
 
     private DocTypeMeta Queue => registry.Get(QueueName);
 
+    /// <summary>A row version later than <paramref name="previous"/> even when the clock has not moved: every update of a row other servers may claim must change it, or an old claim could succeed again.</summary>
+    private DateTime Next(DateTime previous) => history.Now() > previous ? history.Now() : previous.AddTicks(10);
+
     /// <summary>A plain address (<c>name@host</c>): no display name, no line breaks, nothing a mail server could read as a header.</summary>
     public static bool ValidAddress(string? address)
     {
@@ -185,11 +188,11 @@ public sealed class EmailService(
             var attempts = Convert.ToInt64(row["attempts"] ?? 0L, CultureInfo.InvariantCulture) + 1;
             // The claim must change `modified` (it is the version the next server compares with), even on a clock that has not moved.
             var modified = (DateTime)row["modified"]!;
-            var claim = new Dictionary<string, object?> { ["status"] = "Sending", ["attempts"] = attempts, ["modified"] = history.Now() > modified ? history.Now() : modified.AddTicks(10) };
+            var claim = new Dictionary<string, object?> { ["status"] = "Sending", ["attempts"] = attempts, ["modified"] = Next(modified) };
             if (!await repository.UpdateAsync(meta, (string)row["name"]!, claim, (DateTime)row["modified"]!, null, ct))
                 continue;
 
-            var outcome = new Dictionary<string, object?> { ["modified"] = history.Now() };
+            var outcome = new Dictionary<string, object?> { ["modified"] = Next((DateTime)claim["modified"]!) };
             try
             {
                 await sender.SendAsync(new EmailMessage((string)row["recipient"]!, (string)row["subject"]!, row["body"] as string ?? string.Empty), ct);

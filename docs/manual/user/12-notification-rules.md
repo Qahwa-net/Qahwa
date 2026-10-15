@@ -15,8 +15,8 @@ Nobody is told about a document they are not allowed to open, whatever the rule 
 4. Optionally fill **Only when**, for example `amount > 1000` or `status == 'Urgent'`.
 5. Tick **Also send an email** if the message should go out by email as well (see [Email](13-email.md)).
 6. Choose **who is told**: people (search by name or email), everyone with a role, the people named in a field of the document (for example "Sales rep"), the person who created it, everyone following it. The person who made the change is never told about their own change.
-6. Write the **Message**, for example `{{user}} set {{title}} to {{status}}`. Use **Insert a field** to add a field's value. `{{user}}` is the person who did it, `{{name}}` the document's ID, `{{doctype}}` its kind.
-7. **Save rules.** They apply from then on.
+7. Write the **Message**, for example `{{user}} set {{title}} to {{status}}`. Use **Insert a field** to add a field's value. `{{user}}` is the person who did it, `{{name}}` the document's ID, `{{doctype}}` its kind.
+8. **Save rules.** They apply from then on.
 
 ## Good to know
 
