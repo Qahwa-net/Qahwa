@@ -48,7 +48,10 @@ export function Shell() {
         {canDesign && (
           <section>
             <h2>Tools</h2>
-            <ul><li><NavLink to="/designer">DocType Designer</NavLink></li></ul>
+            <ul>
+              <li><NavLink to="/designer">DocType Designer</NavLink></li>
+              <li><NavLink to="/permissions">Role Permissions</NavLink></li>
+            </ul>
           </section>
         )}
         {groups.map(([module, items]) => (

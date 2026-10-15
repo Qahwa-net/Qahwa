@@ -502,7 +502,7 @@ Rules that keep it honest:
 | L2: Child tables | `Table` fields, child DocTypes, grid editing in forms, designer support | **done (v1)**. Rows save atomically with the parent; the form has an editable grid. Not yet: Table MultiSelect, nested tables, import/export of rows, filters on child fields, row-level drag and drop (up/down buttons today) |
 | L3: Customize Form | Custom Fields and Property Setters on any DocType (standard included), reorder fields, hide/rename, per-DocType list settings | planned |
 | L4: Field logic | `depends_on` family, `fetch_from`, default and validation expressions, expression language shared by server and client | **done (v1)**. A safe expression language (no code, no loops) evaluated identically on server and in the Desk, checked by 220+ shared test vectors. Show/require/read-only conditions, calculated fields (formulas, also in table rows, `parent.x`, `sum(table, 'field')`), expression defaults (`=today()`), fetch from a linked document, and document/row validation rules, all edited in the designer with live checks. Not yet: formulas that read other documents, rules across rows, per-field validation messages by type, date/time pickers in expressions |
-| L5: Permissions UI | Role Permission Manager, permission levels, User Permissions, Role/Module Profiles, sharing | planned |
+| L5: Permissions UI | Role Permission Manager, permission levels, User Permissions, Role/Module Profiles, sharing | **in progress**. Done: permission levels (0–9) on fields and rules, enforced on the server (hidden fields are absent from documents, lists, filters; unwritable fields are refused), the Role Permission Manager (customise, reset, per-level rules, Core DocTypes Administrator-only), designer support. Not yet: User Permissions, sharing, Role/Module Profiles, submit/cancel/report/export rights |
 | L6: Special DocTypes | Single (settings) DocTypes, Tree DocTypes, Submittable, naming series manager, rename/merge | planned |
 | L7: Collaboration and list power | Comments, assign, share, follow, timeline, saved filters, user list settings, group-by sidebar, bulk edit | planned |
 | L8: Process automation | Workflow Builder, Assignment Rules, Auto Repeat, Notification rules, Email Templates, scheduler UI | planned |
@@ -597,8 +597,8 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Roles, role permissions (read, write, create, delete) | | ✅ | done |
 | Permissions: if owner | | ✅ | done |
 | Permissions: submit, cancel, amend, report, export, import, share, print, email, select | | ⬜ | L5 |
-| Permission levels (field-level access) | | ⬜ | L5 |
-| **Role Permission Manager** UI, Custom DocPerm | | ⬜ | L5 |
+| Permission levels (field-level access) | server-enforced, set per field and per rule | ✅ | L5 |
+| **Role Permission Manager** UI, Custom DocPerm | customise, reset to default, apply at once | ✅ | L5 |
 | User Permissions (restrict by Link value, apply to all or some DocTypes) | | ⬜ | L5 |
 | Role Profile, Module Profile, User Types | | ⬜ | L5 |
 | Permission query and `has_permission` hooks | | ⬜ | L11 |

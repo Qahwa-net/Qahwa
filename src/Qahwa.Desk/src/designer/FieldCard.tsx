@@ -201,6 +201,15 @@ export function FieldCard({
                 <Err message={errors[`${path}.default`]} />
               </label>}
 
+              {!inChildTable && <label className="field">
+                <span>Permission level</span>
+                <select value={field.permLevel ?? 0} disabled={disabled} onChange={(e) => onChange({ permLevel: Number(e.target.value) })}>
+                  {Array.from({ length: 10 }, (_, n) => <option key={n} value={n}>{n === 0 ? '0 (same as the document)' : `Level ${n}`}</option>)}
+                </select>
+                <small className="muted">Above 0, only roles with a rule at this level can see or change the field.</small>
+                <Err message={errors[`${path}.permLevel`]} />
+              </label>}
+
               <label className="field">
                 <span>Help text</span>
                 <input value={field.description ?? ''} disabled={disabled} onChange={(e) => onChange({ description: e.target.value })} />
@@ -249,12 +258,14 @@ export function FieldCard({
   )
 }
 
-export function PermissionsEditor({ permissions, roles, disabled, errors, onChange }: {
+export function PermissionsEditor({ permissions, roles, disabled, errors, onChange, errorPrefix = 'permissions' }: {
   permissions: DocPerm[]
   roles: string[]
   disabled: boolean
   errors: Record<string, string>
   onChange: (next: DocPerm[]) => void
+  /** The prefix of this table's error paths: the designer reports `permissions[0]`, the manager `rules[0]`. */
+  errorPrefix?: string
 }) {
   const flags = ['read', 'write', 'create', 'delete', 'ifOwner'] as const
   const labels = { read: 'Read', write: 'Write', create: 'Create', delete: 'Delete', ifOwner: 'Own only' } as const
@@ -267,18 +278,25 @@ export function PermissionsEditor({ permissions, roles, disabled, errors, onChan
       <datalist id="role-list">{roles.map((r) => <option key={r} value={r} />)}</datalist>
       <div className="table-wrap">
         <table className="perm-table">
-          <thead><tr><th>Role</th>{flags.map((f) => <th key={f}>{labels[f]}</th>)}<th /></tr></thead>
+          <thead><tr><th>Role</th><th>Level</th>{flags.map((f) => <th key={f}>{labels[f]}</th>)}<th /></tr></thead>
           <tbody>
             {permissions.map((p, i) => (
               <tr key={i}>
                 <td>
                   <input list="role-list" aria-label="Role" value={p.role} disabled={disabled}
                     onChange={(e) => update(i, { role: e.target.value })} />
-                  {errors[`permissions[${i}].role`] && <small className="error-text" role="alert">{errors[`permissions[${i}].role`]}</small>}
+                  {errors[`${errorPrefix}[${i}].role`] && <small className="error-text" role="alert">{errors[`${errorPrefix}[${i}].role`]}</small>}
+                </td>
+                <td>
+                  <select aria-label={`Level for ${p.role || 'role'}`} value={p.permLevel ?? 0} disabled={disabled}
+                    onChange={(e) => { const level = Number(e.target.value); update(i, level > 0 ? { permLevel: level, create: false, delete: false } : { permLevel: level }) }}>
+                    {Array.from({ length: 10 }, (_, n) => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                  {errors[`${errorPrefix}[${i}].permLevel`] && <small className="error-text" role="alert">{errors[`${errorPrefix}[${i}].permLevel`]}</small>}
                 </td>
                 {flags.map((f) => (
                   <td key={f}>
-                    <input type="checkbox" aria-label={`${labels[f]} for ${p.role || 'role'}`} checked={p[f]} disabled={disabled}
+                    <input type="checkbox" aria-label={`${labels[f]} for ${p.role || 'role'}`} checked={p[f]} disabled={disabled || ((p.permLevel ?? 0) > 0 && (f === 'create' || f === 'delete'))}
                       onChange={(e) => update(i, { [f]: e.target.checked })} />
                   </td>
                 ))}
@@ -286,12 +304,12 @@ export function PermissionsEditor({ permissions, roles, disabled, errors, onChan
                   onClick={() => onChange(permissions.filter((_, n) => n !== i))}>✕</button></td>
               </tr>
             ))}
-            {permissions.length === 0 && <tr><td colSpan={7} className="empty">No rules: only Administrators can use this DocType.</td></tr>}
+            {permissions.length === 0 && <tr><td colSpan={8} className="empty">No rules: only Administrators can use this DocType.</td></tr>}
           </tbody>
         </table>
       </div>
       <button type="button" className="btn small btn-gap" disabled={disabled}
-        onClick={() => onChange([...permissions, { role: '', read: true, write: false, create: false, delete: false, ifOwner: false }])}>
+        onClick={() => onChange([...permissions, { role: '', read: true, write: false, create: false, delete: false, ifOwner: false, permLevel: 0 }])}>
         + Add rule
       </button>
     </div>

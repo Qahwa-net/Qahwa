@@ -1,6 +1,6 @@
 import type {
-  DesignerDetail, DesignerItem, DesignerPreview, Doc, DocTypeDefinition, FieldError, FieldTypeInfo,
-  ListResponse, MetaResponse, MetaSummary, SessionUser,
+  DesignerDetail, DocPerm, DesignerItem, DesignerPreview, Doc, DocTypeDefinition, FieldError, FieldTypeInfo,
+  ListResponse, MetaResponse, MetaSummary, PermissionItem, PermissionView, SessionUser,
 } from './types.ts'
 import type { Filter } from '../lib/filters.ts'
 import { toApiFilters } from '../lib/filters.ts'
@@ -110,6 +110,16 @@ export const api = {
   },
 
   remove: (doctype: string, name: string) => request<unknown>('DELETE', resource(doctype, name)),
+
+  permissions: {
+    list: async () => (await request<{ data: PermissionItem[] }>('GET', '/api/permissions/doctypes')).data,
+    get: async (name: string) =>
+      (await request<{ data: PermissionView }>('GET', `/api/permissions/doctypes/${encodeURIComponent(name)}`)).data,
+    save: async (name: string, rules: DocPerm[], modified: string | null | undefined) =>
+      (await request<{ data: PermissionView }>('PUT', `/api/permissions/doctypes/${encodeURIComponent(name)}`, { rules, modified })).data,
+    reset: async (name: string) =>
+      (await request<{ data: PermissionView }>('DELETE', `/api/permissions/doctypes/${encodeURIComponent(name)}`)).data,
+  },
 
   designer: {
     fieldTypes: async () => (await request<{ data: FieldTypeInfo[] }>('GET', '/api/designer/field-types')).data,

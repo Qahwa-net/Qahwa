@@ -76,8 +76,12 @@ public sealed class TestEngine
         Registry = TestMetas.Registry();
         Repository = repository ?? new InMemoryDocumentRepository();
         Clock = new TestClock(new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero));
+        Overrides = new PermissionOverrides();
+        Permissions = new PermissionService(Overrides);
+        PermissionStore = new InMemoryPermissionStore();
+        PermissionManager = new PermissionManager(Registry, PermissionStore, Overrides, Clock);
         Documents = new DocumentService(
-            Registry, Repository, new PermissionService(), new NamingService(Repository), Clock);
+            Registry, Repository, Permissions, new NamingService(Repository), Clock);
         DocTypeStore = new InMemoryDocTypeStore();
         Schema = new InMemorySchemaManager();
         Designer = new DocTypeDesigner(Registry, DocTypeStore, Schema, Repository, Clock);
@@ -97,6 +101,10 @@ public sealed class TestEngine
     public IDocumentRepository Repository { get; }
     public TestClock Clock { get; }
     public DocumentService Documents { get; }
+    public PermissionOverrides Overrides { get; }
+    public PermissionService Permissions { get; }
+    public InMemoryPermissionStore PermissionStore { get; }
+    public PermissionManager PermissionManager { get; }
     public InMemoryDocTypeStore DocTypeStore { get; }
     public InMemorySchemaManager Schema { get; }
     public DocTypeDesigner Designer { get; }

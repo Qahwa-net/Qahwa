@@ -21,13 +21,13 @@ public static class QahwaEndpoints
         api.MapGet("/meta/{doctype}", async (
             string doctype, HttpContext http, DocumentService docs, IUserContextResolver users, CancellationToken ct) =>
         {
-            var user = await users.ResolveAsync(http, ct);
-            var meta = docs.GetMeta(doctype, user);
+            var view = docs.GetMetaView(doctype, await users.ResolveAsync(http, ct));
             return Results.Ok(new
             {
-                data = meta,
-                permissions = docs.GetPermissions(meta, user),
-                children = docs.GetChildMetas(meta), // the Desk needs them to draw the table grids
+                data = view.Meta,                // only the fields this person may read, without permission rules
+                permissions = view.Permissions,
+                children = view.Children,        // the Desk needs them to draw the table grids
+                writableLevels = view.WritableLevels,
             });
         });
 
@@ -72,6 +72,7 @@ public static class QahwaEndpoints
 
         app.MapQahwaAuth();
         app.MapQahwaDesigner();
+        app.MapQahwaPermissions();
         return app;
     }
 

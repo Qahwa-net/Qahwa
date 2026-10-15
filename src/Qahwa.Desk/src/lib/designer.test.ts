@@ -122,6 +122,20 @@ describe('draft conversion', () => {
     expect(toDefinition(fromDetail(detail)).isChildTable).toBeUndefined()
   })
 
+  it('keeps permission levels, leaving level 0 out and dropping levels in child tables', () => {
+    const draft = fromDetail(detail)
+    draft.fields[0]!.permLevel = 2
+    draft.permissions.push({ role: 'HR', read: true, write: false, create: false, delete: false, ifOwner: false, permLevel: 2 })
+
+    const definition = toDefinition(draft)
+    expect(definition.fields[0]!.permLevel).toBe(2)
+    expect(definition.permissions.at(-1)!.permLevel).toBe(2)
+    expect(fromDetail({ ...detail, definition: { ...detail.definition, fields: [{ ...detail.definition.fields[0]!, permLevel: 3 }] } }).fields[0]!.permLevel).toBe(3)
+
+    draft.isChildTable = true
+    expect(toDefinition(draft).fields[0]!.permLevel).toBeUndefined()
+  })
+
   it('writes the logic properties and rules, and leaves them out when empty', () => {
     const draft = fromDetail(detail)
     draft.fields[0]!.dependsOn = "status == 'Open'"

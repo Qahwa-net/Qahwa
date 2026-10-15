@@ -27,6 +27,9 @@ public interface ISqlDialect
     /// <summary>Table holding DocType definitions created in the designer.</summary>
     string CreateDocTypeTableSql { get; }
 
+    /// <summary>Table holding permission rules customised in the Role Permission Manager.</summary>
+    string CreatePermissionsTableSql { get; }
+
     string CreateSeriesTableSql { get; }
 
     /// <summary>Table holding password hashes and login counters (see <c>IAuthStore</c>).</summary>

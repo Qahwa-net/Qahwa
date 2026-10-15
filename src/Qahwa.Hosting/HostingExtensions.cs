@@ -66,7 +66,11 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<IPasswordHasher<string>>(sp => new PasswordHasher<string>(Options.Create(
             new PasswordHasherOptions { IterationCount = sp.GetRequiredService<IOptions<AuthOptions>>().Value.HashIterations })));
-        services.TryAddSingleton<PermissionService>();
+        services.TryAddSingleton<PermissionOverrides>();
+        services.TryAddSingleton<IPermissionOverrides>(sp => sp.GetRequiredService<PermissionOverrides>());
+        services.TryAddSingleton<IPermissionStore, PermissionStore>();
+        services.TryAddSingleton(sp => new PermissionService(sp.GetRequiredService<IPermissionOverrides>()));
+        services.TryAddSingleton<PermissionManager>();
         services.TryAddSingleton<NamingService>();
         services.TryAddSingleton<DocumentService>();
         services.TryAddSingleton<AuthService>();

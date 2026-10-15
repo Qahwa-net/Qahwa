@@ -1,4 +1,5 @@
 using Qahwa.Api;
+using Qahwa.Core;
 using Qahwa.Core.Auth;
 using Qahwa.Core.Designer;
 using Qahwa.Data.Postgres;
@@ -76,6 +77,10 @@ if (app.Configuration.GetValue<bool>("Qahwa:AutoMigrate"))
 
 // DocTypes created in the designer live in the database; load them (a no-op if already loaded by the migration).
 foreach (var failure in await app.Services.GetRequiredService<CustomDocTypeLoader>().LoadAsync())
+    app.Logger.LogError("{Failure}", failure);
+
+// Permission rules customised in the Role Permission Manager.
+foreach (var failure in await app.Services.GetRequiredService<PermissionManager>().LoadAsync())
     app.Logger.LogError("{Failure}", failure);
 
 app.Run();

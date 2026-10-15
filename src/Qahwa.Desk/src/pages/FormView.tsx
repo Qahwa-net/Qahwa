@@ -70,15 +70,17 @@ export function FormView() {
       meta={metaQuery.data.data}
       perms={metaQuery.data.permissions}
       childMetas={metaQuery.data.children ?? {}}
+      writableLevels={metaQuery.data.writableLevels}
       doc={doc}
     />
   )
 }
 
-function FormBody({ meta, perms, childMetas, doc }: {
+function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
   meta: DocTypeMeta
   perms: Permissions
   childMetas: Record<string, DocTypeMeta>
+  writableLevels?: number[]
   doc: Doc | null
 }) {
   const navigate = useNavigate()
@@ -87,6 +89,8 @@ function FormBody({ meta, perms, childMetas, doc }: {
   const isNew = doc === null
   const editable = isNew ? perms.create : perms.write
   const base = `/app/${encodeURIComponent(meta.name)}`
+  /** Fields above level 0 are only editable by people with write rules at that level. */
+  const canWriteField = (f: DocField) => editable && ((f.permLevel ?? 0) === 0 || (writableLevels?.includes(f.permLevel!) ?? false))
 
   const session = useMemo<Session>(
     () => ({ user: user?.user ?? '', roles: user?.roles ?? [], isNew }),
@@ -107,8 +111,8 @@ function FormBody({ meta, perms, childMetas, doc }: {
   const docContext = documentContext(meta, childMetas, view.values, view.tables, session)
   const stateOf = (field: DocField): FieldState => (hasLogic(field) ? fieldState(field, docContext) : staticState(field))
 
-  const changedNames = Object.keys(view.values).filter((key) => view.values[key] !== original[key])
-  const changedTables = tableDefs.filter(({ field }) => rowsChanged(originalTables[field.name] ?? [], view.tables[field.name] ?? []))
+  const changedNames = Object.keys(view.values).filter((key) => view.values[key] !== original[key] && canWriteField(meta.fields.find((f) => f.name === key)!))
+  const changedTables = tableDefs.filter(({ field }) => canWriteField(field) && rowsChanged(originalTables[field.name] ?? [], view.tables[field.name] ?? []))
   const dirty = isNew ? true : changedNames.length > 0 || changedTables.length > 0
 
   // Warn before leaving the page with edits that are not saved.
@@ -167,9 +171,11 @@ function FormBody({ meta, perms, childMetas, doc }: {
   const save = useMutation({
     mutationFn: async () => {
       const send = (names: string[]) =>
-        Object.fromEntries(names.map((n) => [n, fromInput(meta.fields.find((f) => f.name === n)!, view.values[n]!)]))
+        Object.fromEntries(names
+          .filter((n) => canWriteField(meta.fields.find((f) => f.name === n)!))
+          .map((n) => [n, fromInput(meta.fields.find((f) => f.name === n)!, view.values[n]!)]))
       const sendTables = (defs: typeof tableDefs) =>
-        Object.fromEntries(defs.map(({ field, child }) => [field.name, rowsToPayload(child, view.tables[field.name] ?? [])]))
+        Object.fromEntries(defs.filter(({ field }) => canWriteField(field)).map(({ field, child }) => [field.name, rowsToPayload(child, view.tables[field.name] ?? [])]))
 
       if (isNew) {
         const filled = Object.keys(view.values).filter((n) => view.values[n] !== '')
@@ -282,7 +288,7 @@ function FormBody({ meta, perms, childMetas, doc }: {
 
             return (
               <TableControl key={field.name} field={field} child={def.child} rows={view.tables[field.name] ?? []}
-                readOnly={!editable || state.readOnly} errors={fieldErrors} rowState={rowState} makeRow={makeRow}
+                readOnly={!canWriteField(field) || state.readOnly} errors={fieldErrors} rowState={rowState} makeRow={makeRow}
                 onChange={(rows) => { setTables({ ...tables, [field.name]: rows }); clearErrorsFor(field.name) }}
                 onCellEdited={(index, name, value) => {
                   const column = def.child.fields.find((f) => f.name === name)
@@ -294,7 +300,7 @@ function FormBody({ meta, perms, childMetas, doc }: {
 
           return (
             <FieldControl key={field.name} field={field} state={stateOf(field)}
-              value={view.values[field.name] ?? ''} readOnly={!editable} error={fieldErrors[field.name]}
+              value={view.values[field.name] ?? ''} readOnly={!canWriteField(field)} error={fieldErrors[field.name]}
               onChange={(v) => {
                 setValues({ ...values, [field.name]: v })
                 if (fieldErrors[field.name]) setFieldErrors({ ...fieldErrors, [field.name]: '' })

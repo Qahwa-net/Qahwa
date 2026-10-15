@@ -51,6 +51,13 @@ public sealed class PostgresDialect : ISqlDialect
         "\"owner\" varchar(140) NOT NULL, " +
         "\"modified_by\" varchar(140) NOT NULL)";
 
+    public string CreatePermissionsTableSql =>
+        "CREATE TABLE IF NOT EXISTS \"__permissions\" (" +
+        "\"name\" varchar(140) NOT NULL PRIMARY KEY, " +
+        "\"rules\" text NOT NULL, " +
+        "\"modified\" timestamp with time zone NOT NULL, " +
+        "\"modified_by\" varchar(140) NOT NULL)";
+
     public string CreateSeriesTableSql =>
         "CREATE TABLE IF NOT EXISTS \"tabSeries\" (\"name\" varchar(140) NOT NULL PRIMARY KEY, \"current\" bigint NOT NULL DEFAULT 0)";
 

@@ -66,6 +66,12 @@ public sealed record DocFieldMeta
 
     /// <summary>With <see cref="FetchFrom"/>: only copy the value while this field is still empty.</summary>
     public bool FetchIfEmpty { get; init; }
+
+    /// <summary>
+    /// Permission level 0 to 9. Level 0 fields follow the DocType's ordinary access; a higher level is only visible
+    /// and editable to roles that have a permission rule at that level.
+    /// </summary>
+    public int PermLevel { get; init; }
 }
 
 /// <summary>A rule on a whole document (or table row): while the expression is false, saving is refused with the message.</summary>
@@ -88,6 +94,9 @@ public sealed record DocPermMeta
 
     /// <summary>Restrict this rule to documents the user owns.</summary>
     public bool IfOwner { get; init; }
+
+    /// <summary>The permission level of fields this rule covers (0 is the document itself and its ordinary fields).</summary>
+    public int PermLevel { get; init; }
 }
 
 public static class DocTypeMetaExtensions

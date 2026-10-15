@@ -66,6 +66,21 @@ public static partial class DocTypeLoader
 
     public static string Serialize(DocTypeMeta meta) => JsonSerializer.Serialize(meta, Options);
 
+    public static string SerializeRules(IReadOnlyList<DocPermMeta> rules) => JsonSerializer.Serialize(rules, Options);
+
+    public static IReadOnlyList<DocPermMeta> ParseRules(string json)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<List<DocPermMeta>>(json, Options)
+                ?? throw new DocTypeValidationException("The permission rules are empty.");
+        }
+        catch (JsonException ex)
+        {
+            throw new DocTypeValidationException($"Invalid permission rules: {ex.Message}");
+        }
+    }
+
     public static DocTypeMeta LoadFile(string path)
     {
         try
@@ -117,15 +132,35 @@ public static partial class DocTypeLoader
         CheckAutoname(meta, seen, Add);
         CheckLogic(meta, seen, Add);
 
-        if (meta.Permissions.Count > MaxPermissions)
-            Add("permissions", $"At most {MaxPermissions} permission rules are allowed.");
-        for (var i = 0; i < meta.Permissions.Count; i++)
+        errors.AddRange(CheckPermissionRules(meta.Permissions, "permissions"));
+        return errors;
+    }
+
+    public const int MaxPermLevel = 9;
+
+    /// <summary>Checks a list of permission rules (from a definition or from the Role Permission Manager).</summary>
+    public static IReadOnlyList<FieldError> CheckPermissionRules(IReadOnlyList<DocPermMeta> rules, string path)
+    {
+        var errors = new List<FieldError>();
+        if (rules.Count > MaxPermissions)
+            errors.Add(new FieldError(path, $"At most {MaxPermissions} permission rules are allowed."));
+
+        var seen = new HashSet<(string, int, bool)>();
+        for (var i = 0; i < rules.Count; i++)
         {
-            var role = meta.Permissions[i].Role;
-            if (string.IsNullOrWhiteSpace(role))
-                Add($"permissions[{i}].role", "Permission rule without a role.");
-            else if (role.Length > FieldTypes.ShortTextLength)
-                Add($"permissions[{i}].role", "Role name is too long.");
+            var rule = rules[i];
+            var at = $"{path}[{i}]";
+            if (string.IsNullOrWhiteSpace(rule.Role))
+                errors.Add(new FieldError($"{at}.role", "Permission rule without a role."));
+            else if (rule.Role.Length > FieldTypes.ShortTextLength)
+                errors.Add(new FieldError($"{at}.role", "Role name is too long."));
+            else if (!seen.Add((rule.Role, rule.PermLevel, rule.IfOwner)))
+                errors.Add(new FieldError($"{at}.role", $"There is already a rule for '{rule.Role}' at level {rule.PermLevel}{(rule.IfOwner ? " (own documents)" : string.Empty)}."));
+
+            if (rule.PermLevel is < 0 or > MaxPermLevel)
+                errors.Add(new FieldError($"{at}.permLevel", $"The permission level must be between 0 and {MaxPermLevel}."));
+            else if (rule.PermLevel > 0 && (rule.Create || rule.Delete))
+                errors.Add(new FieldError($"{at}.permLevel", "Create and delete only apply at level 0."));
         }
 
         return errors;
@@ -169,6 +204,11 @@ public static partial class DocTypeLoader
             else if (!string.IsNullOrEmpty(field.Default) && !field.Default.StartsWith('=') && !options.Contains(field.Default, StringComparer.Ordinal))
                 add($"{path}.default", "The default must be one of the options.");
         }
+
+        if (field.PermLevel is < 0 or > MaxPermLevel)
+            add($"{path}.permLevel", $"The permission level must be between 0 and {MaxPermLevel}.");
+        else if (field.PermLevel > 0 && inChildTable)
+            add($"{path}.permLevel", "Fields of a child table follow the permission level of the table field; they cannot have their own.");
 
         if (field.Label is { Length: > 140 })
             add($"{path}.label", "Label must be at most 140 characters.");

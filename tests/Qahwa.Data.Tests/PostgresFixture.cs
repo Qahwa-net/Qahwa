@@ -67,7 +67,10 @@ public sealed class PgStack : IAsyncDisposable
         Registry = TestMetas.Registry();
         Repository = new DocumentRepository(_connections, Dialect, new SqlBuilder(Dialect));
         Clock = new TestClock(DateTimeOffset.UtcNow);
-        Documents = new DocumentService(Registry, Repository, new PermissionService(), new NamingService(Repository), Clock);
+        Overrides = new PermissionOverrides();
+        PermissionStore = new PermissionStore(_connections, Dialect, new PostgresSchemaInspector(_connections));
+        PermissionManager = new PermissionManager(Registry, PermissionStore, Overrides, Clock);
+        Documents = new DocumentService(Registry, Repository, new PermissionService(Overrides), new NamingService(Repository), Clock);
         DocTypeStore = new DocTypeStore(_connections, Dialect, new PostgresSchemaInspector(_connections));
         SchemaManager = new SchemaManager(Sync, Dialect);
         Designer = new DocTypeDesigner(Registry, DocTypeStore, SchemaManager, Repository, Clock);
@@ -79,6 +82,9 @@ public sealed class PgStack : IAsyncDisposable
             Options.Create(AuthOptions), Clock);
     }
 
+    public PermissionOverrides Overrides { get; }
+    public PermissionStore PermissionStore { get; }
+    public PermissionManager PermissionManager { get; }
     public DocTypeStore DocTypeStore { get; }
     public SchemaManager SchemaManager { get; }
     public DocTypeDesigner Designer { get; }

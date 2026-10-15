@@ -81,6 +81,7 @@ export function newField(info: FieldTypeInfo, taken: string[]): DraftField {
     formula: null,
     fetchFrom: null,
     fetchIfEmpty: false,
+    permLevel: 0,
   }
 }
 
@@ -105,7 +106,7 @@ export function emptyDraft(): Draft {
     seriesPrefix: '',
     seriesDigits: 5,
     fields: [],
-    permissions: [{ role: 'System Manager', read: true, write: true, create: true, delete: true, ifOwner: false }],
+    permissions: [{ role: 'System Manager', read: true, write: true, create: true, delete: true, ifOwner: false, permLevel: 0 }],
     validations: [],
     modified: null,
     documentCount: null,
@@ -159,8 +160,9 @@ export function fromDetail(detail: DesignerDetail): Draft {
       formula: f.formula ?? null,
       fetchFrom: f.fetchFrom ?? null,
       fetchIfEmpty: f.fetchIfEmpty ?? false,
+      permLevel: f.permLevel ?? 0,
     })),
-    permissions: (def.permissions ?? []).map((p) => ({ ...p, ifOwner: p.ifOwner ?? false })),
+    permissions: (def.permissions ?? []).map((p) => ({ ...p, ifOwner: p.ifOwner ?? false, permLevel: p.permLevel ?? 0 })),
     validations: (def.validations ?? []).map((r) => ({ expression: r.expression, message: r.message, field: r.field ?? null })),
     modified: detail.modified ?? null,
     documentCount: detail.documentCount ?? null,
@@ -197,6 +199,8 @@ export function toDefinition(draft: Draft): DocTypeDefinition {
       formula: blank(f.formula),
       fetchFrom: blank(f.fetchFrom),
       fetchIfEmpty: (f.fetchFrom && f.fetchIfEmpty) || undefined,
+      // Rows of a child table follow the access of the document, so they have no levels of their own.
+      permLevel: (!draft.isChildTable && f.permLevel) || undefined,
     })) as DocTypeDefinition['fields'],
     // Child table rows follow the permissions of the document they belong to.
     permissions: draft.isChildTable ? [] : draft.permissions.filter((p) => p.role.trim() !== ''),

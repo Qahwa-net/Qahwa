@@ -6,6 +6,7 @@ import { DesignerEditor } from './pages/DesignerEditor.tsx'
 import { DesignerList } from './pages/DesignerList.tsx'
 import { FormView } from './pages/FormView.tsx'
 import { HomePage } from './pages/HomePage.tsx'
+import { PermissionManagerPage } from './pages/PermissionManager.tsx'
 import { ListView } from './pages/ListView.tsx'
 import { LoginPage } from './pages/LoginPage.tsx'
 
@@ -32,6 +33,8 @@ export function App() {
           <Route path="designer" element={<DesignerList />} />
           <Route path="designer/new" element={<DesignerEditor />} />
           <Route path="designer/:name" element={<DesignerEditor />} />
+          <Route path="permissions" element={<PermissionManagerPage />} />
+          <Route path="permissions/:name" element={<PermissionManagerPage />} />
           <Route path="app/:doctype" element={<ListView />} />
           <Route path="app/:doctype/new" element={<FormView />} />
           <Route path="app/:doctype/:name" element={<FormView />} />

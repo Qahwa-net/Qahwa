@@ -72,10 +72,13 @@ public sealed class DocumentService(
     {
         var meta = RequireTopLevel(registry.Get(doctype));
         permissions.Require(meta, user, PermAction.Create);
+        var fieldAccess = permissions.FieldAccessFor(meta, user, user.User, creating: true);
 
         var errors = new List<FieldError>();
-        var values = Coerce(meta, input, errors, meta.Autoname == "prompt", out var promptName);
+        var values = Coerce(meta, input, errors, meta.Autoname == "prompt", out var promptName, access: fieldAccess);
         var tables = ReadTables(meta, input, errors);
+        foreach (var table in tables.Where(t => t.Rows.Count > 0 && !fieldAccess.CanWrite(t.Field)))
+            errors.Add(new FieldError(table.Field.Name, "You do not have permission to fill in this table."));
         ApplyDefaults(meta, values, errors);
         foreach (var table in tables)
         {
@@ -87,7 +90,7 @@ public sealed class DocumentService(
         var changed = values.Keys.ToHashSet(StringComparer.Ordinal);
         await _logic.RunAsync(meta, values, changed, tables, user, isNew: true, errors, ct);
         var context = _logic.Context(meta, values, tables, null, user, isNew: true);
-        await ValidateAsync(meta, values, values.Keys, errors, string.Empty, context, ct);
+        await ValidateAsync(meta, values, values.Keys, errors, string.Empty, context, fieldAccess, ct);
         foreach (var table in tables)
             await ValidateTableAsync(table, null, errors, values, user, isNew: true, ct);
         CheckRequiredTables(meta, tables, errors, onlyIfProvided: false);
@@ -110,7 +113,7 @@ public sealed class DocumentService(
             .Where(c => !c.IsEmpty)
             .ToList();
         await repository.InsertAsync(meta, values, children, ct);
-        return await LoadAsync(meta, name, ct)
+        return await LoadForAsync(meta, name, user, ct)
             ?? throw new InvalidOperationException($"{meta.Name} '{name}' vanished after insert.");
     }
 
@@ -125,7 +128,7 @@ public sealed class DocumentService(
         var doc = await LoadAsync(meta, name, ct)
             ?? throw new NotFoundException($"{meta.Name} '{name}' was not found.");
         permissions.RequireOwnership(access, doc, user);
-        return doc;
+        return Strip(meta, doc, permissions.FieldAccessFor(meta, user, doc.GetValueOrDefault("owner") as string, creating: false));
     }
 
     public async Task<Dictionary<string, object?>> UpdateAsync(
@@ -140,6 +143,7 @@ public sealed class DocumentService(
         var existing = await repository.GetAsync(meta, name, ct)
             ?? throw new NotFoundException($"{meta.Name} '{name}' was not found.");
         permissions.RequireOwnership(access, existing, user);
+        var fieldAccess = permissions.FieldAccessFor(meta, user, existing.GetValueOrDefault("owner") as string, creating: false);
 
         var errors = new List<FieldError>();
         var changes = Coerce(meta, input, errors, allowName: false, out _);
@@ -150,6 +154,14 @@ public sealed class DocumentService(
         {
             if (Equals(existing.GetValueOrDefault(key), changes[key]))
                 changes.Remove(key);
+        }
+
+        // A client may echo back values it was shown; it may not change fields above its permission level.
+        foreach (var key in changes.Keys)
+        {
+            var field = meta.Fields.FirstOrDefault(f => f.Name == key);
+            if (field is not null && !fieldAccess.CanWrite(field))
+                errors.Add(new FieldError(key, "You do not have permission to change this field."));
         }
 
         // Optimistic concurrency: if the client says which version it edited, it must still be current.
@@ -200,9 +212,16 @@ public sealed class DocumentService(
             changes[key] = merged[key]; // calculated and fetched values are saved too
 
         var context = _logic.Context(meta, merged, tables, null, user, isNew: false);
-        await ValidateAsync(meta, merged, changed, errors, string.Empty, context, ct);
+        await ValidateAsync(meta, merged, changed, errors, string.Empty, context, fieldAccess, ct);
         foreach (var table in tables.Where(t => t.Provided))
             await ValidateTableAsync(table, currentRows[table.Field.Name], errors, merged, user, isNew: false, ct);
+
+        foreach (var table in tables.Where(t => t.Provided && !fieldAccess.CanWrite(t.Field)))
+        {
+            var attempted = BuildChanges(table, meta, name, currentRows[table.Field.Name], Now(), user);
+            if (!attempted.IsEmpty)
+                errors.Add(new FieldError(table.Field.Name, "You do not have permission to change this table."));
+        }
 
         CheckRequiredTables(meta, tables.Where(t => t.Provided).ToList(), errors, onlyIfProvided: true);
         ValidateRules(meta, tables, merged, context, user, isNew: false, errors);
@@ -215,14 +234,14 @@ public sealed class DocumentService(
             .Where(c => !c.IsEmpty)
             .ToList();
         if (changes.Count == 0 && children.Count == 0)
-            return (await LoadAsync(meta, name, ct))!;
+            return (await LoadForAsync(meta, name, user, ct))!;
 
         changes["modified"] = now;
         changes["modified_by"] = user.User;
         if (!await repository.UpdateAsync(meta, name, changes, stored, children, ct))
             throw new ConflictException($"{meta.Name} '{name}' was changed or deleted by someone else. Reload and try again.");
 
-        return await LoadAsync(meta, name, ct)
+        return await LoadForAsync(meta, name, user, ct)
             ?? throw new NotFoundException($"{meta.Name} '{name}' was not found.");
     }
 
@@ -247,7 +266,7 @@ public sealed class DocumentService(
     {
         var meta = RequireTopLevel(registry.Get(doctype));
         var access = permissions.Require(meta, user, PermAction.Read);
-        var query = Normalize(meta, request);
+        var query = Normalize(meta, request, permissions.FieldAccessFor(meta, user, documentOwner: null, creating: false));
 
         if (access == AccessLevel.Owner)
             query = query with { Filters = [.. query.Filters, new QueryFilter("owner", FilterOp.Eq, user.User)] };
@@ -263,6 +282,45 @@ public sealed class DocumentService(
 
     private static IEnumerable<DocFieldMeta> TableFields(DocTypeMeta meta) =>
         meta.Fields.Where(f => f.Type == FieldType.Table && f.Options is not null);
+
+    /// <summary>The document as this user may see it: rows attached, fields above their permission level removed.</summary>
+    private async Task<Dictionary<string, object?>?> LoadForAsync(DocTypeMeta meta, string name, IUserContext user, CancellationToken ct)
+    {
+        var doc = await LoadAsync(meta, name, ct);
+        return doc is null
+            ? null
+            : Strip(meta, doc, permissions.FieldAccessFor(meta, user, doc.GetValueOrDefault("owner") as string, creating: false));
+    }
+
+    /// <summary>Removes the fields the user may not read. They are absent, not empty, so their existence is not revealed.</summary>
+    private static Dictionary<string, object?> Strip(DocTypeMeta meta, Dictionary<string, object?> doc, FieldAccess access)
+    {
+        if (access.IsUnrestricted)
+            return doc;
+
+        foreach (var field in meta.Fields.Where(f => !access.CanRead(f)))
+            doc.Remove(field.Name);
+        return doc;
+    }
+
+    /// <summary>
+    /// What the Desk needs to draw a DocType for this user: only the fields they may read, their effective permissions,
+    /// the child DocTypes of its tables, and which field levels they may edit. Permission rules are not disclosed.
+    /// </summary>
+    public MetaView GetMetaView(string doctype, IUserContext user)
+    {
+        var meta = GetMeta(doctype, user);
+        var access = permissions.FieldAccessFor(meta, user, user.User, creating: false);
+        var visible = access.IsUnrestricted
+            ? meta
+            : meta with { Fields = meta.Fields.Where(access.CanRead).ToList(), TitleField = meta.Fields.Any(f => f.Name == meta.TitleField && !access.CanRead(f)) ? null : meta.TitleField };
+
+        return new MetaView(
+            visible with { Permissions = [] },
+            GetPermissions(meta, user),
+            GetChildMetas(meta),
+            access.Writable.Order().ToList());
+    }
 
     /// <summary>The document with its child rows attached under the Table field names.</summary>
     private async Task<Dictionary<string, object?>?> LoadAsync(DocTypeMeta meta, string name, CancellationToken ct)
@@ -290,10 +348,13 @@ public sealed class DocumentService(
         return shaped;
     }
 
-    private ListQuery Normalize(DocTypeMeta meta, ListRequest request)
+    private ListQuery Normalize(DocTypeMeta meta, ListRequest request, FieldAccess access)
     {
         var columns = meta.ColumnTypes();
         var errors = new List<FieldError>();
+
+        // Fields above the user's permission level cannot be shown, filtered on or sorted by: any of those would reveal them.
+        var hidden = meta.Fields.Where(f => !access.CanRead(f)).Select(f => f.Name).ToHashSet(StringComparer.Ordinal);
 
         List<string>? fields = null;
         if (request.Fields is { Count: > 0 })
@@ -301,16 +362,28 @@ public sealed class DocumentService(
             fields = ["name"];
             foreach (var field in request.Fields.Where(f => f != "name").Distinct(StringComparer.Ordinal))
             {
-                if (columns.ContainsKey(field))
+                if (hidden.Contains(field))
+                    errors.Add(new FieldError(field, "You do not have permission to read this field."));
+                else if (columns.ContainsKey(field))
                     fields.Add(field);
                 else
                     errors.Add(new FieldError(field, "Unknown field."));
             }
         }
+        else if (hidden.Count > 0)
+        {
+            fields = columns.Keys.Where(c => !hidden.Contains(c)).ToList();
+        }
 
         var filters = new List<QueryFilter>();
         foreach (var raw in request.Filters)
         {
+            if (hidden.Contains(raw.Field))
+            {
+                errors.Add(new FieldError(raw.Field, "You do not have permission to filter on this field."));
+                continue;
+            }
+
             if (!columns.TryGetValue(raw.Field, out var type))
             {
                 errors.Add(new FieldError(raw.Field, "Cannot filter on an unknown field."));
@@ -334,7 +407,12 @@ public sealed class DocumentService(
         }
 
         string? orderBy = request.OrderBy;
-        if (orderBy is not null && !columns.ContainsKey(orderBy))
+        if (orderBy is not null && hidden.Contains(orderBy))
+        {
+            errors.Add(new FieldError(orderBy, "You do not have permission to sort by this field."));
+            orderBy = null;
+        }
+        else if (orderBy is not null && !columns.ContainsKey(orderBy))
         {
             errors.Add(new FieldError(orderBy, "Cannot order by an unknown field."));
             orderBy = null;
@@ -393,7 +471,8 @@ public sealed class DocumentService(
         List<FieldError> errors,
         bool allowName,
         out string? providedName,
-        string pathPrefix = "")
+        string pathPrefix = "",
+        FieldAccess? access = null)
     {
         providedName = null;
         var values = new Dictionary<string, object?>(StringComparer.Ordinal);
@@ -419,6 +498,14 @@ public sealed class DocumentService(
 
             if (field.Type == FieldType.Table)
                 continue; // child rows are read separately by ReadTables
+
+            // A field above the person's permission level cannot be filled in; empty values (an echo) are harmless.
+            if (access is not null && !access.CanWrite(field))
+            {
+                if (FieldValueConverter.Unwrap(raw) is not (null or ""))
+                    errors.Add(new FieldError(pathPrefix + key, "You do not have permission to set this field."));
+                continue;
+            }
 
             if (!FieldTypes.HasColumn(field.Type))
             {
@@ -551,6 +638,7 @@ public sealed class DocumentService(
         List<FieldError> errors,
         string pathPrefix,
         ExpressionContext? context,
+        FieldAccess? access,
         CancellationToken ct)
     {
         var changedSet = changed.ToHashSet(StringComparer.Ordinal);
@@ -562,7 +650,7 @@ public sealed class DocumentService(
             var isEmpty = value is null or "";
 
             // Required by the field or by its condition, and only while the field is shown.
-            if (DocumentLogic.IsRequired(field, context) && isEmpty)
+            if (DocumentLogic.IsRequired(field, context) && isEmpty && (access is null || access.CanWrite(field)))
             {
                 errors.Add(new FieldError(path, "This field is required."));
                 continue;
@@ -620,7 +708,7 @@ public sealed class DocumentService(
 
             var merged = row.Merged();
             var context = _logic.Context(table.Child, merged, [], parentValues, user, isNew);
-            await ValidateAsync(table.Child, merged, row.Values.Keys, errors, prefix, context, ct);
+            await ValidateAsync(table.Child, merged, row.Values.Keys, errors, prefix, context, null, ct);
         }
     }
 

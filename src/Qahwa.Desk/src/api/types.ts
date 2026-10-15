@@ -27,6 +27,8 @@ export interface DocField {
   /** "link_field.target_field": copy a value from the linked document. */
   fetchFrom?: string | null
   fetchIfEmpty?: boolean
+  /** 0 is the document's own access; 1–9 need rules at that level (see the Role Permission Manager). */
+  permLevel?: number
 }
 
 export interface ValidationRule {
@@ -42,6 +44,7 @@ export interface DocPerm {
   create: boolean
   delete: boolean
   ifOwner: boolean
+  permLevel?: number
 }
 
 export interface DocTypeMeta {
@@ -129,6 +132,28 @@ export interface MetaResponse {
   permissions: Permissions
   /** The child DocTypes used by this DocType's Table fields, keyed by name. */
   children: Record<string, DocTypeMeta>
+  /** The permission levels this user may write at; fields at other levels are read-only. */
+  writableLevels?: number[]
+}
+
+export interface PermissionItem {
+  name: string
+  module?: string | null
+  source: DocTypeSource
+  customized: boolean
+  ruleCount: number
+}
+
+export interface PermissionView {
+  name: string
+  source: DocTypeSource
+  customized: boolean
+  modified?: string | null
+  rules: DocPerm[]
+  defaultRules: DocPerm[]
+  /** Fields above level 0, so the matrix can say what each level protects. */
+  fields: { name: string; label?: string | null; level: number }[]
+  canEdit: boolean
 }
 
 export type Doc = Record<string, unknown> & { name: string }
