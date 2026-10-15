@@ -102,4 +102,4 @@ Expressions are documented in [the expression language](../../expressions.md).
 
 ## Tables the framework creates besides DocType tables
 
-`tabSeries` (naming counters), `__auth` (password hashes, lockout), `__doctype` (designer DocTypes), `__permissions` (permission overrides), `__customize` (Customize Form), `__workflow` (Workflow Builder), `__assignment_rule` (Assignment Rules). `ToDo` has an `assignment_rule` column naming the rule that made an assignment.
+`tabSeries` (naming counters), `__auth` (password hashes, lockout), `__doctype` (designer DocTypes), `__permissions` (permission overrides), `__customize` (Customize Form), `__workflow` (Workflow Builder), `__assignment_rule` (Assignment Rules). The Core DocType `Auto Repeat` holds repeats (written only by `AutoRepeatService`). `ToDo` has an `assignment_rule` column naming the rule that made an assignment.

@@ -104,6 +104,19 @@ For versions `data` is `{ changed: [[field, before, after], ...], tables: { fiel
 
 Building workflows is under *Tools* below. Writing the state field through `PUT /resource` is refused with a validation error on that field.
 
+## Auto Repeat ([ADR-021](../../adr/021-auto-repeat.md))
+
+| Call | Purpose |
+|---|---|
+| `GET /resource/{doctype}/{name}/auto-repeat` | The caller's repeats of that document (all of them for a System Manager); needs read access to the document |
+| `POST /resource/{doctype}/{name}/auto-repeat` `{ frequency, startDate, endDate?, dateFields? }` | Set a repeat up (201). 403 without create rights on the DocType, 400 for bad dates, frequency or fields |
+| `GET /auto-repeat` | The caller's repeats, soonest first |
+| `PUT /auto-repeat/{id}` `{ status?, endDate?, dateFields? }` | Pause or resume, change the end date or date fields (frequency and start date are fixed) |
+| `POST /auto-repeat/{id}/run` | Make the next copy now |
+| `DELETE /auto-repeat/{id}` | Stop repeating |
+
+Someone else's repeat answers 404.
+
 ## Link fields
 
 | Call | Purpose |

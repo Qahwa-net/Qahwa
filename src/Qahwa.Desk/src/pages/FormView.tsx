@@ -7,6 +7,7 @@ import { Icon, IconButton } from '../controls/Icon.tsx'
 import { ConfirmDialog } from '../controls/Modal.tsx'
 import { ActivityPanel } from './ActivityPanel.tsx'
 import { AssignDialog } from './AssignPanel.tsx'
+import { RepeatDialog } from './RepeatDialog.tsx'
 import { FollowButton } from './FollowButton.tsx'
 import { RenameDialog } from './RenamePanel.tsx'
 import { ShareDialog } from './SharePanel.tsx'
@@ -125,6 +126,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
   const [sharing, setSharing] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const [assigning, setAssigning] = useState(false)
+  const [repeating, setRepeating] = useState(false)
   const [activeTab, setActiveTab] = useState(0)
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
   const toast = useToast()
@@ -351,6 +353,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
           {!isNew && doc && <FollowButton doctype={meta.name} name={doc.name} />}
           {!isNew && !meta.isSingle && perms.write && docstatus !== 2 && <IconButton icon="userPlus" label="Assign" onClick={() => setAssigning(true)} />}
           {!isNew && !meta.isSingle && perms.write && docstatus !== 2 && <IconButton icon="share" label="Share" onClick={() => setSharing(true)} />}
+          {!isNew && !meta.isSingle && perms.create && meta.module !== 'Core' && meta.autoname !== 'prompt' && <IconButton icon="repeat" label="Repeat" onClick={() => setRepeating(true)} />}
           {!isNew && meta.allowRename && perms.write && docstatus !== 1 && <IconButton icon="pencil" label="Rename" onClick={() => setRenaming(true)} />}
           {!isNew && !meta.isSingle && perms.delete && docstatus !== 1 && <IconButton icon="trash" label="Delete" tone="danger" disabled={remove.isPending} onClick={() => setConfirm('delete')} />}
           {!isNew && !flow && docstatus === 0 && meta.isSubmittable && perms.submit && (
@@ -376,6 +379,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
           navigate(`${base}/${encodeURIComponent(newName)}`, { replace: true })
         }} />}
       {sharing && doc && <ShareDialog doctype={meta.name} name={doc.name} onClose={() => setSharing(false)} />}
+      {repeating && doc && <RepeatDialog meta={meta} name={doc.name} onClose={() => setRepeating(false)} />}
       {assigning && doc && <AssignDialog doctype={meta.name} name={doc.name} canAssign={perms.write} onClose={() => setAssigning(false)} />}
       {confirm && doc && (
         <ConfirmDialog

@@ -47,6 +47,12 @@ export function Shell() {
         {metas.isPending && <p className="muted pad">Loading…</p>}
         {metas.isError && <p className="muted pad">Could not load DocTypes.</p>}
         {metas.data?.length === 0 && <p className="muted pad">You do not have access to any DocType yet.</p>}
+        <section>
+          <h2>My work</h2>
+          <ul>
+            <li><NavLink to="/auto-repeat">Auto Repeat</NavLink></li>
+          </ul>
+        </section>
         {canDesign && (
           <section>
             <h2>Tools</h2>

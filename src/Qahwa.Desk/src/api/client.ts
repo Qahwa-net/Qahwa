@@ -1,6 +1,6 @@
 import type {
   DesignerDetail, DocPerm, DesignerItem, DesignerPreview, Doc, DocTypeDefinition, FieldError, FieldTypeInfo,
-  ListResponse, AssignmentRuleItem, AssignmentRuleSet, AssignmentRuleView, PendingAction, WorkflowDefinition, WorkflowItem, WorkflowStatus, WorkflowView, MetaResponse, MetaSummary, PermissionItem, ActivityItem, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, FollowState, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
+  ListResponse, AutoRepeatInfo, AutoRepeatRequest, AssignmentRuleItem, AssignmentRuleSet, AssignmentRuleView, PendingAction, WorkflowDefinition, WorkflowItem, WorkflowStatus, WorkflowView, MetaResponse, MetaSummary, PermissionItem, ActivityItem, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, FollowState, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
 } from './types.ts'
 import type { Filter } from '../lib/filters.ts'
 import { toApiFilters } from '../lib/filters.ts'
@@ -249,6 +249,18 @@ export const api = {
       (await request<{ data: CustomizationView }>('PUT', `/api/customize/doctypes/${encodeURIComponent(name)}`, { customization, modified })).data,
     reset: async (name: string) =>
       (await request<{ data: CustomizationView }>('DELETE', `/api/customize/doctypes/${encodeURIComponent(name)}`)).data,
+  },
+
+  autoRepeat: {
+    mine: async () => (await request<{ data: AutoRepeatInfo[] }>('GET', '/api/auto-repeat')).data,
+    forDocument: async (doctype: string, name: string) =>
+      (await request<{ data: AutoRepeatInfo[] }>('GET', `${resource(doctype, name)}/auto-repeat`)).data,
+    create: async (doctype: string, name: string, body: AutoRepeatRequest) =>
+      (await request<{ data: AutoRepeatInfo }>('POST', `${resource(doctype, name)}/auto-repeat`, body)).data,
+    update: async (id: string, body: AutoRepeatRequest) =>
+      (await request<{ data: AutoRepeatInfo }>('PUT', `/api/auto-repeat/${encodeURIComponent(id)}`, body)).data,
+    runNow: async (id: string) => (await request<{ data: AutoRepeatInfo }>('POST', `/api/auto-repeat/${encodeURIComponent(id)}/run`)).data,
+    remove: async (id: string) => { await request<unknown>('DELETE', `/api/auto-repeat/${encodeURIComponent(id)}`) },
   },
 
   assignmentRules: {

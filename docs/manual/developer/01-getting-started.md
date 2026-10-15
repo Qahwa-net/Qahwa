@@ -27,6 +27,7 @@ Settings (`appsettings.json`, section `Qahwa`):
 |---|---|
 | `DocTypePaths` | Folders of DocType JSON files (an app's definitions) loaded at start |
 | `AutoMigrate` | Run the schema sync at start |
+| `Qahwa:Scheduler:Enabled`, `IntervalSeconds` | The background scheduler (auto repeat): on by default, every 300 seconds (10 to 3600) |
 | `Auth:MinPasswordLength`, `MaxFailedAttempts`, `LockoutMinutes` | Password and lockout policy |
 | `Auth:LoginPermitsPerMinute` | Login rate limit |
 | `Auth:SessionHours`, `SessionCacheSeconds` | Cookie lifetime; how long a session's roles are cached |

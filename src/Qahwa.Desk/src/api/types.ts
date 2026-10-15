@@ -478,3 +478,32 @@ export interface AssignmentRuleView {
   userFields: string[]
   canEdit: boolean
 }
+
+export type RepeatFrequency = 'Daily' | 'Weekly' | 'Monthly' | 'Quarterly' | 'Yearly'
+
+/** A document that copies itself on a schedule. */
+export interface AutoRepeatInfo {
+  id: string
+  docType: string
+  name: string
+  frequency: RepeatFrequency
+  startDate: string
+  endDate?: string | null
+  nextDate?: string | null
+  status: 'Active' | 'Paused' | 'Finished'
+  dateFields: string[]
+  created: number
+  lastRun?: string | null
+  lastCreated?: string | null
+  lastError?: string | null
+  owner: string
+  ownerName?: string | null
+}
+
+export interface AutoRepeatRequest {
+  frequency?: RepeatFrequency
+  startDate?: string
+  endDate?: string
+  dateFields?: string[]
+  status?: 'Active' | 'Paused'
+}

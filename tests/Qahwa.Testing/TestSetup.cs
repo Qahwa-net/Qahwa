@@ -98,6 +98,7 @@ public sealed class TestEngine
         ShareManager = new ShareManager(Registry, Repository, Documents, Permissions, Shares, History, Notifications);
         Activity = new ActivityService(Registry, Repository, Documents, Permissions, History, Collaboration);
         Assignments = new AssignmentService(Registry, Repository, Documents, Permissions, ShareManager, Notifications, Follows, History);
+        AutoRepeat = new AutoRepeatService(Registry, Repository, Documents, Permissions, Notifications, History);
         ListSettings = new ListSettingsService(Registry, Repository, Documents, Permissions, History);
         Bulk = new BulkService(Registry, Documents);
         DocTypeStore = new InMemoryDocTypeStore();
@@ -133,6 +134,7 @@ public sealed class TestEngine
     public WorkflowCatalog WorkflowCatalog { get; }
     public InMemoryWorkflowStore WorkflowStore { get; }
     public WorkflowManager Workflows { get; }
+    public AutoRepeatService AutoRepeat { get; }
     public AssignmentRuleCatalog AssignmentRuleCatalog { get; }
     public InMemoryAssignmentRuleStore AssignmentRuleStore { get; }
     public AssignmentRuleEngine AssignmentRules { get; }

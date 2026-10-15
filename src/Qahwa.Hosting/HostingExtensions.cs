@@ -93,6 +93,7 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<FollowService>();
         services.TryAddSingleton<CollaborationHooks>();
         services.TryAddSingleton<AssignmentService>();
+        services.TryAddSingleton<AutoRepeatService>();
         services.TryAddSingleton<ListSettingsService>();
         services.TryAddSingleton<BulkService>();
         services.TryAddSingleton<ActivityService>();

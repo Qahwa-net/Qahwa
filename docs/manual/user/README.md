@@ -12,6 +12,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 8. [Your lists: columns, saved filters and bulk actions](08-list-views-filters-bulk.md)
 9. [Workflows: approvals and states](09-workflows.md)
 10. [Assignment rules: documents that assign themselves](10-assignment-rules.md)
+11. [Auto Repeat: documents that copy themselves](11-auto-repeat.md)
 
 **Words used**
 

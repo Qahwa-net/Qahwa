@@ -64,6 +64,10 @@ Building workflows needs a System Manager (Administrator for framework DocTypes)
 
 Managing rules needs a System Manager. Rules run as the system after a save: the assignee is given read access directly (`ShareManager.GrantReadAsync`) when their roles cannot open the document, which is why only people a System Manager named (or a document field names) can be chosen. Users named in a rule must exist when it is saved and be enabled when it runs.
 
+## Auto Repeat
+
+Setting a repeat up needs read access to the document and create access to its DocType. The scheduler makes each copy as the repeat's owner (`ContextOfAsync` loads their current roles), so the owner's rules, User Permissions and field levels apply; a disabled owner pauses the repeat. Only the owner or a System Manager sees a repeat.
+
 ## What the API never reveals
 
 - A document you may not read looks like it does not exist where possible (checks run before the document is loaded).

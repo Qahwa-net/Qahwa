@@ -20,6 +20,8 @@ builder.Services.AddQahwaPostgres(sp =>
     ?? throw new InvalidOperationException("ConnectionStrings:Default is not configured."));
 builder.Services.AddQahwaApi();
 
+builder.Services.AddHostedService<SchedulerService>();
+
 var app = builder.Build();
 
 app.Use(async (context, next) =>

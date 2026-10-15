@@ -85,6 +85,7 @@ public sealed class PgStack : IAsyncDisposable
         ShareManager = new ShareManager(Registry, Repository, Documents, permissions, Shares, History, Notifications);
         Activity = new ActivityService(Registry, Repository, Documents, permissions, History, Collaboration);
         Assignments = new AssignmentService(Registry, Repository, Documents, permissions, ShareManager, Notifications, Follows, History);
+        AutoRepeat = new AutoRepeatService(Registry, Repository, Documents, permissions, Notifications, History);
         ListSettings = new ListSettingsService(Registry, Repository, Documents, permissions, History);
         Bulk = new BulkService(Registry, Documents);
         DocTypeStore = new DocTypeStore(_connections, Dialect, new PostgresSchemaInspector(_connections));
@@ -113,6 +114,7 @@ public sealed class PgStack : IAsyncDisposable
     public WorkflowCatalog WorkflowCatalog { get; }
     public WorkflowStore WorkflowStore { get; }
     public WorkflowManager Workflows { get; }
+    public AutoRepeatService AutoRepeat { get; }
     public AssignmentRuleCatalog AssignmentRuleCatalog { get; }
     public AssignmentRuleStore AssignmentRuleStore { get; }
     public AssignmentRuleEngine AssignmentRules { get; }

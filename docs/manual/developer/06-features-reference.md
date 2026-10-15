@@ -74,8 +74,12 @@ Desk: `WorkflowBuilder`, `WorkflowBar` (on the form), `WorkflowInbox` (home), pu
 
 Desk: `AssignmentRules.tsx`, helpers in `lib/assignmentRules.ts`. Tests: `AssignmentRuleTests` (Core), `AssignmentRuleApiTests`, `PostgresAssignmentRuleTests`.
 
+## Auto Repeat and the scheduler ([ADR-021](../../adr/021-auto-repeat.md))
+
+`AutoRepeat.cs`: `AutoRepeatSchedule` (date maths), `AutoRepeatService` (create, update, delete, run now, `RunDueAsync`), and the Core DocType `CoreDocTypes/auto_repeat.json`. `Qahwa.Server/SchedulerService.cs` is a `BackgroundService` that calls `RunDueAsync` every `Qahwa:Scheduler:IntervalSeconds` (default 300; `Qahwa:Scheduler:Enabled = false` turns it off, for example on all but one server, though several are safe). To add another scheduled job, call it from that loop (or add a second hosted service) and make it idempotent: claim the work with a compare-and-swap before doing it, as `RunRowAsync` does. Endpoints: `AutoRepeatEndpoints.cs`. Desk: `RepeatDialog.tsx`, `AutoRepeatPage.tsx`, `lib/autoRepeat.ts`. Tests: `AutoRepeatTests` (a fake clock drives due dates, including four parallel runs), `AutoRepeatApiTests`, `PostgresAutoRepeatTests`.
+
 ## Authentication ([ADR-002](../../adr/002-authentication.md))
 Cookie sessions, ASP.NET Identity password hashing, lockout, login rate limit; `User`, `Role`, `Has Role` DocTypes. Roles are cached per session for `SessionCacheSeconds`.
 
 ## Planned next
-Email and push notifications, auto repeat, notification rules and email templates (L8), reports and dashboards. The plan lists everything with its status.
+Email and push notifications, notification rules and email templates (L8), reports and dashboards. The plan lists everything with its status.

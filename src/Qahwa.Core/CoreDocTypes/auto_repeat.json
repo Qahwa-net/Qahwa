@@ -1,0 +1,23 @@
+{
+  "name": "Auto Repeat",
+  "module": "Core",
+  "trackChanges": false,
+  "fields": [
+    { "name": "reference_doctype", "type": "Data", "label": "DocType", "required": true, "indexed": true, "inListView": true },
+    { "name": "reference_name", "type": "Data", "label": "Document", "required": true, "indexed": true, "inListView": true },
+    { "name": "frequency", "type": "Select", "options": "Daily\nWeekly\nMonthly\nQuarterly\nYearly", "label": "Frequency", "inListView": true },
+    { "name": "start_date", "type": "Date", "label": "Start date" },
+    { "name": "end_date", "type": "Date", "label": "End date" },
+    { "name": "next_date", "type": "Date", "label": "Next date", "indexed": true, "inListView": true },
+    { "name": "occurrence", "type": "Int", "label": "Occurrence" },
+    { "name": "status", "type": "Select", "options": "Active\nPaused\nFinished", "default": "Active", "label": "Status", "indexed": true, "inListView": true },
+    { "name": "date_fields", "type": "Text", "label": "Date fields" },
+    { "name": "last_run", "type": "Datetime", "label": "Last run" },
+    { "name": "last_created", "type": "Data", "label": "Last created" },
+    { "name": "created_count", "type": "Int", "label": "Created" },
+    { "name": "last_error", "type": "Text", "label": "Last error" }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true }
+  ]
+}
