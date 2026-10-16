@@ -32,6 +32,15 @@ public enum PermAction
     Report,
 }
 
+/// <summary>The extra rights a permission rule can switch off: importing from a file, sharing, printing and emailing.</summary>
+public enum PermFlag
+{
+    Import,
+    Share,
+    Print,
+    Email,
+}
+
 public enum AccessLevel
 {
     None,
@@ -42,7 +51,7 @@ public enum AccessLevel
     All,
 }
 
-public sealed record EffectivePermissions(bool Read, bool Write, bool Create, bool Delete, bool Submit = false, bool Cancel = false, bool Export = false, bool Report = false);
+public sealed record EffectivePermissions(bool Read, bool Write, bool Create, bool Delete, bool Submit = false, bool Cancel = false, bool Export = false, bool Report = false, bool Import = true, bool Share = true, bool Print = true, bool Email = true);
 
 /// <summary>A DocType as one person may see it (see <see cref="DocumentService.GetMetaView"/>).</summary>
 public sealed record MetaView(
@@ -148,6 +157,24 @@ public sealed class PermissionService(IPermissionOverrides? overrides = null)
         }
 
         return new FieldAccess(readable, writable);
+    }
+
+    /// <summary>
+    /// Whether the person's roles still allow this extra right. It is only taken away when they have rules for the DocType and none of
+    /// them grants it (every rule defaults to granting it), so people who reach a document some other way (a share) are not affected.
+    /// </summary>
+    public bool Allows(DocTypeMeta meta, IUserContext user, PermFlag flag)
+    {
+        if (IsAdministrator(user))
+            return true;
+        var mine = RulesFor(meta).Where(r => r.PermLevel == 0 && user.Roles.Contains(r.Role, StringComparer.Ordinal)).ToList();
+        return mine.Count == 0 || mine.Any(r => flag switch { PermFlag.Import => r.Import, PermFlag.Share => r.Share, PermFlag.Print => r.Print, _ => r.Email });
+    }
+
+    public void Require(DocTypeMeta meta, IUserContext user, PermFlag flag)
+    {
+        if (!Allows(meta, user, flag))
+            throw new PermissionDeniedException($"You do not have {flag.ToString().ToLowerInvariant()} permission on {meta.Name}.");
     }
 
     public AccessLevel Require(DocTypeMeta meta, IUserContext user, PermAction action)

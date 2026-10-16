@@ -86,7 +86,9 @@ public sealed partial class DocumentService(
         meta.IsSubmittable && permissions.Evaluate(meta, user, PermAction.Submit) != AccessLevel.None,
         meta.IsSubmittable && permissions.Evaluate(meta, user, PermAction.Cancel) != AccessLevel.None,
         permissions.Evaluate(meta, user, PermAction.Export) != AccessLevel.None,
-        permissions.Evaluate(meta, user, PermAction.Report) != AccessLevel.None);
+        permissions.Evaluate(meta, user, PermAction.Report) != AccessLevel.None,
+        permissions.Allows(meta, user, PermFlag.Import), permissions.Allows(meta, user, PermFlag.Share),
+        permissions.Allows(meta, user, PermFlag.Print), permissions.Allows(meta, user, PermFlag.Email));
 
     public async Task<Dictionary<string, object?>> InsertAsync(
         string doctype,

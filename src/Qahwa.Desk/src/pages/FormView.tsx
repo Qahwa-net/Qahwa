@@ -416,9 +416,9 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
           {!isNew && doc && <FollowButton doctype={meta.name} name={doc.name} />}
           {!isNew && !meta.isSingle && perms.create && doc && <IconButton icon="copy" label="Duplicate" onClick={() => navigate(`${base}/new?copy=${encodeURIComponent(doc.name)}`)} />}
           {!isNew && !meta.isSingle && perms.write && docstatus !== 2 && <IconButton icon="userPlus" label="Assign" onClick={() => setAssigning(true)} />}
-          {!isNew && !meta.isSingle && perms.write && docstatus !== 2 && <IconButton icon="share" label="Share" onClick={() => setSharing(true)} />}
-          {!isNew && perms.read && <IconButton icon="printer" label="Print" onClick={() => setPrinting(true)} />}
-          {!isNew && !meta.isSingle && perms.write && docstatus !== 2 && <IconButton icon="mail" label="Email" onClick={() => setEmailing(true)} />}
+          {!isNew && !meta.isSingle && perms.write && perms.share !== false && docstatus !== 2 && <IconButton icon="share" label="Share" onClick={() => setSharing(true)} />}
+          {!isNew && perms.read && perms.print !== false && <IconButton icon="printer" label="Print" onClick={() => setPrinting(true)} />}
+          {!isNew && !meta.isSingle && perms.write && perms.email !== false && docstatus !== 2 && <IconButton icon="mail" label="Email" onClick={() => setEmailing(true)} />}
           {!isNew && !meta.isSingle && perms.create && meta.module !== 'Core' && meta.autoname !== 'prompt' && <IconButton icon="repeat" label="Repeat" onClick={() => setRepeating(true)} />}
           {!isNew && meta.allowRename && perms.write && docstatus !== 1 && <IconButton icon="pencil" label="Rename" onClick={() => setRenaming(true)} />}
           {!isNew && meta.name === 'Deleted Document' && perms.delete && <IconButton icon="undo" label="Restore" tone="primary" disabled={restore.isPending} onClick={() => restore.mutate()} />}

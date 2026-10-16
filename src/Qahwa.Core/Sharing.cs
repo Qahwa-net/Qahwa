@@ -95,6 +95,7 @@ public sealed class ShareManager(
         var doc = await documents.GetAsync(doctype, name, actor, ct); // also proves it exists and may be read
         if (permissions.IsAdministrator(actor))
             return;
+        permissions.Require(meta, actor, PermFlag.Share);
 
         // Sharing is for people who could edit the document through their roles; a share alone does not let you pass it on.
         var level = permissions.Evaluate(meta, actor, PermAction.Write);

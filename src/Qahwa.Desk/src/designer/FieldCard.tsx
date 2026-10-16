@@ -283,9 +283,9 @@ export function PermissionsEditor({ permissions, roles, disabled, errors, onChan
   submittable?: boolean
 }) {
   const flags = (submittable
-    ? ['read', 'write', 'create', 'delete', 'submit', 'cancel', 'export', 'report', 'ifOwner']
-    : ['read', 'write', 'create', 'delete', 'export', 'report', 'ifOwner']) as ('read' | 'write' | 'create' | 'delete' | 'submit' | 'cancel' | 'export' | 'report' | 'ifOwner')[]
-  const labels = { read: 'Read', write: 'Write', create: 'Create', delete: 'Delete', submit: 'Submit', cancel: 'Cancel', export: 'Export', report: 'Report', ifOwner: 'Own only' } as const
+    ? ['read', 'write', 'create', 'delete', 'submit', 'cancel', 'export', 'report', 'import', 'share', 'print', 'email', 'ifOwner']
+    : ['read', 'write', 'create', 'delete', 'export', 'report', 'import', 'share', 'print', 'email', 'ifOwner']) as ('read' | 'write' | 'create' | 'delete' | 'submit' | 'cancel' | 'export' | 'report' | 'import' | 'share' | 'print' | 'email' | 'ifOwner')[]
+  const labels = { read: 'Read', write: 'Write', create: 'Create', delete: 'Delete', submit: 'Submit', cancel: 'Cancel', export: 'Export', report: 'Report', import: 'Import', share: 'Share', print: 'Print', email: 'Email', ifOwner: 'Own only' } as const
 
   const update = (index: number, patch: Partial<DocPerm>) =>
     onChange(permissions.map((p, i) => (i === index ? { ...p, ...patch } : p)))
@@ -306,14 +306,14 @@ export function PermissionsEditor({ permissions, roles, disabled, errors, onChan
                 </td>
                 <td>
                   <select aria-label={`Level for ${p.role || 'role'}`} value={p.permLevel ?? 0} disabled={disabled}
-                    onChange={(e) => { const level = Number(e.target.value); update(i, level > 0 ? { permLevel: level, create: false, delete: false, submit: false, cancel: false, export: false, report: false } : { permLevel: level }) }}>
+                    onChange={(e) => { const level = Number(e.target.value); update(i, level > 0 ? { permLevel: level, create: false, delete: false, submit: false, cancel: false, export: false, report: false, import: false, share: false, print: false, email: false } : { permLevel: level }) }}>
                     {Array.from({ length: 10 }, (_, n) => <option key={n} value={n}>{n}</option>)}
                   </select>
                   {errors[`${errorPrefix}[${i}].permLevel`] && <small className="error-text" role="alert">{errors[`${errorPrefix}[${i}].permLevel`]}</small>}
                 </td>
                 {flags.map((f) => (
                   <td key={f}>
-                    <input type="checkbox" aria-label={`${labels[f]} for ${p.role || 'role'}`} checked={p[f] ?? false} disabled={disabled || ((p.permLevel ?? 0) > 0 && (f === 'create' || f === 'delete' || f === 'submit' || f === 'cancel' || f === 'export' || f === 'report'))}
+                    <input type="checkbox" aria-label={`${labels[f]} for ${p.role || 'role'}`} checked={p[f] ?? (f === 'import' || f === 'share' || f === 'print' || f === 'email')} disabled={disabled || ((p.permLevel ?? 0) > 0 && (f === 'create' || f === 'delete' || f === 'submit' || f === 'cancel' || f === 'export' || f === 'report' || f === 'import' || f === 'share' || f === 'print' || f === 'email'))}
                       onChange={(e) => update(i, { [f]: e.target.checked })} />
                   </td>
                 ))}
@@ -326,7 +326,7 @@ export function PermissionsEditor({ permissions, roles, disabled, errors, onChan
         </table>
       </div>
       <button type="button" className="btn small btn-gap" disabled={disabled}
-        onClick={() => onChange([...permissions, { role: '', read: true, write: false, create: false, delete: false, ifOwner: false, permLevel: 0, submit: false, cancel: false, export: false, report: false }])}>
+        onClick={() => onChange([...permissions, { role: '', read: true, write: false, create: false, delete: false, ifOwner: false, permLevel: 0, submit: false, cancel: false, export: false, report: false, import: true, share: true, print: true, email: true }])}>
         + Add rule
       </button>
     </div>

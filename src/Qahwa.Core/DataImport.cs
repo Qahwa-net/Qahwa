@@ -108,6 +108,7 @@ public sealed class DataImportService(IMetaRegistry registry, DocumentService do
             throw Invalid("mode", "Use Insert or Update.");
         permissions.Require(meta, user, PermAction.Read);
         permissions.Require(meta, user, mode == "Insert" ? PermAction.Create : PermAction.Write);
+        permissions.Require(meta, user, PermFlag.Import);
         return meta;
     }
 

@@ -142,6 +142,7 @@ public sealed class EmailService(
         var (meta, doc) = await LoadAsync(doctype, name, user, ct);
         if (permissions.Evaluate(meta, user, PermAction.Write) == AccessLevel.None)
             throw new PermissionDeniedException("You need permission to change this document to email about it.");
+        permissions.Require(meta, user, PermFlag.Email);
 
         var subject = request.Subject;
         var message = request.Message;

@@ -61,6 +61,10 @@ export interface DocPerm {
   cancel?: boolean
   export?: boolean
   report?: boolean
+  import?: boolean
+  share?: boolean
+  print?: boolean
+  email?: boolean
 }
 
 export interface DocTypeMeta {
@@ -163,6 +167,10 @@ export interface Permissions {
   cancel?: boolean
   export?: boolean
   report?: boolean
+  import?: boolean
+  share?: boolean
+  print?: boolean
+  email?: boolean
 }
 
 export interface MetaResponse {

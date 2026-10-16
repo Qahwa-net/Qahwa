@@ -91,6 +91,7 @@ public sealed partial class PrintService(
     {
         var doc = await documents.GetAsync(doctype, name, user, ct); // read access, with hidden fields already removed
         var meta = Printable(doctype);
+        permissions.Require(meta, user, PermFlag.Print);
 
         Dictionary<string, object?>? formatRow = null;
         if (!string.IsNullOrWhiteSpace(format))

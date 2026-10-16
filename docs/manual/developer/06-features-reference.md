@@ -343,3 +343,7 @@ Core DocTypes `contact.json`, `address.json`, `dynamic_link.json` (module "Conta
 ## Access Log ([ADR-081](../../adr/081-access-log.md))
 
 `AccessLog.cs`: `AccessLogService` (`RecordAsync` never throws; `PurgeAsync`). Called by `DocumentService.ExportAsync` (after the read) and `PrintService.RenderAsync`. Core DocType `access_log.json`; retention `Qahwa:AccessLog:RetentionDays` in `SchedulerService`'s clean-up. Tests: `AccessLogTests`.
+
+## Import/share/print/email rights ([ADR-082](../../adr/082-import-share-print-email-rights.md))
+
+`DocPermMeta.Import/Share/Print/Email` (default true), `PermFlag`, `PermissionService.Allows/Require(…, PermFlag)`; enforced in `DataImportService.Require`, `ShareManager.RequireSharerAsync`, `PrintService.RenderAsync`, `EmailService.SendFromDocumentAsync`; `EffectivePermissions` carries the values to the Desk (designer table in `FieldCard`, buttons in `FormView`/`ListView`). Tests: `ExtraRightsTests`.

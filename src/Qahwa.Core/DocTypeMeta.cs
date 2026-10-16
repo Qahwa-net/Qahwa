@@ -144,6 +144,17 @@ public sealed record DocPermMeta
     /// <summary>Submittable DocTypes: may cancel a submitted document (docstatus 1 to 2).</summary>
     public bool Cancel { get; init; }
 
+    /// <summary>
+    /// May import documents from a file, share a document, print it and email about it. These default to true (so a rule written before
+    /// they existed changes nothing); they only take away what the role's other rights would allow, and are ignored for people with no
+    /// rule for the DocType (see <see cref="PermFlag"/>).
+    /// </summary>
+    public bool Import { get; init; } = true;
+
+    public bool Share { get; init; } = true;
+    public bool Print { get; init; } = true;
+    public bool Email { get; init; } = true;
+
     /// <summary>Restrict this rule to documents the user owns.</summary>
     public bool IfOwner { get; init; }
 

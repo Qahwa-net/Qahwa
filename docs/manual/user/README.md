@@ -67,6 +67,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 63. [Multi-select](63-multi-select.md)
 64. [Seen by](64-seen-by.md)
 65. [Access Log](65-access-log.md)
+66. [Import, share, print and email rights](66-extra-rights.md)
 
 **Words used**
 

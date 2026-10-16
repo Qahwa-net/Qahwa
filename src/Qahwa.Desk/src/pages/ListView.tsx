@@ -174,7 +174,7 @@ export function ListView() {
         {perms?.report && <button className="btn" aria-expanded={reporting} onClick={() => setReporting(!reporting)}>Report</button>}
         {perms?.export && <a className="btn" href={api.exportUrl(doctype, effectiveFilters)} download>Export CSV</a>}
         {perms?.export && <a className="btn" href={api.exportUrl(doctype, effectiveFilters, 'xlsx')} download>Export Excel</a>}
-        {perms?.create && !meta.isSingle && <button className="btn" onClick={() => setImporting(true)}>Import</button>}
+        {perms?.create && perms?.import !== false && !meta.isSingle && <button className="btn" onClick={() => setImporting(true)}>Import</button>}
         {perms?.create && <Link className="btn primary" to={`${base}/new`}>+ New {doctype}</Link>}
       </div>
 
