@@ -941,7 +941,12 @@ public sealed partial class DocumentService(
             if (field.Type == FieldType.Select && !field.SelectOptions().Contains(value as string, StringComparer.Ordinal))
                 errors.Add(new FieldError(path, $"Must be one of: {string.Join(", ", field.SelectOptions())}."));
 
-            if (field.Type == FieldType.Link && value is string linked)
+            if (field.Type == FieldType.Link && field.Options == DocTypeTarget && value is string named)
+            {
+                if (!registry.TryGet(named, out var known) || known.IsChildTable)
+                    errors.Add(new FieldError(path, $"DocType '{named}' does not exist."));
+            }
+            else if (field.Type == FieldType.Link && value is string linked)
             {
                 if (!registry.TryGet(field.Options!, out var target))
                     errors.Add(new FieldError(path, $"Link target '{field.Options}' does not exist."));

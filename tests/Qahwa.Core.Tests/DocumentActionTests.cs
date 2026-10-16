@@ -140,7 +140,6 @@ public class DocumentActionTests
     [InlineData("Create Document", null, null, "Role", "role_name = Boss")] // a framework DocType
     [InlineData("Create Document", null, null, "Followup", "owner = someone")] // not a field
     [InlineData("Create Document", null, null, "Followup", "subject = {{x.y}}")]
-    [InlineData("Create Document", null, null, "Nowhere", "subject = Hi")]
     [InlineData("Create Document", null, null, "Followup", "")]
     public async Task An_action_that_is_wrong_changes_nothing_and_says_why(string action, string? field, string? value, string? doctype, string? mapping)
     {
@@ -152,6 +151,12 @@ public class DocumentActionTests
         Assert.Empty(await FollowupsAsync());
         Assert.False(string.IsNullOrEmpty((string?)(await RowAsync("Bad"))["last_error"]));
         Assert.Equal(0, Convert.ToInt32((await RowAsync("Bad"))["run_count"] ?? 0));
+    }
+
+    [Fact]
+    public async Task The_doctype_of_an_action_must_exist_when_it_is_saved()
+    {
+        await Assert.ThrowsAsync<DocumentValidationException>(() => ActionAsync("Nowhere", action: "Create Document", targetField: null, value: null, targetDoctype: "Nowhere", mapping: "subject = Hi"));
     }
 
     [Fact]

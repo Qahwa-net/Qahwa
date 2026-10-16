@@ -77,7 +77,7 @@ export function TableControl({ field, child, rows, onChange, readOnly, errors, p
                         <td key={c.name} className={c.type === 'Check' ? 'center' : undefined}>
                           {state && !state.active && !preview
                             ? <span className="muted" aria-label={`${labelOf(c)}, row ${index + 1}: not applicable`}>—</span>
-                            : <FieldInput field={c} value={row.values[c.name] ?? ''} readOnly={locked || c.readOnly || state?.readOnly}
+                            : <FieldInput field={c} value={row.values[c.name] ?? ''} siblings={row.values} readOnly={locked || c.readOnly || state?.readOnly}
                                 invalid={Boolean(rowError[c.name])} ariaLabel={`${labelOf(c)}, row ${index + 1}`}
                                 onChange={(v) => update(index, c.name, v)} />}
                         </td>
@@ -106,7 +106,7 @@ export function TableControl({ field, child, rows, onChange, readOnly, errors, p
                       <td colSpan={columns.length + 2}>
                         <div className="form-grid">
                           {all.map((f) => (
-                            <FieldControl key={f.name} field={f} preview={preview} readOnly={locked}
+                            <FieldControl key={f.name} field={f} preview={preview} readOnly={locked} siblings={row.values}
                               state={rowState?.(row, f)}
                               value={row.values[f.name] ?? ''} error={rowError[f.name]}
                               onChange={(v) => update(index, f.name, v)} />

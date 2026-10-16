@@ -157,3 +157,7 @@ Core DocType `CoreDocTypes/error_log.json`; `ErrorLog.cs`: `ErrorLogService.Reco
 ## OpenAPI ([ADR-037](../../adr/037-openapi.md))
 
 `Qahwa.Api/OpenApi.cs`: `OpenApiBuilder.Build(views, version)` is a pure function of the `MetaView`s a person may see (so permissions are already applied); `OpenApiEndpoints.cs`: `GET /api/openapi.json`. To describe a new resource endpoint add it to `Build`; keep it driven by `MetaView.Permissions`. Tests: `OpenApiTests`.
+
+## DocType and document pickers ([ADR-038](../../adr/038-document-references-are-pickers.md))
+
+Use `{ "type": "Link", "options": "DocType" }` for a field that names a DocType and `{ "type": "DynamicLink", "options": "<that field>" }` for the document. `DocumentService.DocTypeTarget` handles search and titles for the virtual target; `MetaRegistry.CheckReferences` allows it; the save check requires a real DocType. Desk: `FieldControl` passes the row or document values as `siblings` so `LinkInput` can read the DocType; `FormView` clears dependent Dynamic Links. Tests: `DocTypeLinkTests`.

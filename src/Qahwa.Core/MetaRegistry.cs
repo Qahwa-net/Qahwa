@@ -146,6 +146,9 @@ public sealed class MetaRegistry : IMutableMetaRegistry
             if (field.Type is not (FieldType.Link or FieldType.Table) || string.IsNullOrWhiteSpace(field.Options))
                 continue;
 
+            if (field.Type == FieldType.Link && field.Options == DocumentService.DocTypeTarget)
+                continue; // the virtual target "the name of a DocType"
+
             // A DocType may link to itself.
             var target = string.Equals(field.Options, meta.Name, StringComparison.OrdinalIgnoreCase)
                 ? meta

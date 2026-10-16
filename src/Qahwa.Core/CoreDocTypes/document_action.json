@@ -7,14 +7,14 @@
   "fields": [
     { "name": "title", "type": "Data", "label": "Title", "required": true, "inListView": true },
     { "name": "active", "type": "Check", "label": "Active", "default": "1", "inListView": true },
-    { "name": "reference_doctype", "type": "Data", "label": "When this DocType changes", "required": true, "indexed": true, "inListView": true },
+    { "name": "reference_doctype", "type": "Link", "options": "DocType", "label": "When this DocType changes", "required": true, "indexed": true, "inListView": true },
     { "name": "event", "type": "Select", "label": "Event", "options": "New\nUpdate\nValueChange\nSubmit\nCancel", "default": "New", "required": true, "inListView": true },
     { "name": "watch_field", "type": "Data", "label": "For ValueChange: the field to watch" },
     { "name": "condition", "type": "Text", "label": "Only when (condition, e.g. status == 'Approved')" },
     { "name": "action", "type": "Select", "label": "Do this", "options": "Set Field\nCreate Document", "default": "Set Field", "required": true, "inListView": true },
     { "name": "target_field", "type": "Data", "label": "Set Field: the field to set on this document" },
     { "name": "value", "type": "Text", "label": "Set Field: the value (text with {{field}} placeholders)" },
-    { "name": "target_doctype", "type": "Data", "label": "Create Document: the DocType to create" },
+    { "name": "target_doctype", "type": "Link", "options": "DocType", "label": "Create Document: the DocType to create" },
     { "name": "mapping", "type": "Text", "label": "Create Document: one line per field, like  customer = {{customer}}" },
     { "name": "run_count", "type": "Int", "label": "Times run", "readOnly": true },
     { "name": "last_error", "type": "Text", "label": "Last problem", "readOnly": true }

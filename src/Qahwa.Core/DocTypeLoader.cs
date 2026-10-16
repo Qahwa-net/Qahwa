@@ -357,6 +357,8 @@ public static partial class DocTypeLoader
 
         if (field.Type is FieldType.Link or FieldType.Table && string.IsNullOrWhiteSpace(field.Options))
             add($"{path}.options", $"{field.Type} fields need a target DocType.");
+        if (field.Type == FieldType.DynamicLink && string.IsNullOrWhiteSpace(field.Options))
+            add($"{path}.options", "Dynamic Link fields need the name of the field that holds the DocType.");
 
         if (field.Type == FieldType.Select)
         {

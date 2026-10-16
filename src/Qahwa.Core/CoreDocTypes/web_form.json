@@ -8,7 +8,7 @@
     { "name": "route", "type": "Data", "label": "Address (letters, digits and dashes): /forms/<address>", "required": true, "inListView": true },
     { "name": "title", "type": "Data", "label": "Title", "required": true, "inListView": true },
     { "name": "published", "type": "Check", "label": "Published (open to anyone)", "inListView": true },
-    { "name": "doc_type", "type": "Data", "label": "Creates documents of this DocType", "required": true, "inListView": true },
+    { "name": "doc_type", "type": "Link", "options": "DocType", "label": "Creates documents of this DocType", "required": true, "inListView": true },
     { "name": "fields", "type": "Text", "label": "Fields to ask (one field name per line)" },
     { "name": "intro", "type": "Text", "label": "Introduction" },
     { "name": "success_message", "type": "Text", "label": "Message after sending", "default": "Thank you. We have received your answers." },

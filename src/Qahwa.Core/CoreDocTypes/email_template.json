@@ -5,7 +5,7 @@
   "titleField": "template_name",
   "fields": [
     { "name": "template_name", "type": "Data", "label": "Template name", "required": true, "inListView": true },
-    { "name": "reference_doctype", "type": "Data", "label": "For DocType (optional)", "inListView": true },
+    { "name": "reference_doctype", "type": "Link", "options": "DocType", "label": "For DocType (optional)", "inListView": true },
     { "name": "subject", "type": "Data", "label": "Subject", "required": true },
     { "name": "body", "type": "LongText", "label": "Message", "required": true }
   ],

@@ -4,8 +4,8 @@
   "trackChanges": false,
   "fields": [
     { "name": "webhook", "type": "Data", "label": "Webhook", "required": true, "indexed": true, "inListView": true },
-    { "name": "reference_doctype", "type": "Data", "label": "DocType", "required": true, "indexed": true, "inListView": true },
-    { "name": "reference_name", "type": "Data", "label": "Document", "inListView": true },
+    { "name": "reference_doctype", "type": "Link", "options": "DocType", "label": "DocType", "required": true, "indexed": true, "inListView": true },
+    { "name": "reference_name", "type": "DynamicLink", "options": "reference_doctype", "label": "Document", "inListView": true },
     { "name": "event", "type": "Data", "label": "Event", "inListView": true },
     { "name": "payload", "type": "LongText", "label": "Payload" },
     { "name": "status", "type": "Select", "options": "Pending\nSending\nSent\nFailed", "default": "Pending", "label": "Status", "indexed": true, "inListView": true },

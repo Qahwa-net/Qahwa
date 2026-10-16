@@ -329,10 +329,12 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
           }
 
           return (
-            <FieldControl key={field.name} field={field} state={stateOf(field)}
+            <FieldControl key={field.name} field={field} state={stateOf(field)} siblings={view.values}
               value={view.values[field.name] ?? ''} readOnly={!canWriteField(field)} error={fieldErrors[field.name]}
               onChange={(v) => {
-                setValues({ ...values, [field.name]: v })
+                // A document chosen for a Dynamic Link belongs to the old DocType: clear it when the DocType changes.
+                const dependants = Object.fromEntries(meta.fields.filter((f) => f.type === 'DynamicLink' && f.options === field.name).map((f) => [f.name, '']))
+                setValues({ ...values, ...dependants, [field.name]: v })
                 if (fieldErrors[field.name]) setFieldErrors({ ...fieldErrors, [field.name]: '' })
                 if (field.type === 'Link') fetchForDocument(field, String(v))
               }} />

@@ -9,8 +9,8 @@
     { "name": "status", "type": "Select", "options": "Pending\nSending\nSent\nFailed", "default": "Pending", "label": "Status", "indexed": true, "inListView": true },
     { "name": "attempts", "type": "Int", "label": "Attempts" },
     { "name": "last_error", "type": "Text", "label": "Last error" },
-    { "name": "reference_doctype", "type": "Data", "label": "DocType", "indexed": true },
-    { "name": "reference_name", "type": "Data", "label": "Document", "indexed": true },
+    { "name": "reference_doctype", "type": "Link", "options": "DocType", "label": "DocType", "indexed": true },
+    { "name": "reference_name", "type": "DynamicLink", "options": "reference_doctype", "label": "Document", "indexed": true },
     { "name": "sent_at", "type": "Datetime", "label": "Sent at" }
   ],
   "permissions": [

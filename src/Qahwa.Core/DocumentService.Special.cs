@@ -162,6 +162,9 @@ public sealed partial class DocumentService
 
     // ---- Link fields: search and friendly names ------------------------------------------------------------------
 
+    /// <summary>The virtual link target that lets a field hold "the name of a DocType". Choices are the DocTypes the person may read.</summary>
+    public const string DocTypeTarget = "DocType";
+
     public const int MaxLinkResults = 20;
     public const int MaxLinkTitles = 50;
     private const int MaxSearchLength = 100;
@@ -184,11 +187,17 @@ public sealed partial class DocumentService
     public async Task<IReadOnlyList<LinkOption>> SearchLinkAsync(
         string doctype, string? search, int limit, IUserContext user, CancellationToken ct = default)
     {
-        var meta = RequireTopLevel(registry.Get(doctype));
         search = (search ?? string.Empty).Trim();
         if (search.Length > MaxSearchLength)
             search = search[..MaxSearchLength];
         limit = Math.Clamp(limit, 1, MaxLinkResults);
+        if (doctype == DocTypeTarget)
+            return (await ListMetasAsync(user, ct))
+                .Where(m => search.Length == 0 || m.Name.Contains(search, StringComparison.OrdinalIgnoreCase) || (m.Module?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false))
+                .OrderBy(m => m.Name, StringComparer.OrdinalIgnoreCase).Take(limit)
+                .Select(m => new LinkOption(m.Name, m.Name, m.Module)).ToList();
+
+        var meta = RequireTopLevel(registry.Get(doctype));
 
         var labelField = LabelField(meta);
         var fields = labelField is null ? new List<string> { "name" } : ["name", labelField];
@@ -219,6 +228,13 @@ public sealed partial class DocumentService
     public async Task<IReadOnlyDictionary<string, LinkOption>> LinkTitlesAsync(
         string doctype, IReadOnlyCollection<string> names, IUserContext user, CancellationToken ct = default)
     {
+        if (doctype == DocTypeTarget)
+        {
+            var readable = (await ListMetasAsync(user, ct)).ToDictionary(m => m.Name, StringComparer.Ordinal);
+            return names.Where(readable.ContainsKey).Distinct(StringComparer.Ordinal).Take(MaxLinkTitles)
+                .ToDictionary(n => n, n => new LinkOption(n, n, readable[n].Module), StringComparer.Ordinal);
+        }
+
         var meta = RequireTopLevel(registry.Get(doctype));
         var wanted = names.Where(n => !string.IsNullOrEmpty(n)).Distinct(StringComparer.Ordinal).Take(MaxLinkTitles).ToList();
         if (wanted.Count == 0)

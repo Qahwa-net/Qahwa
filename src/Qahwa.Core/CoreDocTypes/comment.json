@@ -3,8 +3,8 @@
   "module": "Core",
   "trackChanges": false,
   "fields": [
-    { "name": "reference_doctype", "type": "Data", "label": "DocType", "required": true, "inListView": true },
-    { "name": "reference_name", "type": "Data", "label": "Document", "required": true, "indexed": true, "inListView": true },
+    { "name": "reference_doctype", "type": "Link", "options": "DocType", "label": "DocType", "required": true, "inListView": true },
+    { "name": "reference_name", "type": "DynamicLink", "options": "reference_doctype", "label": "Document", "required": true, "indexed": true, "inListView": true },
     { "name": "comment_type", "type": "Select", "options": "Comment\nInfo", "default": "Comment", "label": "Type", "inListView": true },
     { "name": "content", "type": "LongText", "label": "Content" }
   ],

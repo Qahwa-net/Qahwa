@@ -6,7 +6,7 @@
   "trackChanges": false,
   "fields": [
     { "name": "format_name", "type": "Data", "label": "Name", "required": true, "inListView": true },
-    { "name": "doc_type", "type": "Data", "label": "DocType", "required": true, "indexed": true, "inListView": true },
+    { "name": "doc_type", "type": "Link", "options": "DocType", "label": "DocType", "required": true, "indexed": true, "inListView": true },
     { "name": "html", "type": "LongText", "label": "Format" },
     { "name": "is_default", "type": "Check", "label": "Default", "inListView": true },
     { "name": "letter_head", "type": "Data", "label": "Letter head" }

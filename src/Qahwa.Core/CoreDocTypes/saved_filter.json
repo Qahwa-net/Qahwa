@@ -4,7 +4,7 @@
   "trackChanges": false,
   "fields": [
     { "name": "filter_name", "type": "Data", "label": "Name", "required": true, "inListView": true },
-    { "name": "reference_doctype", "type": "Data", "label": "DocType", "required": true, "indexed": true, "inListView": true },
+    { "name": "reference_doctype", "type": "Link", "options": "DocType", "label": "DocType", "required": true, "indexed": true, "inListView": true },
     { "name": "filters", "type": "LongText", "label": "Filters" },
     { "name": "is_public", "type": "Check", "label": "Shared with everyone", "inListView": true }
   ],

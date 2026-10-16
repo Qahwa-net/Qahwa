@@ -17,20 +17,22 @@ interface InputProps {
   id?: string
   /** Used for cells in a table grid, where there is no visible label. */
   ariaLabel?: string
+  /** The other values of the document (or table row): a Dynamic Link reads its DocType from one of them. */
+  siblings?: Record<string, InputValue>
 }
 
 /** Choose an existing document of the linked DocType by typing part of its name; shows friendly names, not IDs. */
-function LinkInput({ field, value, onChange, readOnly, id, invalid, ariaLabel }: InputProps) {
-  const target = field.options ?? ''
-  if (field.type !== 'Link' || !target) {
-    // Dynamic links name their target in another field, so there is nothing to search yet.
-    return <input id={id} type="text" value={String(value)} readOnly={readOnly} aria-invalid={invalid} aria-label={ariaLabel}
-      autoComplete="off" onChange={(e) => onChange(e.target.value)} />
+function LinkInput({ field, value, onChange, readOnly, id, invalid, ariaLabel, siblings }: InputProps) {
+  // A Dynamic Link names the field that holds its DocType; a Link names the DocType itself.
+  const target = field.type === 'DynamicLink' ? String(siblings?.[field.options ?? ''] ?? '') : (field.options ?? '')
+  if (!target) {
+    return <input id={id} type="text" value="" disabled placeholder="Choose the DocType first" aria-invalid={invalid} aria-label={ariaLabel} readOnly />
   }
 
   return (
     <LinkSelect
       id={id} ariaLabel={ariaLabel} invalid={invalid} readOnly={readOnly} value={String(value)}
+      key={target}
       cacheKey={['link', target]}
       search={(text) => api.linkSearch(target, text)}
       resolve={async (name) => (await api.linkTitles(target, [name]))[name]}
@@ -93,6 +95,8 @@ interface Props {
   preview?: boolean
   /** What the field logic says right now: shown, required and read-only. Without it the field is static. */
   state?: FieldState
+  /** The other values of the document or row (for Dynamic Links). */
+  siblings?: Record<string, InputValue>
 }
 
 export function FieldControl(props: Props) {
@@ -132,7 +136,7 @@ export function FieldControl(props: Props) {
         {field.hidden && <span className="badge"> hidden</span>}
         {conditional && <span className="badge" title={field.dependsOn ?? undefined}> only when its condition holds</span>}
       </label>
-      <FieldInput field={field} value={value} onChange={onChange} readOnly={readOnly} invalid={invalid} id={id} />
+      <FieldInput field={field} value={value} onChange={onChange} readOnly={readOnly} invalid={invalid} id={id} siblings={props.siblings} />
       {field.description && <small className="muted">{field.description}</small>}
       {invalid && <small id={`${id}-error`} className="error-text" role="alert">{error}</small>}
     </div>

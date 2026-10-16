@@ -3,7 +3,7 @@
   "module": "Core",
   "trackChanges": false,
   "fields": [
-    { "name": "reference_doctype", "type": "Data", "label": "DocType", "required": true, "indexed": true, "inListView": true },
+    { "name": "reference_doctype", "type": "Link", "options": "DocType", "label": "DocType", "required": true, "indexed": true, "inListView": true },
     { "name": "user", "type": "Data", "label": "User", "required": true, "indexed": true, "inListView": true },
     { "name": "settings", "type": "LongText", "label": "Settings" }
   ],
