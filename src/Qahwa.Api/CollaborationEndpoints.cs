@@ -10,7 +10,10 @@ namespace Qahwa.Api;
 /// <param name="Date">An optional due date, yyyy-MM-dd.</param>
 public sealed record AssignRequest(string? User, string? Description = null, string? Date = null, string? Priority = null);
 
-/// <summary>Assignments, following and notifications.</summary>
+/// <param name="Tag">The tag to add.</param>
+public sealed record TagRequest(string? Tag);
+
+/// <summary>Assignments, following, notifications, tags and likes.</summary>
 public static class CollaborationEndpoints
 {
     private static DateTime? ParseBefore(string? text)
@@ -66,6 +69,34 @@ public static class CollaborationEndpoints
             await service.UnfollowAsync(doctype, name, user, ct);
             return Results.Ok(new { data = await service.StateAsync(doctype, name, user, ct) });
         });
+
+        doc.MapGet("/tags", async (
+            string doctype, string name, HttpContext http, IUserContextResolver users, LabelService service, CancellationToken ct) =>
+            Results.Ok(new { data = await service.TagsAsync(doctype, name, await users.ResolveAsync(http, ct), ct) }));
+
+        doc.MapPost("/tags", async (
+            string doctype, string name, TagRequest body, HttpContext http, IUserContextResolver users, LabelService service, CancellationToken ct) =>
+            Results.Ok(new { data = await service.AddTagAsync(doctype, name, body.Tag, await users.ResolveAsync(http, ct), ct) }));
+
+        doc.MapDelete("/tags/{tag}", async (
+            string doctype, string name, string tag, HttpContext http, IUserContextResolver users, LabelService service, CancellationToken ct) =>
+            Results.Ok(new { data = await service.RemoveTagAsync(doctype, name, tag, await users.ResolveAsync(http, ct), ct) }));
+
+        app.MapGet("/api/tags/{doctype}", async (
+            string doctype, HttpContext http, IUserContextResolver users, LabelService service, CancellationToken ct) =>
+            Results.Ok(new { data = await service.PopularTagsAsync(doctype, await users.ResolveAsync(http, ct), ct) }));
+
+        doc.MapGet("/like", async (
+            string doctype, string name, HttpContext http, IUserContextResolver users, LabelService service, CancellationToken ct) =>
+            Results.Ok(new { data = await service.LikeStateAsync(doctype, name, await users.ResolveAsync(http, ct), ct) }));
+
+        doc.MapPost("/like", async (
+            string doctype, string name, HttpContext http, IUserContextResolver users, LabelService service, CancellationToken ct) =>
+            Results.Ok(new { data = await service.SetLikeAsync(doctype, name, true, await users.ResolveAsync(http, ct), ct) }));
+
+        doc.MapDelete("/like", async (
+            string doctype, string name, HttpContext http, IUserContextResolver users, LabelService service, CancellationToken ct) =>
+            Results.Ok(new { data = await service.SetLikeAsync(doctype, name, false, await users.ResolveAsync(http, ct), ct) }));
 
         doc.MapGet("/assignments", async (
             string doctype, string name, HttpContext http, IUserContextResolver users, AssignmentService service, CancellationToken ct) =>

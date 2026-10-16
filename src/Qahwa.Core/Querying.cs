@@ -22,12 +22,18 @@ public enum FilterOp
 
     /// <summary>The column equals the owner, or the document's name is one of the shared names (see <see cref="OwnerOrNames"/>).</summary>
     OwnerOrNames,
+
+    /// <summary>The document's name is listed in a table of labels (tags, likes) for this DocType and value (see <see cref="MarkedBy"/>).</summary>
+    Marked,
     IsNull,
     IsNotNull,
 }
 
 /// <summary>The value of an <see cref="FilterOp.OwnerOrNames"/> filter: documents a user owns plus those shared with them.</summary>
 public sealed record OwnerOrNames(string Owner, IReadOnlyList<string> Names);
+
+/// <summary>The value of a <see cref="FilterOp.Marked"/> filter: documents that have a row in <paramref name="Table"/> (with <c>ref_doctype</c> and <c>ref_docname</c>) whose <paramref name="Field"/> is <paramref name="Value"/>.</summary>
+public sealed record MarkedBy(DocTypeMeta Table, string RefDocType, string Field, string Value);
 
 /// <summary>A filter whose field and value have already been validated and converted to storage types.</summary>
 public sealed record QueryFilter(string Field, FilterOp Op, object? Value = null);

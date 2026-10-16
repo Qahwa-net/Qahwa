@@ -587,7 +587,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Versions: updates log on every document (field-level history, who/when, restore deleted) | on by default for all DocTypes, same transaction; restore of deleted documents done (ADR-067) | ✅ | L7 |
 | Comments on every document with @mentions, merged timeline | mentions highlighted, not yet notified | ✅ | L7 |
 | Assign (ToDo), Assignment Rules (round robin, load balancing, by field) | assign done (L7); rules done: round robin, load balancing, by field, conditions, withdraw condition; not yet working hours or leave | ✅ (v1) | L7, L8 |
-| Share (DocShare), Follow (Document Follow), Likes, Tags | share (ADR-008) and follow (ADR-015) done; not likes or tags | 🟡 | L7 |
+| Share (DocShare), Follow (Document Follow), Likes, Tags | share (ADR-008), follow (ADR-015), tags and likes (ADR-068) done | ✅ | L7 |
 | Attachments, File manager (folders, private/public, thumbnails) | done: attachments on documents (private, permission-checked, picture thumbnails); not yet folders, public files, a File Manager page | ✅ (v1) | L10 |
 | Deleted Documents (restore), View Log, Access Log, Activity Log | Deleted Documents done (ADR-067); View Log, Access Log not yet | 🟡 | L7 |
 | Auto Repeat (recurring documents) | daily, weekly, monthly, quarterly, yearly; date fields; pause, run now, end date | ✅ (v1) | L8 |
@@ -640,13 +640,13 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Login, sidebar, home | | ✅ | done |
 | List view: search, filters, sort, paging | | ✅ | done |
 | List view: saved filters, user settings (columns, sort), list view settings | done (ADR-016) | ✅ (v1) | L7 |
-| List view: sidebar group-by counts, row indicators/status colors, tags, assigned, like, comment count | group-by counts, status indicators and comment counts done (ADR-017); not tags or likes | 🟡 | L7 |
+| List view: sidebar group-by counts, row indicators/status colors, tags, assigned, like, comment count | group-by counts, status indicators and comment counts done (ADR-017); tag and like filters (ADR-068) | ✅ | L7 |
 | List view: bulk actions (edit, delete, assign, tag, export, print) | done: edit, delete, assign (ADR-016) | 🟡 | L7 |
 | Form view: field controls per type, validation, conflict warning, delete | | ✅ | done |
 | Form view: tabs/sections/columns layout, collapsible sections | | 🟡 | L1, L3 |
 | Form view: child table grid (editable, reorder, row form) | | ✅ | L2 |
 | Form view: child table grid, upload/download rows as CSV | | ⬜ | L10 |
-| Form view: sidebar (assign, attachments, tags, share, follow, like), timeline, form dashboard with linked documents | done (ADR-019); not tags or likes | 🟡 | L7 |
+| Form view: sidebar (assign, attachments, tags, share, follow, like), timeline, form dashboard with linked documents | done (ADR-019, ADR-068) | ✅ | L7 |
 | Form: quick entry dialog, auto-save indicator, keyboard shortcuts, unsaved-changes warning | | 🟡 | L7 |
 | Report view (editable columns, group by, totals, export) | Report Builder with group by, totals and CSV export done (ADR-045) | 🟡 | L9 |
 | Kanban, Calendar, Gantt, Map, Image, Tree, Dashboard views | done: Tree, Dashboard, Board, Calendar, **Gantt** (timeline), **Map** (plain grid) and **Image** (gallery) (ADR-031, ADR-049) | ✅ (v1) | L12 |

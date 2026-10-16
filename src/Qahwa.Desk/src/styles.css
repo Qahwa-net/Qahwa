@@ -718,3 +718,4 @@ kbd { font: .75rem ui-monospace, Consolas, monospace; padding: .05rem .35rem; bo
 .palette-list { list-style: none; margin: .5rem 0 0; padding: 0; max-block-size: 50vh; overflow-y: auto; }
 .palette-list li { display: flex; justify-content: space-between; gap: 1rem; padding: .5rem .75rem; border-radius: var(--radius); cursor: pointer; }
 .palette-list li.on { background: var(--accent-soft); }
+.chip-button.active { background: var(--accent-soft); border-color: var(--accent); }

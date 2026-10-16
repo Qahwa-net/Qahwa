@@ -57,6 +57,8 @@ export function decodeFilters(encoded: string | null): Filter[] {
 }
 
 export function describeFilter(filter: Filter, fieldLabel: string): string {
+  if (filter.field === '_tag') return `Tagged ${String(filter.value)}`
+  if (filter.field === '_liked_by') return filter.value === '__user' ? 'Liked by me' : `Liked by ${String(filter.value)}`
   switch (filter.op) {
     case 'is':
       return `${fieldLabel} is ${filter.value}`

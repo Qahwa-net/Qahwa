@@ -164,6 +164,7 @@ public sealed class PgStack : IAsyncDisposable
         var lazyDocuments = new Lazy<DocumentService>(() => Documents!);
         Notifications = new NotificationService(Registry, Repository, lazyDocuments, History);
         Follows = new FollowService(Registry, Repository, lazyDocuments, History);
+        Labels = new LabelService(Registry, Repository, permissions, lazyDocuments, History);
         Collaboration = new CollaborationHooks(Follows, Notifications, Registry, Repository);
         Documents = new DocumentService(Registry, Repository, permissions, new NamingService(Repository, Clock), Clock, new UserPermissionService(Registry, Repository), Shares, Profiles, History, Collaboration, WorkflowCatalog, new Lazy<AssignmentRuleEngine>(() => AssignmentRules!), new Lazy<NotificationRuleEngine>(() => NotificationRules!), new Lazy<WebhookService>(() => Webhooks!), new Lazy<FileService>(() => Files!), new Lazy<DocumentActionEngine>(() => DocumentActions!), new Lazy<ServerScriptEngine>(() => ServerScripts!), new Lazy<AppHookRunner>(() => AppHooks!), new FakeSecretProtector());
         ShareManager = new ShareManager(Registry, Repository, Documents, permissions, Shares, History, Notifications);
@@ -252,6 +253,7 @@ public sealed class PgStack : IAsyncDisposable
     public ActivityService Activity { get; }
     public NotificationService Notifications { get; }
     public FollowService Follows { get; }
+    public LabelService Labels { get; }
     public CollaborationHooks Collaboration { get; }
     public AssignmentService Assignments { get; }
     public ListSettingsService ListSettings { get; }

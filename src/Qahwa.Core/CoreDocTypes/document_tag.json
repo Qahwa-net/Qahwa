@@ -1,0 +1,13 @@
+{
+  "name": "Document Tag",
+  "module": "Core",
+  "trackChanges": false,
+  "fields": [
+    { "name": "ref_doctype", "type": "Data", "label": "DocType", "required": true, "indexed": true, "inListView": true },
+    { "name": "ref_docname", "type": "Data", "label": "Document", "required": true, "indexed": true, "inListView": true },
+    { "name": "tag", "type": "Data", "label": "Tag", "required": true, "indexed": true, "inListView": true }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true }
+  ]
+}

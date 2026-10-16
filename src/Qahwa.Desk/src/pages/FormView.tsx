@@ -11,6 +11,7 @@ import { RepeatDialog } from './RepeatDialog.tsx'
 import { EmailDialog } from './EmailDialog.tsx'
 import { PrintDialog } from './PrintDialog.tsx'
 import { FollowButton } from './FollowButton.tsx'
+import { LikeButton } from './LikeButton.tsx'
 import { RenameDialog } from './RenamePanel.tsx'
 import { ShareDialog } from './SharePanel.tsx'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -396,6 +397,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
           {!isNew && dirty && <span className="badge unsaved">Not saved</span>}
         </div>
         <div className="doc-actions">
+          {!isNew && doc && meta.module !== 'Core' && !meta.isSingle && <LikeButton doctype={meta.name} name={doc.name} />}
           {!isNew && doc && <FollowButton doctype={meta.name} name={doc.name} />}
           {!isNew && !meta.isSingle && perms.create && doc && <IconButton icon="copy" label="Duplicate" onClick={() => navigate(`${base}/new?copy=${encodeURIComponent(doc.name)}`)} />}
           {!isNew && !meta.isSingle && perms.write && docstatus !== 2 && <IconButton icon="userPlus" label="Assign" onClick={() => setAssigning(true)} />}

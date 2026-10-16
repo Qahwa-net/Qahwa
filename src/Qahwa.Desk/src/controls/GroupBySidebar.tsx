@@ -37,6 +37,9 @@ export function GroupBySidebar({ doctype, fields, filters, applied, onChange }: 
 }) {
   const [field, setField] = useState(() => (fields.some((f) => f.name === remembered(doctype)) ? remembered(doctype) : ''))
   const chosen = fields.find((f) => f.name === field)
+  const popular = useQuery({ queryKey: ['tags', doctype, '*popular'], queryFn: () => api.tags.popular(doctype), retry: false })
+  const tagFilter = (tag: string): Filter => ({ field: '_tag', op: '=', value: tag })
+  const likedFilter: Filter = { field: '_liked_by', op: '=', value: '__user' }
 
   const counts = useQuery({
     queryKey: ['group-by', doctype, field, JSON.stringify(filters)],
@@ -62,6 +65,21 @@ export function GroupBySidebar({ doctype, fields, filters, applied, onChange }: 
           {fields.map((f) => <option key={f.name} value={f.name}>{labelOf(f)}</option>)}
         </select>
       </label>
+      {!popular.isError && (
+        <div className="tag-filter" aria-label="Filter by tag or like">
+          <button className={applied.some((f) => same(f, likedFilter)) ? 'chip-button active' : 'chip-button'} aria-pressed={applied.some((f) => same(f, likedFilter))}
+            onClick={() => onChange(applied.some((f) => same(f, likedFilter)) ? applied.filter((f) => !same(f, likedFilter)) : [...applied, likedFilter])}>Liked by me</button>
+          {(popular.data ?? []).slice(0, 12).map((t) => {
+            const active = applied.some((f) => same(f, tagFilter(t.tag)))
+            return (
+              <button key={t.tag} className={active ? 'chip-button active' : 'chip-button'} aria-pressed={active}
+                onClick={() => onChange(active ? applied.filter((f) => !same(f, tagFilter(t.tag))) : [...applied.filter((f) => f.field !== '_tag'), tagFilter(t.tag)])}>
+                {t.tag} <span className="muted">{t.count}</span>
+              </button>
+            )
+          })}
+        </div>
+      )}
       {chosen && counts.isPending && <p className="muted" role="status">Counting…</p>}
       {chosen && counts.data?.length === 0 && <p className="muted">No documents.</p>}
       <ul>

@@ -195,6 +195,44 @@ public sealed class SpecialApiTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Tags_and_likes_work_over_the_api_and_filter_lists()
+    {
+        await CreateDocTypeAsync(new
+        {
+            name = "Pinboard",
+            autoname = "field:title",
+            fields = new object[] { new { name = "title", type = "Data", required = true } },
+            permissions = new object[] { new { role = "Sales Manager", read = true, write = true, create = true }, new { role = "Sales User", read = true } },
+        });
+        var manager = _factory.ClientFor("m@example.com", "Sales Manager");
+        var reader = _factory.ClientFor("r@example.com", "Sales User");
+        await manager.PostAsJsonAsync("/api/resource/Pinboard", new { title = "p1" });
+        await manager.PostAsJsonAsync("/api/resource/Pinboard", new { title = "p2" });
+
+        var added = await manager.PostAsJsonAsync("/api/resource/Pinboard/p1/tags", new { tag = "Urgent" });
+        Assert.Equal(HttpStatusCode.OK, added.StatusCode);
+        Assert.Equal("urgent", (await JsonOf(added)).GetProperty("data")[0].GetString());
+        Assert.Equal(HttpStatusCode.BadRequest, (await manager.PostAsJsonAsync("/api/resource/Pinboard/p1/tags", new { tag = "a,b" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await reader.PostAsJsonAsync("/api/resource/Pinboard/p1/tags", new { tag = "x" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateClient().GetAsync("/api/resource/Pinboard/p1/tags")).StatusCode);
+
+        var filtered = await JsonOf(await reader.GetAsync("/api/resource/Pinboard?filters=[[\"_tag\",\"=\",\"urgent\"]]"));
+        Assert.Single(filtered.GetProperty("data").EnumerateArray());
+        var popular = await JsonOf(await reader.GetAsync("/api/tags/Pinboard"));
+        Assert.Equal(1, popular.GetProperty("data")[0].GetProperty("count").GetInt32());
+
+        var liked = await JsonOf(await reader.PostAsync("/api/resource/Pinboard/p2/like", null));
+        Assert.True(liked.GetProperty("data").GetProperty("liked").GetBoolean());
+        var mine = await JsonOf(await reader.GetAsync("/api/resource/Pinboard?filters=[[\"_liked_by\",\"=\",\"__user\"]]"));
+        Assert.Equal("p2", mine.GetProperty("data")[0].GetProperty("name").GetString());
+        var unliked = await JsonOf(await reader.DeleteAsync("/api/resource/Pinboard/p2/like"));
+        Assert.Equal(0, unliked.GetProperty("data").GetProperty("count").GetInt32());
+
+        var removed = await JsonOf(await manager.DeleteAsync("/api/resource/Pinboard/p1/tags/urgent"));
+        Assert.Empty(removed.GetProperty("data").EnumerateArray());
+    }
+
+    [Fact]
     public async Task Bulk_rename_over_the_api_reports_each_document()
     {
         await CreateDocTypeAsync(new

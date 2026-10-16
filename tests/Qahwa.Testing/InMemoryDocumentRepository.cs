@@ -283,7 +283,13 @@ public sealed class InMemoryDocumentRepository : IDocumentRepository
     }
 
     private IEnumerable<Dictionary<string, object?>> Filter(DocTypeMeta meta, ListQuery query) =>
-        Table(meta).Values.Where(row => query.Filters.All(f => Matches(row.GetValueOrDefault(f.Field), f, row.GetValueOrDefault("name") as string)));
+        Table(meta).Values.Where(row => query.Filters.All(f => f.Op == FilterOp.Marked ? IsMarked(f, row.GetValueOrDefault("name") as string) : Matches(row.GetValueOrDefault(f.Field), f, row.GetValueOrDefault("name") as string)));
+
+    private bool IsMarked(QueryFilter filter, string? name)
+    {
+        var marked = (MarkedBy)filter.Value!;
+        return Table(marked.Table).Values.Any(r => Equals(r.GetValueOrDefault("ref_doctype"), marked.RefDocType) && Equals(r.GetValueOrDefault("ref_docname"), name) && Equals(r.GetValueOrDefault(marked.Field), marked.Value));
+    }
 
     /// <summary>A LIKE pattern as the real databases read it: % and _ are wildcards and a backslash makes the next character literal.</summary>
     private static string LikeToRegex(string pattern)

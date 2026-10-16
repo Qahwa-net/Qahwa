@@ -584,7 +584,12 @@ public sealed partial class DocumentService(
             : (await shares.ForUserAsync(meta.Name, user, ct)).Where(kv => kv.Value.Allows(PermAction.Read)).Select(kv => kv.Key).ToList();
         if (access == AccessLevel.None && sharedNames.Count == 0)
             permissions.Require(meta, user, PermAction.Read); // throws
+        var labels = request.Filters.Where(LabelService.IsLabelFilter).ToList();
+        if (labels.Count > 0)
+            request = request with { Filters = request.Filters.Where(f => !LabelService.IsLabelFilter(f)).ToList() };
         var query = Normalize(meta, request, permissions.FieldAccessFor(meta, user, documentOwner: null, creating: false), user);
+        if (labels.Count > 0)
+            query = query with { Filters = [.. query.Filters, .. labels.Select(f => LabelService.ToQueryFilter(registry, meta.Name, f, user))] };
 
         if (access == AccessLevel.None)
             query = query with { Filters = [.. query.Filters, new QueryFilter("name", FilterOp.In, sharedNames.Cast<object?>().ToList())] };

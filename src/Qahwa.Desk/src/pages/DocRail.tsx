@@ -5,6 +5,7 @@ import { Avatar, Icon, IconButton } from '../controls/Icon.tsx'
 import { AssignmentRow, assignmentsKey } from './AssignPanel.tsx'
 import { sharesKey } from './SharePanel.tsx'
 import { Attachments } from './Attachments.tsx'
+import { TagsPanel } from './TagsPanel.tsx'
 
 const when = (value: unknown) => (value ? new Date(String(value)).toLocaleString() : '')
 
@@ -50,6 +51,8 @@ export function DocRail({ doctype, doc, canAssign, canShare, onAssign, onShare }
             )}
         </section>
       )}
+
+      {doctype !== 'Deleted Document' && <TagsPanel doctype={doctype} name={doc.name} canEdit={canAssign} />}
 
       <Attachments doctype={doctype} name={doc.name} canUpload={canAssign} />
 

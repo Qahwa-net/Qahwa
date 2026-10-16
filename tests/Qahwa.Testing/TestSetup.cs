@@ -99,6 +99,7 @@ public sealed class TestEngine
         var lazyDocuments = new Lazy<DocumentService>(() => Documents!);
         Notifications = new NotificationService(Registry, Repository, lazyDocuments, History);
         Follows = new FollowService(Registry, Repository, lazyDocuments, History);
+        Labels = new LabelService(Registry, Repository, Permissions, lazyDocuments, History);
         Collaboration = new CollaborationHooks(Follows, Notifications, Registry, Repository);
         NamingSeries = new NamingSeriesManager(Registry, Repository, Permissions);
         Documents = new DocumentService(
@@ -248,6 +249,7 @@ public sealed class TestEngine
     public ActivityService Activity { get; }
     public NotificationService Notifications { get; }
     public FollowService Follows { get; }
+    public LabelService Labels { get; }
     public CollaborationHooks Collaboration { get; }
     public AssignmentService Assignments { get; }
     public ListSettingsService ListSettings { get; }

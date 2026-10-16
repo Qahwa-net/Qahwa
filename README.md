@@ -47,6 +47,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **Attachment and image fields**: a form field that names a file attached to the same document, validated on save, with picture preview ([ADR-048](docs/adr/048-attach-and-image-fields.md))
 - **Gallery, map and timeline views**: pictures as tiles, places on a plain grid (no outside map service), documents as bars between two dates ([ADR-049](docs/adr/049-gallery-map-and-timeline-views.md))
 - **Light, dark and automatic themes and a brand**: per-person theme, organisation name, logo, colours and default theme, all checked as plain data, readable colours guaranteed ([ADR-056](docs/adr/056-brand-and-theme.md))
+- **Tags and likes**: label documents, like them, and filter lists by tag or "liked by me" ([ADR-068](docs/adr/068-tags-and-likes.md))
 - **Restore deleted documents**: a copy of every deleted document is kept for 30 days and a System Manager can put it back, with its table rows ([ADR-067](docs/adr/067-deleted-documents.md))
 - **Password fields**: secrets encrypted at rest, shown only as a mask, never listed or exported, readable only by server code ([ADR-066](docs/adr/066-password-fields.md))
 - **Excel import and export**: a small, hostile-file-safe .xlsx writer and reader (size limits that count real bytes, no DTDs, no formulas run), the same import path as CSV ([ADR-064](docs/adr/064-excel-import-and-export.md))

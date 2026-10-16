@@ -114,6 +114,7 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton(sp => new Lazy<DocumentService>(() => sp.GetRequiredService<DocumentService>()));
         services.TryAddSingleton<NotificationService>();
         services.TryAddSingleton<FollowService>();
+        services.TryAddSingleton<LabelService>();
         services.TryAddSingleton<CollaborationHooks>();
         services.TryAddSingleton<AssignmentService>();
         services.TryAddSingleton<AutoRepeatService>();

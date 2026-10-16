@@ -163,6 +163,16 @@ public sealed class SqlBuilder(ISqlDialect dialect)
                 case FilterOp.IsNotNull:
                     sql.Append(column).Append(" IS NOT NULL");
                     break;
+                case FilterOp.Marked:
+                    var marked = (MarkedBy)filter.Value!;
+                    var markColumns = marked.Table.ColumnTypes();
+                    sql.Append(column).Append(" IN (SELECT ").Append(dialect.Quote(Require(markColumns, "ref_docname"))).Append(" FROM ")
+                        .Append(dialect.TableName(marked.Table.Name)).Append(" WHERE ").Append(dialect.Quote(Require(markColumns, "ref_doctype"))).Append(" = ")
+                        .Append(dialect.Parameter(parameters.Count)).Append(" AND ").Append(dialect.Quote(Require(markColumns, marked.Field))).Append(" = ")
+                        .Append(dialect.Parameter(parameters.Count + 1)).Append(')');
+                    parameters.Add(marked.RefDocType);
+                    parameters.Add(marked.Value);
+                    break;
                 case FilterOp.OwnerOrNames:
                     var shared = (OwnerOrNames)filter.Value!;
                     sql.Append('(').Append(column).Append(" = ").Append(dialect.Parameter(parameters.Count));

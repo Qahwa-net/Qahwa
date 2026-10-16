@@ -279,6 +279,16 @@ export interface NotificationItem {
   at: string
 }
 
+export interface LikeState {
+  liked: boolean
+  count: number
+}
+
+export interface TagCount {
+  tag: string
+  count: number
+}
+
 export interface FollowState {
   following: boolean
   followers: number

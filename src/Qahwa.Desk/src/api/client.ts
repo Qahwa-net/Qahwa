@@ -5,7 +5,7 @@ import type { SsoProviderInfo } from '../lib/sso.ts'
 import type { DisplaySettings } from '../lib/display.ts'
 import type {
   DesignerDetail, DocPerm, DesignerItem, DesignerPreview, Doc, DocTypeDefinition, FieldError, FieldTypeInfo,
-  ListResponse, ReportDetail, ReportInfo, ReportRun, RestoreReport, SignIn, ExpiredPasswordChallenge, TwoFactorChallenge, TwoFactorSetup, TwoFactorStatus, PublicForm, BundleReport, TranslationCatalog, AttachedFile, WebhookItem, WebhookSet, WebhookView, ApiKeyCreated, ApiKeyInfo, ImportPreview, ImportResult, WorkspaceBlock, WorkspaceDetail, WorkspaceInfo, WorkspaceView, LetterHeadDetail, PrintChoices, PrintFormatDetail, PrintFormatInfo, DashboardDetail, DashboardInfo, DashboardItem, DashboardResult, EmailPreview, EmailTemplateInfo, NotificationRuleItem, NotificationRuleSet, NotificationRuleView, AutoRepeatInfo, AutoRepeatRequest, AssignmentRuleItem, AssignmentRuleSet, AssignmentRuleView, PendingAction, WorkflowDefinition, WorkflowItem, WorkflowStatus, WorkflowView, MetaResponse, MetaSummary, PermissionItem, ActivityItem, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, FollowState, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
+  ListResponse, ReportDetail, ReportInfo, ReportRun, RestoreReport, SignIn, ExpiredPasswordChallenge, TwoFactorChallenge, TwoFactorSetup, TwoFactorStatus, PublicForm, BundleReport, TranslationCatalog, AttachedFile, WebhookItem, WebhookSet, WebhookView, ApiKeyCreated, ApiKeyInfo, ImportPreview, ImportResult, WorkspaceBlock, WorkspaceDetail, WorkspaceInfo, WorkspaceView, LetterHeadDetail, PrintChoices, PrintFormatDetail, PrintFormatInfo, DashboardDetail, DashboardInfo, DashboardItem, DashboardResult, EmailPreview, EmailTemplateInfo, NotificationRuleItem, NotificationRuleSet, NotificationRuleView, AutoRepeatInfo, AutoRepeatRequest, AssignmentRuleItem, AssignmentRuleSet, AssignmentRuleView, PendingAction, WorkflowDefinition, WorkflowItem, WorkflowStatus, WorkflowView, MetaResponse, MetaSummary, PermissionItem, ActivityItem, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, FollowState, LikeState, TagCount, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
 } from './types.ts'
 import type { Filter } from '../lib/filters.ts'
 import { toApiFilters } from '../lib/filters.ts'
@@ -291,6 +291,18 @@ export const api = {
     readAll: () => request<unknown>('POST', '/api/notifications/read-all'),
   },
 
+  tags: {
+    get: async (doctype: string, name: string) => (await request<{ data: string[] }>('GET', `${resource(doctype, name)}/tags`)).data,
+    add: async (doctype: string, name: string, tag: string) => (await request<{ data: string[] }>('POST', `${resource(doctype, name)}/tags`, { tag })).data,
+    remove: async (doctype: string, name: string, tag: string) =>
+      (await request<{ data: string[] }>('DELETE', `${resource(doctype, name)}/tags/${encodeURIComponent(tag)}`)).data,
+    popular: async (doctype: string) => (await request<{ data: TagCount[] }>('GET', `/api/tags/${encodeURIComponent(doctype)}`)).data,
+  },
+  like: {
+    get: async (doctype: string, name: string) => (await request<{ data: LikeState }>('GET', `${resource(doctype, name)}/like`)).data,
+    set: async (doctype: string, name: string) => (await request<{ data: LikeState }>('POST', `${resource(doctype, name)}/like`)).data,
+    unset: async (doctype: string, name: string) => (await request<{ data: LikeState }>('DELETE', `${resource(doctype, name)}/like`)).data,
+  },
   follow: {
     get: async (doctype: string, name: string) => (await request<{ data: FollowState }>('GET', `${resource(doctype, name)}/follow`)).data,
     set: async (doctype: string, name: string) => (await request<{ data: FollowState }>('POST', `${resource(doctype, name)}/follow`)).data,
