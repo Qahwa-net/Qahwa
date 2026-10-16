@@ -87,7 +87,7 @@ public sealed class PgStack : IAsyncDisposable
         Notifications = new NotificationService(Registry, Repository, lazyDocuments, History);
         Follows = new FollowService(Registry, Repository, lazyDocuments, History);
         Collaboration = new CollaborationHooks(Follows, Notifications, Registry, Repository);
-        Documents = new DocumentService(Registry, Repository, permissions, new NamingService(Repository), Clock, new UserPermissionService(Registry, Repository), Shares, Profiles, History, Collaboration, WorkflowCatalog, new Lazy<AssignmentRuleEngine>(() => AssignmentRules!), new Lazy<NotificationRuleEngine>(() => NotificationRules!), new Lazy<WebhookService>(() => Webhooks!), new Lazy<FileService>(() => Files!));
+        Documents = new DocumentService(Registry, Repository, permissions, new NamingService(Repository), Clock, new UserPermissionService(Registry, Repository), Shares, Profiles, History, Collaboration, WorkflowCatalog, new Lazy<AssignmentRuleEngine>(() => AssignmentRules!), new Lazy<NotificationRuleEngine>(() => NotificationRules!), new Lazy<WebhookService>(() => Webhooks!), new Lazy<FileService>(() => Files!), new Lazy<DocumentActionEngine>(() => DocumentActions!));
         ShareManager = new ShareManager(Registry, Repository, Documents, permissions, Shares, History, Notifications);
         Activity = new ActivityService(Registry, Repository, Documents, permissions, History, Collaboration);
         Assignments = new AssignmentService(Registry, Repository, Documents, permissions, ShareManager, Notifications, Follows, History);
@@ -120,6 +120,7 @@ public sealed class PgStack : IAsyncDisposable
         Webhooks = new WebhookService(WebhookCatalog, Registry, Repository, Documents, WebhookSender, History);
         WebhookManager = new WebhookManager(Registry, WebhookStore, WebhookCatalog, permissions, Clock, allowInsecure: false);
         Bundle = new BundleService(Registry, Designer, Customization, Workflows, AssignmentRuleManager, NotificationRuleManager, permissions, Clock);
+        DocumentActions = new DocumentActionEngine(Registry, Repository, Documents, Clock);
         Files = new FileService(Registry, Repository, Documents, permissions, Notifications, FileStorage, History);
         ApiKeys = new ApiKeyService(Registry, Repository, Auth, permissions, History);
     }
@@ -169,6 +170,7 @@ public sealed class PgStack : IAsyncDisposable
     public DocTypeStore DocTypeStore { get; }
     public SchemaManager SchemaManager { get; }
     public DocTypeDesigner Designer { get; }
+    public DocumentActionEngine DocumentActions { get; }
     public BundleService Bundle { get; }
     public AuthStore AuthStore { get; }
     public AuthOptions AuthOptions { get; }

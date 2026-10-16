@@ -26,6 +26,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 22. [Export and import (bundles)](22-export-and-import.md)
 23. [Languages and right-to-left](23-languages.md)
 24. [Web forms](24-web-forms.md)
+25. [Document actions (automation)](25-document-actions.md)
 
 **Words used**
 

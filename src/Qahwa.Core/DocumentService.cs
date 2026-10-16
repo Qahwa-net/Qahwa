@@ -24,7 +24,8 @@ public sealed partial class DocumentService(
     Lazy<AssignmentRuleEngine>? assignmentRules = null,
     Lazy<NotificationRuleEngine>? notificationRules = null,
     Lazy<WebhookService>? webhooks = null,
-    Lazy<FileService>? files = null)
+    Lazy<FileService>? files = null,
+    Lazy<DocumentActionEngine>? documentActions = null)
 {
     private readonly DocumentLogic _logic = new(registry, repository, permissions, clock);
 
@@ -191,6 +192,10 @@ public sealed partial class DocumentService(
             await notificationRules.Value.AfterSaveAsync(meta, name, isNew, before, latest, user, ct);
         if (webhooks is not null && AssignmentRuleManager.Applies(meta) && await LoadAsync(meta, name, ct) is { } hooked)
             await webhooks.Value.AfterSaveAsync(meta, name, isNew, before, hooked, ct);
+        if (documentActions is not null && meta.Name == DocumentActionEngine.DocTypeName)
+            documentActions.Value.Invalidate();
+        if (documentActions is not null && AssignmentRuleManager.Applies(meta) && await LoadAsync(meta, name, ct) is { } acted)
+            await documentActions.Value.AfterSaveAsync(meta, name, isNew, before, acted, user, ct);
     }
 
     private static DocumentValidationException General(string message) => new([new FieldError(string.Empty, message)]);
@@ -417,6 +422,8 @@ public sealed partial class DocumentService(
             throw new NotFoundException($"{meta.Name} '{name}' was not found.");
         if (webhooks is not null)
             await webhooks.Value.AfterDeleteAsync(meta, name, existing, ct);
+        if (documentActions is not null && meta.Name == DocumentActionEngine.DocTypeName)
+            documentActions.Value.Invalidate();
         if (files is not null)
             await files.Value.DeleteForDocumentAsync(meta.Name, name, ct);
         if (shares is not null)

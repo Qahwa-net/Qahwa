@@ -32,6 +32,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **Export & import bundles**: what was built in the Desk (DocTypes, customizations, workflows, rules) as one JSON file, previewed before it is applied and validated item by item like hand-typed input ([ADR-032](docs/adr/032-app-bundles.md))
 - **Translations and right-to-left**: translations are ordinary documents; pick a language in the top bar and the Desk mirrors for Arabic, Hebrew and the like ([ADR-033](docs/adr/033-translations-and-rtl.md))
 - **Web forms**: public intake pages that create documents without an account, with a field whitelist, no session, size limits, rate limits and a bot trap ([ADR-034](docs/adr/034-web-forms.md))
+- **Document actions**: no-code automation (set a field, create a document) when documents are created, changed, submitted or cancelled; runs with the rights of the person who made the change and cannot loop ([ADR-035](docs/adr/035-document-actions.md))
 - **Webhooks**: signed JSON posts to other systems when documents are created, changed, submitted, cancelled or deleted, queued with retries and guarded against requests to internal networks ([ADR-029](docs/adr/029-webhooks.md))
 - **API keys**: Bearer tokens that act as a person within their permissions, shown once and stored hashed, with read-only and expiry options ([ADR-028](docs/adr/028-api-keys.md))
 - **Data import**: CSV files become documents through the normal insert or update rules, with a preview, row-by-row results and an update mode ([ADR-027](docs/adr/027-data-import.md))

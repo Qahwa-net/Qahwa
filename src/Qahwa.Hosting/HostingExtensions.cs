@@ -133,6 +133,8 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<BundleService>();
         services.TryAddSingleton<TranslationService>();
         services.TryAddSingleton<HitCounter>();
+        services.TryAddSingleton<DocumentActionEngine>();
+        services.TryAddSingleton(sp => new Lazy<DocumentActionEngine>(() => sp.GetRequiredService<DocumentActionEngine>()));
         services.TryAddSingleton<WebFormService>();
         services.TryAddSingleton<CustomDocTypeLoader>();
         services.TryAddSingleton<QahwaMigrator>();
