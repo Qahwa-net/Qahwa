@@ -3,6 +3,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError, api } from '../api/client.ts'
 import { fileProblem } from '../lib/files.ts'
 import { useDocScope } from './DocContext.tsx'
+import { ICON_NAMES, Icon } from './Icon.tsx'
 import { MAX_STARS, formatDuration, isHexColor, isSignature, mapUrl, parseDuration, parsePlace, placeText, starsLabel } from '../lib/fieldtypes.ts'
 
 interface Common {
@@ -47,6 +48,19 @@ export function DurationInput({ value, onChange, readOnly, invalid, id, ariaLabe
 
   return <input id={id} aria-label={ariaLabel} aria-invalid={invalid || bad} value={text} readOnly={readOnly} placeholder="1h 30m" inputMode="text" autoComplete="off"
     onChange={(e) => setText(e.target.value)} onBlur={commit} onKeyDown={(e) => { if (e.key === 'Enter') commit() }} title={bad ? 'Try 1h 30m, 1:30 or a number of seconds.' : undefined} />
+}
+
+/** An icon chosen from the Desk's own set. A name the Desk does not know is kept as it is but shown as nothing. */
+export function IconInput({ value, onChange, readOnly, id, ariaLabel }: Common) {
+  const current = String(value)
+  return (
+    <div id={id} role="radiogroup" aria-label={ariaLabel ?? 'Icon'} className="icon-picker">
+      {ICON_NAMES.map((name) => (
+        <button key={name} type="button" role="radio" aria-checked={current === name} aria-label={name} title={name} disabled={readOnly}
+          className={current === name ? 'icon-choice on' : 'icon-choice'} onClick={() => onChange(current === name ? '' : name)}><Icon name={name} /></button>
+      ))}
+    </div>
+  )
 }
 
 /** A colour: the browser's picker and the hex text. */

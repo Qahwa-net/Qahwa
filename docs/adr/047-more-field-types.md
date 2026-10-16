@@ -23,3 +23,7 @@ Six new field types, each stored in an ordinary column, validated by the server 
 
 ## Consequences
 - Not yet: Attach and Image fields in forms, Icon, an editor for rich text, a map picker, signatures drawn by a stylus with pressure.
+
+## Addendum: Icon
+
+An **Icon** field stores the name of an icon from the Desk's own set (a letter followed by letters and digits, at most 40 characters; anything else is refused, so a name can never carry markup). The Desk shows the choices as a grid of icons; a name the Desk does not know is kept but shown as nothing. Empty is no value.

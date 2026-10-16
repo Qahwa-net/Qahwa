@@ -23,6 +23,7 @@ public static partial class OpenApiBuilder
             FieldType.Int => new Dictionary<string, object?> { ["type"] = "integer" },
             FieldType.Rating => new Dictionary<string, object?> { ["type"] = "integer", ["minimum"] = 0, ["maximum"] = 5 },
             FieldType.Duration => new Dictionary<string, object?> { ["type"] = "integer", ["minimum"] = 0, ["description"] = "Seconds." },
+            FieldType.Icon => new Dictionary<string, object?> { ["type"] = "string", ["pattern"] = "^[a-z][A-Za-z0-9]{0,39}$", ["description"] = "The name of an icon." },
             FieldType.Color => new Dictionary<string, object?> { ["type"] = "string", ["pattern"] = "^#[0-9a-fA-F]{6}$" },
             FieldType.Geolocation => new Dictionary<string, object?> { ["type"] = "string", ["description"] = "JSON text: {\"lat\": 24.7136, \"lng\": 46.6753}." },
             FieldType.Attach or FieldType.AttachImage => new Dictionary<string, object?> { ["type"] = "string", ["description"] = "The id of a file attached to this document (upload it with /api/files/for/{doctype}/{name} first)." },

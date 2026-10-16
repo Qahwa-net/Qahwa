@@ -13,7 +13,7 @@ public static class FieldTypes
     /// <summary>Types stored as short strings (varchar 140), same limit as document names.</summary>
     public static bool IsShortText(FieldType type) =>
         type is FieldType.Data or FieldType.Email or FieldType.Phone or FieldType.Select
-            or FieldType.Link or FieldType.DynamicLink or FieldType.Color or FieldType.Barcode;
+            or FieldType.Link or FieldType.DynamicLink or FieldType.Color or FieldType.Barcode or FieldType.Icon;
 
     /// <summary>Types where an empty string is a legitimate value rather than "no value".</summary>
     public static bool IsTextual(FieldType type) =>

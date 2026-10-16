@@ -683,3 +683,7 @@ kbd { font: .75rem ui-monospace, Consolas, monospace; padding: .05rem .35rem; bo
 .gantt-tick { position: absolute; top: .2rem; font-size: .7rem; color: var(--muted); white-space: nowrap; }
 .gantt-bar { position: absolute; top: .35rem; block-size: 1.1rem; background: var(--brand); border-radius: 5px; min-inline-size: 3px; }
 .gantt-today { position: absolute; top: 0; bottom: 0; inline-size: 0; border-inline-start: 2px dashed var(--danger, #d92d20); }
+
+.icon-picker { display: flex; flex-wrap: wrap; gap: .3rem; }
+.icon-choice { display: inline-grid; place-items: center; inline-size: 2.2rem; block-size: 2.2rem; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; color: inherit; }
+.icon-choice.on { background: var(--brand); color: var(--brand-text, #fff); border-color: var(--brand); }

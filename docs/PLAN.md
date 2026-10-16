@@ -546,7 +546,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Standard vs custom DocTypes | app files are read-only, UI-created are editable | ✅ | L1 |
 | Field types: Data, Text, Long Text, Int, Float, Currency, Percent, Check, Select, Date, Datetime, Time, Link, Email, Phone, URL, Code, Markdown, JSON | | ✅ | done |
 | Field types: Small Text, Text Editor (rich text), HTML Editor, HTML, Heading, Button, Read Only, Autocomplete | | ⬜ | L3 |
-| Field types: Attach, Attach Image, Signature, Barcode, Geolocation, Icon, Color, Rating, Duration, Image | done: Signature, Barcode, Geolocation, Color, Rating, Duration (ADR-047), Attach and Image (ADR-048); not Icon | ✅ (v1) | L10 |
+| Field types: Attach, Attach Image, Signature, Barcode, Geolocation, Icon, Color, Rating, Duration, Image | done: Signature, Barcode, Geolocation, Color, Rating, Duration, Icon (ADR-047), Attach and Image (ADR-048) | ✅ (v1) | L10 |
 | Field types: Table | child rows inside a document | ✅ | L2 |
 | Field types: Dynamic Link, Table MultiSelect | | ⬜ | L2 |
 | Field types: Password (encrypted), Phone with country | | ⬜ | L3 |

@@ -47,6 +47,9 @@ public enum FieldType
     /// <summary>A place on earth as {"lat":..,"lng":..}.</summary>
     Geolocation,
 
+    /// <summary>The name of an icon from the Desk's set (letters and digits, starting with a letter).</summary>
+    Icon,
+
     /// <summary>A drawn signature as a small PNG picture (a data address).</summary>
     Signature,
 }

@@ -146,6 +146,13 @@ public static class FieldValueConverter
                 break;
             case FieldType.Color:
                 return ToColor(text);
+            case FieldType.Icon:
+                text = text.Trim();
+                if (text.Length == 0)
+                    return null;
+                if (text.Length > 40 || !char.IsAsciiLetterLower(text[0]) || !text.All(char.IsAsciiLetterOrDigit))
+                    throw new FormatException("An icon is a name such as 'calendar' or 'userPlus'.");
+                return text;
             case FieldType.Barcode:
                 if (text.Any(c => char.IsControl(c)))
                     throw new FormatException("A barcode holds letters, digits and punctuation only.");

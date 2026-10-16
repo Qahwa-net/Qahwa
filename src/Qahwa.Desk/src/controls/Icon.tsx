@@ -31,6 +31,11 @@ const PATHS = {
 
 export type IconName = keyof typeof PATHS
 
+/** Every icon the Desk has, for choosing one. */
+export const ICON_NAMES = Object.keys(PATHS) as IconName[]
+
+export const isIconName = (name: unknown): name is IconName => typeof name === 'string' && Object.prototype.hasOwnProperty.call(PATHS, name)
+
 /** A line icon that takes the colour of the text around it. Decorative: give the button, not the icon, a label. */
 export function Icon({ name, size = 18, filled = false }: { name: IconName; size?: number; filled?: boolean }) {
   return (

@@ -74,6 +74,27 @@ public class NewFieldTypeTests
         Assert.Null(Store(FieldType.Duration, ""));
     }
 
+    [Theory]
+    [InlineData("calendar", "calendar")]
+    [InlineData(" userPlus ", "userPlus")]
+    public void An_icon_is_a_name_of_letters_and_digits(string raw, string expected) => Assert.Equal(expected, Store(FieldType.Icon, raw));
+
+    [Theory]
+    [InlineData("Calendar")]
+    [InlineData("1icon")]
+    [InlineData("a-b")]
+    [InlineData("<svg onload=x>")]
+    [InlineData("../x")]
+    [InlineData("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")]
+    public void Other_icon_names_are_refused(string raw) => Assert.Throws<FormatException>(() => Store(FieldType.Icon, raw));
+
+    [Fact]
+    public void An_empty_icon_is_no_value_and_the_designer_offers_icons()
+    {
+        Assert.Null(Store(FieldType.Icon, ""));
+        Assert.True(Qahwa.Core.Designer.FieldTypeCatalog.IsSupported(FieldType.Icon));
+    }
+
     [Fact]
     public void A_barcode_is_plain_text_without_control_characters()
     {
