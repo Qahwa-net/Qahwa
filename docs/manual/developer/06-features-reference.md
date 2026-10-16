@@ -275,3 +275,7 @@ See [Writing an app](08-writing-an-app.md). Code: `Apps.cs` (`IQahwaApp`, `IAppB
 ## Naming formats and Duplicate ([ADR-063](../../adr/063-naming-formats-and-duplicate.md))
 
 `NamingService` (`Resolve`, `FieldTokens`, `PrefixRegex`; takes the `TimeProvider`), `DocTypeLoader.CheckAutoname` (pattern and field checks), `NamingSeriesManager.ListAsync` (counters under their pattern). Desk: `lib/duplicate.ts` (`copyOf`), the `copy` query parameter and `template` prop in `pages/FormView.tsx`. Tests: `NamingFormatTests`, `lib/duplicate.test.ts`.
+
+## Excel ([ADR-064](../../adr/064-excel-import-and-export.md))
+
+`Xlsx.cs` (`XlsxWriter.Write`, `XlsxReader.Read`/`ToCsv`; every limit is a public constant). Endpoints: `format=xlsx` on `SpecialEndpoints` export, `/api/reports/{id}/xlsx`, `ImportRequest.Xlsx` (base64) in `ImportEndpoints.cs`. Desk: `lib/importFile.ts` (`isSpreadsheet`, `toBase64`, `ImportSource`), `pages/ImportDialog.tsx`, Export Excel links in `ListView.tsx` and `Reports.tsx`. Tests: `XlsxTests` (round trips, other programs' files, zip bombs, DTDs, path tricks), `ExcelApiTests`, `lib/importFile.test.ts`.

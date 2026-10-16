@@ -28,3 +28,6 @@ Choose **Update existing** (if you may edit them). The file needs a column named
 - Every row is treated as if you had typed it: the same rules, permissions, numbering, notifications and approvals apply.
 - A row that fails does not stop the others. Fix those rows in your file and import just them again. Tick **Stop at the first row that fails** if you prefer to stop.
 - Importing cannot be undone as a whole; check the preview first, and try a few rows before a big file.
+
+## Excel files
+You can import an **Excel file (.xlsx)** as well as a CSV file: choose it in the Import dialog. The first sheet is used, and its first row must name the columns, exactly as for CSV. Dates should be real Excel dates or text such as `2026-03-04`. The file may be up to 10 MB; the old `.xls` format is not supported (use *Save as → Excel Workbook*).

@@ -5,14 +5,14 @@ import type { ImportPreview, ImportResult } from '../api/types.ts'
 import { Icon } from '../controls/Icon.tsx'
 import { Modal } from '../controls/Modal.tsx'
 import { useToast } from '../controls/Toast.tsx'
-import { checkImportFile, summarise } from '../lib/importFile.ts'
+import { checkImportFile, isSpreadsheet, summarise, toBase64, type ImportSource } from '../lib/importFile.ts'
 
 /** Import documents from a CSV file: choose the file, check it, then import. Every row is created as if you had typed it. */
 export function ImportDialog({ doctype, canUpdate, onClose }: { doctype: string; canUpdate: boolean; onClose: () => void }) {
   const queryClient = useQueryClient()
   const toast = useToast()
   const [mode, setMode] = useState<'Insert' | 'Update'>('Insert')
-  const [csv, setCsv] = useState<string | null>(null)
+  const [csv, setCsv] = useState<ImportSource | null>(null)
   const [fileName, setFileName] = useState('')
   const [stopOnError, setStopOnError] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -21,7 +21,7 @@ export function ImportDialog({ doctype, canUpdate, onClose }: { doctype: string;
 
   const fail = (e: unknown) => setError(e instanceof ApiError ? (e.details[0]?.message ?? e.message) : 'Something went wrong. Please try again.')
   const check = useMutation({
-    mutationFn: (args: { text: string; mode: string }) => api.import.preview(doctype, args.text, args.mode),
+    mutationFn: (args: { text: ImportSource; mode: string }) => api.import.preview(doctype, args.text, args.mode),
     onSuccess: (p) => { setPreview(p); setError(null) },
     onError: (e) => { setPreview(null); fail(e) },
   })
@@ -47,7 +47,7 @@ export function ImportDialog({ doctype, canUpdate, onClose }: { doctype: string;
       setFileName('')
       return setError(problem)
     }
-    const text = await file.text()
+    const text: ImportSource = isSpreadsheet(file) ? { xlsx: toBase64(new Uint8Array(await file.arrayBuffer())) } : { csv: await file.text() }
     setCsv(text)
     setFileName(file.name)
     check.mutate({ text, mode })
@@ -62,7 +62,7 @@ export function ImportDialog({ doctype, canUpdate, onClose }: { doctype: string;
   const ready = csv !== null && preview !== null && !busy && result === null
 
   return (
-    <Modal title={`Import ${doctype}`} subtitle="Create documents from a CSV file, one per row. The first row names the columns." size="lg" onClose={onClose} dismissible={!run.isPending}
+    <Modal title={`Import ${doctype}`} subtitle="Create documents from an Excel or CSV file, one per row. The first row names the columns." size="lg" onClose={onClose} dismissible={!run.isPending}
       footer={<>
         <button className="btn" onClick={onClose} disabled={run.isPending}>{result ? 'Close' : 'Cancel'}</button>
         {!result && (
@@ -84,7 +84,7 @@ export function ImportDialog({ doctype, canUpdate, onClose }: { doctype: string;
         </div>
         <div className="field">
           <label htmlFor="import-file">File</label>
-          <input id="import-file" data-autofocus type="file" accept=".csv,.txt,text/csv,text/plain" disabled={busy} onChange={(e) => void choose(e.target.files?.[0])} />
+          <input id="import-file" data-autofocus type="file" accept=".xlsx,.csv,.txt,text/csv,text/plain,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" disabled={busy} onChange={(e) => void choose(e.target.files?.[0])} />
           <small className="muted">
             <a href={api.import.templateUrl(doctype, mode)}>Download a template</a> with the right columns.
             {mode === 'Update' && ' Updating needs a column named name with each document’s ID.'}

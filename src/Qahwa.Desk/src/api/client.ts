@@ -1,5 +1,6 @@
 import type { ScriptSource } from '../lib/clientScripts.ts'
 import type { SearchResponse } from '../lib/search.ts'
+import type { ImportSource } from '../lib/importFile.ts'
 import type { SsoProviderInfo } from '../lib/sso.ts'
 import type { DisplaySettings } from '../lib/display.ts'
 import type {
@@ -96,6 +97,7 @@ export const api = {
     run: async (id: string) => (await request<{ data: ReportRun }>('GET', `/api/reports/${encodeURIComponent(id)}/run`)).data,
     preview: async (definition: Record<string, unknown>) => (await request<{ data: ReportRun }>('POST', '/api/reports/preview', definition)).data,
     csvUrl: (id: string) => `/api/reports/${encodeURIComponent(id)}/csv`,
+    xlsxUrl: (id: string) => `/api/reports/${encodeURIComponent(id)}/xlsx`,
   },
 
   backup: {
@@ -207,8 +209,9 @@ export const api = {
   },
 
   /** A link the browser can follow to download the matching documents as CSV. */
-  exportUrl(doctype: string, filters: Filter[]): string {
+  exportUrl(doctype: string, filters: Filter[], format: 'csv' | 'xlsx' = 'csv'): string {
     const query = new URLSearchParams()
+    if (format === 'xlsx') query.set('format', 'xlsx')
     if (filters.length > 0) query.set('filters', JSON.stringify(toApiFilters(filters)))
     return `${resource(doctype)}/export${query.size > 0 ? `?${query}` : ''}`
   },
@@ -373,10 +376,10 @@ export const api = {
 
   import: {
     templateUrl: (doctype: string, mode: string) => `/api/import/${encodeURIComponent(doctype)}/template?mode=${encodeURIComponent(mode)}`,
-    preview: async (doctype: string, csv: string, mode: string) =>
-      (await request<{ data: ImportPreview }>('POST', `/api/import/${encodeURIComponent(doctype)}/preview`, { csv, mode })).data,
-    run: async (doctype: string, csv: string, mode: string, stopOnError: boolean) =>
-      (await request<{ data: ImportResult }>('POST', `/api/import/${encodeURIComponent(doctype)}`, { csv, mode, stopOnError })).data,
+    preview: async (doctype: string, source: ImportSource, mode: string) =>
+      (await request<{ data: ImportPreview }>('POST', `/api/import/${encodeURIComponent(doctype)}/preview`, { ...source, mode })).data,
+    run: async (doctype: string, source: ImportSource, mode: string, stopOnError: boolean) =>
+      (await request<{ data: ImportResult }>('POST', `/api/import/${encodeURIComponent(doctype)}`, { ...source, mode, stopOnError })).data,
   },
 
   workspaces: {

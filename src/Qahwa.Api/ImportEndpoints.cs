@@ -5,7 +5,25 @@ using Qahwa.Core;
 
 namespace Qahwa.Api;
 
-public sealed record ImportRequest(string? Csv = null, string? Mode = null, bool StopOnError = false);
+public sealed record ImportRequest(string? Csv = null, string? Mode = null, bool StopOnError = false, string? Xlsx = null)
+{
+    /// <summary>The rows as CSV text: what was sent as CSV, or a spreadsheet (base64) turned into CSV so one import reads both.</summary>
+    public string Text()
+    {
+        if (string.IsNullOrEmpty(Xlsx))
+            return Csv ?? string.Empty;
+        try
+        {
+            if (Xlsx.Length > XlsxReader.MaxFileBytes * 4 / 3 + 16)
+                throw new FormatException($"The spreadsheet must be at most {XlsxReader.MaxFileBytes / 1024 / 1024} MB.");
+            return XlsxReader.ToCsv(XlsxReader.Read(Convert.FromBase64String(Xlsx)));
+        }
+        catch (FormatException e)
+        {
+            throw new DocumentValidationException([new FieldError("file", e.Message)]);
+        }
+    }
+}
 
 /// <summary>Data import from CSV: a template, a check without importing, and the import itself.</summary>
 public static class ImportEndpoints
@@ -24,10 +42,10 @@ public static class ImportEndpoints
         });
 
         group.MapPost("/preview", async (string doctype, ImportRequest body, HttpContext http, IUserContextResolver users, DataImportService import, CancellationToken ct) =>
-            Results.Ok(new { data = await import.PreviewAsync(doctype, body.Csv ?? string.Empty, body.Mode ?? "Insert", await users.ResolveAsync(http, ct), ct) }));
+            Results.Ok(new { data = await import.PreviewAsync(doctype, body.Text(), body.Mode ?? "Insert", await users.ResolveAsync(http, ct), ct) }));
 
         group.MapPost("", async (string doctype, ImportRequest body, HttpContext http, IUserContextResolver users, DataImportService import, CancellationToken ct) =>
-            Results.Ok(new { data = await import.RunAsync(doctype, body.Csv ?? string.Empty, body.Mode ?? "Insert", body.StopOnError, await users.ResolveAsync(http, ct), ct) }));
+            Results.Ok(new { data = await import.RunAsync(doctype, body.Text(), body.Mode ?? "Insert", body.StopOnError, await users.ResolveAsync(http, ct), ct) }));
 
         return app;
     }

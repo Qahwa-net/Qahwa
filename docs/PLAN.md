@@ -666,7 +666,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Query Report (SQL), Script Report | | ⬜ | L11 |
 | Dashboard Charts (count, sum, average, group by, time series), Number Cards, Dashboards | done: number, chart and list tiles, per day/month/year, filters, private or shared | ✅ (v1) | L9 |
 | Prepared Reports (background) | | 🔽 | L9 |
-| Export to CSV / Excel / PDF | done: CSV (lists, reports), PDF of printouts (ADR-050); not Excel | 🟡 | L9 |
+| Export to CSV / Excel / PDF | done: CSV and Excel (lists, reports, ADR-064), PDF of printouts (ADR-050) | ✅ (v1) | L9 |
 | **Print Format Builder** (drag and drop), Print Settings, Letter Head, custom HTML/Jinja-style formats | done: HTML templates with placeholders, if/each, default layout, letter heads, preview; not yet drag and drop, print settings, server PDF | ✅ (v1) | L9 |
 | PDF generation | done: headless Chrome, Chromium or Edge, inert page, no network, strict limits (ADR-050) | ✅ (v1) | L9 |
 
@@ -691,7 +691,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Schema migration (additive), dry run | | ✅ | done |
 | Patches / data migrations (patch log) | done (ADR-043); not per-app ordering or a CLI to run one | ✅ (v1) | L12 |
 | **Data Import** (CSV/Excel template, validate, preview, background, update existing) | done: CSV, template, preview, row results, update existing; not yet Excel, background, child tables | ✅ (v1) | L10 |
-| Data Export, bulk update, bulk rename | | ⬜ | L10 |
+| Data Export, bulk update, bulk rename | export to CSV and Excel (ADR-064), import from CSV and Excel (ADR-027, ADR-064) and bulk edit (ADR-016) done; not bulk rename | 🟡 | L10 |
 | Backups (download, scheduled, restore) | done: download, daily folder, additive restore (ADR-044); not encryption, file contents, cloud storage | ✅ (v1) | L12 |
 | Error Log, Scheduled Job Log, Recorder (query profiler), System Console | done: Error Log (requests and scheduler); not yet job history, profiler, console | 🟡 | L12 |
 | System Settings (time zone, formats, session expiry, security) | done: time zone, date format, first weekday, default language; session and password policy stay in configuration | 🟡 | L10 |

@@ -53,6 +53,10 @@ public sealed class ReportApiTests : IAsyncDisposable
 
         var csv = await sales.GetAsync($"/api/reports/{id}/csv");
         Assert.Equal("text/csv", csv.Content.Headers.ContentType!.MediaType);
+        var xlsx = await sales.GetAsync($"/api/reports/{id}/xlsx");
+        Assert.Equal("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", xlsx.Content.Headers.ContentType!.MediaType);
+        Assert.NotEmpty(Qahwa.Core.XlsxReader.Read(await xlsx.Content.ReadAsByteArrayAsync())[0]);
+        Assert.Equal(HttpStatusCode.NotFound, (await sales.GetAsync($"/api/reports/{id}/pdf")).StatusCode);
         Assert.Contains("attachment", csv.Content.Headers.ContentDisposition!.ToString());
         var text = await csv.Content.ReadAsStringAsync();
         Assert.Contains("Total of amount", text, StringComparison.OrdinalIgnoreCase);

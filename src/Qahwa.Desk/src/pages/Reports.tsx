@@ -99,6 +99,7 @@ export function ReportViewPage() {
         <span className="spacer" />
         <button className="btn" onClick={() => void run.refetch()} disabled={run.isFetching}>Refresh</button>
         <a className="btn" href={api.reports.csvUrl(id)} download>Download CSV</a>
+        <a className="btn" href={api.reports.xlsxUrl(id)} download>Download Excel</a>
         {detail.data?.canEdit && <Link className="btn primary" to={`/reports/${id}/edit`}>Edit</Link>}
       </div>
       {run.isError && <div className="banner error" role="alert">{run.error instanceof ApiError && run.error.status === 403 ? 'You do not have access to the documents in this report.' : messageOf(run.error)}</div>}

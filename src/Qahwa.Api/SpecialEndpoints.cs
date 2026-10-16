@@ -58,12 +58,15 @@ public static class SpecialEndpoints
         });
 
         resource.MapGet("/export", async (
-            string doctype, HttpContext http, DocumentService docs, IUserContextResolver users, CancellationToken ct) =>
+            string doctype, string? format, HttpContext http, DocumentService docs, IUserContextResolver users, CancellationToken ct) =>
         {
             var result = await docs.ExportAsync(doctype, QahwaEndpoints.ParseListRequest(http.Request.Query), await users.ResolveAsync(http, ct), ct);
             var fileName = new string(doctype.Where(c => char.IsLetterOrDigit(c) || c is '-' or '_').ToArray());
-            http.Response.Headers["Content-Disposition"] = $"attachment; filename=\"{(fileName.Length == 0 ? "export" : fileName)}.csv\"";
+            var xlsx = string.Equals(format, "xlsx", StringComparison.OrdinalIgnoreCase);
+            http.Response.Headers["Content-Disposition"] = $"attachment; filename=\"{(fileName.Length == 0 ? "export" : fileName)}.{(xlsx ? "xlsx" : "csv")}\"";
             http.Response.Headers["X-Export-Truncated"] = result.Truncated ? "true" : "false";
+            if (xlsx)
+                return Results.File(XlsxWriter.Write(result.Columns, result.Rows, doctype), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
             return Results.Text(CsvExport.Write(result.Columns, result.Rows), "text/csv", new UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
         });
 

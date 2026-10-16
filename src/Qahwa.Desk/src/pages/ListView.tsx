@@ -172,7 +172,8 @@ export function ListView() {
         {meta.fields.some((f) => f.type === "AttachImage" && !f.hidden) && !meta.isSingle && <Link className="btn" to={`${base}/gallery`}>Gallery</Link>}
         {meta.fields.some((f) => f.type === "Geolocation" && !f.hidden) && !meta.isSingle && <Link className="btn" to={`${base}/map`}>Map</Link>}
         {perms?.report && <button className="btn" aria-expanded={reporting} onClick={() => setReporting(!reporting)}>Report</button>}
-        {perms?.export && <a className="btn" href={api.exportUrl(doctype, effectiveFilters)} download>Export</a>}
+        {perms?.export && <a className="btn" href={api.exportUrl(doctype, effectiveFilters)} download>Export CSV</a>}
+        {perms?.export && <a className="btn" href={api.exportUrl(doctype, effectiveFilters, 'xlsx')} download>Export Excel</a>}
         {perms?.create && !meta.isSingle && <button className="btn" onClick={() => setImporting(true)}>Import</button>}
         {perms?.create && <Link className="btn primary" to={`${base}/new`}>+ New {doctype}</Link>}
       </div>
