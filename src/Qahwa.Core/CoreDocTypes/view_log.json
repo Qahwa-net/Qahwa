@@ -1,0 +1,15 @@
+{
+  "name": "View Log",
+  "module": "Core",
+  "trackChanges": false,
+  "fields": [
+    { "name": "ref_doctype", "type": "Data", "label": "DocType", "readOnly": true, "indexed": true, "inListView": true },
+    { "name": "ref_docname", "type": "Data", "label": "Document", "readOnly": true, "indexed": true, "inListView": true },
+    { "name": "user", "type": "Data", "label": "Viewed by", "readOnly": true, "indexed": true, "inListView": true },
+    { "name": "views", "type": "Int", "label": "Times", "readOnly": true },
+    { "name": "last_viewed", "type": "Datetime", "label": "Last viewed", "readOnly": true, "indexed": true }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "delete": true }
+  ]
+}

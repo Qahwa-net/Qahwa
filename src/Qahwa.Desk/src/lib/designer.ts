@@ -24,6 +24,7 @@ export interface Draft {
   allowRename: boolean
   /** Keep the updates log (who changed what, when). On unless the DocType opts out. */
   trackChanges: boolean
+  trackViews: boolean
   /** The field shown as a coloured status in lists, and the colour chosen for each of its values. */
   statusField: string
   indicators: Indicator[]
@@ -115,6 +116,7 @@ export function emptyDraft(): Draft {
     isTree: false,
     allowRename: false,
     trackChanges: true,
+    trackViews: false,
     statusField: '',
     indicators: [],
     isNew: true,
@@ -167,6 +169,7 @@ export function fromDetail(detail: DesignerDetail): Draft {
     isTree: def.isTree ?? false,
     allowRename: def.allowRename ?? false,
     trackChanges: def.trackChanges ?? true,
+    trackViews: def.trackViews ?? false,
     statusField: def.statusField ?? '',
     indicators: (def.indicators ?? []).map((i) => ({ ...i })),
     isNew: false,
@@ -219,6 +222,7 @@ export function toDefinition(draft: Draft): DocTypeDefinition {
     allowRename: (!draft.isChildTable && !draft.isSingle && draft.allowRename) || undefined,
     // The log is on by default; only an opt-out is written.
     trackChanges: draft.trackChanges ? undefined : false,
+    trackViews: draft.trackViews || undefined,
     statusField: (!draft.isChildTable && draft.statusField) || undefined,
     // Colours only mean something for a status field, and only values given a colour are kept.
     indicators: !draft.isChildTable && draft.statusField && draft.indicators.length > 0 ? draft.indicators.filter((i) => i.value.trim() !== '') : undefined,

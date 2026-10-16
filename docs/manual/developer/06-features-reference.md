@@ -335,3 +335,7 @@ Core DocTypes `contact.json`, `address.json`, `dynamic_link.json` (module "Conta
 ## Phone validation ([ADR-079](../../adr/079-phone-validation.md))
 
 `FieldValueConverter.Convert`, case `FieldType.Phone` (optional `+`, digits and ` -.()`, 4 to 15 digits, at most 25 characters). Tests: `PhoneFieldTests`.
+
+## View Log ([ADR-080](../../adr/080-view-log.md))
+
+`ViewLog.cs`: `ViewLogService` (`RecordAsync` throttled and never throwing, called by `DocumentService.GetAsync`; `ViewersAsync` needs write). `DocTypeMeta.TrackViews`, Core DocType `view_log.json`, listed in `CollaborationHooks.Tables`. Endpoint `GET .../viewers` in `CollaborationEndpoints.cs`. Desk: designer checkbox, "Seen by" card in `DocRail`. Tests: `ViewLogTests`.

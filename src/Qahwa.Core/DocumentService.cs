@@ -30,7 +30,8 @@ public sealed partial class DocumentService(
     Lazy<ServerScriptEngine>? serverScripts = null,
     Lazy<AppHookRunner>? appHooks = null,
     ISecretProtector? secrets = null,
-    IRealtimePublisher? realtime = null)
+    IRealtimePublisher? realtime = null,
+    ViewLogService? viewLog = null)
 {
     private readonly DocumentLogic _logic = new(registry, repository, permissions, clock);
 
@@ -254,6 +255,8 @@ public sealed partial class DocumentService(
         var viaShare = Settle(level, share, PermAction.Read, doc, user);
         RequireRestrictions(await RestrictionsAsync(meta, user, ct), doc, meta);
         await RequireAppPermissionAsync(meta, PermAction.Read, doc, user, ct);
+        if (viewLog is not null)
+            await viewLog.RecordAsync(meta, name, user, ct);
         return Strip(meta, doc, SharedAccess(permissions.FieldAccessFor(meta, user, doc.GetValueOrDefault("owner") as string, creating: false), viaShare, share));
     }
 

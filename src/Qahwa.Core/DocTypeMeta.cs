@@ -34,6 +34,9 @@ public sealed record DocTypeMeta
     public bool AllowRename { get; init; }
     /// <summary>Keep an updates log (a Version row per change, in the same transaction). On unless a DocType opts out.</summary>
     public bool TrackChanges { get; init; } = true;
+
+    /// <summary>Keep a View Log: who opened each document and when (shown to the people who may change it).</summary>
+    public bool TrackViews { get; init; }
     public IReadOnlyList<DocFieldMeta> Fields { get; init; } = [];
     public IReadOnlyList<DocPermMeta> Permissions { get; init; } = [];
     public IReadOnlyList<ValidationRule> Validations { get; init; } = [];

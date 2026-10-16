@@ -10,8 +10,9 @@ import { TagsPanel } from './TagsPanel.tsx'
 const when = (value: unknown) => (value ? new Date(String(value)).toLocaleString() : '')
 
 /** The side of a saved document: who it is assigned to, who it is shared with, and its details. */
-export function DocRail({ doctype, doc, canAssign, canShare, onAssign, onShare }: {
+export function DocRail({ doctype, doc, canAssign, canShare, trackViews = false, onAssign, onShare }: {
   doctype: string
+  trackViews?: boolean
   doc: Doc
   canAssign: boolean
   canShare: boolean
@@ -20,6 +21,7 @@ export function DocRail({ doctype, doc, canAssign, canShare, onAssign, onShare }
 }) {
   const assignments = useQuery({ queryKey: assignmentsKey(doctype, doc.name), queryFn: () => api.assignments.forDocument(doctype, doc.name), retry: false })
   const shares = useQuery({ queryKey: sharesKey(doctype, doc.name), queryFn: () => api.share.list(doctype, doc.name), retry: false, enabled: canShare })
+  const viewers = useQuery({ queryKey: ['viewers', doctype, doc.name], queryFn: () => api.viewers(doctype, doc.name), retry: false, enabled: trackViews && canAssign })
   const open = (assignments.data ?? []).filter((a) => a.status === 'Open')
 
   return (
@@ -53,6 +55,17 @@ export function DocRail({ doctype, doc, canAssign, canShare, onAssign, onShare }
       )}
 
       {doctype !== 'Deleted Document' && <TagsPanel doctype={doctype} name={doc.name} canEdit={canAssign} />}
+
+      {trackViews && canAssign && viewers.data && (
+        <section className="rail-card" aria-label="Seen by">
+          <header><h3>Seen by</h3></header>
+          {viewers.data.length === 0
+            ? <p className="muted small-text">Nobody yet.</p>
+            : <ul className="person-list compact">{viewers.data.slice(0, 8).map((v) => (
+              <li key={v.user}>{v.fullName || v.user} <small className="muted">· {v.views}× · {new Date(v.lastViewed).toLocaleString()}</small></li>
+            ))}</ul>}
+        </section>
+      )}
 
       <Attachments doctype={doctype} name={doc.name} canUpload={canAssign} />
 

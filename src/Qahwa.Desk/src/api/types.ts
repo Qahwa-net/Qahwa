@@ -80,6 +80,7 @@ export interface DocTypeMeta {
   statusField?: string | null
   indicators?: Indicator[]
   trackChanges: boolean
+  trackViews?: boolean
   fields: DocField[]
   permissions?: DocPerm[]
   validations?: ValidationRule[]
@@ -97,6 +98,7 @@ export interface DocTypeDefinition {
   isTree?: boolean
   allowRename?: boolean
   trackChanges?: boolean
+  trackViews?: boolean
   statusField?: string
   indicators?: Indicator[]
   fields: (Partial<DocField> & Pick<DocField, 'name' | 'type'>)[]
@@ -287,6 +289,13 @@ export interface EmailDigest {
   sendHour: number
   nextSend: string | null
   lastSent: string | null
+}
+
+export interface Viewer {
+  user: string
+  fullName: string | null
+  views: number
+  lastViewed: string
 }
 
 export interface LikeState {

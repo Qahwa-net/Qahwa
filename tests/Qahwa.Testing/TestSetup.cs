@@ -99,12 +99,13 @@ public sealed class TestEngine
         var lazyDocuments = new Lazy<DocumentService>(() => Documents!);
         Realtime = new RealtimeHub();
         Notifications = new NotificationService(Registry, Repository, lazyDocuments, History, Realtime);
+        ViewLog = new ViewLogService(Registry, Repository, Permissions, lazyDocuments, Notifications, History);
         Follows = new FollowService(Registry, Repository, lazyDocuments, History);
         Labels = new LabelService(Registry, Repository, Permissions, lazyDocuments, History);
         Collaboration = new CollaborationHooks(Follows, Notifications, Registry, Repository);
         NamingSeries = new NamingSeriesManager(Registry, Repository, Permissions);
         Documents = new DocumentService(
-            Registry, Repository, Permissions, new NamingService(Repository, Clock, Registry), Clock, new UserPermissionService(Registry, Repository), Shares, Profiles, History, Collaboration, WorkflowCatalog, new Lazy<AssignmentRuleEngine>(() => AssignmentRules!), new Lazy<NotificationRuleEngine>(() => NotificationRules!), new Lazy<WebhookService>(() => Webhooks!), new Lazy<FileService>(() => Files!), new Lazy<DocumentActionEngine>(() => DocumentActions!), new Lazy<ServerScriptEngine>(() => ServerScripts!), new Lazy<AppHookRunner>(() => AppHooks!), new FakeSecretProtector(), Realtime);
+            Registry, Repository, Permissions, new NamingService(Repository, Clock, Registry), Clock, new UserPermissionService(Registry, Repository), Shares, Profiles, History, Collaboration, WorkflowCatalog, new Lazy<AssignmentRuleEngine>(() => AssignmentRules!), new Lazy<NotificationRuleEngine>(() => NotificationRules!), new Lazy<WebhookService>(() => Webhooks!), new Lazy<FileService>(() => Files!), new Lazy<DocumentActionEngine>(() => DocumentActions!), new Lazy<ServerScriptEngine>(() => ServerScripts!), new Lazy<AppHookRunner>(() => AppHooks!), new FakeSecretProtector(), Realtime, ViewLog);
         ShareManager = new ShareManager(Registry, Repository, Documents, Permissions, Shares, History, Notifications);
         Activity = new ActivityService(Registry, Repository, Documents, Permissions, History, Collaboration);
         Assignments = new AssignmentService(Registry, Repository, Documents, Permissions, ShareManager, Notifications, Follows, History);
@@ -257,6 +258,7 @@ public sealed class TestEngine
     public NotificationService Notifications { get; }
     public FollowService Follows { get; }
     public RealtimeHub Realtime { get; }
+    public ViewLogService ViewLog { get; }
     public LabelService Labels { get; }
     public CollaborationHooks Collaboration { get; }
     public AssignmentService Assignments { get; }

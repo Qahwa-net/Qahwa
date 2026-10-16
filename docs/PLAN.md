@@ -565,7 +565,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Naming: hash, field, prompt, series | | ✅ | done |
 | Naming: format with date/field parts (`INV-{YYYY}-.####`), expression, naming rules, series manager | done: series, date and field parts, prompt, expression, rule tables, series manager (ADR-011, ADR-063, ADR-073) | ✅ | L6 |
 | Rename document (updates links), merge documents | done: rename with link updates and merge (ADR-011) | ✅ (v1) | L6 |
-| Duplicate document, track changes (versions), track seen, track views | duplicate (ADR-063) and track changes (ADR-014) done; not track seen or views | 🟡 | L7 |
+| Duplicate document, track changes (versions), track seen, track views | duplicate (ADR-063), track changes (ADR-014) and track views (ADR-080) done | ✅ | L7 |
 | Document options: title field, sort field/order, search fields, image field, quick entry, allow rename, allow import, allow copy, editable grid, max attachments, default view | | 🟡 | L1, L3 |
 | Customize Form (adjust standard DocTypes) | done (ADR-013) | ✅ (v1) | L3 |
 | Custom Field, Property Setter | done: stored as data, survive upgrades (ADR-013) | ✅ (v1) | L3 |
@@ -589,7 +589,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Assign (ToDo), Assignment Rules (round robin, load balancing, by field) | assign done (L7); rules done: round robin, load balancing, by field, conditions, withdraw condition; not yet working hours or leave | ✅ (v1) | L7, L8 |
 | Share (DocShare), Follow (Document Follow), Likes, Tags | share (ADR-008), follow (ADR-015), tags and likes (ADR-068) done | ✅ | L7 |
 | Attachments, File manager (folders, private/public, thumbnails) | done: attachments on documents (private, permission-checked, picture thumbnails); not yet folders, public files, a File Manager page | ✅ (v1) | L10 |
-| Deleted Documents (restore), View Log, Access Log, Activity Log | Deleted Documents done (ADR-067); View Log, Access Log not yet | 🟡 | L7 |
+| Deleted Documents (restore), View Log, Access Log, Activity Log | Deleted Documents (ADR-067) and View Log (ADR-080) done; Access Log (export/print audit) not yet | 🟡 | L7 |
 | Auto Repeat (recurring documents) | daily, weekly, monthly, quarterly, yearly; date fields; pause, run now, end date | ✅ (v1) | L8 |
 | Reminders, Events (calendar), Milestones | | 🔽 | L8 |
 

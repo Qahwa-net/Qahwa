@@ -280,6 +280,11 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
                     onChange={(e) => patch({ trackChanges: e.target.checked })} />
                   Keep an updates log (who changed what, and when)
                 </label>}
+                {!draft.isChildTable && !draft.isSingle && <label className="check-line">
+                  <input type="checkbox" checked={draft.trackViews} disabled={disabled}
+                    onChange={(e) => patch({ trackViews: e.target.checked })} />
+                  Keep a view log (who opened each document, shown to people who may change it)
+                </label>}
                 {!draft.isSingle && <StatusSettings draft={draft} disabled={disabled} patch={patch} />}
                 {!draft.isSingle && <label className="check-line">
                   <input type="checkbox" checked={draft.allowRename} disabled={disabled}

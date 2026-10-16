@@ -70,6 +70,10 @@ public static class CollaborationEndpoints
             return Results.Ok(new { data = await service.StateAsync(doctype, name, user, ct) });
         });
 
+        doc.MapGet("/viewers", async (
+            string doctype, string name, HttpContext http, IUserContextResolver users, ViewLogService service, CancellationToken ct) =>
+            Results.Ok(new { data = await service.ViewersAsync(doctype, name, await users.ResolveAsync(http, ct), ct) }));
+
         doc.MapGet("/tags", async (
             string doctype, string name, HttpContext http, IUserContextResolver users, LabelService service, CancellationToken ct) =>
             Results.Ok(new { data = await service.TagsAsync(doctype, name, await users.ResolveAsync(http, ct), ct) }));

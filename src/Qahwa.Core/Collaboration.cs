@@ -272,6 +272,7 @@ public sealed class CollaborationHooks(
         (AssignmentService.DocTypeName, "reference_doctype", "reference_name"),
         (FollowService.DocTypeName, "ref_doctype", "ref_docname"),
         (LabelService.TagDocType, "ref_doctype", "ref_docname"),
+        (ViewLogService.DocTypeName, "ref_doctype", "ref_docname"),
         (LabelService.LikeDocType, "ref_doctype", "ref_docname"),
         (NotificationService.DocTypeName, "document_type", "document_name"),
         (AutoRepeatService.DocTypeName, "reference_doctype", "reference_name"),
