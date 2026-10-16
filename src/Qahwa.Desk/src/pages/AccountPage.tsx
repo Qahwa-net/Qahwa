@@ -4,6 +4,7 @@ import { useAuth } from '../auth.tsx'
 import { isThemePref } from '../lib/theme.ts'
 import { useTheme } from '../theme.tsx'
 import { ApiKeysSection } from './ApiKeysSection.tsx'
+import { EmailDigestSection } from './EmailDigestSection.tsx'
 import { SessionsSection } from './SessionsSection.tsx'
 import { TwoFactorSection } from './TwoFactorSection.tsx'
 
@@ -74,6 +75,7 @@ export function AccountPage() {
         <button className="btn primary" type="submit" disabled={busy}>Change password</button>
       </form>
 
+      <EmailDigestSection />
       <SessionsSection />
       <TwoFactorSection />
       <ApiKeysSection />

@@ -303,3 +303,7 @@ See [Writing an app](08-writing-an-app.md). Code: `Apps.cs` (`IQahwaApp`, `IAppB
 ## Emailed reports ([ADR-071](../../adr/071-auto-email-reports.md))
 
 `AutoEmailReports.cs`: `AutoEmailReportService` (`CreateAsync`/`UpdateAsync`/`DeleteAsync`/`ListAsync`/`SendNowAsync`, all System Manager only; `RunDueAsync` claims each due row with a compare-and-swap on `modified`, moves `next_send` past now, then runs `ReportService.ExportAsync` as `run_as` (resolved with `NotificationService.ContextOfAsync`) and queues emails with `EmailService.EnqueueAsync`; `Format` builds the text table; `NextSlot` computes the schedule). Core DocType `auto_email_report.json`. `SchedulerService` calls `RunDueAsync` every tick. Endpoints in `AutoEmailReportEndpoints.cs`. Desk: `pages/EmailedReports.tsx`, `lib/emailedReports.ts` (address parsing and checks mirrored from the server), nav link under Tools.
+
+## Email digest ([ADR-072](../../adr/072-email-digest.md))
+
+`EmailDigest.cs`: `EmailDigestService` (`GetAsync`/`SetAsync` for the caller only, `RunDueAsync` claims each due row with a compare-and-swap, builds the text with the person's own `NotificationService.ListAsync` and `AssignmentService.MineAsync`, queues one email with `EmailService.EnqueueAsync`; reuses `AutoEmailReportService.NextSlot`). Core DocType `email_digest.json` (named after the person's email). `SchedulerService` calls `RunDueAsync` every tick. Endpoints `GET/PUT /api/email-digest` in `AutoEmailReportEndpoints.cs`. Desk: `EmailDigestSection` on the account page.

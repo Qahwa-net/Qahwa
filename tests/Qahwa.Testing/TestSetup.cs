@@ -139,6 +139,7 @@ public sealed class TestEngine
         EmailSender = new FakeEmailSender();
         Email = new EmailService(Registry, Repository, Documents, Permissions, History, EmailSender);
         AutoEmailReports = new AutoEmailReportService(Registry, Repository, Reports, Email, Notifications, Permissions, History);
+        EmailDigests = new EmailDigestService(Registry, Repository, Notifications, Assignments, Email, History);
         NotificationRules = new NotificationRuleEngine(NotificationRuleCatalog, Registry, Repository, Documents, Notifications, Follows, Email, Clock);
         NotificationRuleManager = new NotificationRuleManager(Registry, NotificationRuleStore, NotificationRuleCatalog, Repository, Permissions, Clock);
         AssignmentRuleManager = new AssignmentRuleManager(Registry, AssignmentRuleStore, AssignmentRuleCatalog, Repository, Permissions, Clock);
@@ -246,6 +247,7 @@ public sealed class TestEngine
     public FileService Files { get; }
     public EmailService Email { get; }
     public AutoEmailReportService AutoEmailReports { get; }
+    public EmailDigestService EmailDigests { get; }
     public NotificationRuleManager NotificationRuleManager { get; }
     public ProfileService Profiles { get; }
     public HistoryRecorder History { get; }

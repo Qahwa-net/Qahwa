@@ -279,6 +279,14 @@ export interface NotificationItem {
   at: string
 }
 
+export interface EmailDigest {
+  enabled: boolean
+  frequency: 'Daily' | 'Weekly'
+  sendHour: number
+  nextSend: string | null
+  lastSent: string | null
+}
+
 export interface LikeState {
   liked: boolean
   count: number

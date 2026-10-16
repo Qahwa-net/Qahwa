@@ -59,6 +59,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 55. [Text fields](55-text-fields.md)
 56. [Live updates](56-live-updates.md)
 57. [Emailed reports](57-emailed-reports.md)
+58. [Email digest](58-email-digest.md)
 
 **Words used**
 

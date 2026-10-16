@@ -6,7 +6,7 @@ using Qahwa.Core;
 /// code that is safe to run on several servers at once, so no leader election is needed. Turn it off with
 /// <c>Qahwa:Scheduler:Enabled = false</c>; change the pace with <c>Qahwa:Scheduler:IntervalSeconds</c> (10 to 3600, default 300).
 /// </summary>
-public sealed class SchedulerService(AutoRepeatService autoRepeat, NotificationRuleEngine notificationRules, EmailService email, WebhookService webhooks, ErrorLogService errorLog, BackupService backup, BackupOptions backupOptions, AppJobRunner appJobs, DeletedDocumentService deletedDocuments, AutoEmailReportService emailedReports, IConfiguration configuration, ILogger<SchedulerService> logger) : BackgroundService
+public sealed class SchedulerService(AutoRepeatService autoRepeat, NotificationRuleEngine notificationRules, EmailService email, WebhookService webhooks, ErrorLogService errorLog, BackupService backup, BackupOptions backupOptions, AppJobRunner appJobs, DeletedDocumentService deletedDocuments, AutoEmailReportService emailedReports, EmailDigestService digests, IConfiguration configuration, ILogger<SchedulerService> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -45,6 +45,18 @@ public sealed class SchedulerService(AutoRepeatService autoRepeat, NotificationR
             {
                 logger.LogError(ex, "The scheduler could not send emailed reports.");
                 await errorLog.RecordAsync("Scheduler", null, "The scheduler could not send emailed reports.", null, ex);
+            }
+
+            try
+            {
+                var (digestsSent, _) = await digests.RunDueAsync(stoppingToken);
+                if (digestsSent > 0)
+                    logger.LogInformation("Email digests: {Sent} sent.", digestsSent);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.LogError(ex, "The scheduler could not send email digests.");
+                await errorLog.RecordAsync("Scheduler", null, "The scheduler could not send email digests.", null, ex);
             }
 
             try

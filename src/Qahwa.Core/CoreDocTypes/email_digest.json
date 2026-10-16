@@ -1,0 +1,17 @@
+{
+  "name": "Email Digest",
+  "module": "Core",
+  "autoname": "field:user",
+  "trackChanges": false,
+  "fields": [
+    { "name": "user", "type": "Data", "label": "User", "required": true, "unique": true, "inListView": true },
+    { "name": "enabled", "type": "Check", "label": "Enabled", "indexed": true, "inListView": true },
+    { "name": "frequency", "type": "Select", "options": "Daily\nWeekly", "default": "Daily", "label": "Frequency" },
+    { "name": "send_hour", "type": "Int", "label": "Hour (UTC)" },
+    { "name": "next_send", "type": "Datetime", "label": "Next send", "indexed": true },
+    { "name": "last_sent", "type": "Datetime", "label": "Last sent" }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true }
+  ]
+}

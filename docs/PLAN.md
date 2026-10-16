@@ -602,7 +602,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Notification rules (on new, save, submit, value change, days before/after, custom condition) | done for the in-app channel; email, Slack and SMS channels not yet | ✅ (v1) | L8 |
 | Email Template, Email Account (SMTP out, IMAP/POP in), Email Queue, Email Domain | Email Template and Email Queue done; SMTP out is configured in settings (no Email Account DocType yet); incoming mail not yet | 🔽 | L8 |
 | Communication (email threads on documents), send email from a document | send from a document done; threads not yet | 🔽 | L8 |
-| Notification Log (bell icon), Email Digest | bell and log done (ADR-015); not email digest | 🟡 | L8 |
+| Notification Log (bell icon), Email Digest | bell and log done (ADR-015); Email Digest done (ADR-072) | ✅ | L8 |
 | Scheduled Job Types (cron, hourly, daily, weekly, monthly), Scheduler UI and logs | background scheduler loop exists (auto repeat); job types, UI and logs not yet | 🔽 | L8 |
 | Background jobs and queues (short, default, long), job UI | | ⬜ | L8 |
 | Webhooks (outgoing, conditions, signed) | done: events, conditions, signing, retries, SSRF-safe; not yet custom headers, test button | ✅ (v1) | L10 |

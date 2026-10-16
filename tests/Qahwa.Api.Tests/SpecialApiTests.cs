@@ -274,6 +274,28 @@ public sealed class SpecialApiTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task A_person_manages_only_their_own_email_digest()
+    {
+        var ann = _factory.ClientFor("ann@example.com", "Sales Manager");
+        var bob = _factory.ClientFor("bob@example.com", "Sales Manager");
+
+        var start = (await JsonOf(await ann.GetAsync("/api/email-digest"))).GetProperty("data");
+        Assert.False(start.GetProperty("enabled").GetBoolean());
+
+        var set = await ann.PutAsJsonAsync("/api/email-digest", new { enabled = true, frequency = "Weekly", sendHour = 9 });
+        Assert.Equal(HttpStatusCode.OK, set.StatusCode);
+        var data = (await JsonOf(set)).GetProperty("data");
+        Assert.True(data.GetProperty("enabled").GetBoolean());
+        Assert.Equal("Weekly", data.GetProperty("frequency").GetString());
+        Assert.Equal(9, data.GetProperty("sendHour").GetInt32());
+        Assert.False((await JsonOf(await bob.GetAsync("/api/email-digest"))).GetProperty("data").GetProperty("enabled").GetBoolean());
+
+        Assert.Equal(HttpStatusCode.BadRequest, (await ann.PutAsJsonAsync("/api/email-digest", new { frequency = "Hourly" })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await ann.PutAsJsonAsync("/api/email-digest", new { sendHour = 30 })).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateClient().GetAsync("/api/email-digest")).StatusCode);
+    }
+
+    [Fact]
     public async Task Bulk_rename_over_the_api_reports_each_document()
     {
         await CreateDocTypeAsync(new

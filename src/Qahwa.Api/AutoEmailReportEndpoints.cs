@@ -33,6 +33,12 @@ public static class AutoEmailReportEndpoints
         group.MapPost("/{id}/send", async (string id, HttpContext http, IUserContextResolver users, AutoEmailReportService service, CancellationToken ct) =>
             Results.Ok(new { data = new { queued = await service.SendNowAsync(id, await users.ResolveAsync(http, ct), ct) } }));
 
+        app.MapGet("/api/email-digest", async (HttpContext http, IUserContextResolver users, EmailDigestService digests, CancellationToken ct) =>
+            Results.Ok(new { data = await digests.GetAsync(await users.ResolveAsync(http, ct), ct) }));
+
+        app.MapPut("/api/email-digest", async (EmailDigestRequest body, HttpContext http, IUserContextResolver users, EmailDigestService digests, CancellationToken ct) =>
+            Results.Ok(new { data = await digests.SetAsync(await users.ResolveAsync(http, ct), body, ct) }));
+
         return app;
     }
 }
