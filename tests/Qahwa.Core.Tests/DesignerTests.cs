@@ -288,7 +288,7 @@ public class DesignerTests
 
         Assert.Equal(Enum.GetValues<FieldType>().Order(), types.Order());
         Assert.All(FieldTypeCatalog.All.Where(i => !i.Supported), i => Assert.NotNull(i.UnsupportedReason));
-        Assert.False(FieldTypeCatalog.IsSupported(FieldType.Attach));
+        Assert.False(FieldTypeCatalog.IsSupported(FieldType.Password));
         Assert.True(FieldTypeCatalog.IsSupported(FieldType.Table));
         Assert.True(FieldTypeCatalog.IsSupported(FieldType.Currency));
     }
