@@ -713,3 +713,8 @@ kbd { font: .75rem ui-monospace, Consolas, monospace; padding: .05rem .35rem; bo
 .icon-picker { display: flex; flex-wrap: wrap; gap: .3rem; }
 .icon-choice { display: inline-grid; place-items: center; inline-size: 2.2rem; block-size: 2.2rem; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; cursor: pointer; color: inherit; }
 .icon-choice.on { background: var(--brand); color: var(--brand-text, #fff); border-color: var(--brand); }
+
+/* Search box */
+.palette-list { list-style: none; margin: .5rem 0 0; padding: 0; max-block-size: 50vh; overflow-y: auto; }
+.palette-list li { display: flex; justify-content: space-between; gap: 1rem; padding: .5rem .75rem; border-radius: var(--radius); cursor: pointer; }
+.palette-list li.on { background: var(--accent-soft); }

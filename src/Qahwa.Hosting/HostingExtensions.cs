@@ -162,6 +162,7 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<TranslationService>();
         services.TryAddSingleton<HitCounter>();
         services.TryAddSingleton<ErrorLogService>();
+        services.TryAddSingleton<GlobalSearchService>();
         services.TryAddSingleton<DocumentActionEngine>();
         services.TryAddSingleton(sp => new Lazy<DocumentActionEngine>(() => sp.GetRequiredService<DocumentActionEngine>()));
         services.TryAddSingleton<ClientScriptService>();

@@ -21,6 +21,23 @@ public static class QahwaEndpoints
                 data = (await docs.ListMetasAsync(await users.ResolveAsync(http, ct), ct)).Select(m => new { m.Name, m.Module, m.TitleField }),
             }));
 
+        // The search box: DocTypes and documents the person may see that match the text.
+        api.MapGet("/search", async (string? q, HttpContext http, GlobalSearchService search, IUserContextResolver users, CancellationToken ct) =>
+        {
+            var user = await users.ResolveAsync(http, ct);
+            if (!user.IsAuthenticated)
+                throw new UnauthenticatedException();
+            var found = await search.SearchAsync(q, user, ct);
+            return Results.Ok(new
+            {
+                data = new
+                {
+                    doctypes = found.DocTypes.Select(d => new { name = d.Name, module = d.Module, can_create = d.CanCreate }),
+                    documents = found.Documents.Select(h => new { doctype = h.DocType, name = h.Name, title = h.Title }),
+                },
+            });
+        });
+
         api.MapGet("/meta/{doctype}", async (
             string doctype, HttpContext http, DocumentService docs, IUserContextResolver users, CancellationToken ct) =>
         {

@@ -51,6 +51,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 47. [Client Scripts](47-client-scripts.md)
 48. [Signing in with SAML](48-saml-sign-in.md)
 49. [Using SQL Server](49-sql-server.md)
+50. [The search box](50-search-box.md)
 
 **Words used**
 

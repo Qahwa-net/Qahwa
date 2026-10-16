@@ -156,4 +156,21 @@ public class DatabaseBehaviourTests(PostgresFixture postgres) : IClassFixture<Po
         Assert.Equal(["5", "10"], await Prices(new RawFilter("seen", "between", new[] { "2026-03-10", "2026-03-10" })));
         Assert.Equal(["10", "20"], await Prices(new RawFilter("price", "between", new object[] { 10, 20 })));
     }
+
+    [SkippableFact]
+    public async Task The_search_box_looks_for_pattern_characters_literally()
+    {
+        await using var db = await StackAsync();
+        await db.Documents.InsertAsync("Gadget", Values(("title", "x[a-z]y")), Clerk);
+        await db.Documents.InsertAsync("Gadget", Values(("title", "xqy")), Clerk);
+        await db.Documents.InsertAsync("Gadget", Values(("title", "50% off_now")), Clerk);
+
+        async Task<string[]> Find(string typed) =>
+            (await db.Documents.ListAsync("Gadget", new ListRequest { Filters = [new RawFilter("title", "like", "%" + GlobalSearchService.Literal(typed) + "%")], Fields = ["title"], OrderBy = "title", Descending = false }, Clerk)).Data.Select(r => (string)r["title"]!).ToArray();
+
+        Assert.Equal(["x[a-z]y"], await Find("[a-z]"));
+        Assert.Equal(["50% off_now"], await Find("%"));
+        Assert.Equal(["50% off_now"], await Find("_"));
+        Assert.Equal(["50% off_now"], await Find("off_n"));
+    }
 }

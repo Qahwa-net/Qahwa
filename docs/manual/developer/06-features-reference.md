@@ -263,3 +263,7 @@ Server: `ClientScripts.cs` (`ClientScriptService.ForAsync`, `Check`; Core DocTyp
 ## More filter operators ([ADR-060](../../adr/060-more-filter-operators.md))
 
 `FilterExpansion.cs` (`Expand`, `Dynamic`, `Span`, `Timespans`); `FilterOp.NotLike`/`NotIn` in `Querying.cs`, built in `SqlBuilder` (null-inclusive) and `InMemoryDocumentRepository`; `DocumentService.Normalize` expands and converts each filter; `ISqlDialect.LikeEscape`. Desk: `lib/filters.ts` (`TIMESPANS`, encode/decode), `lib/fields.ts` (`operatorsFor`), `controls/FilterBar.tsx`. Tests: `FilterOperatorTests`, `DatabaseBehaviourTests` (both databases), `lib/filters.test.ts`.
+
+## The search box ([ADR-061](../../adr/061-global-search.md))
+
+`GlobalSearch.cs` (`GlobalSearchService.SearchAsync`, `Literal`); `GET /api/search` in `QahwaEndpoints.cs`. The in-memory test repository now reads LIKE patterns with backslash escapes like the real databases. Desk: `lib/search.ts` (`pageItems`, `paletteItems`, `score`), `shell/CommandPalette.tsx`, Ctrl+K in `Shell.tsx`. To make a page appear in the box, add it to `pageItems`. Tests: `GlobalSearchTests`, `SearchApiTests`, `DatabaseBehaviourTests` (literal patterns on both databases), `lib/search.test.ts`.

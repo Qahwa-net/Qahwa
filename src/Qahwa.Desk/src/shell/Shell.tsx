@@ -8,6 +8,7 @@ import { useI18n } from '../i18n.tsx'
 import { setDisplaySettings } from '../lib/display.ts'
 import { LanguageSwitcher } from './LanguageSwitcher.tsx'
 import { NotificationBell } from './NotificationBell.tsx'
+import { CommandPalette } from './CommandPalette.tsx'
 import { ThemeToggle } from './ThemeToggle.tsx'
 import { useTheme } from '../theme.tsx'
 
@@ -29,6 +30,19 @@ export function Shell() {
   const defaultLanguage = settings.data?.defaultLanguage
   useEffect(() => { if (defaultLanguage) applyDefault(defaultLanguage) }, [defaultLanguage, applyDefault])
   const [open, setOpen] = useState(false)
+  const [searching, setSearching] = useState(false)
+
+  // Ctrl+K (or ⌘K) opens the search box from anywhere.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault()
+        setSearching(true)
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
   const location = useLocation()
   const metas = useQuery({ queryKey: ['metas'], queryFn: api.metas })
   const groups = useMemo(() => groupByModule(metas.data ?? []), [metas.data])
@@ -49,6 +63,7 @@ export function Shell() {
           onClick={() => setOpen(!open)}>☰</button>
         <Link to="/" className="brand">{brand.logo && <img src={brand.logo} alt="" className="brand-logo" />}<span>{brand.name}</span></Link>
         <span className="spacer" />
+        <button type="button" className="btn" aria-label="Search (Ctrl+K)" title="Search (Ctrl+K)" onClick={() => setSearching(true)}>🔍 <span className="btn-label">Search</span></button>
         <LanguageSwitcher />
         <ThemeToggle />
         <NotificationBell />
@@ -105,6 +120,7 @@ export function Shell() {
       <main className="content">
         <Outlet key={settings.dataUpdatedAt} />
       </main>
+      {searching && <CommandPalette metas={metas.data ?? []} canDesign={canDesign} isAdministrator={Boolean(user?.roles.includes('Administrator'))} onClose={() => setSearching(false)} />}
     </div>
   )
 }

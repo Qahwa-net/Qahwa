@@ -285,6 +285,26 @@ public sealed class InMemoryDocumentRepository : IDocumentRepository
     private IEnumerable<Dictionary<string, object?>> Filter(DocTypeMeta meta, ListQuery query) =>
         Table(meta).Values.Where(row => query.Filters.All(f => Matches(row.GetValueOrDefault(f.Field), f, row.GetValueOrDefault("name") as string)));
 
+    /// <summary>A LIKE pattern as the real databases read it: % and _ are wildcards and a backslash makes the next character literal.</summary>
+    private static string LikeToRegex(string pattern)
+    {
+        var sb = new System.Text.StringBuilder("^");
+        for (var i = 0; i < pattern.Length; i++)
+        {
+            var c = pattern[i];
+            if (c == '\\' && i + 1 < pattern.Length)
+                sb.Append(Regex.Escape(pattern[++i].ToString()));
+            else if (c == '%')
+                sb.Append(".*");
+            else if (c == '_')
+                sb.Append('.');
+            else
+                sb.Append(Regex.Escape(c.ToString()));
+        }
+
+        return sb.Append('$').ToString();
+    }
+
     private static bool Matches(object? actual, QueryFilter filter, string? name = null)
     {
         switch (filter.Op)
@@ -296,11 +316,9 @@ public sealed class InMemoryDocumentRepository : IDocumentRepository
             case FilterOp.In: return (filter.Value as IEnumerable<object?> ?? []).Any(v => Equals(v, actual));
             case FilterOp.NotIn: return actual is null || !(filter.Value as IEnumerable<object?> ?? []).Any(v => Equals(v, actual));
             case FilterOp.NotLike:
-                var notPattern = "^" + Regex.Escape((string)filter.Value!).Replace("%", ".*").Replace("_", ".") + "$";
-                return actual is not string t || !Regex.IsMatch(t, notPattern, RegexOptions.IgnoreCase | RegexOptions.Singleline);
+                return actual is not string t || !Regex.IsMatch(t, LikeToRegex((string)filter.Value!), RegexOptions.IgnoreCase | RegexOptions.Singleline);
             case FilterOp.Like:
-                var pattern = "^" + Regex.Escape((string)filter.Value!).Replace("%", ".*").Replace("_", ".") + "$";
-                return actual is string s && Regex.IsMatch(s, pattern, RegexOptions.IgnoreCase | RegexOptions.Singleline);
+                return actual is string s && Regex.IsMatch(s, LikeToRegex((string)filter.Value!), RegexOptions.IgnoreCase | RegexOptions.Singleline);
         }
 
         if (actual is null)

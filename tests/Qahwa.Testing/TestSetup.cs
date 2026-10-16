@@ -152,6 +152,7 @@ public sealed class TestEngine
         Sso = new SsoService(Options.Create(SsoOptions), IdentityProvider, IdentityStore, Auth, protector, Clock);
         TwoFactor = new TwoFactorService(TotpStore, protector, AuthStore, Options.Create(AuthOptions), Clock);
         Sessions = new SessionService(new InMemorySessionStore(), Options.Create(AuthOptions), Clock);
+        GlobalSearch = new GlobalSearchService(Documents, Permissions, new HitCounter(Clock));
         SamlIdp = new FakeSamlIdp();
         SamlOptions = new SamlOptions { Providers = { ["saml"] = new SamlProvider { DisplayName = "Company SAML", IdpEntityId = FakeSamlIdp.EntityId, SsoUrl = FakeSamlIdp.SsoUrl, Certificates = [SamlIdp.CertificateText] } } };
         Saml = new SamlService(Options.Create(SamlOptions), IdentityStore, Auth, protector, Clock);
@@ -201,6 +202,7 @@ public sealed class TestEngine
     public InMemoryIdentityStore IdentityStore { get; }
     public SsoOptions SsoOptions { get; }
     public SsoService Sso { get; }
+    public GlobalSearchService GlobalSearch { get; }
     public FakeSamlIdp SamlIdp { get; }
     public SamlOptions SamlOptions { get; }
     public SamlService Saml { get; }
