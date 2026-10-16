@@ -31,7 +31,8 @@ public sealed partial class DocumentService(
     Lazy<AppHookRunner>? appHooks = null,
     ISecretProtector? secrets = null,
     IRealtimePublisher? realtime = null,
-    ViewLogService? viewLog = null)
+    ViewLogService? viewLog = null,
+    AccessLogService? accessLog = null)
 {
     private readonly DocumentLogic _logic = new(registry, repository, permissions, clock);
 

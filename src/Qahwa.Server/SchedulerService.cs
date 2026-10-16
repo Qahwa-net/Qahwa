@@ -9,7 +9,7 @@ using Qahwa.Core;
 /// </summary>
 public sealed class SchedulerService(
     AutoRepeatService autoRepeat, NotificationRuleEngine notificationRules, EmailService email, WebhookService webhooks, ErrorLogService errorLog,
-    BackupService backup, BackupOptions backupOptions, AppJobRunner appJobs, DeletedDocumentService deletedDocuments, AutoEmailReportService emailedReports,
+    BackupService backup, BackupOptions backupOptions, AppJobRunner appJobs, DeletedDocumentService deletedDocuments, AccessLogService accessLog, AutoEmailReportService emailedReports,
     EmailDigestService digests, JobLogService jobLog, IConfiguration configuration, ILogger<SchedulerService> logger) : BackgroundService
 {
     /// <summary>
@@ -102,6 +102,8 @@ public sealed class SchedulerService(
                     var copies = await deletedDocuments.PurgeAsync(TimeSpan.FromDays(days), stoppingToken);
                     var logDays = Math.Clamp(configuration.GetValue("Qahwa:JobLog:RetentionDays", JobLogService.DefaultRetentionDays), 1, 3650);
                     await jobLog.PurgeAsync(TimeSpan.FromDays(logDays), stoppingToken);
+                    var accessDays = Math.Clamp(configuration.GetValue("Qahwa:AccessLog:RetentionDays", AccessLogService.DefaultRetentionDays), 1, 3650);
+                    await accessLog.PurgeAsync(TimeSpan.FromDays(accessDays), stoppingToken);
                     return copies > 0 ? $"Removed {copies} old copy(ies) of deleted documents." : null;
                 }, stoppingToken);
             }

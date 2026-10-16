@@ -339,3 +339,7 @@ Core DocTypes `contact.json`, `address.json`, `dynamic_link.json` (module "Conta
 ## View Log ([ADR-080](../../adr/080-view-log.md))
 
 `ViewLog.cs`: `ViewLogService` (`RecordAsync` throttled and never throwing, called by `DocumentService.GetAsync`; `ViewersAsync` needs write). `DocTypeMeta.TrackViews`, Core DocType `view_log.json`, listed in `CollaborationHooks.Tables`. Endpoint `GET .../viewers` in `CollaborationEndpoints.cs`. Desk: designer checkbox, "Seen by" card in `DocRail`. Tests: `ViewLogTests`.
+
+## Access Log ([ADR-081](../../adr/081-access-log.md))
+
+`AccessLog.cs`: `AccessLogService` (`RecordAsync` never throws; `PurgeAsync`). Called by `DocumentService.ExportAsync` (after the read) and `PrintService.RenderAsync`. Core DocType `access_log.json`; retention `Qahwa:AccessLog:RetentionDays` in `SchedulerService`'s clean-up. Tests: `AccessLogTests`.

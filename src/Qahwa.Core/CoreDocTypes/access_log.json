@@ -1,0 +1,15 @@
+{
+  "name": "Access Log",
+  "module": "Core",
+  "trackChanges": false,
+  "fields": [
+    { "name": "user", "type": "Data", "label": "User", "readOnly": true, "indexed": true, "inListView": true },
+    { "name": "action", "type": "Select", "options": "Export\nPrint", "label": "What", "readOnly": true, "indexed": true, "inListView": true },
+    { "name": "ref_doctype", "type": "Data", "label": "DocType", "readOnly": true, "indexed": true, "inListView": true },
+    { "name": "ref_docname", "type": "Data", "label": "Document", "readOnly": true, "inListView": true },
+    { "name": "rows", "type": "Int", "label": "Rows", "readOnly": true }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "delete": true }
+  ]
+}

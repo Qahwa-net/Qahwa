@@ -35,7 +35,8 @@ public sealed partial class PrintService(
     IDocumentRepository repository,
     DocumentService documents,
     PermissionService permissions,
-    HistoryRecorder history)
+    HistoryRecorder history,
+    AccessLogService? accessLog = null)
 {
     public const string FormatDocType = "Print Format";
     public const string LetterHeadDocType = "Letter Head";
@@ -108,6 +109,8 @@ public sealed partial class PrintService(
         }
 
         var head = await LetterHeadAsync(letterHead, formatRow?["letter_head"] as string, ct);
+        if (accessLog is not null)
+            await accessLog.RecordAsync("Print", doctype, name, 1, user, ct);
         return Wrap(meta, name, formatRow is null ? AutoLayout(meta, doc) : FillIn((string)formatRow["html"]!, meta, name, doc, user), head);
     }
 

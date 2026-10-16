@@ -336,6 +336,8 @@ public sealed partial class DocumentService
             throw new DocumentValidationException([new FieldError("fields", "Password fields cannot be exported.")]);
 
         var (rows, truncated) = await ReadAllAsync(doctype, request with { Fields = columns }, user, ct);
+        if (accessLog is not null)
+            await accessLog.RecordAsync("Export", meta.Name, null, rows.Count, user, ct);
         return new ExportResult(columns, rows, truncated);
     }
 
