@@ -147,6 +147,16 @@ public static class FieldValueConverter
         var text = raw as string ?? System.Convert.ToString(raw, inv) ?? string.Empty;
         switch (type)
         {
+            case FieldType.Phone:
+            {
+                // A number as people write it: an optional + (the country code), then digits with spaces, dashes, dots or brackets.
+                var phone = text.Trim();
+                var body = phone.StartsWith('+') ? phone[1..] : phone;
+                var digits = body.Count(char.IsAsciiDigit);
+                if (phone.Length > 0 && (phone.Length > 25 || digits is < 4 or > 15 || body.Any(c => !(char.IsAsciiDigit(c) || c is ' ' or '-' or '.' or '(' or ')'))))
+                    throw new FormatException("Value must be a phone number, such as +966 50 123 4567.");
+                return phone;
+            }
             case FieldType.SmallText when text.Length > MaxSmallTextCharacters:
                 throw new FormatException($"Value must be at most {MaxSmallTextCharacters} characters.");
             case FieldType.TextEditor:

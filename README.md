@@ -47,6 +47,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **Attachment and image fields**: a form field that names a file attached to the same document, validated on save, with picture preview ([ADR-048](docs/adr/048-attach-and-image-fields.md))
 - **Gallery, map and timeline views**: pictures as tiles, places on a plain grid (no outside map service), documents as bars between two dates ([ADR-049](docs/adr/049-gallery-map-and-timeline-views.md))
 - **Light, dark and automatic themes and a brand**: per-person theme, organisation name, logo, colours and default theme, all checked as plain data, readable colours guaranteed ([ADR-056](docs/adr/056-brand-and-theme.md))
+- **Phone validation**: Phone fields accept only real-looking numbers ([ADR-079](docs/adr/079-phone-validation.md))
 - **Table multi-select**: a Table field of one Link field shown as chips, each value once ([ADR-078](docs/adr/078-table-multiselect.md))
 - **Contacts and addresses**: framework DocTypes linked to any document by Dynamic Link, which is now validated ([ADR-077](docs/adr/077-contacts-and-addresses.md))
 - **Table rows as CSV**: download and upload the rows of any child table, formula-safe ([ADR-076](docs/adr/076-table-csv.md))

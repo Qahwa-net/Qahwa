@@ -331,3 +331,7 @@ Core DocTypes `contact.json`, `address.json`, `dynamic_link.json` (module "Conta
 ## Table multi-select ([ADR-078](../../adr/078-table-multiselect.md))
 
 `DocFieldMeta.MultiSelect`; `DocTypeMetaExtensions.MultiSelectLink` (the one-Link rule), `MetaRegistry.CheckReferences` (reports a child that does not fit), `DocumentService.ValidateTableAsync` (each value once), `DocTypeLoader` (only Table fields). Desk: `chipField`/`chipValues`/`addChip`/`removeChip` in `lib/tables.ts`, the chip view in `TableControl`, a checkbox in the designer's `FieldCard`. Tests: `MultiSelectTests`, `tablesChips.test.ts`.
+
+## Phone validation ([ADR-079](../../adr/079-phone-validation.md))
+
+`FieldValueConverter.Convert`, case `FieldType.Phone` (optional `+`, digits and ` -.()`, 4 to 15 digits, at most 25 characters). Tests: `PhoneFieldTests`.
