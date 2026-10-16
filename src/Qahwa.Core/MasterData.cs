@@ -28,7 +28,7 @@ public sealed class MasterDataPatch : IPatch
     private static readonly string[] Salutations = ["Mr", "Mrs", "Ms", "Miss", "Dr", "Prof", "Eng"];
     private static readonly string[] Genders = ["Male", "Female", "Other", "Prefer not to say"];
 
-    private sealed record CountryRow(string Code, string Name, string Currency);
+    private sealed record CountryRow(string Code, string Name, string Currency, string? DialCode = null);
 
     private sealed record CurrencyRow(string Code, string Name, string Symbol);
 
@@ -44,6 +44,9 @@ public sealed class MasterDataPatch : IPatch
 
     /// <summary>Text without the invisible direction marks some systems put around symbols.</summary>
     private static string Clean(string text) => new string(text.Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.Format && !char.IsControl(c)).ToArray()).Trim();
+
+    internal static IReadOnlyDictionary<string, string> DialCodes() =>
+        Load<CountryRow>("countries.json").Where(c => !string.IsNullOrEmpty(c.DialCode)).ToDictionary(c => Clean(c.Name), c => c.DialCode!, StringComparer.Ordinal);
 
     public async Task RunAsync(IServiceProvider services, CancellationToken ct = default)
     {
@@ -64,12 +67,31 @@ public sealed class MasterDataPatch : IPatch
         foreach (var c in Load<CurrencyRow>("currencies.json"))
             await AddAsync("Currency", c.Code, new() { ["currency_code"] = c.Code, ["currency_name"] = Clean(c.Name), ["symbol"] = Clean(c.Symbol), ["enabled"] = true });
         foreach (var c in Load<CountryRow>("countries.json"))
-            await AddAsync("Country", Clean(c.Name), new() { ["country_name"] = Clean(c.Name), ["code"] = c.Code, ["currency"] = c.Currency });
+            await AddAsync("Country", Clean(c.Name), new() { ["country_name"] = Clean(c.Name), ["code"] = c.Code, ["dial_code"] = string.IsNullOrEmpty(c.DialCode) ? null : c.DialCode, ["currency"] = c.Currency });
         foreach (var (code, name, rtl) in Languages)
             await AddAsync("Language", code, new() { ["language_code"] = code, ["language_name"] = name, ["is_rtl"] = rtl });
         foreach (var s in Salutations)
             await AddAsync("Salutation", s, new() { ["salutation"] = s });
         foreach (var g in Genders)
             await AddAsync("Gender", g, new() { ["gender"] = g });
+    }
+}
+
+/// <summary>Adds the dialling code to countries that were seeded before the field existed. Codes already set are left alone.</summary>
+public sealed class CountryDialCodePatch : IPatch
+{
+    public string Name => "2026_10_country_dial_codes";
+
+    public async Task RunAsync(IServiceProvider services, CancellationToken ct = default)
+    {
+        var repository = services.GetRequiredService<IDocumentRepository>();
+        var meta = services.GetRequiredService<IMetaRegistry>().Get("Country");
+        foreach (var (name, code) in MasterDataPatch.DialCodes())
+        {
+            var row = await repository.GetAsync(meta, name, ct);
+            if (row is null || row.GetValueOrDefault("dial_code") is string { Length: > 0 })
+                continue;
+            await repository.UpdateAsync(meta, name, new Dictionary<string, object?> { ["dial_code"] = code, ["modified"] = DateTime.UtcNow }, null, null, ct);
+        }
     }
 }

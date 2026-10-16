@@ -91,4 +91,23 @@ public class MasterDataTests
         Assert.DoesNotContain(UserContext.AdministratorRole, session.User.Roles);
         Assert.Contains("Clerk", session.User.Roles);
     }
+
+    [Fact]
+    public async Task Countries_have_dialling_codes_and_older_rows_get_them_from_a_patch_without_overwriting()
+    {
+        await SeedAsync();
+        var saudi = await _engine.Documents.GetAsync("Country", "Saudi Arabia", Ann);
+        Assert.Equal("966", saudi["dial_code"]);
+        Assert.Equal("1", (await _engine.Documents.GetAsync("Country", "United States", Ann))["dial_code"]);
+
+        // A country seeded before the field existed (no code) and one an administrator changed on purpose.
+        var countries = _engine.Registry.Get("Country");
+        await _engine.Repository.UpdateAsync(countries, "France", new Dictionary<string, object?> { ["dial_code"] = null }, null);
+        await _engine.Repository.UpdateAsync(countries, "Germany", new Dictionary<string, object?> { ["dial_code"] = "999" }, null);
+
+        await new CountryDialCodePatch().RunAsync(Services());
+
+        Assert.Equal("33", (await _engine.Documents.GetAsync("Country", "France", Ann))["dial_code"]);
+        Assert.Equal("999", (await _engine.Documents.GetAsync("Country", "Germany", Ann))["dial_code"]);
+    }
 }

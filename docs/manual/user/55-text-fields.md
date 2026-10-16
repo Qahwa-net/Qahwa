@@ -4,6 +4,8 @@
 - **Autocomplete**: a one-line box that suggests values as you type. You can still type anything that is not suggested.
 - **Text Editor**: formatted text. Use the buttons above the box for **bold**, *italic*, underline, bulleted and numbered lists and links (a link must start with `https://`, `http://`, `mailto:` or `tel:`). Pasting always pastes plain text. Pictures, colours and fonts are not supported, and anything unsafe in what you type or paste is removed when you save.
 
+- **Phone**: type the number, or pick a country first to put its dialling code in front (+966 …). Numbers may hold digits, spaces, dashes, dots and brackets.
+
 In lists and on printouts a Text Editor field shows as plain text.
 
 Administrators add these types in the DocType designer. For Autocomplete, write the suggestions in the **Choices** box, one per line.

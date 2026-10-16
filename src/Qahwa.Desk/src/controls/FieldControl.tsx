@@ -6,6 +6,7 @@ import { isEditable, labelOf, selectOptions } from '../lib/fields.ts'
 import type { FieldState } from '../lib/logic.ts'
 import { LinkSelect } from './LinkSelect.tsx'
 import { AttachInput, ColorInput, DurationInput, GeolocationInput, IconInput, RatingInput, SignatureInput } from './SpecialInputs.tsx'
+import { PhoneInput } from './PhoneInput.tsx'
 import { RichTextInput } from './RichTextInput.tsx'
 
 export type InputValue = string | boolean
@@ -73,6 +74,7 @@ export function FieldInput(props: InputProps) {
     case 'Signature': return <SignatureInput id={id} ariaLabel={ariaLabel} value={value} readOnly={readOnly} invalid={invalid} onChange={onChange} />
     case 'Password':
       return <input {...common} type="password" maxLength={1000} autoComplete="new-password" value={text} onChange={(e) => onChange(e.target.value)} />
+    case 'Phone': return <PhoneInput id={id} ariaLabel={ariaLabel} value={text} readOnly={readOnly} invalid={invalid} onChange={onChange} />
     case 'TextEditor': return <RichTextInput id={id ?? ""} ariaLabel={ariaLabel} value={text} readOnly={readOnly} invalid={invalid} onChange={onChange} />
     case 'SmallText':
       return <textarea {...common} rows={2} maxLength={5000} value={text} onChange={(e) => onChange(e.target.value)} />

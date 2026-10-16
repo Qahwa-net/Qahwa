@@ -53,6 +53,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **Per-role import, share, print and email rights**: four more permission switches that only take access away ([ADR-082](docs/adr/082-import-share-print-email-rights.md))
 - **Access Log**: an audit of exports and printouts ([ADR-081](docs/adr/081-access-log.md))
 - **View log**: optional "seen by" for a DocType, visible to people who may change the document ([ADR-080](docs/adr/080-view-log.md))
+- **Phone country picker**: dialling codes for all countries and a country list in the Phone field ([ADR-087](docs/adr/087-phone-country-picker.md))
 - **Phone validation**: Phone fields accept only real-looking numbers ([ADR-079](docs/adr/079-phone-validation.md))
 - **Table multi-select**: a Table field of one Link field shown as chips, each value once ([ADR-078](docs/adr/078-table-multiselect.md))
 - **Contacts and addresses**: framework DocTypes linked to any document by Dynamic Link, which is now validated ([ADR-077](docs/adr/077-contacts-and-addresses.md))

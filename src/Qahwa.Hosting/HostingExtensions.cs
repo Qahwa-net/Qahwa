@@ -156,6 +156,7 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<IPdfRenderer, NoPdfRenderer>();
         services.TryAddSingleton<PdfService>();
         services.AddSingleton<IPatch, MasterDataPatch>();
+        services.AddSingleton<IPatch, CountryDialCodePatch>();
         services.TryAddSingleton<ReportService>();
         services.TryAddSingleton<BackupService>();
         services.TryAddSingleton<DeletedDocumentService>();

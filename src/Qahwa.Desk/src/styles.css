@@ -727,3 +727,6 @@ kbd { font: .75rem ui-monospace, Consolas, monospace; padding: .05rem .35rem; bo
 .rich-area:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
 .rich-view :is(p, ul, ol, blockquote, pre) { margin: 0 0 .5rem; }
 .rich-view a, .rich-area a { color: var(--accent); }
+.phone-input { display: flex; gap: .4rem; }
+.phone-input select { max-width: 11rem; }
+.phone-input input { flex: 1; min-width: 0; }

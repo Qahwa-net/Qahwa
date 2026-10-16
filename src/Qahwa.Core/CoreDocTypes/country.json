@@ -7,6 +7,7 @@
   "fields": [
     { "name": "country_name", "type": "Data", "label": "Name", "required": true, "inListView": true },
     { "name": "code", "type": "Data", "label": "Code (ISO 3166, for example SA)", "required": true, "unique": true, "inListView": true },
+    { "name": "dial_code", "type": "Data", "label": "Dialling code (digits only, for example 966)", "inListView": true },
     { "name": "currency", "type": "Link", "options": "Currency", "label": "Currency", "inListView": true }
   ],
   "permissions": [

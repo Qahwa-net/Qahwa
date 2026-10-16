@@ -549,7 +549,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Field types: Attach, Attach Image, Signature, Barcode, Geolocation, Icon, Color, Rating, Duration, Image | done: Signature, Barcode, Geolocation, Color, Rating, Duration, Icon (ADR-047), Attach and Image (ADR-048) | ✅ (v1) | L10 |
 | Field types: Table | child rows inside a document | ✅ | L2 |
 | Field types: Dynamic Link, Table MultiSelect | Dynamic Link done (ADR-038); Table MultiSelect done as a flag on Table fields (ADR-078) | ✅ | L2 |
-| Field types: Password (encrypted), Phone with country | Password done (ADR-066); Phone numbers are validated (ADR-079); no country picker yet | 🟡 | L3 |
+| Field types: Password (encrypted), Phone with country | Password done (ADR-066); Phone numbers are validated (ADR-079) with a country picker (ADR-087) | ✅ | L3 |
 | Layout fields: Section Break, Column Break, Tab Break | | 🟡 | L1 (section/tab), L3 |
 | Field properties: label, required, unique, default, options, in list view, lowercase | | ✅ | done |
 | Field properties: description, hidden, read only | UI hints (not enforced by the API) | ✅ | L1 |

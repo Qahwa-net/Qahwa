@@ -359,3 +359,7 @@ Core DocTypes `contact.json`, `address.json`, `dynamic_link.json` (module "Conta
 ## Live-event backplane ([ADR-086](../../adr/086-realtime-backplane.md))
 
 `RealtimeBackplane.cs` (`Publish` delivers locally and queues; `FlushAsync` writes `Realtime Event` rows with series names; `PollAsync` delivers other servers' rows, skips its own origin, purges after `Retention`). `HostingExtensions` registers it as the `IRealtimePublisher` when `Qahwa:Realtime:Backplane` is `database`; `RealtimeBackplaneService` (per site, started by `SiteHost` and `Program`) flushes and polls. Tests: `RealtimeBackplaneTests`, `PostgresRealtimeBackplaneTests` (both databases).
+
+## Phone country picker ([ADR-087](../../adr/087-phone-country-picker.md))
+
+`Country.dial_code` (`country.json`), `MasterData/countries.json` (`dialCode`), `MasterDataPatch`, `CountryDialCodePatch`. Desk: `lib/phone.ts` (`dialCountries`, `splitPhone` longest-prefix, `joinPhone`), `controls/PhoneInput.tsx`, the `Phone` case in `FieldControl`. Tests: `MasterDataTests`, `phone.test.ts`.
