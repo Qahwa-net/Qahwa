@@ -271,3 +271,7 @@ Server: `ClientScripts.cs` (`ClientScriptService.ForAsync`, `Check`; Core DocTyp
 ## Apps, hooks, methods and developer mode ([ADR-062](../../adr/062-apps-hooks-methods-developer-mode.md))
 
 See [Writing an app](08-writing-an-app.md). Code: `Apps.cs` (`IQahwaApp`, `IAppBuilder`, `AppCatalog`, `AppHookRunner`, `MethodService`, `BuiltInMethods`, `AppInstaller`, `AppJobRunner`, `AddQahwaApp`), `Designer/DeveloperMode.cs` (`DeveloperExport`, `IDeveloperExport`), `DocumentService.RunAppHooksAsync` and the After/Delete hook calls, `MethodEndpoints.cs`, `DeveloperEndpoints.cs`, `SiteStartup` (installs apps), `SchedulerService` (runs jobs), Core DocType `installed_app.json`. Tests: `AppTests`, `DeveloperModeTests`, `MethodApiTests`, `DeveloperApiTests`, `PostgresAppTests`.
+
+## Naming formats and Duplicate ([ADR-063](../../adr/063-naming-formats-and-duplicate.md))
+
+`NamingService` (`Resolve`, `FieldTokens`, `PrefixRegex`; takes the `TimeProvider`), `DocTypeLoader.CheckAutoname` (pattern and field checks), `NamingSeriesManager.ListAsync` (counters under their pattern). Desk: `lib/duplicate.ts` (`copyOf`), the `copy` query parameter and `template` prop in `pages/FormView.tsx`. Tests: `NamingFormatTests`, `lib/duplicate.test.ts`.

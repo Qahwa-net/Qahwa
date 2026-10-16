@@ -318,6 +318,7 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
                       onChange={(e) => patch({ seriesDigits: Number(e.target.value) || 5 })} />
                   </span>
                 )}
+                {draft.autonameKind === 'series' && <small className="muted">The prefix may hold {'{YYYY}'}, {'{YY}'}, {'{MM}'}, {'{DD}'} (today) and {'{field_name}'}, for example INV-{'{YYYY}'}-: each different result has its own counter.</small>}
                 {draft.autonameKind === 'field' && (
                   <select aria-label="Naming field" value={draft.autonameField} disabled={disabled}
                     onChange={(e) => patch({ autonameField: e.target.value })}>

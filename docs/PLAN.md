@@ -563,9 +563,9 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Virtual DocTypes (data from outside the database) | | 🔽 | L12 |
 | Submittable DocTypes (draft, submitted, cancelled, amend) | done: draft, submitted, cancelled (ADR-009) | ✅ (v1) | L6 |
 | Naming: hash, field, prompt, series | | ✅ | done |
-| Naming: format with date/field parts (`INV-{YYYY}-.####`), expression, naming rules, series manager | done: series patterns and prompt (ADR-011); not date/field format parts | 🟡 | L6 |
+| Naming: format with date/field parts (`INV-{YYYY}-.####`), expression, naming rules, series manager | done: series, date and field parts, prompt, series manager (ADR-011, ADR-063); not naming by expression or rule tables | 🟡 | L6 |
 | Rename document (updates links), merge documents | done: rename with link updates and merge (ADR-011) | ✅ (v1) | L6 |
-| Duplicate document, track changes (versions), track seen, track views | track changes done (ADR-014); not duplicate | 🟡 | L7 |
+| Duplicate document, track changes (versions), track seen, track views | duplicate (ADR-063) and track changes (ADR-014) done; not track seen or views | 🟡 | L7 |
 | Document options: title field, sort field/order, search fields, image field, quick entry, allow rename, allow import, allow copy, editable grid, max attachments, default view | | 🟡 | L1, L3 |
 | Customize Form (adjust standard DocTypes) | done (ADR-013) | ✅ (v1) | L3 |
 | Custom Field, Property Setter | done: stored as data, survive upgrades (ADR-013) | ✅ (v1) | L3 |

@@ -37,7 +37,7 @@ public static partial class DocTypeLoader
     [GeneratedRegex("^[A-Za-z][A-Za-z0-9 _-]{0,59}$")]
     private static partial Regex DocTypeNameRegex();
 
-    [GeneratedRegex(@"^[A-Za-z0-9_\-/]*\.#{1,10}$")]
+    [GeneratedRegex(@"^([A-Za-z0-9_\-/]|\{[A-Za-z][A-Za-z0-9_]*\})*\.#{1,10}$")]
     private static partial Regex SeriesPatternRegex();
 
     [GeneratedRegex(@"^([a-z][a-z0-9_]*)\.([a-z][a-z0-9_]*)$")]
@@ -529,6 +529,9 @@ public static partial class DocTypeLoader
         }
 
         if (!SeriesPatternRegex().IsMatch(rule))
-            add("autoname", $"Invalid naming rule '{rule}' (use hash, prompt, field:<name> or a series like CUST-.#####).");
+            add("autoname", $"Invalid naming rule '{rule}' (use hash, prompt, field:<name> or a series like CUST-.##### or INV-{{YYYY}}-.####).");
+        else
+            foreach (var token in NamingService.FieldTokens(rule).Where(t => !fields.Contains(t)))
+                add("autoname", $"Naming rule '{rule}' refers to a field that does not exist: {token}.");
     }
 }

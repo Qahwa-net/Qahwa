@@ -44,3 +44,6 @@ Click **Share**, search for a person by name or email, choose **Can edit** if th
 ## Mobile and right-to-left
 
 The Desk works on phones and is ready for right-to-left languages.
+
+## Duplicating a document
+Open a document and press **Duplicate** (the two squares) to start a new one from it. The new form is filled in with the same values, except fields that must be unique, passwords and the system fields; table rows are copied too. Change what you need and press **Save**: nothing exists until then.

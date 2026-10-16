@@ -15,7 +15,7 @@ import { RenameDialog } from './RenamePanel.tsx'
 import { ShareDialog } from './SharePanel.tsx'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, useMatch, useNavigate, useParams } from 'react-router-dom'
+import { Link, useMatch, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ApiError, api } from '../api/client.ts'
 import type { Doc, DocField, DocTypeMeta, Permissions } from '../api/types.ts'
 import { useAuth } from '../auth.tsx'
@@ -28,6 +28,7 @@ import {
   type FieldState, type Session,
 } from '../lib/logic.ts'
 import { scriptDoc } from '../lib/clientScripts.ts'
+import { copyOf } from '../lib/duplicate.ts'
 import { useClientScripts } from '../lib/useClientScripts.ts'
 import { emptyRow, rowsChanged, rowsFromDoc, rowsToPayload, tableFieldsOf, type TableRow } from '../lib/tables.ts'
 
@@ -60,6 +61,10 @@ const staticState = (f: DocField): FieldState => ({ active: true, required: f.re
 export function FormView() {
   const { doctype = '', name } = useParams()
   const isNew = Boolean(useMatch('/app/:doctype/new'))
+  const [params] = useSearchParams()
+  // "Duplicate" opens a new form filled in from this document (nothing is saved until Save).
+  const copyFrom = isNew ? params.get('copy') : null
+  const copyQuery = useQuery({ queryKey: ['doc', doctype, copyFrom], queryFn: () => api.get(doctype, copyFrom!), enabled: copyFrom !== null, staleTime: 0, retry: false })
 
   const metaQuery = useQuery({ queryKey: ['meta', doctype], queryFn: () => api.meta(doctype), retry: false })
   const docQuery = useQuery({
@@ -81,28 +86,31 @@ export function FormView() {
     )
   }
 
-  if (!metaQuery.data || (!isNew && !docQuery.data)) return <FormSkeleton />
+  if (!metaQuery.data || (!isNew && !docQuery.data) || (copyFrom !== null && copyQuery.isPending && !copyQuery.isError)) return <FormSkeleton />
 
   const doc = isNew ? null : docQuery.data!
   return (
     <FormBody
       // A fresh form state whenever the saved document changes (after save, reload or conflict).
-      key={`${doctype}/${doc?.name ?? 'new'}/${String(doc?.modified ?? '')}`}
+      key={`${doctype}/${doc?.name ?? 'new'}/${String(doc?.modified ?? '')}/${copyFrom ?? ''}`}
       meta={metaQuery.data.data}
       perms={metaQuery.data.permissions}
       childMetas={metaQuery.data.children ?? {}}
       writableLevels={metaQuery.data.writableLevels}
       doc={doc}
+      template={copyQuery.data ? copyOf(metaQuery.data.data, metaQuery.data.children ?? {}, copyQuery.data) : null}
     />
   )
 }
 
-function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
+function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
   meta: DocTypeMeta
   perms: Permissions
   childMetas: Record<string, DocTypeMeta>
   writableLevels?: number[]
   doc: Doc | null
+  /** A new form filled in from another document (Duplicate). */
+  template?: Doc | null
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -124,11 +132,11 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
     [user, isNew],
   )
   const tableDefs = useMemo(() => tableFieldsOf(meta, childMetas), [meta, childMetas])
-  const original = useMemo(() => initialValues(meta, doc), [meta, doc])
-  const originalTables = useMemo(() => initialTables(meta, childMetas, doc), [meta, childMetas, doc])
+  const original = useMemo(() => initialValues(meta, doc ?? template ?? null), [meta, doc, template])
+  const originalTables = useMemo(() => initialTables(meta, childMetas, doc ?? template ?? null), [meta, childMetas, doc, template])
 
   // What the user typed. Calculated values are derived from it below and never stored.
-  const [values, setValues] = useState<Values>(() => (isNew ? expressionDefaults(meta, childMetas, original, session) : original))
+  const [values, setValues] = useState<Values>(() => (isNew && !template ? expressionDefaults(meta, childMetas, original, session) : original))
   const [tables, setTables] = useState<Tables>(originalTables)
   const [promptName, setPromptName] = useState('')
   const [sharing, setSharing] = useState(false)
@@ -379,6 +387,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
         </div>
         <div className="doc-actions">
           {!isNew && doc && <FollowButton doctype={meta.name} name={doc.name} />}
+          {!isNew && !meta.isSingle && perms.create && doc && <IconButton icon="copy" label="Duplicate" onClick={() => navigate(`${base}/new?copy=${encodeURIComponent(doc.name)}`)} />}
           {!isNew && !meta.isSingle && perms.write && docstatus !== 2 && <IconButton icon="userPlus" label="Assign" onClick={() => setAssigning(true)} />}
           {!isNew && !meta.isSingle && perms.write && docstatus !== 2 && <IconButton icon="share" label="Share" onClick={() => setSharing(true)} />}
           {!isNew && perms.read && <IconButton icon="printer" label="Print" onClick={() => setPrinting(true)} />}

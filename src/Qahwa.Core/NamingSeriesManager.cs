@@ -27,11 +27,18 @@ public sealed class NamingSeriesManager(IMetaRegistry registry, IDocumentReposit
             .GroupBy(m => NamingService.ParseSeries(m.Autoname!), m => m.Name)
             .ToDictionary(g => g.Key, g => g.Order(StringComparer.Ordinal).ToList());
 
-        var prefixes = used.Keys.Select(k => k.Prefix).Concat(stored.Keys).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal);
+        // A pattern with {YYYY} or {field} has no counter of its own: its counters are the prefixes that came out of it.
+        var plain = used.Where(kv => !kv.Key.Prefix.Contains('{')).ToDictionary(kv => kv.Key, kv => kv.Value);
+        var patterns = used.Where(kv => kv.Key.Prefix.Contains('{')).Select(kv => (Regex: new System.Text.RegularExpressions.Regex(NamingService.PrefixRegex(kv.Key.Prefix), System.Text.RegularExpressions.RegexOptions.None, TimeSpan.FromMilliseconds(50)), kv.Key.Digits, kv.Value)).ToList();
+
+        var prefixes = plain.Keys.Select(k => k.Prefix).Concat(stored.Keys).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal);
         return prefixes.Select(prefix =>
         {
-            var match = used.FirstOrDefault(kv => kv.Key.Prefix == prefix);
-            return new SeriesInfo(prefix, match.Key.Digits, stored.GetValueOrDefault(prefix), match.Value ?? []);
+            var match = plain.FirstOrDefault(kv => kv.Key.Prefix == prefix);
+            if (match.Value is not null)
+                return new SeriesInfo(prefix, match.Key.Digits, stored.GetValueOrDefault(prefix), match.Value);
+            var viaPattern = patterns.FirstOrDefault(p => p.Regex.IsMatch(prefix));
+            return new SeriesInfo(prefix, viaPattern.Value is null ? 0 : viaPattern.Digits, stored.GetValueOrDefault(prefix), viaPattern.Value ?? []);
         }).ToList();
     }
 

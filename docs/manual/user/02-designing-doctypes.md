@@ -8,6 +8,7 @@
 2. Choose its kind (cannot be changed later): normal, a **child table** (rows inside another DocType), **one document only** (settings), a **tree**, and whether documents are **submitted and then locked**. Tick **can be renamed** if documents may be renamed or merged.
 3. **Add fields**: pick a type (text, number, date, choice, link to another DocType, table ...), give it a label. The name (used in the database) follows the label.
 4. Set how documents are **named**: random ID, a numbered series (*SUP-00001*), from a field, or typed by the user. Pick a **title field** so lists and links show a friendly name.
+   - A series prefix may contain `{YYYY}`, `{YY}`, `{MM}`, `{DD}` (today) and `{field_name}`. `INV-{YYYY}-` with 4 digits gives *INV-2026-0001*, and the numbering starts again at *INV-2027-0001* next year; `{branch}-` numbers each branch separately. A field used this way must be filled in, and only its letters and digits are used.
 5. Add **permissions**: which roles can read, write, create, delete, export, report (and submit/cancel).
 6. Save. The preview shows exactly what changes in the database. The DocType works immediately: it appears in the sidebar for users with access.
 
