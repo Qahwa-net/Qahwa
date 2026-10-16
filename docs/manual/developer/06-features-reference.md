@@ -177,3 +177,21 @@ Use `{ "type": "Link", "options": "DocType" }` for a field that names a DocType 
 ## System Settings and network restrictions ([ADR-042](../../adr/042-system-settings-and-network-restrictions.md))
 
 `CoreDocTypes/system_settings.json` (single); `SystemSettings.cs`: `SystemSettingsService`, `IpAllowList` (`Parse`, `Allows`). `SettingsEndpoints.cs` (`GET /api/settings`). `UseQahwaNetworkRestriction` in `ApiInfrastructure.cs` (part of `UseQahwa`); `Program.cs` resolves `IpAllowList` at start so a bad `Qahwa:Auth:AllowedIps` stops the server. Desk: `lib/display.ts` (`formatDate`, `formatDateTime`, `weekStartIndex`; `formatCell` uses them), `Shell` loads and applies the settings, `I18nProvider.applyDefault`. Tests: `SystemSettingsTests`, `IpAllowListTests`, `NetworkRestrictionTests` (a startup filter sets the fake client address), `SettingsApiTests`, `lib/display.test.ts`.
+
+## Patches ([ADR-043](../../adr/043-patches.md))
+
+`Patches.cs`: `IPatch`, `PatchRunner` (`Validate`, `RunPendingAsync`), `PatchFailedException`; Core DocType `patch_log.json`. Register with `services.AddQahwaPatch<MyPatch>()` (`PatchRegistration` in `HostingExtensions.cs`). `Program.cs` runs pending patches after all loaders. Example:
+
+```csharp
+public sealed class FillCustomerGroup : IPatch
+{
+    public string Name => "2026_03_01_fill_customer_group";
+    public async Task RunAsync(IServiceProvider services, CancellationToken ct = default)
+    {
+        var documents = services.GetRequiredService<DocumentService>();
+        // read rows, change them, save: safe to run twice
+    }
+}
+```
+
+Tests: `PatchTests`, `PostgresPatchTests`.

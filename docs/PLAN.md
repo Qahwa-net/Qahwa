@@ -689,7 +689,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Feature | Notes | Status | Step |
 |---|---|---|---|
 | Schema migration (additive), dry run | | ✅ | done |
-| Patches / data migrations (patch log) | | ⬜ | L12 |
+| Patches / data migrations (patch log) | done (ADR-043); not per-app ordering or a CLI to run one | ✅ (v1) | L12 |
 | **Data Import** (CSV/Excel template, validate, preview, background, update existing) | done: CSV, template, preview, row results, update existing; not yet Excel, background, child tables | ✅ (v1) | L10 |
 | Data Export, bulk update, bulk rename | | ⬜ | L10 |
 | Backups (download, scheduled, restore) | | ⬜ | L12 |

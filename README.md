@@ -39,6 +39,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **Sessions**: every sign-in is recorded; see where you are signed in, end any of them, absolute 14-day limit ([ADR-040](docs/adr/040-sessions.md))
 - **Password reset and rules**: emailed one-hour single-use link (nothing stored, no account enumeration, configured site address), common-password and pattern checks ([ADR-041](docs/adr/041-password-reset-and-rules.md))
 - **System Settings and network restrictions**: time zone, date format, first weekday and default language for the site; an IP allow-list in configuration that fails closed and loud ([ADR-042](docs/adr/042-system-settings-and-network-restrictions.md))
+- **Patches**: one-time versioned data migrations, recorded in a Patch Log, claimed atomically across servers, a failure stops start-up ([ADR-043](docs/adr/043-patches.md))
 - **Webhooks**: signed JSON posts to other systems when documents are created, changed, submitted, cancelled or deleted, queued with retries and guarded against requests to internal networks ([ADR-029](docs/adr/029-webhooks.md))
 - **API keys**: Bearer tokens that act as a person within their permissions, shown once and stored hashed, with read-only and expiry options ([ADR-028](docs/adr/028-api-keys.md))
 - **Data import**: CSV files become documents through the normal insert or update rules, with a preview, row-by-row results and an update mode ([ADR-027](docs/adr/027-data-import.md))

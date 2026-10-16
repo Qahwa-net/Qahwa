@@ -34,6 +34,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 30. [Where you are signed in](30-where-you-are-signed-in.md)
 31. [Forgot your password](31-forgot-password.md)
 32. [System Settings and network restrictions](32-system-settings.md)
+33. [Patch Log](33-patch-log.md)
 
 **Words used**
 
