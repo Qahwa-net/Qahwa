@@ -4,6 +4,7 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { api } from '../api/client.ts'
 import { Icon, IconButton } from '../controls/Icon.tsx'
 import { MONTH_NAMES, WEEKDAYS, addMonths, eventsByDay, formatMonth, monthGrid, monthRange, parseMonth } from '../lib/calendar.ts'
+import { weekStartIndex } from '../lib/display.ts'
 import { labelOf } from '../lib/fields.ts'
 
 const MAX_PER_DAY = 3
@@ -33,7 +34,8 @@ export function CalendarView() {
     retry: false,
   })
   const byDay = useMemo(() => eventsByDay((list.data?.data ?? []) as Record<string, unknown>[], by?.name ?? ''), [list.data, by])
-  const grid = monthGrid(year, month, 1)
+  const weekStart = weekStartIndex()
+  const grid = monthGrid(year, month, weekStart)
   const base = `/app/${encodeURIComponent(doctype)}`
   const go = (delta: number) => { const next = addMonths(year, month, delta); const p = new URLSearchParams(params); p.set('month', formatMonth(next.year, next.month)); setParams(p) }
   const todayIso = `${today.getUTCFullYear()}-${String(today.getUTCMonth() + 1).padStart(2, '0')}-${String(today.getUTCDate()).padStart(2, '0')}`
@@ -70,7 +72,7 @@ export function CalendarView() {
       {list.isPending && <p className="muted" role="status">Loading…</p>}
 
       <div className="calendar" role="grid" aria-label={`${MONTH_NAMES[month - 1]} ${year}`}>
-        <div className="cal-head" role="row">{[1, 2, 3, 4, 5, 6, 0].map((d) => <span key={d} role="columnheader">{WEEKDAYS[d]}</span>)}</div>
+        <div className="cal-head" role="row">{[0, 1, 2, 3, 4, 5, 6].map((i) => (weekStart + i) % 7).map((d) => <span key={d} role="columnheader">{WEEKDAYS[d]}</span>)}</div>
         {grid.map((week, w) => (
           <div key={w} className="cal-week" role="row">
             {week.map((day) => {

@@ -98,6 +98,9 @@ foreach (var failure in await app.Services.GetRequiredService<CustomDocTypeLoade
 foreach (var failure in await app.Services.GetRequiredService<CustomizationManager>().LoadAsync())
     app.Logger.LogError("{Failure}", failure);
 
+// A mistake in Qahwa:Auth:AllowedIps must stop the server here, not quietly open or close the system.
+_ = app.Services.GetRequiredService<IpAllowList>();
+
 // Webhooks.
 foreach (var failure in await app.Services.GetRequiredService<WebhookManager>().LoadAsync())
     app.Logger.LogError("{Failure}", failure);

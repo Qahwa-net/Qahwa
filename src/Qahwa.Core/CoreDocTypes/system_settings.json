@@ -1,0 +1,15 @@
+{
+  "name": "System Settings",
+  "module": "Core",
+  "isSingle": true,
+  "trackChanges": true,
+  "fields": [
+    { "name": "time_zone", "type": "Data", "label": "Time zone (for example Asia/Riyadh, Europe/London, UTC)", "default": "UTC" },
+    { "name": "date_format", "type": "Select", "label": "Date format", "options": "yyyy-mm-dd\ndd/mm/yyyy\nmm/dd/yyyy", "default": "yyyy-mm-dd" },
+    { "name": "first_day_of_week", "type": "Select", "label": "First day of the week", "options": "Monday\nSunday\nSaturday", "default": "Monday" },
+    { "name": "default_language", "type": "Data", "label": "Default language code (for example en, ar)", "default": "en" }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "write": true, "create": true }
+  ]
+}

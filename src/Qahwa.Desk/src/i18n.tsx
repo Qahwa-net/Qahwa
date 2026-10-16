@@ -6,10 +6,20 @@ import { DEFAULT_LANGUAGE, STORAGE_KEY, isRtl, isValidLanguage, mergeMessages, r
 interface I18n {
   language: string
   setLanguage: (code: string) => void
+  /** The site's default language: used only until the person has chosen one themselves. */
+  applyDefault: (code: string) => void
   t: (text: string) => string
 }
 
-const Context = createContext<I18n>({ language: DEFAULT_LANGUAGE, setLanguage: () => {}, t: (text) => text })
+const Context = createContext<I18n>({ language: DEFAULT_LANGUAGE, setLanguage: () => {}, applyDefault: () => {}, t: (text) => text })
+
+const hasChosen = (): boolean => {
+  try {
+    return localStorage.getItem(STORAGE_KEY) !== null
+  } catch {
+    return false
+  }
+}
 
 /** The language of the Desk's words (a per-person choice kept in this browser) and the right-to-left layout that goes with it. */
 export function I18nProvider({ children }: { children: ReactNode }) {
@@ -32,6 +42,9 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     return {
       language,
       t: (text) => translate(messages, text),
+      applyDefault: (code) => {
+        if (isValidLanguage(code) && !hasChosen()) setLanguageState(code)
+      },
       setLanguage: (code) => {
         if (!isValidLanguage(code)) return
         setLanguageState(code)

@@ -174,7 +174,23 @@ public static class ApplicationBuilderExtensions
 {
     /// <summary>Error envelope, rate limiting and authentication, in the order they must run.</summary>
     public static IApplicationBuilder UseQahwa(this IApplicationBuilder app) =>
-        app.UseQahwaErrors().UseRateLimiter().UseAuthentication();
+        app.UseQahwaErrors().UseQahwaNetworkRestriction().UseRateLimiter().UseAuthentication();
+
+    /// <summary>
+    /// With <c>Qahwa:Auth:AllowedIps</c> set, the API answers 403 to every other address (before anything else looks at the request).
+    /// The health check and the public forms stay open, the Desk's own files too (they hold no data).
+    /// </summary>
+    public static IApplicationBuilder UseQahwaNetworkRestriction(this IApplicationBuilder app) =>
+        app.Use(async (context, next) =>
+        {
+            var allowed = context.RequestServices.GetRequiredService<IpAllowList>();
+            var path = context.Request.Path;
+            if (!allowed.IsEmpty && path.StartsWithSegments("/api") && !path.StartsWithSegments("/api/health") && !path.StartsWithSegments("/api/public")
+                && !allowed.Allows(context.Connection.RemoteIpAddress))
+                throw new PermissionDeniedException("This system cannot be used from your network.");
+
+            await next(context);
+        });
 
     /// <summary>Maps framework exceptions to the standard <c>{ code, message, details }</c> error envelope.</summary>
     public static IApplicationBuilder UseQahwaErrors(this IApplicationBuilder app) =>

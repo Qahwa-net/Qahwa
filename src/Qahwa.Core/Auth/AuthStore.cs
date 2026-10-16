@@ -26,6 +26,13 @@ public sealed class AuthOptions
     public string? PublicUrl { get; set; }
 
     /// <summary>
+    /// Addresses and ranges (203.0.113.5, 10.0.0.0/8, 2001:db8::/32) that may use the API and sign in. Empty means anywhere. Public
+    /// forms and the health check stay open. Behind a proxy or load balancer, configure ASP.NET Core forwarded headers so the real
+    /// client address is what is checked.
+    /// </summary>
+    public string[] AllowedIps { get; set; } = [];
+
+    /// <summary>
     /// How long a user's enabled flag, roles and password version are cached per user.
     /// A role change or disabled account takes at most this long to apply to open sessions. 0 disables the cache.
     /// </summary>

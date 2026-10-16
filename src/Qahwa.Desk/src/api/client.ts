@@ -1,3 +1,4 @@
+import type { DisplaySettings } from '../lib/display.ts'
 import type {
   DesignerDetail, DocPerm, DesignerItem, DesignerPreview, Doc, DocTypeDefinition, FieldError, FieldTypeInfo,
   ListResponse, SignIn, TwoFactorChallenge, TwoFactorSetup, TwoFactorStatus, PublicForm, BundleReport, TranslationCatalog, AttachedFile, WebhookItem, WebhookSet, WebhookView, ApiKeyCreated, ApiKeyInfo, ImportPreview, ImportResult, WorkspaceBlock, WorkspaceDetail, WorkspaceInfo, WorkspaceView, LetterHeadDetail, PrintChoices, PrintFormatDetail, PrintFormatInfo, DashboardDetail, DashboardInfo, DashboardItem, DashboardResult, EmailPreview, EmailTemplateInfo, NotificationRuleItem, NotificationRuleSet, NotificationRuleView, AutoRepeatInfo, AutoRepeatRequest, AssignmentRuleItem, AssignmentRuleSet, AssignmentRuleView, PendingAction, WorkflowDefinition, WorkflowItem, WorkflowStatus, WorkflowView, MetaResponse, MetaSummary, PermissionItem, ActivityItem, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, FollowState, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
@@ -78,6 +79,8 @@ export const api = {
   async loginWithCode(token: string, code: string): Promise<SessionUser> {
     return (await request<{ data: SessionUser }>('POST', '/api/auth/login/2fa', { token, code })).data
   },
+
+  settings: async () => (await request<{ data: DisplaySettings }>('GET', '/api/settings')).data,
 
   passwordReset: {
     ask: (email: string) => request<{ message: string }>('POST', '/api/auth/forgot', { email }),

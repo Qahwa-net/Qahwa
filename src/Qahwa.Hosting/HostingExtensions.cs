@@ -130,6 +130,18 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<ISessionStore, SessionStore>();
         services.TryAddSingleton<SessionService>();
         services.TryAddSingleton<PasswordResetService>();
+        services.TryAddSingleton<SystemSettingsService>();
+        services.TryAddSingleton(sp =>
+        {
+            try
+            {
+                return IpAllowList.Parse(sp.GetRequiredService<IOptions<AuthOptions>>().Value.AllowedIps);
+            }
+            catch (FormatException ex)
+            {
+                throw new InvalidOperationException("Qahwa:Auth:AllowedIps is not valid: " + ex.Message, ex);
+            }
+        });
         services.TryAddSingleton<TwoFactorService>();
         services.TryAddSingleton<SchemaSync>();
         services.TryAddSingleton<ISchemaManager, SchemaManager>();

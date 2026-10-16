@@ -629,7 +629,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | OAuth 2 provider, social login (Google, GitHub, Microsoft, Keycloak), OpenID Connect | | ⬜ | L10 |
 | LDAP, SAML single sign-on | | ⬜ | L12 |
 | Session management (list/revoke, expiry), login as user (impersonation) | done: list, revoke, admin sign-out-everywhere, absolute limit (ADR-040); impersonation deliberately not built | ✅ (v1) | L10 |
-| IP restrictions, system settings (security) | | ⬜ | L10 |
+| IP restrictions, system settings (security) | done: IP allow-list in configuration, System Settings (display) (ADR-042); not per-role IP rules | ✅ (v1) | L10 |
 | Encrypted fields (Password type) | | ⬜ | L3 |
 | CSRF, security headers | | ✅ | done |
 
@@ -694,7 +694,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Data Export, bulk update, bulk rename | | ⬜ | L10 |
 | Backups (download, scheduled, restore) | | ⬜ | L12 |
 | Error Log, Scheduled Job Log, Recorder (query profiler), System Console | done: Error Log (requests and scheduler); not yet job history, profiler, console | 🟡 | L12 |
-| System Settings (time zone, formats, session expiry, security) | | ⬜ | L10 |
+| System Settings (time zone, formats, session expiry, security) | done: time zone, date format, first weekday, default language; session and password policy stay in configuration | 🟡 | L10 |
 | Fixtures (export UI-made customisations as files) | done: **bundle** export/import of DocTypes, customizations, workflows and rules with preview; not yet print formats/dashboards, patches, CLI | ✅ (v1) | L12 |
 
 ### A9. Platform and developer experience

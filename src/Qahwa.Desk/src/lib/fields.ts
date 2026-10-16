@@ -1,3 +1,4 @@
+import { formatDate, formatDateTime } from './display.ts'
 import type { DocField, FieldType } from '../api/types.ts'
 import type { FilterOp } from './filters.ts'
 
@@ -101,10 +102,8 @@ export function formatCell(field: DocField, value: unknown): string {
     case 'Check': return value ? '✓' : ''
     case 'Currency': case 'Decimal': case 'Float': case 'Percent':
       return typeof value === 'number' ? value.toLocaleString(undefined, { maximumFractionDigits: 9 }) : String(value)
-    case 'Datetime': {
-      const d = new Date(String(value))
-      return Number.isNaN(d.getTime()) ? String(value) : d.toLocaleString()
-    }
+    case 'Date': return formatDate(value)
+    case 'Datetime': return formatDateTime(value)
     default: return String(value)
   }
 }

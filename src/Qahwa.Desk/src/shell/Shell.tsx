@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { api } from '../api/client.ts'
 import type { MetaSummary } from '../api/types.ts'
 import { useAuth } from '../auth.tsx'
 import { useI18n } from '../i18n.tsx'
+import { setDisplaySettings } from '../lib/display.ts'
 import { LanguageSwitcher } from './LanguageSwitcher.tsx'
 import { NotificationBell } from './NotificationBell.tsx'
 
@@ -19,7 +20,11 @@ function groupByModule(metas: MetaSummary[]): [string, MetaSummary[]][] {
 
 export function Shell() {
   const { user, logout } = useAuth()
-  const { t } = useI18n()
+  const { t, applyDefault } = useI18n()
+  const settings = useQuery({ queryKey: ['display-settings'], queryFn: api.settings, staleTime: 60_000, retry: false })
+  if (settings.data) setDisplaySettings(settings.data) // before the page below renders, so dates follow the settings
+  const defaultLanguage = settings.data?.defaultLanguage
+  useEffect(() => { if (defaultLanguage) applyDefault(defaultLanguage) }, [defaultLanguage, applyDefault])
   const [open, setOpen] = useState(false)
   const location = useLocation()
   const metas = useQuery({ queryKey: ['metas'], queryFn: api.metas })
@@ -91,7 +96,7 @@ export function Shell() {
       </nav>
 
       <main className="content">
-        <Outlet />
+        <Outlet key={settings.dataUpdatedAt} />
       </main>
     </div>
   )
