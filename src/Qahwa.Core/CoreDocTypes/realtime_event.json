@@ -1,0 +1,17 @@
+{
+  "name": "Realtime Event",
+  "module": "Core",
+  "autoname": "RT-.##########",
+  "trackChanges": false,
+  "fields": [
+    { "name": "origin", "type": "Data", "label": "Server", "readOnly": true },
+    { "name": "event_type", "type": "Data", "label": "Type", "readOnly": true },
+    { "name": "event_user", "type": "Data", "label": "User", "readOnly": true },
+    { "name": "ref_doctype", "type": "Data", "label": "DocType", "readOnly": true },
+    { "name": "ref_docname", "type": "Data", "label": "Document", "readOnly": true },
+    { "name": "deleted", "type": "Check", "label": "Deleted", "readOnly": true }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true }
+  ]
+}

@@ -62,6 +62,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **Naming rules and naming by expression**: names built from fields, and rule tables that choose the series by condition ([ADR-073](docs/adr/073-naming-rules-and-expressions.md))
 - **Email digest**: an opt-in daily or weekly email to yourself with your unread notifications and open assignments ([ADR-072](docs/adr/072-email-digest.md))
 - **Emailed reports**: a saved report is emailed on a schedule, run with the permissions of a chosen user, set up by System Managers only ([ADR-071](docs/adr/071-auto-email-reports.md))
+- **Live-event backplane**: optional database backplane so several servers share live events ([ADR-086](docs/adr/086-realtime-backplane.md))
 - **Live updates**: the bell and open forms update by themselves through a permission-checked event stream (Server-Sent Events) that carries only where something changed ([ADR-070](docs/adr/070-live-updates-server-sent-events.md))
 - **Text Editor, Small Text and Autocomplete fields**: formatted text stored as HTML rebuilt from an allow-list (no script, style or event attribute can survive) ([ADR-069](docs/adr/069-text-editor-small-text-autocomplete.md))
 - **Tags and likes**: label documents, like them, and filter lists by tag or "liked by me" ([ADR-068](docs/adr/068-tags-and-likes.md))

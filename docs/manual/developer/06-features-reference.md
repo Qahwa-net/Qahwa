@@ -355,3 +355,7 @@ Core DocTypes `contact.json`, `address.json`, `dynamic_link.json` (module "Conta
 ## Boot hooks ([ADR-084](../../adr/084-boot-hooks.md))
 
 `Apps.cs`: `IAppBuilder.Boot`, `BootHook`, `BootContext`, `BootService.CollectAsync` (16 KB per app, failures logged). Endpoint `GET /api/boot` in `MethodEndpoints.cs`. Desk: `api.boot`, `lib/useBoot.ts`. Tests: `BootHookTests`, `The_desk_gets_what_installed_apps_hand_it_at_start_up`.
+
+## Live-event backplane ([ADR-086](../../adr/086-realtime-backplane.md))
+
+`RealtimeBackplane.cs` (`Publish` delivers locally and queues; `FlushAsync` writes `Realtime Event` rows with series names; `PollAsync` delivers other servers' rows, skips its own origin, purges after `Retention`). `HostingExtensions` registers it as the `IRealtimePublisher` when `Qahwa:Realtime:Backplane` is `database`; `RealtimeBackplaneService` (per site, started by `SiteHost` and `Program`) flushes and polls. Tests: `RealtimeBackplaneTests`, `PostgresRealtimeBackplaneTests` (both databases).

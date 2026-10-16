@@ -680,7 +680,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | `/api/method` (whitelisted server functions), `get_count`, `get_value`, `set_value`, `get_list`, `rename_doc` | done (ADR-062) | ✅ (v1) | L7 |
 | API versioning, OpenAPI documentation | done: OpenAPI 3 per caller; not yet URL versioning | 🟡 | L12 |
 | Webhooks, incoming API via server script | outgoing webhooks done (L10); incoming API via scripts not yet (L11) | 🔽 | L10, L11 |
-| Realtime updates (socket events, document updates), SignalR | done with Server-Sent Events instead of SignalR: live bell and live form updates (ADR-070); in-memory hub, no backplane for several servers yet | ✅ (v1) | L8 |
+| Realtime updates (socket events, document updates), SignalR | done with Server-Sent Events instead of SignalR: live bell and live form updates (ADR-070); database backplane for several servers (ADR-086) | ✅ | L8 |
 | Payment gateways (Stripe, PayPal, Razorpay), SMS gateways, Google Calendar/Contacts/Drive, Dropbox, S3 backups, Slack, push notifications | | 🔽 | L12 |
 | Event streaming / data sync between sites | | 🔽 | later |
 

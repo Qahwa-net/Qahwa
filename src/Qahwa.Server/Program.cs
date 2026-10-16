@@ -18,7 +18,10 @@ builder.Services.AddSingleton(sp => new SiteHost(siteDefinitions, sp.GetRequired
     sp.GetServices<ISiteServicesCustomizer>(), mainSiteServes));
 builder.Services.AddHostedService(sp => sp.GetRequiredService<SiteHost>());
 if (mainSiteServes)
+{
     builder.Services.AddHostedService<SchedulerService>();
+    builder.Services.AddHostedService<RealtimeBackplaneService>();
+}
 
 var app = builder.Build();
 

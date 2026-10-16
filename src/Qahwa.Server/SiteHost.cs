@@ -22,7 +22,7 @@ public sealed class SiteHost : IHostedService, IAsyncDisposable
 {
     private readonly Dictionary<string, RunningSite> _sites = new(StringComparer.Ordinal);
     private readonly SiteResolver _resolver;
-    private readonly List<SchedulerService> _schedulers = [];
+    private readonly List<BackgroundService> _schedulers = [];
 
     public SiteHost(IReadOnlyList<SiteDefinition> definitions, IConfiguration shared, IHostEnvironment env, ILoggerFactory loggers, IEnumerable<ISiteServicesCustomizer> customizers, bool mainSiteServes)
     {
@@ -101,6 +101,9 @@ public sealed class SiteHost : IHostedService, IAsyncDisposable
             var scheduler = ActivatorUtilities.CreateInstance<SchedulerService>(site.Provider);
             _schedulers.Add(scheduler);
             await scheduler.StartAsync(cancellationToken);
+            var backplane = ActivatorUtilities.CreateInstance<RealtimeBackplaneService>(site.Provider);
+            _schedulers.Add(backplane);
+            await backplane.StartAsync(cancellationToken);
         }
     }
 

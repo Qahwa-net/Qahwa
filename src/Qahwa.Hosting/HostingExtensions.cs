@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -114,7 +115,11 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton(sp => new Lazy<DocumentService>(() => sp.GetRequiredService<DocumentService>()));
         services.TryAddSingleton<NotificationService>();
         services.TryAddSingleton<RealtimeHub>();
-        services.TryAddSingleton<IRealtimePublisher>(sp => sp.GetRequiredService<RealtimeHub>());
+        services.TryAddSingleton<RealtimeBackplane>(sp => new RealtimeBackplane(sp.GetRequiredService<IMetaRegistry>(), sp.GetRequiredService<IDocumentRepository>(), sp.GetRequiredService<RealtimeHub>(), sp.GetRequiredService<TimeProvider>()));
+        // With Qahwa:Realtime:Backplane = database, events also reach the other servers through the site's database (ADR-086).
+        services.TryAddSingleton<IRealtimePublisher>(sp => sp.GetRequiredService<IConfiguration>()["Qahwa:Realtime:Backplane"] == "database"
+            ? sp.GetRequiredService<RealtimeBackplane>()
+            : sp.GetRequiredService<RealtimeHub>());
         services.TryAddSingleton<FollowService>();
         services.TryAddSingleton<LabelService>();
         services.TryAddSingleton<CollaborationHooks>();
