@@ -171,6 +171,9 @@ public interface IQahwaApp
     /// <summary>A folder of DocType JSON files that belong to the app (searched recursively), or null.</summary>
     string? DocTypesPath => null;
 
+    /// <summary>The names of apps this one needs. They must be installed too, and are installed first; a missing one stops the server at start-up.</summary>
+    IReadOnlyList<string> Dependencies => [];
+
     /// <summary>One-time data changes that go with the app's versions (see <see cref="IPatch"/>). Name them with the app name as a prefix.</summary>
     IReadOnlyList<IPatch> Patches => [];
 
@@ -247,9 +250,39 @@ public sealed partial class AppCatalog
 
     internal IEnumerable<string> HookedDocTypes => _hooks.Select(h => h.DocType).Distinct(StringComparer.Ordinal);
 
+    /// <summary>The apps with the ones they depend on first (ties in the order they were added). Throws for a missing dependency or a cycle.</summary>
+    public IReadOnlyList<IQahwaApp> InstallOrder()
+    {
+        var byName = _apps.ToDictionary(a => a.Name, StringComparer.Ordinal);
+        var ordered = new List<IQahwaApp>();
+        var state = new Dictionary<string, int>(StringComparer.Ordinal); // 1 = being visited, 2 = done
+        void Visit(IQahwaApp app, string path)
+        {
+            if (state.GetValueOrDefault(app.Name) == 2)
+                return;
+            if (state.GetValueOrDefault(app.Name) == 1)
+                throw new InvalidOperationException($"The apps depend on each other in a circle: {path} -> {app.Name}.");
+            state[app.Name] = 1;
+            foreach (var name in app.Dependencies)
+            {
+                if (!byName.TryGetValue(name, out var dependency))
+                    throw new InvalidOperationException($"The app '{app.Name}' needs the app '{name}', which is not installed.");
+                Visit(dependency, path + " -> " + app.Name);
+            }
+
+            state[app.Name] = 2;
+            ordered.Add(app);
+        }
+
+        foreach (var app in _apps)
+            Visit(app, app.Name);
+        return ordered;
+    }
+
     /// <summary>Checks that every hook and fixture names a DocType that exists. Call after all DocTypes are loaded.</summary>
     public void Validate(IMetaRegistry registry)
     {
+        InstallOrder();
         foreach (var hook in _hooks.Where(h => !registry.TryGet(h.DocType, out _)))
             throw new InvalidOperationException($"The app '{hook.App}' has a hook for the DocType '{hook.DocType}', which does not exist.");
         foreach (var check in _permissionChecks.Where(c => !registry.TryGet(c.DocType, out _)))
@@ -600,7 +633,7 @@ public sealed class AppInstaller(AppCatalog catalog, IMetaRegistry registry, IDo
     {
         catalog.Validate(registry);
         var meta = registry.Get(DocTypeName);
-        foreach (var app in catalog.Apps)
+        foreach (var app in catalog.InstallOrder())
         {
             var existing = await repository.GetAsync(meta, app.Name, ct);
             if (existing is null)

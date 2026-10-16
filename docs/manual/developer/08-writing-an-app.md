@@ -72,6 +72,10 @@ app.HasPermission("Ticket", ctx => (string?)ctx.Doc.GetValueOrDefault("region") 
 - They can **only take access away**; they run after roles, User Permissions and shares. A check that throws refuses, a query that throws (or names a bad column) lists nothing, and both are logged.
 - They do not apply to Administrators or to the framework's own DocTypes, and a registration for a DocType that does not exist stops the server at start-up.
 
+## Depending on other apps ([ADR-085](../../adr/085-app-dependencies.md))
+
+Override `Dependencies` with the names of the apps yours needs: `public IReadOnlyList<string> Dependencies => ["billing"];`. They are installed first; a missing app or a circle stops the server at start-up with the names involved.
+
 ## Boot hooks ([ADR-084](../../adr/084-boot-hooks.md))
 
 ```csharp

@@ -703,7 +703,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 |---|---|---|---|
 | CLI: migrate, create-admin | | ✅ | done |
 | CLI: init, new-site, new-app, install-app, backup, restore, console, run-tests, set-config | `migrate`, `create-admin`, `new-site`, `list-sites` done (ADR-055); the rest not yet | 🟡 | L12 |
-| Apps (installable packages with DocTypes, hooks, fixtures, patches) | done: `IQahwaApp`, per-site install record, fixtures, patches (ADR-062); not uninstall, dependencies or a CLI install | 🟡 | L12 |
+| Apps (installable packages with DocTypes, hooks, fixtures, patches) | done: `IQahwaApp`, per-site install record, fixtures, patches (ADR-062), dependencies (ADR-085); not uninstall or a CLI install | 🟡 | L12 |
 | SQL Server dialect | done: second database product, per site, same tests on both (ADR-059) | ✅ (v1) | L12 |
 | Multi-tenancy (sites, per-site config, database per site) | done: Host-header sites, a container and database per site, per-site config files, `qahwa new-site` (ADR-055); not live add/remove, no site manager UI | ✅ (v1) | L12 |
 | Developer mode (UI-made DocTypes written to the app's files) | done (ADR-062) | ✅ (v1) | L12 |

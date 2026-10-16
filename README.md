@@ -47,6 +47,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **Attachment and image fields**: a form field that names a file attached to the same document, validated on save, with picture preview ([ADR-048](docs/adr/048-attach-and-image-fields.md))
 - **Gallery, map and timeline views**: pictures as tiles, places on a plain grid (no outside map service), documents as bars between two dates ([ADR-049](docs/adr/049-gallery-map-and-timeline-views.md))
 - **Light, dark and automatic themes and a brand**: per-person theme, organisation name, logo, colours and default theme, all checked as plain data, readable colours guaranteed ([ADR-056](docs/adr/056-brand-and-theme.md))
+- **App dependencies**: apps name the apps they need; installed in order, bad graphs stop start-up ([ADR-085](docs/adr/085-app-dependencies.md))
 - **Boot hooks**: an app hands the Desk a few facts at start-up through `GET /api/boot` ([ADR-084](docs/adr/084-boot-hooks.md))
 - **List-view client scripts**: buttons, notes, row marks and filters from sandboxed scripts ([ADR-083](docs/adr/083-list-client-scripts.md))
 - **Per-role import, share, print and email rights**: four more permission switches that only take access away ([ADR-082](docs/adr/082-import-share-print-email-rights.md))
