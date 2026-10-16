@@ -65,6 +65,7 @@ public static class QahwaSiteServices
         services.Configure<SignUpOptions>(config.GetSection("Qahwa:Auth:SignUp"));
         services.Configure<LdapOptions>(config.GetSection("Qahwa:Auth:Ldap"));
         services.Configure<SamlOptions>(config.GetSection("Qahwa:Auth:Saml"));
+        services.Configure<DeveloperOptions>(config.GetSection("Qahwa:Developer"));
         services.AddSingleton(config.GetSection("Qahwa:Backup").Get<BackupOptions>() ?? new BackupOptions());
         services.Replace(ServiceDescriptor.Singleton<IPdfRenderer>(new BrowserPdfRenderer(config.GetSection("Qahwa:Pdf").Get<PdfOptions>() ?? new PdfOptions())));
     }
@@ -96,6 +97,8 @@ public static class SiteStartup
         _ = sp.GetRequiredService<IpAllowList>();
         if (LdapService.Problem(sp.GetRequiredService<IOptions<LdapOptions>>().Value) is { } ldapProblem)
             throw new InvalidOperationException(ldapProblem);
+        if (DeveloperExport.Problem(sp.GetRequiredService<IOptions<DeveloperOptions>>().Value) is { } developerProblem)
+            throw new InvalidOperationException(developerProblem);
         if (SamlService.Problem(sp.GetRequiredService<IOptions<SamlOptions>>().Value) is { } samlProblem)
             throw new InvalidOperationException(samlProblem);
 
@@ -112,6 +115,9 @@ public static class SiteStartup
         var patched = await sp.GetRequiredService<PatchRunner>().RunPendingAsync();
         foreach (var name in patched.Ran)
             logger.LogInformation("Patch {Patch} ran.", name);
+
+        // Installed apps: recorded for this site, their fixtures made once.
+        await sp.GetRequiredService<AppInstaller>().InstallAllAsync();
 
         // Permission rules customised in the Role Permission Manager.
         foreach (var failure in await sp.GetRequiredService<PermissionManager>().LoadAsync())

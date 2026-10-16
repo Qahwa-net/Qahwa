@@ -60,6 +60,8 @@ public static class HostingServiceCollectionExtensions
             registry.AddCoreDocTypes();
             foreach (var path in sp.GetRequiredService<IOptions<QahwaOptions>>().Value.DocTypePaths)
                 registry.LoadDirectory(path);
+            foreach (var app in sp.GetServices<IQahwaApp>().Where(a => a.DocTypesPath is not null))
+                registry.LoadDirectory(app.DocTypesPath!);
             registry.ValidateReferences();
             return registry;
         });
@@ -157,12 +159,20 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<SchemaSync>();
         services.TryAddSingleton<ISchemaManager, SchemaManager>();
         services.TryAddSingleton<IDocTypeStore, DocTypeStore>();
+        services.TryAddSingleton(sp => new DeveloperExport(sp.GetService<IOptions<DeveloperOptions>>()?.Value ?? new DeveloperOptions()));
+        services.TryAddSingleton<IDeveloperExport>(sp => sp.GetRequiredService<DeveloperExport>());
         services.TryAddSingleton<DocTypeDesigner>();
         services.TryAddSingleton<BundleService>();
         services.TryAddSingleton<TranslationService>();
         services.TryAddSingleton<HitCounter>();
         services.TryAddSingleton<ErrorLogService>();
         services.TryAddSingleton<GlobalSearchService>();
+        services.TryAddSingleton<AppCatalog>();
+        services.TryAddSingleton<AppHookRunner>();
+        services.TryAddSingleton(sp => new Lazy<AppHookRunner>(() => sp.GetRequiredService<AppHookRunner>()));
+        services.TryAddSingleton<MethodService>();
+        services.TryAddSingleton<AppInstaller>();
+        services.TryAddSingleton<AppJobRunner>();
         services.TryAddSingleton<DocumentActionEngine>();
         services.TryAddSingleton(sp => new Lazy<DocumentActionEngine>(() => sp.GetRequiredService<DocumentActionEngine>()));
         services.TryAddSingleton<ClientScriptService>();

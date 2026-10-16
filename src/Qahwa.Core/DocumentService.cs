@@ -26,7 +26,8 @@ public sealed partial class DocumentService(
     Lazy<WebhookService>? webhooks = null,
     Lazy<FileService>? files = null,
     Lazy<DocumentActionEngine>? documentActions = null,
-    Lazy<ServerScriptEngine>? serverScripts = null)
+    Lazy<ServerScriptEngine>? serverScripts = null,
+    Lazy<AppHookRunner>? appHooks = null)
 {
     private readonly DocumentLogic _logic = new(registry, repository, permissions, clock);
 
@@ -117,6 +118,8 @@ public sealed partial class DocumentService(
         await _logic.RunAsync(meta, values, changed, tables, user, isNew: true, errors, ct);
         foreach (var key in await RunScriptsAsync(meta, values, null, isNew: true, user, errors, ct))
             changed.Add(key);
+        foreach (var key in await RunAppHooksAsync(meta, values, null, isNew: true, user, errors, ct, null))
+            changed.Add(key);
         var context = _logic.Context(meta, values, tables, null, user, isNew: true);
         await ValidateAsync(meta, values, values.Keys, errors, string.Empty, context, fieldAccess, ct);
         foreach (var table in tables)
@@ -200,6 +203,33 @@ public sealed partial class DocumentService(
         return changed;
     }
 
+    /// <summary>Runs the Before hooks of installed apps for this DocType, converting what they changed like any other input.</summary>
+    private async Task<IReadOnlyCollection<string>> RunAppHooksAsync(
+        DocTypeMeta meta, Dictionary<string, object?> values, IReadOnlyDictionary<string, object?>? existing, bool isNew, IUserContext user, List<FieldError> errors, CancellationToken ct, int? transition)
+    {
+        if (appHooks is null || !appHooks.Value.Has(meta.Name) || !AssignmentRuleManager.Applies(meta))
+            return [];
+        var changed = new List<string>();
+        var events = transition switch
+        {
+            2 => new[] { DocEvent.BeforeCancel },
+            1 => [DocEvent.BeforeSave, DocEvent.BeforeSubmit],
+            _ => new[] { DocEvent.BeforeSave },
+        };
+        foreach (var kind in events)
+        {
+            var changes = await appHooks.Value.BeforeAsync(meta, kind, values, existing, isNew, user, ct);
+            if (changes.Count == 0)
+                continue;
+            var coerced = Coerce(meta, changes, errors, false, out _);
+            foreach (var (key, value) in coerced)
+                values[key] = value;
+            changed.AddRange(coerced.Keys);
+        }
+
+        return changed;
+    }
+
     public async Task<Dictionary<string, object?>> GetAsync(
         string doctype,
         string name,
@@ -256,6 +286,16 @@ public sealed partial class DocumentService(
             serverScripts.Value.Invalidate();
         if (serverScripts is not null && AssignmentRuleManager.Applies(meta) && await LoadAsync(meta, name, ct) is { } scripted)
             await serverScripts.Value.AfterSaveAsync(meta, name, isNew, before, scripted, user, ct);
+        if (appHooks is not null && appHooks.Value.Has(meta.Name) && AssignmentRuleManager.Applies(meta) && await LoadAsync(meta, name, ct) is { } hooked2)
+        {
+            var oldStatus = Convert.ToInt32(before?.GetValueOrDefault("docstatus") ?? 0);
+            var newStatus = Convert.ToInt32(hooked2.GetValueOrDefault("docstatus") ?? 0);
+            await appHooks.Value.AfterAsync(meta, DocEvent.AfterSave, name, isNew, before, hooked2, user, ct);
+            if (!isNew && oldStatus == 0 && newStatus == 1)
+                await appHooks.Value.AfterAsync(meta, DocEvent.AfterSubmit, name, isNew, before, hooked2, user, ct);
+            else if (!isNew && oldStatus == 1 && newStatus == 2)
+                await appHooks.Value.AfterAsync(meta, DocEvent.AfterCancel, name, isNew, before, hooked2, user, ct);
+        }
     }
 
     private static DocumentValidationException General(string message) => new([new FieldError(string.Empty, message)]);
@@ -395,6 +435,8 @@ public sealed partial class DocumentService(
         await _logic.RunAsync(meta, merged, changed, tables, user, isNew: false, errors, ct);
         foreach (var key in await RunScriptsAsync(meta, merged, existing, isNew: false, user, errors, ct, transition))
             changed.Add(key);
+        foreach (var key in await RunAppHooksAsync(meta, merged, existing, isNew: false, user, errors, ct, transition))
+            changed.Add(key);
         foreach (var key in changed)
             changes[key] = merged[key]; // calculated, fetched and script-set values are saved too
 
@@ -474,6 +516,8 @@ public sealed partial class DocumentService(
 
         if (serverScripts is not null && AssignmentRuleManager.Applies(meta))
             await serverScripts.Value.BeforeDeleteAsync(meta, existing, user, ct);
+        if (appHooks is not null && appHooks.Value.Has(meta.Name) && AssignmentRuleManager.Applies(meta))
+            await appHooks.Value.BeforeAsync(meta, DocEvent.BeforeDelete, existing, existing, isNew: false, user, ct);
 
         var childTables = TableFields(meta).Select(f => registry.Get(f.Options!)).ToList();
         List<ChildChanges>? log = null;
@@ -491,6 +535,8 @@ public sealed partial class DocumentService(
             documentActions.Value.Invalidate();
         if (serverScripts is not null && meta.Name == ServerScriptEngine.DocTypeName)
             serverScripts.Value.Invalidate();
+        if (appHooks is not null && appHooks.Value.Has(meta.Name) && AssignmentRuleManager.Applies(meta))
+            await appHooks.Value.AfterAsync(meta, DocEvent.AfterDelete, name, false, existing, existing, user, ct);
         if (files is not null)
             await files.Value.DeleteForDocumentAsync(meta.Name, name, ct);
         if (shares is not null)

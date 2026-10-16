@@ -1,0 +1,78 @@
+using System.Text.Json;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
+using Qahwa.Core;
+
+namespace Qahwa.Api;
+
+/// <summary>Server functions: the built-in <c>qahwa.*</c> ones and those registered by installed apps.</summary>
+public static class MethodEndpoints
+{
+    public static IEndpointRouteBuilder MapQahwaMethods(this IEndpointRouteBuilder app)
+    {
+        var group = app.MapGroup("/api/method");
+
+        group.MapGet("", async (HttpContext http, IUserContextResolver users, MethodService methods, AppInstaller installer, CancellationToken ct) =>
+        {
+            if (!(await users.ResolveAsync(http, ct)).IsAuthenticated)
+                throw new UnauthenticatedException();
+            return Results.Ok(new { data = new { methods = methods.Names.Order(StringComparer.Ordinal), apps = await installer.ListAsync(ct) } });
+        });
+
+        group.MapPost("/{name}", async (string name, HttpContext http, IUserContextResolver users, MethodService methods, CancellationToken ct) =>
+        {
+            var user = await users.ResolveAsync(http, ct);
+            JsonElement args;
+            using (var doc = await ReadBodyAsync(http, ct))
+                args = doc.RootElement.Clone();
+            return Results.Ok(new { data = await methods.InvokeAsync(name, args, user, isGet: false, ct) });
+        });
+
+        // Reading functions may also be called with GET (arguments in the address; each value is text, or JSON for lists).
+        group.MapGet("/{name}", async (string name, HttpContext http, IUserContextResolver users, MethodService methods, CancellationToken ct) =>
+        {
+            var user = await users.ResolveAsync(http, ct);
+            var values = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+            foreach (var (key, value) in http.Request.Query)
+            {
+                var text = value.ToString();
+                values[key] = text.StartsWith('[') || text.StartsWith('{') ? JsonDocument.Parse(text.Length > MethodService.MaxBodyBytes ? "[]" : text).RootElement.Clone() : JsonSerializer.SerializeToElement(text);
+            }
+
+            return Results.Ok(new { data = await methods.InvokeAsync(name, JsonSerializer.SerializeToElement(values), user, isGet: true, ct) });
+        });
+
+        return app;
+    }
+
+    /// <summary>The JSON body (an object, or nothing), refused when it is larger than the limit.</summary>
+    private static async Task<JsonDocument> ReadBodyAsync(HttpContext http, CancellationToken ct)
+    {
+        if (http.Request.ContentLength is > MethodService.MaxBodyBytes)
+            throw new DocumentValidationException([new FieldError(string.Empty, "The request is too large.")]);
+        using var buffer = new MemoryStream();
+        var chunk = new byte[16 * 1024];
+        int read;
+        while ((read = await http.Request.Body.ReadAsync(chunk, ct)) > 0)
+        {
+            if (buffer.Length + read > MethodService.MaxBodyBytes)
+                throw new DocumentValidationException([new FieldError(string.Empty, "The request is too large.")]);
+            buffer.Write(chunk, 0, read);
+        }
+
+        if (buffer.Length == 0)
+            return JsonDocument.Parse("{}");
+        try
+        {
+            var doc = JsonDocument.Parse(buffer.ToArray());
+            if (doc.RootElement.ValueKind != JsonValueKind.Object)
+                throw new DocumentValidationException([new FieldError(string.Empty, "Send the arguments as a JSON object.")]);
+            return doc;
+        }
+        catch (JsonException)
+        {
+            throw new DocumentValidationException([new FieldError(string.Empty, "The request is not valid JSON.")]);
+        }
+    }
+}

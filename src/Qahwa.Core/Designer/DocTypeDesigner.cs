@@ -28,7 +28,8 @@ public sealed class DocTypeDesigner(
     IDocTypeStore store,
     ISchemaManager schema,
     IDocumentRepository repository,
-    TimeProvider clock)
+    TimeProvider clock,
+    IDeveloperExport? developer = null)
 {
     private const string SystemManagerRole = "System Manager";
 
@@ -118,6 +119,21 @@ public sealed class DocTypeDesigner(
     public Task DeleteAsync(string name, IUserContext user, CancellationToken ct = default) =>
         SerializedAsync(async () => { await DeleteCoreAsync(name, user, ct); return true; }, ct);
 
+    /// <summary>Developer mode: the definition is also written to the app's folder. A problem with the file never undoes the change.</summary>
+    private async Task ExportAsync(string name, string? definition, CancellationToken ct)
+    {
+        if (developer is null)
+            return;
+        try
+        {
+            await developer.ChangedAsync(name, definition, ct);
+        }
+        catch (Exception e) when (e is IOException or UnauthorizedAccessException or InvalidOperationException or ArgumentException)
+        {
+            // The DocType is saved; the file is a convenience.
+        }
+    }
+
     private async Task<DesignerDetail> CreateCoreAsync(DocTypeMeta definition, IUserContext user, CancellationToken ct)
     {
         RequireDesigner(user);
@@ -138,6 +154,7 @@ public sealed class DocTypeDesigner(
         await store.InsertAsync(
             new StoredDocType(definition.Name, DocTypeLoader.Serialize(definition), now, now, user.User, user.User), ct);
         registry.Upsert(definition, DocTypeSource.Custom);
+        await ExportAsync(definition.Name, DocTypeLoader.Serialize(definition), ct);
 
         return await GetAsync(definition.Name, user, ct);
     }
@@ -173,6 +190,7 @@ public sealed class DocTypeDesigner(
             throw new ConflictException($"'{name}' was changed or deleted by someone else. Reload and try again.");
 
         registry.Upsert(definition, DocTypeSource.Custom);
+        await ExportAsync(name, updated.Definition, ct);
         return await GetAsync(name, user, ct);
     }
 
@@ -210,6 +228,7 @@ public sealed class DocTypeDesigner(
 
         await store.DeleteAsync(name, ct);
         registry.Remove(name);
+        await ExportAsync(name, null, ct);
     }
 
     /// <summary>Every problem that would stop this definition from being saved, keyed by path.</summary>
@@ -321,7 +340,12 @@ public sealed class CustomDocTypeLoader(IDocTypeStore store, IMutableMetaRegistr
                 if (!string.Equals(meta.Name, row.Name, StringComparison.Ordinal))
                     throw new DocTypeValidationException($"stored under '{row.Name}' but defines '{meta.Name}'.");
                 if (registry.SourceOf(meta.Name) is DocTypeSource.Core or DocTypeSource.App)
+                {
+                    // Developer mode wrote this definition to the app's folder, where it is loaded from: the same text twice is fine.
+                    if (registry.SourceOf(meta.Name) == DocTypeSource.App && DocTypeLoader.Serialize(registry.Get(meta.Name)) == DocTypeLoader.Serialize(meta))
+                        continue;
                     throw new DocTypeValidationException("conflicts with a standard DocType of the same name.");
+                }
 
                 registry.Upsert(meta, DocTypeSource.Custom);
             }

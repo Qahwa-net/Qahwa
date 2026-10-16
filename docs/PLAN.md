@@ -548,7 +548,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Field types: Small Text, Text Editor (rich text), HTML Editor, HTML, Heading, Button, Read Only, Autocomplete | | ⬜ | L3 |
 | Field types: Attach, Attach Image, Signature, Barcode, Geolocation, Icon, Color, Rating, Duration, Image | done: Signature, Barcode, Geolocation, Color, Rating, Duration, Icon (ADR-047), Attach and Image (ADR-048) | ✅ (v1) | L10 |
 | Field types: Table | child rows inside a document | ✅ | L2 |
-| Field types: Dynamic Link, Table MultiSelect | | ⬜ | L2 |
+| Field types: Dynamic Link, Table MultiSelect | Dynamic Link done (ADR-038); Table MultiSelect not yet | 🟡 | L2 |
 | Field types: Password (encrypted), Phone with country | | ⬜ | L3 |
 | Layout fields: Section Break, Column Break, Tab Break | | 🟡 | L1 (section/tab), L3 |
 | Field properties: label, required, unique, default, options, in list view, lowercase | | ✅ | done |
@@ -558,17 +558,17 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Calculated fields (formula), expression defaults | recalculated on every save and live in the form | ✅ | L4 |
 | Field properties: in standard filter, in preview, in global search, bold, no copy, allow on submit, set only once, non negative, collapsible, translatable, search index, precision, length, ignore user permissions, permission level | | ⬜ | L3 |
 | Child tables (Table field, parent/child) | created in the designer, saved atomically with the parent | ✅ | L2 |
-| Single DocTypes (settings stored as one document) | | ⬜ | L6 |
-| Tree DocTypes (nested set, parent/child hierarchy) | | ⬜ | L6 |
+| Single DocTypes (settings stored as one document) | done (ADR-011) | ✅ (v1) | L6 |
+| Tree DocTypes (nested set, parent/child hierarchy) | done: parent/child with tree views (ADR-011) | ✅ (v1) | L6 |
 | Virtual DocTypes (data from outside the database) | | 🔽 | L12 |
-| Submittable DocTypes (draft, submitted, cancelled, amend) | | ⬜ | L6 |
+| Submittable DocTypes (draft, submitted, cancelled, amend) | done: draft, submitted, cancelled (ADR-009) | ✅ (v1) | L6 |
 | Naming: hash, field, prompt, series | | ✅ | done |
-| Naming: format with date/field parts (`INV-{YYYY}-.####`), expression, naming rules, series manager | | ⬜ | L6 |
-| Rename document (updates links), merge documents | | ⬜ | L6 |
-| Duplicate document, track changes (versions), track seen, track views | | ⬜ | L7 |
+| Naming: format with date/field parts (`INV-{YYYY}-.####`), expression, naming rules, series manager | done: series patterns and prompt (ADR-011); not date/field format parts | 🟡 | L6 |
+| Rename document (updates links), merge documents | done: rename with link updates and merge (ADR-011) | ✅ (v1) | L6 |
+| Duplicate document, track changes (versions), track seen, track views | track changes done (ADR-014); not duplicate | 🟡 | L7 |
 | Document options: title field, sort field/order, search fields, image field, quick entry, allow rename, allow import, allow copy, editable grid, max attachments, default view | | 🟡 | L1, L3 |
-| Customize Form (adjust standard DocTypes) | | ⬜ | L3 |
-| Custom Field, Property Setter | stored as data, survive upgrades | ⬜ | L3 |
+| Customize Form (adjust standard DocTypes) | done (ADR-013) | ✅ (v1) | L3 |
+| Custom Field, Property Setter | done: stored as data, survive upgrades (ADR-013) | ✅ (v1) | L3 |
 | DocType Layout (alternative form layouts per role) | | 🔽 | L3 |
 | Module Definition, Module Profile | group DocTypes, restrict access to modules | 🟡 | L5 |
 
@@ -583,11 +583,11 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Validation rules without code | expression language, per document and per table row | ✅ | L4 |
 | Server Script (DocType event, API, scheduler event, permission query) | sandboxed | 🟡 | L11 |
 | Client Script (form/list events, field change) | done for forms: sandboxed worker, onload/refresh/validate/field-change events, buttons, field properties (ADR-057); not list events | 🟡 | L11 |
-| Hooks per app (doc events, scheduler events, fixtures, boot) | | ⬜ | L12 |
+| Hooks per app (doc events, scheduler events, fixtures, boot) | done except boot hooks (ADR-062) | 🟡 | L12 |
 | Versions: updates log on every document (field-level history, who/when, restore deleted) | on by default for all DocTypes, same transaction; restore of deleted documents not yet | 🟡 | L7 |
 | Comments on every document with @mentions, merged timeline | mentions highlighted, not yet notified | ✅ | L7 |
 | Assign (ToDo), Assignment Rules (round robin, load balancing, by field) | assign done (L7); rules done: round robin, load balancing, by field, conditions, withdraw condition; not yet working hours or leave | ✅ (v1) | L7, L8 |
-| Share (DocShare), Follow (Document Follow), Likes, Tags | | ⬜ | L7 |
+| Share (DocShare), Follow (Document Follow), Likes, Tags | share (ADR-008) and follow (ADR-015) done; not likes or tags | 🟡 | L7 |
 | Attachments, File manager (folders, private/public, thumbnails) | done: attachments on documents (private, permission-checked, picture thumbnails); not yet folders, public files, a File Manager page | ✅ (v1) | L10 |
 | Deleted Documents (restore), View Log, Access Log, Activity Log | | ⬜ | L7 |
 | Auto Repeat (recurring documents) | daily, weekly, monthly, quarterly, yearly; date fields; pause, run now, end date | ✅ (v1) | L8 |
@@ -602,7 +602,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Notification rules (on new, save, submit, value change, days before/after, custom condition) | done for the in-app channel; email, Slack and SMS channels not yet | ✅ (v1) | L8 |
 | Email Template, Email Account (SMTP out, IMAP/POP in), Email Queue, Email Domain | Email Template and Email Queue done; SMTP out is configured in settings (no Email Account DocType yet); incoming mail not yet | 🔽 | L8 |
 | Communication (email threads on documents), send email from a document | send from a document done; threads not yet | 🔽 | L8 |
-| Notification Log (bell icon), Email Digest | | ⬜ | L8 |
+| Notification Log (bell icon), Email Digest | bell and log done (ADR-015); not email digest | 🟡 | L8 |
 | Scheduled Job Types (cron, hourly, daily, weekly, monthly), Scheduler UI and logs | background scheduler loop exists (auto repeat); job types, UI and logs not yet | 🔽 | L8 |
 | Background jobs and queues (short, default, long), job UI | | ⬜ | L8 |
 | Webhooks (outgoing, conditions, signed) | done: events, conditions, signing, retries, SSRF-safe; not yet custom headers, test button | ✅ (v1) | L10 |
@@ -639,20 +639,20 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 |---|---|---|---|
 | Login, sidebar, home | | ✅ | done |
 | List view: search, filters, sort, paging | | ✅ | done |
-| List view: saved filters, user settings (columns, sort), list view settings | | ⬜ | L7 |
-| List view: sidebar group-by counts, row indicators/status colors, tags, assigned, like, comment count | | ⬜ | L7 |
-| List view: bulk actions (edit, delete, assign, tag, export, print) | | ⬜ | L7 |
+| List view: saved filters, user settings (columns, sort), list view settings | done (ADR-016) | ✅ (v1) | L7 |
+| List view: sidebar group-by counts, row indicators/status colors, tags, assigned, like, comment count | group-by counts, status indicators and comment counts done (ADR-017); not tags or likes | 🟡 | L7 |
+| List view: bulk actions (edit, delete, assign, tag, export, print) | done: edit, delete, assign (ADR-016) | 🟡 | L7 |
 | Form view: field controls per type, validation, conflict warning, delete | | ✅ | done |
 | Form view: tabs/sections/columns layout, collapsible sections | | 🟡 | L1, L3 |
 | Form view: child table grid (editable, reorder, row form) | | ✅ | L2 |
 | Form view: child table grid, upload/download rows as CSV | | ⬜ | L10 |
-| Form view: sidebar (assign, attachments, tags, share, follow, like), timeline, form dashboard with linked documents | | ⬜ | L7 |
+| Form view: sidebar (assign, attachments, tags, share, follow, like), timeline, form dashboard with linked documents | done (ADR-019); not tags or likes | 🟡 | L7 |
 | Form: quick entry dialog, auto-save indicator, keyboard shortcuts, unsaved-changes warning | | 🟡 | L7 |
-| Report view (editable columns, group by, totals, export) | | ⬜ | L9 |
+| Report view (editable columns, group by, totals, export) | Report Builder with group by, totals and CSV export done (ADR-045) | 🟡 | L9 |
 | Kanban, Calendar, Gantt, Map, Image, Tree, Dashboard views | done: Tree, Dashboard, Board, Calendar, **Gantt** (timeline), **Map** (plain grid) and **Image** (gallery) (ADR-031, ADR-049) | ✅ (v1) | L12 |
 | Workspaces (shortcuts, charts, number cards, onboarding) and **Workspace Builder** | done: headings, shortcut rows, embedded dashboards, role-based; not yet onboarding | ✅ (v1) | L9 |
 | Awesomebar (global search, create, commands), global search index | done: Ctrl+K search box with pages, DocTypes, "new …" and permission-checked document search (ADR-061); no full-text index | 🟡 | L9 |
-| Notification bell, toasts, dialogs | | ⬜ | L8 |
+| Notification bell, toasts, dialogs | done (ADR-015) | ✅ (v1) | L8 |
 | Themes (light, dark, automatic), RTL layout | RTL done (logical CSS, dir follows the language); themes not yet | 🟡 | L12 |
 | Translations (Translation DocType, language switch) | done: Translation DocType, catalog API, language switch, built-in Arabic chrome; not yet every message, plurals, per-user language | ✅ (v1) | L12 |
 | User settings: language, time zone, date/number/currency formats | language and time zone/date formats done (ADR-033, ADR-042); light/dark/auto theme per person and organisation brand done (ADR-056) | 🟡 | L7 |
@@ -677,7 +677,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | REST resource API (list, get, create, update, delete) with filters, fields, order, paging | | ✅ | done |
 | Filter operators: `=`, `!=`, `<`, `>`, `<=`, `>=`, `like`, `in`, `is set` | | ✅ | done |
 | Filter operators: `not like`, `not in`, `between`, timespans, dynamic values (`__user`) | done (ADR-060) | ✅ (v1) | L7 |
-| `/api/method` (whitelisted server functions), `get_count`, `get_value`, `set_value`, `get_list`, `rename_doc` | | ⬜ | L7 |
+| `/api/method` (whitelisted server functions), `get_count`, `get_value`, `set_value`, `get_list`, `rename_doc` | done (ADR-062) | ✅ (v1) | L7 |
 | API versioning, OpenAPI documentation | done: OpenAPI 3 per caller; not yet URL versioning | 🟡 | L12 |
 | Webhooks, incoming API via server script | outgoing webhooks done (L10); incoming API via scripts not yet (L11) | 🔽 | L10, L11 |
 | Realtime updates (socket events, document updates), SignalR | | ⬜ | L8 |
@@ -703,10 +703,10 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 |---|---|---|---|
 | CLI: migrate, create-admin | | ✅ | done |
 | CLI: init, new-site, new-app, install-app, backup, restore, console, run-tests, set-config | `migrate`, `create-admin`, `new-site`, `list-sites` done (ADR-055); the rest not yet | 🟡 | L12 |
-| Apps (installable packages with DocTypes, hooks, fixtures, patches) | | ⬜ | L12 |
+| Apps (installable packages with DocTypes, hooks, fixtures, patches) | done: `IQahwaApp`, per-site install record, fixtures, patches (ADR-062); not uninstall, dependencies or a CLI install | 🟡 | L12 |
 | SQL Server dialect | done: second database product, per site, same tests on both (ADR-059) | ✅ (v1) | L12 |
 | Multi-tenancy (sites, per-site config, database per site) | done: Host-header sites, a container and database per site, per-site config files, `qahwa new-site` (ADR-055); not live add/remove, no site manager UI | ✅ (v1) | L12 |
-| Developer mode (UI-made DocTypes written to the app's files) | export of L1 definitions | ⬜ | L12 |
+| Developer mode (UI-made DocTypes written to the app's files) | done (ADR-062) | ✅ (v1) | L12 |
 | Caching, boot info, performance | | 🟡 | L12 |
 | Test framework (unit, integration, UI) | | 🟡 | ongoing |
 

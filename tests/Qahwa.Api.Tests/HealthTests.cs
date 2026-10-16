@@ -36,6 +36,20 @@ internal sealed class HeaderUserContextResolver : IUserContextResolver
 /// The real server with an in-memory repository and test DocTypes, so no database is needed.
 /// By default requests are authenticated with test headers; pass <c>realAuth</c> to use the real cookie login.
 /// </summary>
+/// <summary>An app the test server has installed: one method that greets, one that needs a role.</summary>
+public sealed class FactoryTestApp : IQahwaApp
+{
+    public string Name => "testapp";
+
+    public string Version => "0.1.0";
+
+    public void Configure(IAppBuilder app)
+    {
+        app.Method("hello", ctx => Task.FromResult<object?>(new { greeting = "Hello " + (ctx.Text("who") ?? "world"), user = ctx.User.User }), new MethodOptions { AllowGet = true });
+        app.Method("secret", _ => Task.FromResult<object?>("classified"), new MethodOptions { Roles = ["System Manager"] });
+    }
+}
+
 public sealed class QahwaFactory(
     string environment = "Development",
     bool realAuth = false,
@@ -103,6 +117,7 @@ public sealed class QahwaFactory(
         builder.ConfigureServices(services =>
         {
             UseTestStores(services, Mail);
+            services.AddSingleton<IQahwaApp>(new FactoryTestApp());
             services.AddSingleton<ISiteServicesCustomizer>(new TestSites(this));
         });
     }

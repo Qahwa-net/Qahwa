@@ -270,7 +270,7 @@ public class DesignerTests
         await _engine.Designer.CreateAsync(Supplier(), TestUsers.SystemManager);
         var now = DateTime.UtcNow;
         await _engine.DocTypeStore.InsertAsync(new StoredDocType("Broken", "{ not json", now, now, "x", "x"));
-        await _engine.DocTypeStore.InsertAsync(new StoredDocType("Customer", DocTypeLoader.Serialize(_engine.Registry.Get("Customer")), now, now, "x", "x"));
+        await _engine.DocTypeStore.InsertAsync(new StoredDocType("Customer", DocTypeLoader.Serialize(DocTypeLoader.Parse("""{ "name": "Customer", "fields": [ { "name": "different", "type": "Data" } ] }""")), now, now, "x", "x")); // not the same as the standard one
 
         var fresh = TestMetas.Registry();
         var failures = await new CustomDocTypeLoader(_engine.DocTypeStore, fresh).LoadAsync();
@@ -279,6 +279,19 @@ public class DesignerTests
         Assert.Equal(DocTypeSource.Custom, fresh.SourceOf("Supplier"));
         Assert.Equal(DocTypeSource.App, fresh.SourceOf("Customer")); // the standard one wins
         Assert.Equal(2, failures.Count);
+    }
+
+    [Fact]
+    public async Task A_stored_definition_identical_to_the_standard_one_is_accepted_quietly_as_developer_mode_leaves_it()
+    {
+        var now = DateTime.UtcNow;
+        await _engine.DocTypeStore.InsertAsync(new StoredDocType("Customer", DocTypeLoader.Serialize(_engine.Registry.Get("Customer")), now, now, "x", "x"));
+
+        var fresh = TestMetas.Registry();
+        var failures = await new CustomDocTypeLoader(_engine.DocTypeStore, fresh).LoadAsync();
+
+        Assert.Empty(failures);
+        Assert.Equal(DocTypeSource.App, fresh.SourceOf("Customer"));
     }
 
     [Fact]

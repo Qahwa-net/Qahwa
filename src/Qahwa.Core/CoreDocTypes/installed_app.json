@@ -1,0 +1,16 @@
+{
+  "name": "Installed App",
+  "module": "Core",
+  "autoname": "prompt",
+  "titleField": "title",
+  "trackChanges": false,
+  "fields": [
+    { "name": "app_name", "type": "Data", "label": "App", "required": true, "readOnly": true, "inListView": true },
+    { "name": "title", "type": "Data", "label": "Title", "readOnly": true, "inListView": true },
+    { "name": "version", "type": "Data", "label": "Version", "readOnly": true, "inListView": true },
+    { "name": "installed_on", "type": "Datetime", "label": "Installed on", "readOnly": true }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true }
+  ]
+}

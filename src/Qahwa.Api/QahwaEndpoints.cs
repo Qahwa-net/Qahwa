@@ -133,6 +133,8 @@ public static class QahwaEndpoints
         app.MapQahwaSso();
         app.MapQahwaSaml();
         app.MapQahwaServerScripts();
+        app.MapQahwaMethods();
+        app.MapQahwaDeveloper();
         return app;
     }
 

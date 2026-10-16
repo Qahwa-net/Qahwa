@@ -267,3 +267,7 @@ Server: `ClientScripts.cs` (`ClientScriptService.ForAsync`, `Check`; Core DocTyp
 ## The search box ([ADR-061](../../adr/061-global-search.md))
 
 `GlobalSearch.cs` (`GlobalSearchService.SearchAsync`, `Literal`); `GET /api/search` in `QahwaEndpoints.cs`. The in-memory test repository now reads LIKE patterns with backslash escapes like the real databases. Desk: `lib/search.ts` (`pageItems`, `paletteItems`, `score`), `shell/CommandPalette.tsx`, Ctrl+K in `Shell.tsx`. To make a page appear in the box, add it to `pageItems`. Tests: `GlobalSearchTests`, `SearchApiTests`, `DatabaseBehaviourTests` (literal patterns on both databases), `lib/search.test.ts`.
+
+## Apps, hooks, methods and developer mode ([ADR-062](../../adr/062-apps-hooks-methods-developer-mode.md))
+
+See [Writing an app](08-writing-an-app.md). Code: `Apps.cs` (`IQahwaApp`, `IAppBuilder`, `AppCatalog`, `AppHookRunner`, `MethodService`, `BuiltInMethods`, `AppInstaller`, `AppJobRunner`, `AddQahwaApp`), `Designer/DeveloperMode.cs` (`DeveloperExport`, `IDeveloperExport`), `DocumentService.RunAppHooksAsync` and the After/Delete hook calls, `MethodEndpoints.cs`, `DeveloperEndpoints.cs`, `SiteStartup` (installs apps), `SchedulerService` (runs jobs), Core DocType `installed_app.json`. Tests: `AppTests`, `DeveloperModeTests`, `MethodApiTests`, `DeveloperApiTests`, `PostgresAppTests`.
