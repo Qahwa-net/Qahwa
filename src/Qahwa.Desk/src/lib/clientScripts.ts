@@ -7,6 +7,8 @@ export type ScriptOp =
   | { op: 'set_intro'; text: string }
   | { op: 'button'; id: string; label: string }
   | { op: 'msgprint'; text: string }
+  | { op: 'set_row_indicator'; name: string; color: 'gray' | 'blue' | 'green' | 'orange' | 'red' | 'purple' }
+  | { op: 'set_filter'; field: string; value: string | number | boolean }
   | { op: 'throw'; message: string }
   | { op: 'error'; message: string }
 
@@ -32,6 +34,7 @@ export const MAX_TEXT = 300
 export const SCRIPT_TIMEOUT_MS = 1000
 
 const PROPERTIES = ['hidden', 'read_only', 'reqd'] as const
+const COLORS = ['gray', 'blue', 'green', 'orange', 'red', 'purple'] as const
 const NOT_SETTABLE = new Set(['Table', 'Password', 'SectionBreak', 'ColumnBreak', 'TabBreak', 'Attach', 'AttachImage'])
 const NUMERIC = new Set(['Int', 'Float', 'Decimal', 'Currency', 'Percent', 'Rating', 'Duration'])
 const NULLABLE = new Set(['Date', 'Datetime', 'Time', 'Link'])
@@ -71,6 +74,18 @@ export function sanitizeOps(raw: unknown, meta: Pick<DocTypeMeta, 'fields'>): Sc
       case 'msgprint':
         result.push({ op: 'msgprint', text: text(o.text) })
         break
+      case 'set_row_indicator':
+        if (typeof o.name === 'string' && o.name.length <= 140 && (COLORS as readonly unknown[]).includes(o.color)) {
+          result.push({ op: 'set_row_indicator', name: o.name, color: o.color as (typeof COLORS)[number] })
+        }
+        break
+      case 'set_filter': {
+        const v = o.value
+        if (field && !NOT_SETTABLE.has(field.type) && (typeof v === 'boolean' || (typeof v === 'number' && Number.isFinite(v)) || (typeof v === 'string' && v.length <= 200))) {
+          result.push({ op: 'set_filter', field: field.name, value: v })
+        }
+        break
+      }
       case 'throw':
         result.push({ op: 'throw', message: text(o.message) || 'The change was refused.' })
         break
@@ -181,6 +196,15 @@ export class ClientScriptRunner {
   /** Runs the handlers for an event ("onload", "refresh", "validate" or a field name) on a copy of the document. */
   run(event: string, doc: Record<string, unknown>): Promise<ScriptOp[]> {
     return this.request({ type: 'event', event, doc })
+  }
+
+  /** Runs the list view's handlers ("onload" or "refresh") with copies of the rows on the page and the names ticked. */
+  runList(event: string, rows: Record<string, unknown>[], selected: string[]): Promise<ScriptOp[]> {
+    return this.request({ type: 'list_event', event, rows, selected })
+  }
+
+  runListButton(button: string, rows: Record<string, unknown>[], selected: string[]): Promise<ScriptOp[]> {
+    return this.request({ type: 'list_button', button, rows, selected })
   }
 
   runButton(button: string, doc: Record<string, unknown>): Promise<ScriptOp[]> {

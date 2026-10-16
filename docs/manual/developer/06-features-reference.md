@@ -347,3 +347,7 @@ Core DocTypes `contact.json`, `address.json`, `dynamic_link.json` (module "Conta
 ## Import/share/print/email rights ([ADR-082](../../adr/082-import-share-print-email-rights.md))
 
 `DocPermMeta.Import/Share/Print/Email` (default true), `PermFlag`, `PermissionService.Allows/Require(…, PermFlag)`; enforced in `DataImportService.Require`, `ShareManager.RequireSharerAsync`, `PrintService.RenderAsync`, `EmailService.SendFromDocumentAsync`; `EffectivePermissions` carries the values to the Desk (designer table in `FieldCard`, buttons in `FormView`/`ListView`). Tests: `ExtraRightsTests`.
+
+## List client scripts ([ADR-083](../../adr/083-list-client-scripts.md))
+
+`public/client-script-worker.js` (`qahwa.ui.list.on`, `makeList`, `list_event`/`list_button` messages), `lib/clientScripts.ts` (`set_row_indicator`/`set_filter` ops in `sanitizeOps`, `ClientScriptRunner.runList`/`runListButton`), `lib/useListScripts.ts` (the hook; filters from `refresh` are ignored), `pages/ListView.tsx` (buttons, note, row marks). Tests: `listScripts.test.ts` runs the real worker file against a stand-in scope.

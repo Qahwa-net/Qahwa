@@ -582,7 +582,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Submit events: before_submit, on_submit, before_cancel, on_cancel, on_update_after_submit | done as Server Script events (ADR-053) | ✅ | L6 |
 | Validation rules without code | expression language, per document and per table row | ✅ | L4 |
 | Server Script (DocType event, API, scheduler event, permission query) | sandboxed | 🟡 | L11 |
-| Client Script (form/list events, field change) | done for forms: sandboxed worker, onload/refresh/validate/field-change events, buttons, field properties (ADR-057); not list events | 🟡 | L11 |
+| Client Script (form/list events, field change) | done for forms (ADR-057) and lists: buttons, notes, row marks, filters (ADR-083) | ✅ | L11 |
 | Hooks per app (doc events, scheduler events, fixtures, boot) | done except boot hooks (ADR-062) | 🟡 | L12 |
 | Versions: updates log on every document (field-level history, who/when, restore deleted) | on by default for all DocTypes, same transaction; restore of deleted documents done (ADR-067) | ✅ | L7 |
 | Comments on every document with @mentions, merged timeline | mentions highlighted, not yet notified | ✅ | L7 |

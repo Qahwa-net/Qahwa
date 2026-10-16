@@ -4,6 +4,7 @@ import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-r
 import { ApiError, api } from '../api/client.ts'
 import type { DocField } from '../api/types.ts'
 import { BulkBar, type BulkReport } from '../controls/BulkBar.tsx'
+import { useListScripts } from '../lib/useListScripts.ts'
 import { ColumnsPanel } from '../controls/ColumnsPanel.tsx'
 import { FilterBar } from '../controls/FilterBar.tsx'
 import { GroupBySidebar } from '../controls/GroupBySidebar.tsx'
@@ -134,6 +135,12 @@ export function ListView() {
     retry: false,
   })
 
+  // Client scripts of this DocType for the list (buttons, a note, row colours, a filter).
+  const listScripts = useListScripts({
+    meta, rows: list.data?.data, selected: [...selected],
+    setFilter: (field, value) => update({ f: encodeFilters([...filters.filter((f) => f.field !== field), { field, op: '=', value }]) }),
+  })
+
   if (metaQuery.isError) {
     const forbidden = metaQuery.error instanceof ApiError && (metaQuery.error.status === 403 || metaQuery.error.status === 404)
     return <div className="banner error" role="alert">
@@ -171,6 +178,7 @@ export function ListView() {
         {meta.fields.filter((f) => (f.type === "Date" || f.type === "Datetime") && !f.hidden).length >= 2 && !meta.isSingle && <Link className="btn" to={`${base}/timeline`}>Timeline</Link>}
         {meta.fields.some((f) => f.type === "AttachImage" && !f.hidden) && !meta.isSingle && <Link className="btn" to={`${base}/gallery`}>Gallery</Link>}
         {meta.fields.some((f) => f.type === "Geolocation" && !f.hidden) && !meta.isSingle && <Link className="btn" to={`${base}/map`}>Map</Link>}
+        {listScripts.buttons.map((b) => <button key={b.id} className="btn" onClick={() => listScripts.runButton(b.id)}>{b.label}</button>)}
         {perms?.report && <button className="btn" aria-expanded={reporting} onClick={() => setReporting(!reporting)}>Report</button>}
         {perms?.export && <a className="btn" href={api.exportUrl(doctype, effectiveFilters)} download>Export CSV</a>}
         {perms?.export && <a className="btn" href={api.exportUrl(doctype, effectiveFilters, 'xlsx')} download>Export Excel</a>}
@@ -185,6 +193,9 @@ export function ListView() {
           current={[...otherColumns.map((c) => c.name)]} initial={settings} onClose={() => setColumnsOpen(false)} />
       )}
       {reporting && <ReportPanel doctype={doctype} fields={allFields} filters={effectiveFilters} onClose={() => setReporting(false)} />}
+
+      {listScripts.intro && <div className="banner info" role="status">{listScripts.intro}</div>}
+      {listScripts.notice && <div className="banner info" role="status">{listScripts.notice} <button type="button" className="btn small" onClick={listScripts.dismissNotice}>OK</button></div>}
 
       <div className="toolbar">
         <input type="search" className="search" placeholder={`Search by ${searchField.replace(/_/g, ' ')}…`}
@@ -249,6 +260,7 @@ export function ListView() {
                     <span className="comment-count" title={`${commentCounts.data![doc.name]} comment(s)`} aria-label={`${commentCounts.data![doc.name]} comments`}> 💬 {commentCounts.data![doc.name]}</span>
                   )}
                   <RowStatus meta={meta} doc={doc} />
+                  {listScripts.indicators[doc.name] && <span className={`pill pill-${listScripts.indicators[doc.name]}`} aria-label={`Marked ${listScripts.indicators[doc.name]}`}>●</span>}
                   {titleField && <div className="muted small-text">{doc.name}</div>}
                 </td>
                 {otherColumns.map((c) => <td key={c.name}>{cellText(c, doc[c.name])}</td>)}

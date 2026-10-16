@@ -68,6 +68,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 64. [Seen by](64-seen-by.md)
 65. [Access Log](65-access-log.md)
 66. [Import, share, print and email rights](66-extra-rights.md)
+67. [Scripts for the list view](67-list-scripts.md)
 
 **Words used**
 

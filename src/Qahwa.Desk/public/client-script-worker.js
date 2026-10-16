@@ -31,6 +31,7 @@
 
   var MAX_OPS = 100
   var registered = [] // { doctype, handlers }
+  var registeredLists = [] // { doctype, handlers } for the list view
   var buttons = {} // id -> function
   var doctype = ''
 
@@ -72,6 +73,37 @@
     return frm
   }
 
+  // What a script sees in the list view: the rows on the page (copies) and the names ticked; it can add buttons, a note, colours for
+  // rows and a filter. Like the form, it only returns operations; the page decides what to do with them.
+  function makeList(rows, selected, ops) {
+    var list = {
+      doctype: doctype,
+      rows: JSON.parse(JSON.stringify(rows || [])),
+      selected: (selected || []).map(String),
+      add_custom_button: function (label, handler) {
+        var id = 'l' + Object.keys(buttons).length + ':' + String(label)
+        buttons[id] = handler
+        ops.push({ op: 'button', id: id, label: String(label) })
+      },
+      set_intro: function (text) { ops.push({ op: 'set_intro', text: String(text == null ? '' : text) }) },
+      msgprint: function (text) { ops.push({ op: 'msgprint', text: String(text == null ? '' : text) }) },
+      set_row_indicator: function (name, color) { ops.push({ op: 'set_row_indicator', name: String(name), color: String(color) }) },
+      set_filter: function (field, value) { ops.push({ op: 'set_filter', field: String(field), value: value }) },
+      log: function () { /* nothing to show */ },
+    }
+    return list
+  }
+
+  function runList(fn, rows, selected) {
+    var ops = []
+    try {
+      fn(makeList(rows, selected, ops))
+    } catch (e) {
+      ops.push({ op: 'error', message: String(e && e.message ? e.message : e) })
+    }
+    return ops.slice(0, MAX_OPS)
+  }
+
   function run(fn, doc) {
     var ops = []
     try {
@@ -93,8 +125,24 @@
     return found
   }
 
+  function listHandlersFor(event) {
+    var found = []
+    registeredLists.forEach(function (entry) {
+      if (entry.doctype !== doctype) return
+      var h = entry.handlers[event]
+      if (typeof h === 'function') found.push(h)
+      else if (Array.isArray(h)) h.forEach(function (f) { if (typeof f === 'function') found.push(f) })
+    })
+    return found
+  }
+
   var qahwa = Object.freeze({
     ui: Object.freeze({
+      list: Object.freeze({
+        on: function (target, handlers) {
+          if (typeof target === 'string' && handlers && typeof handlers === 'object') registeredLists.push({ doctype: target, handlers: handlers })
+        },
+      }),
       form: Object.freeze({
         on: function (target, handlers) {
           if (typeof target === 'string' && handlers && typeof handlers === 'object') registered.push({ doctype: target, handlers: handlers })
@@ -126,6 +174,13 @@
         if (more.some(function (o) { return o.op === 'throw' })) done = true // the first refusal ends the event
       })
       post({ type: 'result', id: m.id, ops: ops.slice(0, MAX_OPS) })
+    } else if (m.type === 'list_event') {
+      var listOps = []
+      listHandlersFor(String(m.event)).forEach(function (fn) { listOps = listOps.concat(runList(fn, m.rows, m.selected)) })
+      post({ type: 'result', id: m.id, ops: listOps.slice(0, MAX_OPS) })
+    } else if (m.type === 'list_button') {
+      var listHandler = buttons[String(m.button)]
+      post({ type: 'result', id: m.id, ops: typeof listHandler === 'function' ? runList(listHandler, m.rows, m.selected) : [] })
     } else if (m.type === 'button') {
       var handler = buttons[String(m.button)]
       post({ type: 'result', id: m.id, ops: typeof handler === 'function' ? run(handler, m.doc) : [] })
