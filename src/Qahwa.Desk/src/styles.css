@@ -665,3 +665,21 @@ kbd { font: .75rem ui-monospace, Consolas, monospace; padding: .05rem .35rem; bo
 
 .attach-input { display: grid; gap: .4rem; justify-items: start; }
 .attach-preview { max-inline-size: 16rem; max-block-size: 12rem; border-radius: 8px; border: 1px solid var(--border, #ccc); object-fit: contain; background: #fff; }
+
+/* Gallery, map and timeline */
+.gallery { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: .75rem; }
+.gallery a { display: grid; gap: .3rem; text-decoration: none; color: inherit; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+.gallery img { inline-size: 100%; aspect-ratio: 4 / 3; object-fit: cover; background: #fff; }
+.gallery span { padding: 0 .6rem .5rem; font-size: .85rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plot { inline-size: min(100%, 38rem); block-size: auto; aspect-ratio: 1; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; margin-block-end: 1rem; }
+.plot .grid-line { stroke: var(--border); stroke-width: .15; }
+.plot .grid-text { font-size: 2.2px; fill: var(--muted); }
+.plot .dot { fill: var(--brand); stroke: #fff; stroke-width: .3; cursor: pointer; }
+.gantt { border: 1px solid var(--border); border-radius: 10px; background: var(--surface); overflow-x: auto; }
+.gantt-row, .gantt-axis { display: grid; grid-template-columns: 12rem minmax(30rem, 1fr); align-items: center; border-block-end: 1px solid var(--border); }
+.gantt-name { padding: .35rem .6rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gantt-track { position: relative; block-size: 1.8rem; }
+.gantt-axis .gantt-track { block-size: 1.6rem; }
+.gantt-tick { position: absolute; top: .2rem; font-size: .7rem; color: var(--muted); white-space: nowrap; }
+.gantt-bar { position: absolute; top: .35rem; block-size: 1.1rem; background: var(--brand); border-radius: 5px; min-inline-size: 3px; }
+.gantt-today { position: absolute; top: 0; bottom: 0; inline-size: 0; border-inline-start: 2px dashed var(--danger, #d92d20); }

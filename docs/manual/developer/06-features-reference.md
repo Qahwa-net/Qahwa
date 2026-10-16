@@ -215,3 +215,7 @@ Tests: `PatchTests`, `PostgresPatchTests`.
 ## Attachment and image fields ([ADR-048](../../adr/048-attach-and-image-fields.md))
 
 Validation in `DocumentService.ValidateAsync` calls `FileService.CheckFieldFileAsync`; `FileService.DeleteAsync` empties fields naming the removed file (`ClearFieldsNamingAsync`); `DocTypeLoader.CheckField` refuses them in child tables. Desk: `AttachInput` in `controls/SpecialInputs.tsx`, which reads the document from `DocContext` (provided by `FormView`) and uploads with `api.files.upload`. Tests: `AttachFieldTests`.
+
+## Gallery, map and timeline views ([ADR-049](../../adr/049-gallery-map-and-timeline-views.md))
+
+Desk only: `pages/MoreViews.tsx` (`GalleryView`, `MapView`, `GanttView`), routes `app/:doctype/gallery`, `/map`, `/timeline` in `App.tsx`, toolbar links in `ListView.tsx`. Pure layout in `lib/gantt.ts` (`layout`, `dayNumber`) and `lib/map.ts` (`layoutMap`, `gridStep`). Tests: `lib/views2.test.ts`.

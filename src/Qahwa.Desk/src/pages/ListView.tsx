@@ -168,6 +168,9 @@ export function ListView() {
         {meta.isTree && <Link className="btn" to={`${base}/tree`}>Tree view</Link>}
         {meta.fields.some((f) => f.type === "Select" && f.options && !f.hidden) && !meta.isSingle && <Link className="btn" to={`${base}/board`}>Board</Link>}
         {meta.fields.some((f) => (f.type === "Date" || f.type === "Datetime") && !f.hidden) && !meta.isSingle && <Link className="btn" to={`${base}/calendar`}>Calendar</Link>}
+        {meta.fields.filter((f) => (f.type === "Date" || f.type === "Datetime") && !f.hidden).length >= 2 && !meta.isSingle && <Link className="btn" to={`${base}/timeline`}>Timeline</Link>}
+        {meta.fields.some((f) => f.type === "AttachImage" && !f.hidden) && !meta.isSingle && <Link className="btn" to={`${base}/gallery`}>Gallery</Link>}
+        {meta.fields.some((f) => f.type === "Geolocation" && !f.hidden) && !meta.isSingle && <Link className="btn" to={`${base}/map`}>Map</Link>}
         {perms?.report && <button className="btn" aria-expanded={reporting} onClick={() => setReporting(!reporting)}>Report</button>}
         {perms?.export && <a className="btn" href={api.exportUrl(doctype, effectiveFilters)} download>Export</a>}
         {perms?.create && !meta.isSingle && <button className="btn" onClick={() => setImporting(true)}>Import</button>}

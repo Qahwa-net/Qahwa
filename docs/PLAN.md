@@ -649,7 +649,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Form view: sidebar (assign, attachments, tags, share, follow, like), timeline, form dashboard with linked documents | | ⬜ | L7 |
 | Form: quick entry dialog, auto-save indicator, keyboard shortcuts, unsaved-changes warning | | 🟡 | L7 |
 | Report view (editable columns, group by, totals, export) | | ⬜ | L9 |
-| Kanban, Calendar, Gantt, Map, Image, Tree, Dashboard views | done: Tree, Dashboard, **Board** (kanban) and **Calendar** (month); not yet Gantt, Map, Image | ✅ (v1) | L12 |
+| Kanban, Calendar, Gantt, Map, Image, Tree, Dashboard views | done: Tree, Dashboard, Board, Calendar, **Gantt** (timeline), **Map** (plain grid) and **Image** (gallery) (ADR-031, ADR-049) | ✅ (v1) | L12 |
 | Workspaces (shortcuts, charts, number cards, onboarding) and **Workspace Builder** | done: headings, shortcut rows, embedded dashboards, role-based; not yet onboarding | ✅ (v1) | L9 |
 | Awesomebar (global search, create, commands), global search index | | ⬜ | L9 |
 | Notification bell, toasts, dialogs | | ⬜ | L8 |

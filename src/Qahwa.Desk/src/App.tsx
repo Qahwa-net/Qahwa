@@ -22,6 +22,7 @@ import { PermissionManagerPage } from './pages/PermissionManager.tsx'
 import { ListView } from './pages/ListView.tsx'
 import { NamingSeriesPage } from './pages/NamingSeriesPage.tsx'
 import { BoardView } from './pages/BoardView.tsx'
+import { GalleryView, GanttView, MapView } from './pages/MoreViews.tsx'
 import { CalendarView } from './pages/CalendarView.tsx'
 import { TreeView } from './pages/TreeView.tsx'
 import { PublicFormPage } from './pages/PublicFormPage.tsx'
@@ -82,6 +83,9 @@ export function App() {
           <Route path="app/:doctype/tree" element={<TreeView />} />
           <Route path="app/:doctype/board" element={<BoardView />} />
           <Route path="app/:doctype/calendar" element={<CalendarView />} />
+          <Route path="app/:doctype/gallery" element={<GalleryView />} />
+          <Route path="app/:doctype/map" element={<MapView />} />
+          <Route path="app/:doctype/timeline" element={<GanttView />} />
           <Route path="app/:doctype/new" element={<FormView />} />
           <Route path="app/:doctype/:name" element={<FormView />} />
         </Route>
