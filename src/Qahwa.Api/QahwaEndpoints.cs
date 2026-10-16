@@ -114,6 +114,7 @@ public static class QahwaEndpoints
         app.MapQahwaReports();
         app.MapQahwaPdf();
         app.MapQahwaSso();
+        app.MapQahwaServerScripts();
         return app;
     }
 

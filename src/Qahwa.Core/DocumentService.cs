@@ -25,7 +25,8 @@ public sealed partial class DocumentService(
     Lazy<NotificationRuleEngine>? notificationRules = null,
     Lazy<WebhookService>? webhooks = null,
     Lazy<FileService>? files = null,
-    Lazy<DocumentActionEngine>? documentActions = null)
+    Lazy<DocumentActionEngine>? documentActions = null,
+    Lazy<ServerScriptEngine>? serverScripts = null)
 {
     private readonly DocumentLogic _logic = new(registry, repository, permissions, clock);
 
@@ -112,6 +113,8 @@ public sealed partial class DocumentService(
         // Expression defaults, "fetch from" values and formulas, then validation of the finished document.
         var changed = values.Keys.ToHashSet(StringComparer.Ordinal);
         await _logic.RunAsync(meta, values, changed, tables, user, isNew: true, errors, ct);
+        foreach (var key in await RunScriptsAsync(meta, values, null, isNew: true, user, errors, ct))
+            changed.Add(key);
         var context = _logic.Context(meta, values, tables, null, user, isNew: true);
         await ValidateAsync(meta, values, values.Keys, errors, string.Empty, context, fieldAccess, ct);
         foreach (var table in tables)
@@ -142,6 +145,31 @@ public sealed partial class DocumentService(
         await AfterSaveAsync(meta, name, values.Keys.ToHashSet(StringComparer.Ordinal), isNew: true, user, ct);
         return await LoadForAsync(meta, name, user, ct)
             ?? throw new InvalidOperationException($"{meta.Name} '{name}' vanished after insert.");
+    }
+
+    /// <summary>
+    /// Runs the Validate scripts attached to the DocType (and checks the source of a Server Script being saved). What the scripts set is
+    /// converted like any other input and put into <paramref name="values"/>.
+    /// </summary>
+    /// <returns>The names of the fields the scripts changed.</returns>
+    private async Task<IReadOnlyCollection<string>> RunScriptsAsync(
+        DocTypeMeta meta, Dictionary<string, object?> values, IReadOnlyDictionary<string, object?>? existing, bool isNew, IUserContext user, List<FieldError> errors, CancellationToken ct)
+    {
+        if (serverScripts is null)
+            return [];
+        if (meta.Name == ServerScriptEngine.DocTypeName)
+        {
+            serverScripts.Value.CheckScript(values, errors);
+            return [];
+        }
+
+        var changes = await serverScripts.Value.ValidateAsync(meta, values, existing, isNew, user, ct);
+        if (changes.Count == 0)
+            return [];
+        var coerced = Coerce(meta, changes, errors, false, out _);
+        foreach (var (key, value) in coerced)
+            values[key] = value;
+        return coerced.Keys.ToList();
     }
 
     public async Task<Dictionary<string, object?>> GetAsync(
@@ -196,6 +224,10 @@ public sealed partial class DocumentService(
             documentActions.Value.Invalidate();
         if (documentActions is not null && AssignmentRuleManager.Applies(meta) && await LoadAsync(meta, name, ct) is { } acted)
             await documentActions.Value.AfterSaveAsync(meta, name, isNew, before, acted, user, ct);
+        if (serverScripts is not null && meta.Name == ServerScriptEngine.DocTypeName)
+            serverScripts.Value.Invalidate();
+        if (serverScripts is not null && AssignmentRuleManager.Applies(meta) && await LoadAsync(meta, name, ct) is { } scripted)
+            await serverScripts.Value.AfterSaveAsync(meta, name, isNew, before, scripted, user, ct);
     }
 
     private static DocumentValidationException General(string message) => new([new FieldError(string.Empty, message)]);
@@ -333,8 +365,10 @@ public sealed partial class DocumentService(
 
         var changed = changes.Keys.ToHashSet(StringComparer.Ordinal);
         await _logic.RunAsync(meta, merged, changed, tables, user, isNew: false, errors, ct);
+        foreach (var key in await RunScriptsAsync(meta, merged, existing, isNew: false, user, errors, ct))
+            changed.Add(key);
         foreach (var key in changed)
-            changes[key] = merged[key]; // calculated and fetched values are saved too
+            changes[key] = merged[key]; // calculated, fetched and script-set values are saved too
 
         var context = _logic.Context(meta, merged, tables, null, user, isNew: false);
         await ValidateAsync(meta, merged, changed, errors, string.Empty, context, fieldAccess, ct);
@@ -424,6 +458,8 @@ public sealed partial class DocumentService(
             await webhooks.Value.AfterDeleteAsync(meta, name, existing, ct);
         if (documentActions is not null && meta.Name == DocumentActionEngine.DocTypeName)
             documentActions.Value.Invalidate();
+        if (serverScripts is not null && meta.Name == ServerScriptEngine.DocTypeName)
+            serverScripts.Value.Invalidate();
         if (files is not null)
             await files.Value.DeleteForDocumentAsync(meta.Name, name, ct);
         if (shares is not null)

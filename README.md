@@ -46,6 +46,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **More field types**: rating, duration, colour, barcode, place and signature, validated on the server and usable in the Designer ([ADR-047](docs/adr/047-more-field-types.md))
 - **Attachment and image fields**: a form field that names a file attached to the same document, validated on save, with picture preview ([ADR-048](docs/adr/048-attach-and-image-fields.md))
 - **Gallery, map and timeline views**: pictures as tiles, places on a plain grid (no outside map service), documents as bars between two dates ([ADR-049](docs/adr/049-gallery-map-and-timeline-views.md))
+- **Server Scripts**: sandboxed JavaScript (Jint) on Validate and After Save, running as the person who saved, with limits on time, work, memory and calls, and no way out to the machine ([ADR-053](docs/adr/053-server-scripts.md))
 - **Self sign-up with email verification**: nothing stored until the link is used, one-time links, same answer for new and existing addresses, limited mailing, allowed domains ([ADR-052](docs/adr/052-sign-up-with-email-verification.md))
 - **Single sign-on with OpenID Connect**: authorization code with PKCE, state and nonce, fully checked ID tokens, accounts linked by the provider's id and verified email, allowed domains, no open redirects ([ADR-051](docs/adr/051-openid-connect-sign-in.md))
 - **PDF files of printouts**: made by a headless Chrome, Chromium or Edge on the server, with the page made inert, no network and strict limits ([ADR-050](docs/adr/050-server-side-pdf.md))

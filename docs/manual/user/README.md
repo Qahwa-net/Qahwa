@@ -44,6 +44,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 40. [PDF files of printouts](40-pdf.md)
 41. [Signing in with your company account](41-single-sign-on.md)
 42. [Creating your own account](42-creating-an-account.md)
+43. [Server Scripts](43-server-scripts.md)
 
 **Words used**
 

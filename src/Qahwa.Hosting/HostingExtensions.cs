@@ -162,6 +162,9 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<ErrorLogService>();
         services.TryAddSingleton<DocumentActionEngine>();
         services.TryAddSingleton(sp => new Lazy<DocumentActionEngine>(() => sp.GetRequiredService<DocumentActionEngine>()));
+        services.TryAddSingleton<ScriptSandbox>();
+        services.TryAddSingleton<ServerScriptEngine>();
+        services.TryAddSingleton(sp => new Lazy<ServerScriptEngine>(() => sp.GetRequiredService<ServerScriptEngine>()));
         services.TryAddSingleton<WebFormService>();
         services.TryAddSingleton<CustomDocTypeLoader>();
         services.TryAddSingleton<QahwaMigrator>();
