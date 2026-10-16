@@ -1,0 +1,23 @@
+{
+  "name": "Contact",
+  "module": "Contacts",
+  "autoname": "CON-.#####",
+  "titleField": "full_name",
+  "trackChanges": true,
+  "fields": [
+    { "name": "salutation", "type": "Link", "options": "Salutation", "label": "Salutation" },
+    { "name": "first_name", "type": "Data", "label": "First name", "required": true, "inListView": true },
+    { "name": "last_name", "type": "Data", "label": "Last name" },
+    { "name": "full_name", "type": "Data", "label": "Full name", "readOnly": true, "formula": "trim(first_name + \" \" + last_name)", "inListView": true },
+    { "name": "gender", "type": "Link", "options": "Gender", "label": "Gender" },
+    { "name": "email_id", "type": "Email", "label": "Email", "inListView": true },
+    { "name": "phone", "type": "Phone", "label": "Phone", "inListView": true },
+    { "name": "mobile_no", "type": "Phone", "label": "Mobile" },
+    { "name": "company_name", "type": "Data", "label": "Company" },
+    { "name": "designation", "type": "Data", "label": "Designation" },
+    { "name": "links", "type": "Table", "options": "Dynamic Link", "label": "Linked to" }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "write": true, "create": true, "delete": true, "export": true, "report": true }
+  ]
+}

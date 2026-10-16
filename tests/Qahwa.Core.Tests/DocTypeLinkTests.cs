@@ -37,7 +37,11 @@ public class DocTypeLinkTests
     [Fact]
     public async Task A_field_can_only_hold_the_name_of_a_real_doctype()
     {
-        await _engine.Documents.InsertAsync("Pointer", Values(("kind", "Visible Thing"), ("target", "x")), Ann);
+        var thing = await _engine.Documents.InsertAsync("Visible Thing", Values(("a", "1")), TestUsers.Admin);
+        await _engine.Documents.InsertAsync("Pointer", Values(("kind", "Visible Thing"), ("target", (string)thing["name"]!)), Ann);
+        var missing = await Assert.ThrowsAsync<DocumentValidationException>(() => _engine.Documents.InsertAsync("Pointer", Values(("kind", "Visible Thing"), ("target", "no-such-document")), Ann));
+        Assert.Contains(missing.Errors, e => e.Field == "target");
+        await Assert.ThrowsAsync<DocumentValidationException>(() => _engine.Documents.InsertAsync("Pointer", Values(("target", "x")), Ann)); // no kind chosen
 
         var bad = await Assert.ThrowsAsync<DocumentValidationException>(() => _engine.Documents.InsertAsync("Pointer", Values(("kind", "No Such Thing")), Ann));
         Assert.Contains(bad.Errors, e => e.Field == "kind");

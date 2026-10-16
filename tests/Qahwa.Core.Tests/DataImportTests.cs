@@ -13,7 +13,7 @@ public class DataImportTests
     public DataImportTests()
     {
         _engine.Registry.Add(DocTypeLoader.Parse("""
-            { "name": "Contact", "autoname": "CON-.####", "fields": [
+            { "name": "Lead", "autoname": "CON-.####", "fields": [
                 { "name": "full_name", "type": "Data", "label": "Full Name", "required": true },
                 { "name": "email", "type": "Email", "unique": true },
                 { "name": "age", "type": "Int" }, { "name": "balance", "type": "Currency" },
@@ -28,11 +28,11 @@ public class DataImportTests
             """));
     }
 
-    private Task<ImportResult> ImportAsync(string csv, string mode = "Insert", bool stop = false, UserContext? user = null, string doctype = "Contact") =>
+    private Task<ImportResult> ImportAsync(string csv, string mode = "Insert", bool stop = false, UserContext? user = null, string doctype = "Lead") =>
         _engine.DataImport.RunAsync(doctype, csv, mode, stop, user ?? Ann);
 
     private async Task<List<Dictionary<string, object?>>> ContactsAsync() =>
-        (await _engine.Documents.ListAsync("Contact", new ListRequest { OrderBy = "creation", Descending = false, Limit = 100 }, Ann)).Data.ToList();
+        (await _engine.Documents.ListAsync("Lead", new ListRequest { OrderBy = "creation", Descending = false, Limit = 100 }, Ann)).Data.ToList();
 
     // ---- reading CSV ----
 
@@ -77,7 +77,7 @@ public class DataImportTests
         var result = await ImportAsync("FULL NAME,Extra,Email\nZed,whatever,z@x.com\n");
 
         Assert.Equal(1, result.Created);
-        var preview = await _engine.DataImport.PreviewAsync("Contact", "FULL NAME,Extra,Email\nZed,whatever,z@x.com\n", "Insert", Ann);
+        var preview = await _engine.DataImport.PreviewAsync("Lead", "FULL NAME,Extra,Email\nZed,whatever,z@x.com\n", "Insert", Ann);
         Assert.Equal(["full_name", null, "email"], preview.Columns.Select(c => c.Field));
     }
 
@@ -124,14 +124,14 @@ public class DataImportTests
     public async Task A_file_to_update_needs_an_id_column_and_ids_on_every_row()
     {
         await Assert.ThrowsAsync<DocumentValidationException>(() => ImportAsync("full_name\nx\n", "Update"));
-        var preview = await _engine.DataImport.PreviewAsync("Contact", "name,age\n,5\n", "Update", Ann);
+        var preview = await _engine.DataImport.PreviewAsync("Lead", "name,age\n,5\n", "Update", Ann);
         Assert.Contains(preview.Errors, e => e.Field == "name");
     }
 
     [Fact]
     public async Task Fields_that_are_calculated_passwords_or_ids_cannot_be_set_by_a_file()
     {
-        var preview = await _engine.DataImport.PreviewAsync("Contact", "full_name,total,pin,creation,owner\nA,1,2,2000-01-01,someone@x.com\n", "Insert", Ann);
+        var preview = await _engine.DataImport.PreviewAsync("Lead", "full_name,total,pin,creation,owner\nA,1,2,2000-01-01,someone@x.com\n", "Insert", Ann);
         Assert.Equal(["full_name", null, null, null, null], preview.Columns.Select(c => c.Field));
 
         await ImportAsync("full_name,total,pin,creation,owner\nA,1,2,2000-01-01,someone@x.com\n");
@@ -141,7 +141,7 @@ public class DataImportTests
         Assert.DoesNotContain("total", ImportDataFields());
     }
 
-    private IEnumerable<string> ImportDataFields() => DataImportService.ImportableFields(_engine.Registry.Get("Contact")).Select(f => f.Name);
+    private IEnumerable<string> ImportDataFields() => DataImportService.ImportableFields(_engine.Registry.Get("Lead")).Select(f => f.Name);
 
     [Fact]
     public async Task A_name_column_names_documents_that_are_named_by_typing()
@@ -168,8 +168,8 @@ public class DataImportTests
     {
         await Assert.ThrowsAsync<PermissionDeniedException>(() => ImportAsync("full_name\nx\n", user: ReadOnly));
         await Assert.ThrowsAsync<PermissionDeniedException>(() => ImportAsync("name,age\nX,1\n", "Update", user: ReadOnly));
-        await Assert.ThrowsAsync<PermissionDeniedException>(() => _engine.DataImport.PreviewAsync("Contact", "full_name\nx\n", "Insert", ReadOnly));
-        await Assert.ThrowsAsync<PermissionDeniedException>(() => Task.FromResult(_engine.DataImport.Template("Contact", "Insert", ReadOnly)));
+        await Assert.ThrowsAsync<PermissionDeniedException>(() => _engine.DataImport.PreviewAsync("Lead", "full_name\nx\n", "Insert", ReadOnly));
+        await Assert.ThrowsAsync<PermissionDeniedException>(() => Task.FromResult(_engine.DataImport.Template("Lead", "Insert", ReadOnly)));
         await Assert.ThrowsAsync<UnauthenticatedException>(() => ImportAsync("full_name\nx\n", user: UserContext.Anonymous));
         await Assert.ThrowsAsync<NotFoundException>(() => ImportAsync("a\n1\n", doctype: "Nope"));
         await Assert.ThrowsAsync<PermissionDeniedException>(() => ImportAsync("a\n1\n", doctype: "ToDo"));
@@ -195,7 +195,7 @@ public class DataImportTests
     [Fact]
     public async Task A_preview_changes_nothing_and_shows_columns_a_sample_and_the_problems()
     {
-        var preview = await _engine.DataImport.PreviewAsync("Contact", "full_name,age\nA,1\nB,x\nC,3\nD,4\nE,5\nF,6\n", "Insert", Ann);
+        var preview = await _engine.DataImport.PreviewAsync("Lead", "full_name,age\nA,1\nB,x\nC,3\nD,4\nE,5\nF,6\n", "Insert", Ann);
 
         Assert.Equal((6, 5), (preview.Rows, preview.Sample.Count));
         Assert.Equal(["full_name", "age"], preview.Columns.Select(c => c.Field));
@@ -206,8 +206,8 @@ public class DataImportTests
     [Fact]
     public async Task The_template_has_the_columns_a_file_may_fill_in()
     {
-        var insert = _engine.DataImport.Template("Contact", "Insert", Ann);
-        var update = _engine.DataImport.Template("Contact", "Update", Ann);
+        var insert = _engine.DataImport.Template("Lead", "Insert", Ann);
+        var update = _engine.DataImport.Template("Lead", "Update", Ann);
 
         Assert.Equal("full_name,email,age,balance,joined,active,tier,notes\r\n", insert);
         Assert.StartsWith("name,full_name,", update);

@@ -41,7 +41,8 @@ public sealed class DocTypeDesigner(
         "Notification Log", "Email Template", "Email Account", "Assignment Rule", "Auto Repeat", "Webhook", "Report",
         "Dashboard", "Dashboard Chart", "Number Card", "Workspace", "Print Format", "Letter Head", "Web Form", "Data Import",
         "Scheduled Job Type", "System Settings", "Module Def", "Series", "Session", "Error Log", "Activity Log", "Access Log",
-        "View Log", "Deleted Document", "List Filter", "User Settings",
+        "View Log", "Deleted Document", "List Filter", "User Settings", "Contact", "Address", "Dynamic Link", "Document Tag", "Document Like",
+        "Email Digest", "Auto Email Report", "Scheduled Job Log", "Document Naming Rule",
     };
 
     public async Task<IReadOnlyList<DesignerItem>> ListAsync(IUserContext user, CancellationToken ct = default)

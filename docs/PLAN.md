@@ -720,5 +720,5 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Notification, Email Template, Email Account, Assignment Rule, Auto Repeat, Workflow, Webhook | ⬜ | L8, L10 |
 | Report, Dashboard, Dashboard Chart, Number Card, Workspace, Print Format, Letter Head | Dashboard, Workspace, Print Format and Letter Head done (charts and number cards are tiles of a Dashboard) | ✅ (v1) | L9 |
 | Data Import, Data Export, Scheduled Job Type, Error Log, System Settings, Navbar Settings | ⬜ | L10, L12 |
-| Contact, Address, Country, Currency, Language, Salutation, Gender (master data) | done: Country, Currency, Language, Salutation, Gender (ADR-046); not Contact or Address | 🟡 | L10 |
+| Contact, Address, Country, Currency, Language, Salutation, Gender (master data) | done: Country, Currency, Language, Salutation, Gender (ADR-046), Contact and Address with dynamic links (ADR-077) | ✅ | L10 |
 | Web Form, Web Page, Blog, Website Settings (portal and website) | 🔽 | later |

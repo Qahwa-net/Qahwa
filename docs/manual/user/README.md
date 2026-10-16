@@ -63,6 +63,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 59. [Naming documents by rule](59-naming-rules.md)
 60. [Scheduled Job Log](60-job-log.md)
 61. [Tables as CSV](61-table-csv.md)
+62. [Contacts and addresses](62-contacts-and-addresses.md)
 
 **Words used**
 

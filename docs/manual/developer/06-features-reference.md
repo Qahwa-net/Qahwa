@@ -323,3 +323,7 @@ See [Writing an app](08-writing-an-app.md). Code: `Apps.cs` (`IQahwaApp`, `IAppB
 ## Table rows as CSV ([ADR-076](../../adr/076-table-csv.md))
 
 Desk only: `lib/tableCsv.ts` (`rowsToCsv`, `rowsFromCsv`, `parseCsv`, `csvCell`; limits `MAX_TABLE_ROWS`, `MAX_TABLE_CSV_BYTES`) with `tableCsv.test.ts`, and the buttons in `controls/TableControl.tsx`. No API change: uploaded rows are validated by the server when the document is saved.
+
+## Contacts and addresses ([ADR-077](../../adr/077-contacts-and-addresses.md))
+
+Core DocTypes `contact.json`, `address.json`, `dynamic_link.json` (module "Contacts"). `DocumentService.ValidateAsync` now checks `DynamicLink` fields (type field filled, DocType exists and is not a child table, document exists). Names are reserved in `DocTypeDesigner.FrameworkNames`. Tests: `ContactAddressTests`, `DocTypeLinkTests`.

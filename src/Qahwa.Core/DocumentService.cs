@@ -1110,6 +1110,17 @@ public sealed partial class DocumentService(
                 if (!registry.TryGet(named, out var known) || known.IsChildTable)
                     errors.Add(new FieldError(path, $"DocType '{named}' does not exist."));
             }
+            else if (field.Type == FieldType.DynamicLink && value is string dynamicName)
+            {
+                // The document it points at is looked up in the DocType the sibling field names (a Link to "DocType").
+                var typeField = field.Options ?? string.Empty;
+                if (FieldValueConverter.Unwrap(document.GetValueOrDefault(typeField)) is not string typeName || string.IsNullOrEmpty(typeName))
+                    errors.Add(new FieldError(path, "Choose the kind of document first."));
+                else if (!registry.TryGet(typeName, out var dynamicTarget) || dynamicTarget.IsChildTable)
+                    errors.Add(new FieldError(path, $"DocType '{typeName}' does not exist."));
+                else if (!await repository.ExistsAsync(dynamicTarget, dynamicName, ct))
+                    errors.Add(new FieldError(path, $"{dynamicTarget.Name} '{dynamicName}' does not exist."));
+            }
             else if (field.Type == FieldType.Link && value is string linked)
             {
                 if (!registry.TryGet(field.Options!, out var target))

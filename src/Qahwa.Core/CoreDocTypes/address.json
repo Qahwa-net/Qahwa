@@ -1,0 +1,25 @@
+{
+  "name": "Address",
+  "module": "Contacts",
+  "autoname": "ADR-.#####",
+  "titleField": "address_title",
+  "trackChanges": true,
+  "fields": [
+    { "name": "address_title", "type": "Data", "label": "Title", "inListView": true },
+    { "name": "address_type", "type": "Select", "options": "Billing\nShipping\nOffice\nPersonal\nOther", "default": "Billing", "label": "Type", "inListView": true },
+    { "name": "address_line1", "type": "Data", "label": "Address line 1", "required": true },
+    { "name": "address_line2", "type": "Data", "label": "Address line 2" },
+    { "name": "city", "type": "Data", "label": "City", "required": true, "inListView": true },
+    { "name": "state", "type": "Data", "label": "State / region" },
+    { "name": "pincode", "type": "Data", "label": "Postal code" },
+    { "name": "country", "type": "Link", "options": "Country", "label": "Country", "inListView": true },
+    { "name": "email_id", "type": "Email", "label": "Email" },
+    { "name": "phone", "type": "Phone", "label": "Phone" },
+    { "name": "is_primary_address", "type": "Check", "label": "Preferred billing address" },
+    { "name": "is_shipping_address", "type": "Check", "label": "Preferred shipping address" },
+    { "name": "links", "type": "Table", "options": "Dynamic Link", "label": "Linked to" }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "write": true, "create": true, "delete": true, "export": true, "report": true }
+  ]
+}

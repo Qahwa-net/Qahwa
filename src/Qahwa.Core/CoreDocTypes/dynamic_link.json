@@ -1,0 +1,10 @@
+{
+  "name": "Dynamic Link",
+  "module": "Contacts",
+  "isChildTable": true,
+  "trackChanges": false,
+  "fields": [
+    { "name": "link_doctype", "type": "Link", "options": "DocType", "label": "Linked to (DocType)", "required": true, "inListView": true },
+    { "name": "link_name", "type": "DynamicLink", "options": "link_doctype", "label": "Linked to (document)", "required": true, "inListView": true }
+  ]
+}
