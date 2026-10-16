@@ -1,0 +1,14 @@
+{
+  "name": "Gender",
+  "module": "Core",
+  "autoname": "field:gender",
+  "titleField": "gender",
+  "trackChanges": false,
+  "fields": [
+    { "name": "gender", "type": "Data", "label": "Gender", "required": true, "inListView": true }
+  ],
+  "permissions": [
+    { "role": "All", "read": true },
+    { "role": "System Manager", "read": true, "write": true, "create": true, "delete": true }
+  ]
+}

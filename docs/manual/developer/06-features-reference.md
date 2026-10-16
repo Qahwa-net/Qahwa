@@ -203,3 +203,7 @@ Tests: `PatchTests`, `PostgresPatchTests`.
 ## Report Builder ([ADR-045](../../adr/045-report-builder.md))
 
 `Reports.cs`: `ReportDefinition`, `ReportService` (`ListAsync`, `GetAsync`, `CreateAsync`, `UpdateAsync`, `DeleteAsync`, `RunAsync`, `ExportAsync`, `Validate`); Core DocType `report.json`; `DocumentService.Reports.cs` (`GroupedAsync`, `AggregateKey`). `ReportEndpoints.cs`: `/api/reports` (list, create, `/preview`, `/{id}`, `/{id}/run`, `/{id}/csv`). Desk: `pages/Reports.tsx` (list, viewer, builder), `lib/reports.ts` (draft to definition). To allow another aggregate or operator, change `ReportDefinition.Operators`, `DocumentService.Aggregates` and `Validate` together. Tests: `ReportTests`, `ReportApiTests`, `PostgresReportTests`, `lib/reports.test.ts`.
+
+## Master data and the "All" role ([ADR-046](../../adr/046-master-data.md))
+
+`CoreDocTypes/{currency,country,language,salutation,gender}.json`; `MasterData.cs` (`MasterDataPatch`, registered as an `IPatch` in `HostingExtensions`), data files `MasterData/countries.json` and `currencies.json` (embedded). `UserContext.AllRole` is appended in `AuthService.LoadSessionAsync` (so sessions and API keys have it); the test header resolver adds it too. To add reference data of your own, use a Core-style DocType with `{ "role": "All", "read": true }` and a patch like `MasterDataPatch`. Tests: `MasterDataTests`.

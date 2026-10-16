@@ -26,6 +26,7 @@ internal sealed class HeaderUserContextResolver : IUserContextResolver
             .ToList();
         if (user == UserContext.AdministratorRole)
             roles.Add(UserContext.AdministratorRole);
+        roles.Add(UserContext.AllRole); // like a real session: everyone signed in has it
 
         return ValueTask.FromResult<IUserContext>(new UserContext(user, roles));
     }

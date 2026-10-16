@@ -1,0 +1,17 @@
+{
+  "name": "Currency",
+  "module": "Core",
+  "autoname": "field:currency_code",
+  "titleField": "currency_code",
+  "trackChanges": false,
+  "fields": [
+    { "name": "currency_code", "type": "Data", "label": "Code (ISO 4217, for example SAR)", "required": true, "inListView": true },
+    { "name": "currency_name", "type": "Data", "label": "Name", "required": true, "inListView": true },
+    { "name": "symbol", "type": "Data", "label": "Symbol", "inListView": true },
+    { "name": "enabled", "type": "Check", "label": "Enabled", "default": "1", "inListView": true }
+  ],
+  "permissions": [
+    { "role": "All", "read": true },
+    { "role": "System Manager", "read": true, "write": true, "create": true, "delete": true }
+  ]
+}

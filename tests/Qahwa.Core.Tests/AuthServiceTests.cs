@@ -24,7 +24,7 @@ public class AuthServiceTests
         Assert.NotNull(session);
         Assert.Equal(Email, session.User.User);
         Assert.Equal("Alice", session.FullName);
-        Assert.Equal(["Sales Manager", "System Manager"], session.User.Roles.Order());
+        Assert.Equal(["All", "Sales Manager", "System Manager"], session.User.Roles.Order());
     }
 
     [Theory]
@@ -117,7 +117,7 @@ public class AuthServiceTests
         await _engine.Auth.SetPasswordAsync(Email, "a brand new password");
         var session = await _engine.Auth.LoginAsync(Email, "a brand new password");
         Assert.NotNull(session);
-        Assert.Empty(session.User.Roles); // old Has Role rows predate this account
+        Assert.Equal([UserContext.AllRole], session.User.Roles); // old Has Role rows predate this account: only the automatic role
     }
 
     [Theory]

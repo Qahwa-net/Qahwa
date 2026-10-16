@@ -159,7 +159,9 @@ public sealed class ResourceApiTests : IAsyncDisposable
 
         var names = (await JsonOf(await Manager.GetAsync("/api/meta"))).GetProperty("data")
             .EnumerateArray().Select(m => m.GetProperty("name").GetString()).ToList();
-        Assert.Equal(["Customer", "Territory"], names);
+        Assert.Contains("Customer", names);
+        Assert.Contains("Territory", names);
+        Assert.Contains("Country", names); // lists everyone may read
 
         var meta = (await JsonOf(await Manager.GetAsync("/api/meta/Customer"))).GetProperty("data");
         var type = meta.GetProperty("fields").EnumerateArray()

@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="CoreDocTypes\*.json" />
+    <EmbeddedResource Include="MasterData\*.json" />
   </ItemGroup>
 
   <PropertyGroup>

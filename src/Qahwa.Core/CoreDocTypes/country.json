@@ -1,0 +1,16 @@
+{
+  "name": "Country",
+  "module": "Core",
+  "autoname": "field:country_name",
+  "titleField": "country_name",
+  "trackChanges": false,
+  "fields": [
+    { "name": "country_name", "type": "Data", "label": "Name", "required": true, "inListView": true },
+    { "name": "code", "type": "Data", "label": "Code (ISO 3166, for example SA)", "required": true, "unique": true, "inListView": true },
+    { "name": "currency", "type": "Link", "options": "Currency", "label": "Currency", "inListView": true }
+  ],
+  "permissions": [
+    { "role": "All", "read": true },
+    { "role": "System Manager", "read": true, "write": true, "create": true, "delete": true }
+  ]
+}

@@ -25,7 +25,7 @@ public class PostgresAuthTests(PostgresFixture postgres) : IClassFixture<Postgre
         var session = await db.Auth.LoginAsync(Email, Password);
 
         Assert.NotNull(session);
-        Assert.Equal(["Sales Manager", "System Manager"], session.User.Roles.Order());
+        Assert.Equal(["All", "Sales Manager", "System Manager"], session.User.Roles.Order());
         var reloaded = await db.Auth.LoadSessionAsync(Email);
         Assert.Equal(session.PasswordVersion, reloaded!.PasswordVersion); // timestamps survive the database exactly
     }
@@ -130,7 +130,7 @@ public class PostgresAuthTests(PostgresFixture postgres) : IClassFixture<Postgre
         Assert.Null(await db.Auth.LoginAsync(Email, Password));
         await db.Auth.SetPasswordAsync(Email, "a brand new password");
         var session = await db.Auth.LoginAsync(Email, "a brand new password");
-        Assert.Empty(session!.User.Roles);
+        Assert.Equal([UserContext.AllRole], session!.User.Roles);
     }
 
     [SkippableFact]

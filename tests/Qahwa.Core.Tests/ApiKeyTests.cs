@@ -32,12 +32,12 @@ public class ApiKeyTests
 
         Assert.NotNull(identity);
         Assert.Equal(("ann@example.com", false), (identity.User.User, identity.ReadOnly));
-        Assert.Equal(["Clerk"], identity.User.Roles);
+        Assert.Equal(["Clerk", UserContext.AllRole], identity.User.Roles);
 
         // Roles are read fresh: a role taken away is taken from the key too.
         var grant = (await _engine.Documents.ListAsync("Has Role", new ListRequest { Fields = ["name", "user"], Limit = 50 }, TestUsers.Admin)).Data.First(r => (string)r["user"]! == Ann.User);
         await _engine.Documents.DeleteAsync("Has Role", (string)grant["name"]!, TestUsers.Admin);
-        Assert.Empty((await _engine.ApiKeys.AuthenticateAsync(key.Token))!.User.Roles);
+        Assert.Equal([UserContext.AllRole], (await _engine.ApiKeys.AuthenticateAsync(key.Token))!.User.Roles); // the lost role is gone; only the automatic one is left
     }
 
     [Fact]

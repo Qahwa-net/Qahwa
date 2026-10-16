@@ -119,7 +119,7 @@ public sealed class AuthService(
             },
             ct);
 
-        var names = roles.Select(r => (string)r["role"]!).Distinct(StringComparer.Ordinal).ToList();
+        var names = roles.Select(r => (string)r["role"]!).Append(UserContext.AllRole).Distinct(StringComparer.Ordinal).ToList();
         return new SessionInfo(new UserContext(key, names), (string)user["full_name"]!, credential!.PasswordChanged.Ticks);
     }
 

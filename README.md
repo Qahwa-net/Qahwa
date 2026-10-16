@@ -42,6 +42,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **Patches**: one-time versioned data migrations, recorded in a Patch Log, claimed atomically across servers, a failure stops start-up ([ADR-043](docs/adr/043-patches.md))
 - **Backups**: a zip of documents and definitions (no passwords or secrets) made from the Desk or daily to a folder; restoring only adds, with a preview and zip-bomb limits ([ADR-044](docs/adr/044-backups.md))
 - **Report Builder**: saved, shareable list and summary reports (several numbers per group) that always run with the viewer's own permissions, with CSV download ([ADR-045](docs/adr/045-report-builder.md))
+- **Master data**: countries, currencies, languages, salutations and genders seeded by a patch; the automatic `All` role for what every signed-in person may read ([ADR-046](docs/adr/046-master-data.md))
 - **Webhooks**: signed JSON posts to other systems when documents are created, changed, submitted, cancelled or deleted, queued with retries and guarded against requests to internal networks ([ADR-029](docs/adr/029-webhooks.md))
 - **API keys**: Bearer tokens that act as a person within their permissions, shown once and stored hashed, with read-only and expiry options ([ADR-028](docs/adr/028-api-keys.md))
 - **Data import**: CSV files become documents through the normal insert or update rules, with a preview, row-by-row results and an update mode ([ADR-027](docs/adr/027-data-import.md))

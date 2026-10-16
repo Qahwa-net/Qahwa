@@ -14,6 +14,9 @@ public sealed record UserContext(string User, IReadOnlyCollection<string> Roles)
     public const string Guest = "Guest";
     public const string AdministratorRole = "Administrator";
 
+    /// <summary>A role every signed-in person has without being given it. Use it only for what any signed-in person may read, such as lists of countries.</summary>
+    public const string AllRole = "All";
+
     public static UserContext Anonymous { get; } = new(Guest, []);
 }
 
