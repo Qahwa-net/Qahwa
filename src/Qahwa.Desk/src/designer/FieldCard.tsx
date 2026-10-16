@@ -212,6 +212,12 @@ export function FieldCard({
                 <Err message={errors[`${path}.permLevel`]} />
               </label>}
 
+              {isTable && <label className="check-line">
+                <input type="checkbox" checked={field.multiSelect ?? false} disabled={disabled} onChange={(e) => onChange({ multiSelect: e.target.checked })} />
+                Show as a list of chips to pick from (the child table needs exactly one Link field)
+                <Err message={errors[`${path}.multiSelect`]} />
+              </label>}
+
               {submittable && !inChildTable && <label className="check-line">
                 <input type="checkbox" checked={field.allowOnSubmit ?? false} disabled={disabled} onChange={(e) => onChange({ allowOnSubmit: e.target.checked })} />
                 Can still be changed after the document is submitted

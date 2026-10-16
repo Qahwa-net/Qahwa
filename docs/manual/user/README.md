@@ -64,6 +64,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 60. [Scheduled Job Log](60-job-log.md)
 61. [Tables as CSV](61-table-csv.md)
 62. [Contacts and addresses](62-contacts-and-addresses.md)
+63. [Multi-select](63-multi-select.md)
 
 **Words used**
 

@@ -1142,10 +1142,14 @@ public sealed partial class DocumentService(
         CancellationToken ct)
     {
         var seen = new HashSet<string>(StringComparer.Ordinal);
+        var multiLink = table.Field.MultiSelect ? DocTypeMetaExtensions.MultiSelectLink(table.Child) : null;
+        var picked = new HashSet<string>(StringComparer.Ordinal);
         for (var i = 0; i < table.Rows.Count; i++)
         {
             var row = table.Rows[i];
             var prefix = $"{table.Field.Name}[{i}].";
+            if (multiLink is not null && FieldValueConverter.Unwrap(row.Merged().GetValueOrDefault(multiLink.Name)) is string chosen && chosen.Length > 0 && !picked.Add(chosen))
+                errors.Add(new FieldError(prefix + multiLink.Name, "This value is chosen twice."));
 
             if (row.Name is not null && current is not null)
             {

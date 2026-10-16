@@ -327,3 +327,7 @@ Desk only: `lib/tableCsv.ts` (`rowsToCsv`, `rowsFromCsv`, `parseCsv`, `csvCell`;
 ## Contacts and addresses ([ADR-077](../../adr/077-contacts-and-addresses.md))
 
 Core DocTypes `contact.json`, `address.json`, `dynamic_link.json` (module "Contacts"). `DocumentService.ValidateAsync` now checks `DynamicLink` fields (type field filled, DocType exists and is not a child table, document exists). Names are reserved in `DocTypeDesigner.FrameworkNames`. Tests: `ContactAddressTests`, `DocTypeLinkTests`.
+
+## Table multi-select ([ADR-078](../../adr/078-table-multiselect.md))
+
+`DocFieldMeta.MultiSelect`; `DocTypeMetaExtensions.MultiSelectLink` (the one-Link rule), `MetaRegistry.CheckReferences` (reports a child that does not fit), `DocumentService.ValidateTableAsync` (each value once), `DocTypeLoader` (only Table fields). Desk: `chipField`/`chipValues`/`addChip`/`removeChip` in `lib/tables.ts`, the chip view in `TableControl`, a checkbox in the designer's `FieldCard`. Tests: `MultiSelectTests`, `tablesChips.test.ts`.

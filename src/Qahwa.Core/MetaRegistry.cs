@@ -158,6 +158,8 @@ public sealed class MetaRegistry : IMutableMetaRegistry
                 errors.Add(new FieldError($"fields[{i}].options", $"The DocType '{field.Options}' does not exist."));
             else if (field.Type == FieldType.Table && !target.IsChildTable)
                 errors.Add(new FieldError($"fields[{i}].options", $"'{target.Name}' must be a child table."));
+            else if (field.Type == FieldType.Table && field.MultiSelect && DocTypeMetaExtensions.MultiSelectLink(target) is null)
+                errors.Add(new FieldError($"fields[{i}].multiSelect", $"'{target.Name}' must have exactly one Link field and nothing else that is required to be used as a multi-select."));
         }
 
         // "fetch from" copies a value out of the linked document, so that field must exist there and fit this one.

@@ -95,6 +95,7 @@ export function newField(info: FieldTypeInfo, taken: string[]): DraftField {
     fetchIfEmpty: false,
     permLevel: 0,
     allowOnSubmit: false,
+    multiSelect: false,
   }
 }
 
@@ -192,6 +193,7 @@ export function fromDetail(detail: DesignerDetail): Draft {
       fetchIfEmpty: f.fetchIfEmpty ?? false,
       permLevel: f.permLevel ?? 0,
       allowOnSubmit: f.allowOnSubmit ?? false,
+      multiSelect: f.multiSelect ?? false,
     })),
     permissions: (def.permissions ?? []).map((p) => ({ ...p, ifOwner: p.ifOwner ?? false, permLevel: p.permLevel ?? 0, submit: p.submit ?? false, cancel: p.cancel ?? false, export: p.export ?? false, report: p.report ?? false })),
     validations: (def.validations ?? []).map((r) => ({ expression: r.expression, message: r.message, field: r.field ?? null })),
@@ -242,6 +244,7 @@ export function toDefinition(draft: Draft): DocTypeDefinition {
       // Rows of a child table follow the access of the document, so they have no levels of their own.
       permLevel: (!draft.isChildTable && f.permLevel) || undefined,
       allowOnSubmit: (draft.isSubmittable && !draft.isChildTable && f.allowOnSubmit) || undefined,
+      multiSelect: (f.type === 'Table' && f.multiSelect) || undefined,
     })) as DocTypeDefinition['fields'],
     // Child table rows follow the permissions of the document they belong to.
     permissions: draft.isChildTable ? [] : draft.permissions

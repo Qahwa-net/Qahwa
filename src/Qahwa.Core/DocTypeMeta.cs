@@ -103,6 +103,12 @@ public sealed record DocFieldMeta
 
     /// <summary>Submittable DocTypes: the field may still be changed after the document is submitted.</summary>
     public bool AllowOnSubmit { get; init; }
+
+    /// <summary>
+    /// Table fields only: the child DocType has just one Link field and the Desk shows the rows as a list of chips to pick from
+    /// (several documents of one DocType, each at most once) instead of a grid.
+    /// </summary>
+    public bool MultiSelect { get; init; }
 }
 
 /// <summary>A rule on a whole document (or table row): while the expression is false, saving is refused with the message.</summary>
@@ -144,6 +150,17 @@ public sealed record DocPermMeta
 
 public static class DocTypeMetaExtensions
 {
+    /// <summary>
+    /// The one Link field of a child DocType that can be shown as a multi-select (the others are layout fields or optional), or null
+    /// when it has none or several, or when another field is required (a chip could not fill it in).
+    /// </summary>
+    public static DocFieldMeta? MultiSelectLink(DocTypeMeta child)
+    {
+        var data = child.Fields.Where(f => FieldTypes.HasColumn(f.Type)).ToList();
+        var links = data.Where(f => f.Type == FieldType.Link).ToList();
+        return links.Count == 1 && data.All(f => f == links[0] || !f.Required) ? links[0] : null;
+    }
+
     /// <summary>The Link field of a tree DocType that points at its own parent node.</summary>
     public const string TreeParentField = "parent_node";
 

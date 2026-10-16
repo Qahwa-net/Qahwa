@@ -548,7 +548,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Field types: Small Text, Text Editor (rich text), HTML Editor, HTML, Heading, Button, Read Only, Autocomplete | Small Text, Text Editor (cleaned HTML) and Autocomplete done (ADR-069); HTML, Heading, Button not yet (Read Only is a field property) | 🟡 | L3 |
 | Field types: Attach, Attach Image, Signature, Barcode, Geolocation, Icon, Color, Rating, Duration, Image | done: Signature, Barcode, Geolocation, Color, Rating, Duration, Icon (ADR-047), Attach and Image (ADR-048) | ✅ (v1) | L10 |
 | Field types: Table | child rows inside a document | ✅ | L2 |
-| Field types: Dynamic Link, Table MultiSelect | Dynamic Link done (ADR-038); Table MultiSelect not yet | 🟡 | L2 |
+| Field types: Dynamic Link, Table MultiSelect | Dynamic Link done (ADR-038); Table MultiSelect done as a flag on Table fields (ADR-078) | ✅ | L2 |
 | Field types: Password (encrypted), Phone with country | Password done (ADR-066); Phone with country not yet | 🟡 | L3 |
 | Layout fields: Section Break, Column Break, Tab Break | | 🟡 | L1 (section/tab), L3 |
 | Field properties: label, required, unique, default, options, in list view, lowercase | | ✅ | done |

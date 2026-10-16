@@ -1,10 +1,11 @@
 import { useId, useRef, useState } from 'react'
 import type { DocField, DocTypeMeta } from '../api/types.ts'
-import { editableFields, emptyRow, gridColumns, moveRow, rowErrorList, rowErrors, type TableRow } from '../lib/tables.ts'
+import { addChip, chipField, chipValues, editableFields, emptyRow, gridColumns, moveRow, removeChip, rowErrorList, rowErrors, type TableRow } from '../lib/tables.ts'
 import { labelOf } from '../lib/fields.ts'
 import type { FieldState } from '../lib/logic.ts'
 import { FieldControl, FieldInput } from './FieldControl.tsx'
 import { useToast } from './Toast.tsx'
+import { ChipPicker } from './ChipPicker.tsx'
 import { MAX_TABLE_CSV_BYTES, MAX_TABLE_ROWS, rowsFromCsv, rowsToCsv } from '../lib/tableCsv.ts'
 
 interface Props {
@@ -64,6 +65,34 @@ export function TableControl({ field, child, rows, onChange, readOnly, errors, p
     onChange([...rows, ...result.rows])
     toast(`${result.rows.length} row(s) added`)
     if (result.ignored.length > 0) setCsvMessage(`Ignored columns: ${result.ignored.join(', ')}.`)
+  }
+
+  // A table with one Link field can be shown as chips: the rows are the chosen documents.
+  const chips = field.multiSelect ? chipField(child) : undefined
+  if (chips) {
+    return (
+      <div className={`field full table-field${field.hidden ? ' dimmed' : ''}`}>
+        <span id={`${id}-label`}>
+          {labelOf(field)}{field.required && <span className="req" aria-label="required"> *</span>}
+          {field.hidden && <span className="badge"> hidden</span>}
+        </span>
+        <ChipPicker doctype={chips.options ?? ''} values={chipValues(rows, chips)} label={labelOf(field)} placeholder="Search to add…" readOnly={locked}
+          onChange={(values) => {
+            const current = chipValues(rows, chips)
+            const added = values.find((v) => !current.includes(v))
+            const removed = current.find((v) => !values.includes(v))
+            if (added !== undefined) onChange(addChip(rows, child, chips, added, makeRow))
+            else if (removed !== undefined) onChange(removeChip(rows, chips, removed))
+          }} />
+        {tableError && <small className="error-text" role="alert">{tableError}</small>}
+        {messages.length > 0 && (
+          <ul className="row-messages" role="alert">
+            {messages.map((m) => <li key={m} className="error-text">{m}</li>)}
+          </ul>
+        )}
+        {field.description && <small className="muted">{field.description}</small>}
+      </div>
+    )
   }
 
   function addRow() {

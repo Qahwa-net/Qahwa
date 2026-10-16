@@ -117,3 +117,25 @@ export const rowErrorList = (errors: Record<string, string>, tableField: string,
 }
 
 export type { FieldError }
+
+/** The one Link field a multi-select child table is made of (null when the child does not fit; the server checks the same rule). */
+export function chipField(child: DocTypeMeta): DocField | null {
+  const data = child.fields.filter((f) => hasColumn(f.type))
+  const links = data.filter((f) => f.type === 'Link')
+  return links.length === 1 && data.every((f) => f === links[0] || !f.required) ? links[0]! : null
+}
+
+/** The documents chosen, in row order. */
+export const chipValues = (rows: TableRow[], field: DocField): string[] =>
+  rows.map((r) => r.values[field.name]).filter((v): v is string => typeof v === 'string' && v !== '')
+
+/** The rows with one more chosen document (nothing changes when it is already there). */
+export function addChip(rows: TableRow[], child: DocTypeMeta, field: DocField, value: string, makeRow?: () => TableRow): TableRow[] {
+  if (chipValues(rows, field).includes(value)) return rows
+  const row = makeRow ? makeRow() : emptyRow(child)
+  return [...rows, { ...row, values: { ...row.values, [field.name]: value } }]
+}
+
+/** The rows without the document (every row that holds it). */
+export const removeChip = (rows: TableRow[], field: DocField, value: string): TableRow[] =>
+  rows.filter((r) => r.values[field.name] !== value)
