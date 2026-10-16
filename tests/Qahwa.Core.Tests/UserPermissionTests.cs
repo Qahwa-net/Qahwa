@@ -117,7 +117,7 @@ public class UserPermissionTests
     {
         await SeedAsync();
         await CustomerAsync("In South", "South");
-        await AllowAsync(Rep.User, "Territory", "North", all: false, only: "Order");
+        await AllowAsync(Rep.User, "Territory", "North", all: false, only: "Role");
 
         Assert.Equal(["In South"], await CustomerNamesAsync(Rep)); // not applicable to Customer
         await AllowAsync(Rep.User, "Territory", "North", all: false, only: "Customer");

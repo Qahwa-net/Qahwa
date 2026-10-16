@@ -3,10 +3,10 @@
   "module": "Core",
   "fields": [
     { "name": "user", "type": "Link", "options": "User", "label": "User", "required": true, "inListView": true },
-    { "name": "allow", "type": "Data", "label": "Allow (DocType)", "required": true, "inListView": true },
-    { "name": "for_value", "type": "Data", "label": "For Value", "required": true, "inListView": true },
+    { "name": "allow", "type": "Link", "options": "DocType", "label": "Allow (DocType)", "required": true, "inListView": true },
+    { "name": "for_value", "type": "DynamicLink", "options": "allow", "label": "For Value", "required": true, "inListView": true },
     { "name": "apply_to_all_doctypes", "type": "Check", "label": "Apply to all DocTypes", "default": "1" },
-    { "name": "applicable_for", "type": "Data", "label": "Apply only to this DocType", "dependsOn": "!apply_to_all_doctypes" }
+    { "name": "applicable_for", "type": "Link", "options": "DocType", "label": "Apply only to this DocType", "dependsOn": "!apply_to_all_doctypes" }
   ],
   "permissions": [
     { "role": "System Manager", "read": true, "write": true, "create": true, "delete": true }
