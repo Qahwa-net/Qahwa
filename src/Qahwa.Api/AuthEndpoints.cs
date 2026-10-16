@@ -25,6 +25,8 @@ public sealed record ForgotPasswordRequest(string? Email);
 
 public sealed record ResetPasswordRequest(string? Token, [property: JsonPropertyName("new_password")] string? NewPassword);
 
+public sealed record ExpiredPasswordRequest(string? Token, [property: JsonPropertyName("old_password")] string? OldPassword, [property: JsonPropertyName("new_password")] string? NewPassword);
+
 public sealed record TwoFactorLoginRequest(string? Token, string? Code);
 
 public sealed record TwoFactorCodeRequest(string? Code, string? Password);
@@ -37,10 +39,14 @@ public static class AuthEndpoints
     {
         var auth = app.MapGroup("/api/auth");
 
-        auth.MapPost("/login", async (LoginRequest body, HttpContext http, AuthService service, TwoFactorService twoFactor, SessionService sessions, CancellationToken ct) =>
+        auth.MapPost("/login", async (LoginRequest body, HttpContext http, AuthService service, TwoFactorService twoFactor, SessionService sessions, PasswordResetService reset, CancellationToken ct) =>
         {
             var key = await service.VerifyPasswordAsync(body.Email, body.Password, ct)
                 ?? throw new InvalidCredentialsException();
+
+            // A password that has grown too old must be replaced before anything else: no session, only a short-lived way to do that.
+            if (await service.PasswordExpiredAsync(key, ct) && await reset.CreateExpiredTokenAsync(key, ct) is { } expired)
+                return Results.Ok(new { data = new { password_expired = true, token = expired } });
 
             // With two-factor on, the password alone gets no session: only a short-lived challenge to answer with a code.
             if (await twoFactor.IsEnabledAsync(key, ct))
@@ -60,6 +66,12 @@ public static class AuthEndpoints
             var session = await service.CompleteLoginAsync(key, ct) ?? throw new InvalidCredentialsException();
             await SignInAsync(http, session, await StartSessionAsync(http, sessions, session.User.User, ct));
             return Results.Ok(new { data = Describe(session) });
+        }).RequireRateLimiting(AuthClaims.LoginRateLimit);
+
+        auth.MapPost("/expired-password", async (ExpiredPasswordRequest body, PasswordResetService reset, CancellationToken ct) =>
+        {
+            await reset.ChangeExpiredAsync(body.Token, body.OldPassword, body.NewPassword, ct);
+            return Results.Ok(new { message = "ok" });
         }).RequireRateLimiting(AuthClaims.LoginRateLimit);
 
         // "Forgot password": the answer is the same whether or not the address has an account.

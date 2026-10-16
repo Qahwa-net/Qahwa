@@ -14,4 +14,8 @@ People forget passwords, and a reset flow is a favourite way into an account (gu
 - Desk: "Forgot your password?" on the sign-in page, a request page and a "choose a new password" page.
 
 ## Consequences
-- Not yet: password expiry, a breached-password list (only a short built-in list), email verification and self sign-up, a notice mail "your password was changed".
+- Not yet: a breached-password list (only a short built-in list), email verification and self sign-up, a notice mail "your password was changed".
+
+## Addendum: password expiry
+
+`Qahwa:Auth:PasswordMaxAgeDays` (0 by default: passwords never expire). When a password is right but older than that, **sign-in gives no session**: the answer is `{ password_expired: true, token }`, a ten-minute token (encrypted, tied to the password it was made for, so changing the password ends it). `POST /api/auth/expired-password` takes the token, the **old password again** (counted like a sign-in, so guessing locks the account) and a new password that must pass the password rules and **differ from the old one**; it ends every session of the person. The person then signs in again with the new password, and **two-factor still applies** as usual. There is deliberately no half-privileged "must change" session, so nothing can be done with an expired password except choosing a new one. The sign-in page shows the form (ADR-039's code step and this step are both answers to a correct password).

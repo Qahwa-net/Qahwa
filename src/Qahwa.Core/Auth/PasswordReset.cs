@@ -123,6 +123,40 @@ public sealed class PasswordResetService(
             }
         });
 
+    // ---- an expired password ----
+
+    /// <summary>
+    /// Given instead of a session when the password is right but too old. It lasts ten minutes and is tied to the password it was made for,
+    /// so choosing a new one (or any other change) ends it.
+    /// </summary>
+    public async Task<string?> CreateExpiredTokenAsync(string user, CancellationToken ct = default)
+    {
+        var credential = await store.GetAsync(user, ct);
+        return credential is null ? null : protector.Protect($"expired|{user}|{(Now() + TimeSpan.FromMinutes(10)).Ticks.ToString(CultureInfo.InvariantCulture)}|{credential.PasswordChanged.Ticks.ToString(CultureInfo.InvariantCulture)}");
+    }
+
+    /// <summary>Sets a new password in place of an expired one. The old password is asked for again, and the new one must be different.</summary>
+    public async Task ChangeExpiredAsync(string? token, string? oldPassword, string? newPassword, CancellationToken ct = default)
+    {
+        var parts = string.IsNullOrEmpty(token) || token.Length > 2000 ? null : protector.Unprotect(token)?.Split('|');
+        if (parts is not { Length: 4 } || parts[0] != "expired"
+            || !long.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out var expires) || !long.TryParse(parts[3], NumberStyles.None, CultureInfo.InvariantCulture, out var changed)
+            || expires <= Now().Ticks)
+            throw new InvalidResetLinkException();
+
+        var credential = await store.GetAsync(parts[1], ct);
+        if (credential is null || credential.PasswordChanged.Ticks != changed)
+            throw new InvalidResetLinkException();
+
+        if (await auth.VerifyPasswordAsync(parts[1], oldPassword, ct) is null) // counts wrong passwords like a sign-in does
+            throw new DocumentValidationException([new FieldError("old_password", "The current password is not right.")]);
+        if (string.Equals(oldPassword, newPassword, StringComparison.Ordinal))
+            throw new DocumentValidationException([new FieldError("new_password", "Choose a password you have not been using.")]);
+
+        await auth.SetPasswordAsync(parts[1], newPassword ?? string.Empty, ct);
+        await sessions.RevokeAllForAsync(parts[1], ct);
+    }
+
     /// <returns>The person the link is for, or null when it is forged, expired or already used.</returns>
     public async Task<string?> RedeemAsync(string? token, CancellationToken ct = default)
     {

@@ -822,6 +822,11 @@ export interface TwoFactorChallenge {
   token: string
 }
 
+export interface ExpiredPasswordChallenge {
+  password_expired: true
+  token: string
+}
+
 export interface TwoFactorStatus {
   enabled: boolean
   recoveryCodesLeft: number

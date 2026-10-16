@@ -623,7 +623,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Role Profile, Module Profile, User Types | profiles done; user types planned | 🟡 | L5 |
 | Permission query and `has_permission` hooks | | ⬜ | L11 |
 | Password hashing, lockout, rate limit, change password | | ✅ | done |
-| Password policy (strength, expiry), password reset by email, email verification, sign-up | done: strength rules and reset by email (ADR-041); not expiry, verification, sign-up | 🟡 | L10 |
+| Password policy (strength, expiry), password reset by email, email verification, sign-up | done: strength rules, reset by email and expiry (ADR-041); not email verification, sign-up | 🟡 | L10 |
 | Two-factor authentication (TOTP, email, SMS) | done: TOTP with recovery codes and admin reset (ADR-039); not email/SMS/passkeys | ✅ (v1) | L10 |
 | API keys / secrets, token auth | done: per-person Bearer keys, hashed, read-only and expiry; not yet scopes, rate limits, OAuth | ✅ (v1) | L10 |
 | OAuth 2 provider, social login (Google, GitHub, Microsoft, Keycloak), OpenID Connect | | ⬜ | L10 |

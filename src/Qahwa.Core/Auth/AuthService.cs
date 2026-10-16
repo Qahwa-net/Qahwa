@@ -74,6 +74,16 @@ public sealed class AuthService(
         return key;
     }
 
+    /// <summary>True when the person's password is older than <see cref="AuthOptions.PasswordMaxAgeDays"/> (never, when that is 0).</summary>
+    public async Task<bool> PasswordExpiredAsync(string key, CancellationToken ct = default)
+    {
+        var days = options.Value.PasswordMaxAgeDays;
+        if (days <= 0)
+            return false;
+        var credential = await store.GetAsync(key, ct);
+        return credential is not null && credential.PasswordChanged.AddDays(days) <= Now();
+    }
+
     /// <summary>The last step of signing in: clears the failure counter and loads the session (null if the account stopped being usable).</summary>
     public async Task<SessionInfo?> CompleteLoginAsync(string key, CancellationToken ct = default)
     {

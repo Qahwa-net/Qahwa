@@ -16,3 +16,6 @@ Set the public address of the site, or no email is sent:
 ```json
 "Qahwa": { "Auth": { "PublicUrl": "https://qahwa.example.com" }, "Email": { "Host": "smtp.example.com", ... } }
 ```
+
+## When your password expires
+If the people who run the system have set a time limit for passwords (for example 90 days), signing in with an old password shows **Your password has expired**. Enter the current password, then a new one that is different and strong, and sign in again. Nothing else can be done until you do. They set it with `"Auth": { "PasswordMaxAgeDays": 90 }`.

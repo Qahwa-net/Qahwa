@@ -19,6 +19,9 @@ public sealed class AuthOptions
     /// <summary>A session ends this many days after signing in, however active it is.</summary>
     public int AbsoluteSessionDays { get; set; } = 14;
 
+    /// <summary>A password must be changed after this many days. 0 (the default) means passwords do not expire.</summary>
+    public int PasswordMaxAgeDays { get; set; }
+
     /// <summary>
     /// The public address of this site (https://qahwa.example.com), used in links sent by email. Never taken from the request in
     /// production: a forged Host header could otherwise point a reset link at someone else's site.
