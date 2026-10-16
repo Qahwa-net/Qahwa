@@ -47,6 +47,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **Attachment and image fields**: a form field that names a file attached to the same document, validated on save, with picture preview ([ADR-048](docs/adr/048-attach-and-image-fields.md))
 - **Gallery, map and timeline views**: pictures as tiles, places on a plain grid (no outside map service), documents as bars between two dates ([ADR-049](docs/adr/049-gallery-map-and-timeline-views.md))
 - **Light, dark and automatic themes and a brand**: per-person theme, organisation name, logo, colours and default theme, all checked as plain data, readable colours guaranteed ([ADR-056](docs/adr/056-brand-and-theme.md))
+- **Naming rules and naming by expression**: names built from fields, and rule tables that choose the series by condition ([ADR-073](docs/adr/073-naming-rules-and-expressions.md))
 - **Email digest**: an opt-in daily or weekly email to yourself with your unread notifications and open assignments ([ADR-072](docs/adr/072-email-digest.md))
 - **Emailed reports**: a saved report is emailed on a schedule, run with the permissions of a chosen user, set up by System Managers only ([ADR-071](docs/adr/071-auto-email-reports.md))
 - **Live updates**: the bell and open forms update by themselves through a permission-checked event stream (Server-Sent Events) that carries only where something changed ([ADR-070](docs/adr/070-live-updates-server-sent-events.md))

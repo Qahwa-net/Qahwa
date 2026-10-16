@@ -524,23 +524,37 @@ public static partial class DocTypeLoader
             Visit(name, []);
     }
 
-    private static void CheckAutoname(DocTypeMeta meta, HashSet<string> fields, Action<string, string> add)
+    private static void CheckAutoname(DocTypeMeta meta, HashSet<string> fields, Action<string, string> add) =>
+        CheckNamingRule(meta.Autoname, fields, add, "autoname");
+
+    /// <summary>Checks a naming rule (hash, prompt, field:, expression: or a series) against the names of the fields it may read.</summary>
+    internal static void CheckNamingRule(string? rule, HashSet<string> fields, Action<string, string> add, string path)
     {
-        var rule = meta.Autoname;
         if (rule is null or "hash" or "prompt")
             return;
+
+        if (rule.StartsWith(NamingService.ExpressionPrefix, StringComparison.Ordinal))
+        {
+            var source = rule[NamingService.ExpressionPrefix.Length..];
+            if (Expression.Check(source) is { } problem)
+                add(path, $"The naming expression is not valid: {problem}");
+            else
+                foreach (var name in Expression.Parse(source).Identifiers.Where(i => !fields.Contains(i) && !StandardFields.Columns.ContainsKey(i)))
+                    add(path, $"The naming expression refers to a field that does not exist: {name}.");
+            return;
+        }
 
         if (rule.StartsWith("field:", StringComparison.Ordinal))
         {
             if (!fields.Contains(rule["field:".Length..]))
-                add("autoname", $"Naming rule '{rule}' refers to a field that does not exist.");
+                add(path, $"Naming rule '{rule}' refers to a field that does not exist.");
             return;
         }
 
         if (!SeriesPatternRegex().IsMatch(rule))
-            add("autoname", $"Invalid naming rule '{rule}' (use hash, prompt, field:<name> or a series like CUST-.##### or INV-{{YYYY}}-.####).");
+            add(path, $"Invalid naming rule '{rule}' (use hash, prompt, field:<name>, expression:<expression> or a series like CUST-.##### or INV-{{YYYY}}-.####).");
         else
             foreach (var token in NamingService.FieldTokens(rule).Where(t => !fields.Contains(t)))
-                add("autoname", $"Naming rule '{rule}' refers to a field that does not exist: {token}.");
+                add(path, $"Naming rule '{rule}' refers to a field that does not exist: {token}.");
     }
 }

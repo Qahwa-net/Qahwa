@@ -58,7 +58,7 @@ describe('field helpers', () => {
 
 describe('naming rules', () => {
   it('round-trips every kind', () => {
-    for (const rule of ['prompt', 'field:supplier_name', 'SUP-.#####', 'INV/.##']) {
+    for (const rule of ['prompt', 'field:supplier_name', 'SUP-.#####', 'INV/.##', 'expression:upper(region) + "-" + customer']) {
       const parsed = parseAutoname(rule)
       expect(buildAutoname(parsed)).toBe(rule)
     }
@@ -251,5 +251,13 @@ describe('errorMap', () => {
   it('keeps the first message per path', () => {
     expect(errorMap([{ field: 'a', message: '1' }, { field: 'a', message: '2' }, { field: 'b', message: '3' }]))
       .toEqual({ a: '1', b: '3' })
+  })
+})
+
+describe('naming by expression', () => {
+  it('keeps the expression and its kind', () => {
+    const parsed = parseAutoname('expression:upper(a) + "-" + b')
+    expect(parsed.autonameKind).toBe('expression')
+    expect(parsed.autonameField).toBe('upper(a) + "-" + b')
   })
 })

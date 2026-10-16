@@ -1,3 +1,5 @@
+using Qahwa.Core.Expressions;
+
 namespace Qahwa.Core;
 
 /// <summary>
@@ -5,8 +7,12 @@ namespace Qahwa.Core;
 /// <c>{YYYY}</c>, <c>{YY}</c>, <c>{MM}</c>, <c>{DD}</c> (today, UTC) and <c>{fieldname}</c> (a field of the document) before the
 /// <c>.####</c>; each different resulting prefix has its own counter (INV-2026-0001, then INV-2027-0001 next year).
 /// </summary>
-public sealed partial class NamingService(IDocumentRepository repository, TimeProvider? clock = null)
+public sealed partial class NamingService(IDocumentRepository repository, TimeProvider? clock = null, IMetaRegistry? registry = null)
 {
+    public const string ExpressionPrefix = "expression:";
+    public const string RuleDocType = "Document Naming Rule";
+    public const int MaxRules = 100;
+
     public const int MaxFieldPartLength = 30;
 
     [System.Text.RegularExpressions.GeneratedRegex(@"\{([A-Za-z][A-Za-z0-9_]*)\}")]
@@ -48,13 +54,68 @@ public sealed partial class NamingService(IDocumentRepository repository, TimePr
         });
     }
 
+    private ExpressionContext ContextOf(IReadOnlyDictionary<string, object?> values, IUserContext? user)
+    {
+        var now = (clock ?? TimeProvider.System).GetUtcNow().UtcDateTime;
+        return new ExpressionContext
+        {
+            Fields = values.ToDictionary(kv => kv.Key, kv => Values.FromStorage(kv.Value), StringComparer.Ordinal),
+            User = user?.User ?? string.Empty,
+            Roles = user?.Roles ?? [],
+            IsNew = true,
+            Today = now.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
+            Now = now.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", System.Globalization.CultureInfo.InvariantCulture),
+        };
+    }
+
+    /// <summary>
+    /// The naming rule that applies to this document: the first enabled Document Naming Rule of the DocType (lowest priority number
+    /// first) whose condition holds, otherwise the DocType's own rule. A condition that cannot be evaluated is skipped, never an error.
+    /// </summary>
+    private async Task<string?> RuleForAsync(DocTypeMeta meta, IReadOnlyDictionary<string, object?> values, IUserContext? user, CancellationToken ct)
+    {
+        if (registry is null || meta.Name == RuleDocType || !registry.TryGet(RuleDocType, out var rules))
+            return meta.Autoname;
+
+        var rows = await repository.ListAsync(rules, new ListQuery
+        {
+            Filters = [new("document_type", FilterOp.Eq, meta.Name), new("enabled", FilterOp.Eq, true)],
+            Fields = ["name", "priority", "condition", "pattern"],
+            OrderBy = "name", Descending = false, Limit = MaxRules,
+        }, ct);
+        ExpressionContext? context = null;
+        foreach (var row in rows.OrderBy(r => Convert.ToInt64(r.GetValueOrDefault("priority") ?? 0L, System.Globalization.CultureInfo.InvariantCulture)).ThenBy(r => (string)r["name"]!, StringComparer.Ordinal))
+        {
+            if (row.GetValueOrDefault("pattern") is not string { Length: > 0 } pattern)
+                continue;
+            if (row.GetValueOrDefault("condition") is string { Length: > 0 } condition)
+            {
+                try
+                {
+                    context ??= ContextOf(values, user);
+                    if (!Expression.Parse(condition).IsTrue(context))
+                        continue;
+                }
+                catch (ExpressionException)
+                {
+                    continue;
+                }
+            }
+
+            return pattern;
+        }
+
+        return meta.Autoname;
+    }
+
     public async Task<string> NextNameAsync(
         DocTypeMeta meta,
         IReadOnlyDictionary<string, object?> values,
         string? promptName,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        IUserContext? user = null)
     {
-        var rule = meta.Autoname;
+        var rule = await RuleForAsync(meta, values, user, ct);
 
         if (rule is null or "hash")
             return Guid.NewGuid().ToString("N")[..10];
@@ -66,6 +127,19 @@ public sealed partial class NamingService(IDocumentRepository repository, TimePr
         {
             var field = rule["field:".Length..];
             return CheckName(values.GetValueOrDefault(field) as string, field);
+        }
+
+        if (rule.StartsWith(ExpressionPrefix, StringComparison.Ordinal))
+        {
+            try
+            {
+                var result = Expression.Parse(rule[ExpressionPrefix.Length..]).Evaluate(ContextOf(values, user));
+                return CheckName(Values.ToText(result), "name");
+            }
+            catch (ExpressionException ex)
+            {
+                throw new DocumentValidationException([new FieldError("name", $"The naming expression could not be evaluated: {ex.Message}")]);
+            }
         }
 
         var (pattern, digits) = ParseSeries(rule);
@@ -92,6 +166,8 @@ public sealed partial class NamingService(IDocumentRepository repository, TimePr
             throw new DocumentValidationException([new FieldError(source, "A value is required to name this document.")]);
         if (name.Length > FieldTypes.ShortTextLength)
             throw new DocumentValidationException([new FieldError(source, "Document name is too long (max 140 characters).")]);
+        if (name.Any(char.IsControl))
+            throw new DocumentValidationException([new FieldError(source, "A document name cannot contain line breaks or other control characters.")]);
         return name;
     }
 }

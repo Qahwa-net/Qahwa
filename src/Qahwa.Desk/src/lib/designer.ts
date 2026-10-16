@@ -10,7 +10,7 @@ export interface DraftField extends DocField {
   nameFollowsLabel: boolean
 }
 
-export type AutonameKind = 'hash' | 'prompt' | 'field' | 'series'
+export type AutonameKind = 'hash' | 'prompt' | 'field' | 'series' | 'expression'
 
 export interface Draft {
   /** A child table: its rows live inside other documents and it has no list or form of its own. */
@@ -138,6 +138,8 @@ export function parseAutoname(autoname: string | null | undefined): Pick<Draft, 
   if (!autoname || autoname === 'hash') return base
   if (autoname === 'prompt') return { ...base, autonameKind: 'prompt' }
   if (autoname.startsWith('field:')) return { ...base, autonameKind: 'field', autonameField: autoname.slice(6) }
+  // The expression is kept in the same box as a field name: only one of them is used at a time.
+  if (autoname.startsWith('expression:')) return { ...base, autonameKind: 'expression', autonameField: autoname.slice(11) }
   const index = autoname.lastIndexOf('.#')
   if (index >= 0) {
     return { ...base, autonameKind: 'series', seriesPrefix: autoname.slice(0, index), seriesDigits: autoname.length - index - 1 }
@@ -149,6 +151,7 @@ export function buildAutoname(draft: Pick<Draft, 'autonameKind' | 'autonameField
   switch (draft.autonameKind) {
     case 'prompt': return 'prompt'
     case 'field': return `field:${draft.autonameField}`
+    case 'expression': return `expression:${draft.autonameField}`
     case 'series': return `${draft.seriesPrefix}.${'#'.repeat(Math.min(10, Math.max(1, draft.seriesDigits)))}`
     default: return undefined // hash is the default
   }

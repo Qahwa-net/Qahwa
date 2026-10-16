@@ -308,6 +308,7 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
                   <option value="hash">Random ID</option>
                   <option value="series">Numbered series (e.g. SUP-00001)</option>
                   <option value="field">From a field</option>
+                  <option value="expression">From an expression</option>
                   <option value="prompt">Typed by the user</option>
                 </select>
                 {draft.autonameKind === 'series' && (
@@ -326,6 +327,11 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
                     {dataFields.map((f) => <option key={f.key} value={f.name}>{f.label || f.name}</option>)}
                   </select>
                 )}
+                {draft.autonameKind === 'expression' && (
+                  <input aria-label="Naming expression" placeholder={'upper(region) + "-" + customer'} value={draft.autonameField} disabled={disabled}
+                    onChange={(e) => patch({ autonameField: e.target.value })} />
+                )}
+                {draft.autonameKind === 'expression' && <small className="muted">An expression over the fields of the document that gives its name, for example {'upper(region) + "-" + customer'}. The name must be unique.</small>}
                 {errors.autoname && <small className="error-text" role="alert">{errors.autoname}</small>}
               </div>}
             </div>

@@ -1,0 +1,17 @@
+{
+  "name": "Document Naming Rule",
+  "module": "Core",
+  "autoname": "DNR-.#####",
+  "trackChanges": false,
+  "titleField": "document_type",
+  "fields": [
+    { "name": "document_type", "type": "Link", "options": "DocType", "label": "DocType", "required": true, "indexed": true, "inListView": true },
+    { "name": "enabled", "type": "Check", "label": "Enabled", "default": "1", "inListView": true },
+    { "name": "priority", "type": "Int", "label": "Priority (the lowest number is tried first)", "default": "10", "inListView": true },
+    { "name": "condition", "type": "Code", "label": "Condition (an expression over the fields of the document; empty means always)" },
+    { "name": "pattern", "type": "Data", "label": "Naming rule (a series like CO-{YYYY}-.#####, field:<name> or expression:<expression>)", "required": true, "inListView": true }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "write": true, "create": true, "delete": true }
+  ]
+}

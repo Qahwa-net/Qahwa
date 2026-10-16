@@ -17,7 +17,8 @@ public sealed class NamingSeriesManager(IMetaRegistry registry, IDocumentReposit
     }
 
     private static bool IsSeries(DocTypeMeta meta) =>
-        meta.Autoname is { } rule && rule is not ("hash" or "prompt") && !rule.StartsWith("field:", StringComparison.Ordinal);
+        meta.Autoname is { } rule && rule is not ("hash" or "prompt") && !rule.StartsWith("field:", StringComparison.Ordinal)
+        && !rule.StartsWith(NamingService.ExpressionPrefix, StringComparison.Ordinal);
 
     public async Task<IReadOnlyList<SeriesInfo>> ListAsync(IUserContext user, CancellationToken ct = default)
     {

@@ -133,7 +133,7 @@ public sealed partial class DocumentService(
         if (errors.Count > 0)
             throw new DocumentValidationException(errors);
 
-        var name = meta.IsSingle ? meta.Name : await naming.NextNameAsync(meta, values, promptName, ct);
+        var name = meta.IsSingle ? meta.Name : await naming.NextNameAsync(meta, values, promptName, ct, user);
         var now = Now();
         values["name"] = name;
         values["creation"] = now;
@@ -164,6 +164,12 @@ public sealed partial class DocumentService(
     private async Task<IReadOnlyCollection<string>> RunScriptsAsync(
         DocTypeMeta meta, Dictionary<string, object?> values, IReadOnlyDictionary<string, object?>? existing, bool isNew, IUserContext user, List<FieldError> errors, CancellationToken ct, int? transition = null)
     {
+        if (meta.Name == NamingService.RuleDocType)
+        {
+            NamingRuleCheck.Check(registry, values, errors);
+            return [];
+        }
+
         if (meta.Name == BrandService.DocTypeName)
         {
             BrandService.Check(values, errors);
