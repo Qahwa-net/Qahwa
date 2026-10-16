@@ -30,6 +30,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 26. [Error log](26-error-log.md)
 27. [API description (OpenAPI)](27-api-description.md)
 28. [Choosing DocTypes and documents](28-choosing-doctypes-and-documents.md)
+29. [Two-factor sign-in](29-two-factor-sign-in.md)
 
 **Words used**
 

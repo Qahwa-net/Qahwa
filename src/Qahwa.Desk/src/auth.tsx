@@ -6,7 +6,9 @@ import type { SessionUser } from './api/types.ts'
 interface AuthState {
   /** Undefined while the first check is in flight, null when signed out. */
   user: SessionUser | null | undefined
-  login: (email: string, password: string) => Promise<void>
+  /** Resolves to a challenge when the account needs a code too (then call loginWithCode), or null once signed in. */
+  login: (email: string, password: string) => Promise<{ token: string } | null>
+  loginWithCode: (token: string, code: string) => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -16,12 +18,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
   const me = useQuery({ queryKey: ['me'], queryFn: api.me, staleTime: Infinity })
 
+  const signedIn = (user: SessionUser) => {
+    queryClient.clear() // never show one user's cached data to the next
+    queryClient.setQueryData(['me'], user)
+  }
+
   const login = useMutation({
     mutationFn: ({ email, password }: { email: string; password: string }) => api.login(email, password),
-    onSuccess: (user) => {
-      queryClient.clear() // never show one user's cached data to the next
-      queryClient.setQueryData(['me'], user)
-    },
+    onSuccess: (result) => { if (!('two_factor' in result)) signedIn(result) },
+  })
+
+  const loginWithCode = useMutation({
+    mutationFn: ({ token, code }: { token: string; code: string }) => api.loginWithCode(token, code),
+    onSuccess: signedIn,
   })
 
   const logout = useMutation({
@@ -34,7 +43,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const value: AuthState = {
     user: me.isPending ? undefined : (me.data ?? null),
-    login: async (email, password) => { await login.mutateAsync({ email, password }) },
+    login: async (email, password) => {
+      const result = await login.mutateAsync({ email, password })
+      return 'two_factor' in result ? { token: result.token } : null
+    },
+    loginWithCode: async (token, code) => { await loginWithCode.mutateAsync({ token, code }) },
     logout: async () => { await logout.mutateAsync() },
   }
 

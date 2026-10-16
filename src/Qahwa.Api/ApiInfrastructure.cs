@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.Json;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -103,6 +104,8 @@ public static class ApiServiceCollectionExtensions
     {
         services.Configure<JsonOptions>(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
         services.AddMemoryCache();
+        services.AddDataProtection();
+        services.TryAddSingleton<ISecretProtector, DataProtectionSecretProtector>();
         services.AddSingleton<IUserContextResolver, CookieUserContextResolver>();
 
         // Cross-site request forgery: the cookie is SameSite=Lax (not sent on cross-site POST/PUT/DELETE) and every

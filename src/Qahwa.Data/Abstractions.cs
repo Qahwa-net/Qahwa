@@ -50,6 +50,9 @@ public interface ISqlDialect
     /// <summary>Table holding password hashes and login counters (see <c>IAuthStore</c>).</summary>
     string CreateAuthTableSql { get; }
 
+    /// <summary>Table holding two-factor secrets and recovery codes (see <c>ITotpStore</c>).</summary>
+    string CreateTotpTableSql { get; }
+
     /// <summary>Increments the counter named by parameter 0 and returns the new value.</summary>
     string NextSeriesSql { get; }
 

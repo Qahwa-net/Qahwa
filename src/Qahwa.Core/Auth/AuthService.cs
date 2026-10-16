@@ -34,6 +34,17 @@ public sealed class AuthService(
     /// <returns>The session, or null for any failure (unknown, disabled, locked or wrong password).</returns>
     public async Task<SessionInfo?> LoginAsync(string? email, string? password, CancellationToken ct = default)
     {
+        var key = await VerifyPasswordAsync(email, password, ct);
+        return key is null ? null : await CompleteLoginAsync(key, ct);
+    }
+
+    /// <summary>
+    /// The first step of signing in: checks the password with the lockout rules. Wrong passwords count; a right one does not clear the
+    /// counter yet, so a second step (two-factor) cannot be guessed at by logging in again and again.
+    /// </summary>
+    /// <returns>The normalised email, or null for any failure.</returns>
+    public async Task<string?> VerifyPasswordAsync(string? email, string? password, CancellationToken ct = default)
+    {
         var key = Normalize(email);
         if (key is null || string.IsNullOrEmpty(password) || password.Length > MaxPasswordLength)
             return null;
@@ -60,8 +71,23 @@ public sealed class AuthService(
                 break;
         }
 
-        await store.RecordSuccessAsync(key, now, ct);
+        return key;
+    }
+
+    /// <summary>The last step of signing in: clears the failure counter and loads the session (null if the account stopped being usable).</summary>
+    public async Task<SessionInfo?> CompleteLoginAsync(string key, CancellationToken ct = default)
+    {
+        await store.RecordSuccessAsync(key, Now(), ct);
         return await LoadSessionAsync(key, ct);
+    }
+
+    /// <summary>True when the password is right. Does not touch the lockout counters (callers are already signed in and rate limited).</summary>
+    public async Task<bool> CheckPasswordAsync(string email, string? password, CancellationToken ct = default)
+    {
+        var key = Normalize(email);
+        var credential = key is null ? null : await store.GetAsync(key, ct);
+        return credential is not null && !string.IsNullOrEmpty(password) && password.Length <= MaxPasswordLength
+            && hasher.VerifyHashedPassword(key!, credential.PasswordHash, password) != PasswordVerificationResult.Failed;
     }
 
     /// <summary>Loads the current identity, or null when the user is missing, disabled or has no valid password.</summary>

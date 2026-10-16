@@ -641,3 +641,5 @@ kbd { font: .75rem ui-monospace, Consolas, monospace; padding: .05rem .35rem; bo
 .public-form { max-inline-size: 36rem; margin: 2rem auto; padding: 0 1rem; position: relative; }
 .public-form .field { display: grid; gap: .25rem; margin-block-end: 1rem; }
 .error-text { color: var(--danger, #d92d20); }
+
+.qr { display: block; background: #fff; padding: .5rem; border-radius: 8px; margin-block: .5rem; }

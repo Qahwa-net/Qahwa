@@ -106,6 +106,15 @@ public sealed class PostgresDialect : ISqlDialect
         "\"password_changed\" timestamp with time zone NOT NULL, " +
         "\"user_created\" timestamp with time zone NOT NULL)";
 
+    public string CreateTotpTableSql =>
+        "CREATE TABLE IF NOT EXISTS \"__totp\" (" +
+        "\"name\" varchar(140) NOT NULL PRIMARY KEY, " +
+        "\"secret\" text NOT NULL, " +
+        "\"enabled\" boolean NOT NULL DEFAULT false, " +
+        "\"last_step\" bigint NOT NULL DEFAULT 0, " +
+        "\"recovery\" text NOT NULL DEFAULT '[]', " +
+        "\"user_created\" timestamp with time zone NOT NULL)";
+
     public string LikeOperator => "ILIKE";
 
     public string ListSeriesSql => "SELECT \"name\", \"current\" FROM \"tabSeries\" ORDER BY \"name\"";

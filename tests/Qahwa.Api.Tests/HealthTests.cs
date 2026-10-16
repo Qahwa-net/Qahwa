@@ -80,6 +80,10 @@ public sealed class QahwaFactory(
             services.AddSingleton<ISchemaManager>(new InMemorySchemaManager());
             services.RemoveAll<IDocumentRepository>();
             services.AddSingleton<IDocumentRepository>(new InMemoryDocumentRepository());
+            services.RemoveAll<ITotpStore>();
+            services.AddSingleton<ITotpStore>(new InMemoryTotpStore());
+            services.RemoveAll<ISecretProtector>();
+            services.AddSingleton<ISecretProtector>(new FakeSecretProtector());
             services.RemoveAll<IAuthStore>();
             services.AddSingleton<IAuthStore>(new InMemoryAuthStore());
 

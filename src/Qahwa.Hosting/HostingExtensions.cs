@@ -126,6 +126,8 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<SqlBuilder>();
         services.TryAddSingleton<IDocumentRepository, DocumentRepository>();
         services.TryAddSingleton<IAuthStore, AuthStore>();
+        services.TryAddSingleton<ITotpStore, TotpStore>();
+        services.TryAddSingleton<TwoFactorService>();
         services.TryAddSingleton<SchemaSync>();
         services.TryAddSingleton<ISchemaManager, SchemaManager>();
         services.TryAddSingleton<IDocTypeStore, DocTypeStore>();

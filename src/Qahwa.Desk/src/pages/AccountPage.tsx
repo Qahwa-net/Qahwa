@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { ApiError, api } from '../api/client.ts'
 import { useAuth } from '../auth.tsx'
 import { ApiKeysSection } from './ApiKeysSection.tsx'
+import { TwoFactorSection } from './TwoFactorSection.tsx'
 
 export function AccountPage() {
   const { user } = useAuth()
@@ -58,6 +59,7 @@ export function AccountPage() {
         <button className="btn primary" type="submit" disabled={busy}>Change password</button>
       </form>
 
+      <TwoFactorSection />
       <ApiKeysSection />
     </>
   )

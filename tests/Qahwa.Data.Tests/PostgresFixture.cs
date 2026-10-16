@@ -112,6 +112,7 @@ public sealed class PgStack : IAsyncDisposable
         Workflows = new WorkflowManager(Registry, WorkflowStore, WorkflowCatalog, permissions, Clock);
         Customization = new CustomizationManager(Registry, CustomizationStore, SchemaManager, permissions, Clock);
         AuthStore = new AuthStore(_connections, Dialect);
+        TotpStore = new TotpStore(_connections, Dialect);
         AuthOptions = new AuthOptions { HashIterations = 1000 };
         Auth = new AuthService(
             Registry, Repository, Documents, AuthStore,
@@ -170,6 +171,7 @@ public sealed class PgStack : IAsyncDisposable
     public DocTypeStore DocTypeStore { get; }
     public SchemaManager SchemaManager { get; }
     public DocTypeDesigner Designer { get; }
+    public TotpStore TotpStore { get; }
     public DocumentActionEngine DocumentActions { get; }
     public BundleService Bundle { get; }
     public AuthStore AuthStore { get; }

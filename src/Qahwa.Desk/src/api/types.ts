@@ -815,3 +815,18 @@ export interface PublicForm {
   intro: string | null
   fields: PublicFormField[]
 }
+
+export interface TwoFactorChallenge {
+  two_factor: true
+  token: string
+}
+
+export interface TwoFactorStatus {
+  enabled: boolean
+  recoveryCodesLeft: number
+}
+
+export interface TwoFactorSetup {
+  secret: string
+  uri: string
+}

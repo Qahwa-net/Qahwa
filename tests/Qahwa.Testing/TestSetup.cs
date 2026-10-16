@@ -136,6 +136,8 @@ public sealed class TestEngine
             new PasswordHasher<string>(Options.Create(new PasswordHasherOptions { IterationCount = 1000 })),
             Options.Create(AuthOptions),
             Clock);
+        TotpStore = new InMemoryTotpStore();
+        TwoFactor = new TwoFactorService(TotpStore, new FakeSecretProtector(), AuthStore, Options.Create(AuthOptions), Clock);
         Webhooks = new WebhookService(WebhookCatalog, Registry, Repository, Documents, WebhookSender, History);
         WebhookManager = new WebhookManager(Registry, WebhookStore, WebhookCatalog, Permissions, Clock, allowInsecure: false);
         Bundle = new BundleService(Registry, Designer, Customization, Workflows, AssignmentRuleManager, NotificationRuleManager, Permissions, Clock);
@@ -200,6 +202,8 @@ public sealed class TestEngine
     public InMemorySchemaManager Schema { get; }
     public DocTypeDesigner Designer { get; }
     public IAuthStore AuthStore { get; }
+    public InMemoryTotpStore TotpStore { get; }
+    public TwoFactorService TwoFactor { get; }
     public AuthOptions AuthOptions { get; }
     public AuthService Auth { get; }
 
