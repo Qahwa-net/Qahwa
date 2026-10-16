@@ -854,3 +854,33 @@ export interface RestoreReport {
   tables: RestoreTableReport[]
   seriesRaised: number
 }
+
+export interface ReportInfo {
+  id: string
+  title: string
+  docType: string
+  isPublic: boolean
+  mine: boolean
+  owner: string
+  ownerName: string | null
+  modified: string
+}
+
+export interface ReportDetail {
+  info: ReportInfo
+  definition: Record<string, unknown>
+  canEdit: boolean
+}
+
+export interface ReportColumn {
+  key: string
+  label: string
+  type: string
+}
+
+export interface ReportRun {
+  columns: ReportColumn[]
+  rows: Record<string, unknown>[]
+  truncated: boolean
+  grouped: boolean
+}

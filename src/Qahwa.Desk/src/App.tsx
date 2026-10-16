@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './auth.tsx'
 import { Shell } from './shell/Shell.tsx'
 import { AccountPage } from './pages/AccountPage.tsx'
 import { CustomizeFormPage } from './pages/CustomizeForm.tsx'
+import { ReportEditorPage, ReportViewPage, ReportsPage } from './pages/Reports.tsx'
 import { BackupPage } from './pages/BackupPage.tsx'
 import { BundlePage } from './pages/Bundle.tsx'
 import { WebhooksPage } from './pages/Webhooks.tsx'
@@ -58,6 +59,10 @@ export function App() {
           <Route path="webhooks" element={<WebhooksPage />} />
           <Route path="bundle" element={<BundlePage />} />
           <Route path="backup" element={<BackupPage />} />
+          <Route path="reports" element={<ReportsPage />} />
+          <Route path="reports/new" element={<ReportEditorPage />} />
+          <Route path="reports/:id" element={<ReportViewPage />} />
+          <Route path="reports/:id/edit" element={<ReportEditorPage />} />
           <Route path="webhooks/:name" element={<WebhooksPage />} />
           <Route path="workspaces" element={<WorkspacesPage />} />
           <Route path="print-formats" element={<PrintFormatsPage />} />

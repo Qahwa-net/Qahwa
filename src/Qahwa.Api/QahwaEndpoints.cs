@@ -111,6 +111,7 @@ public static class QahwaEndpoints
         app.MapQahwaOpenApi();
         app.MapQahwaSettings();
         app.MapQahwaBackup();
+        app.MapQahwaReports();
         return app;
     }
 

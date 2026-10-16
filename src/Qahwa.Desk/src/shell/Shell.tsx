@@ -60,6 +60,7 @@ export function Shell() {
           <h2>{t('My work')}</h2>
           <ul>
             <li><NavLink to="/dashboards">{t('Dashboards')}</NavLink></li>
+            <li><NavLink to="/reports">{t('Reports')}</NavLink></li>
             <li><NavLink to="/auto-repeat">{t('Auto Repeat')}</NavLink></li>
           </ul>
         </section>

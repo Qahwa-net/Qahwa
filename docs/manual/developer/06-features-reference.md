@@ -199,3 +199,7 @@ Tests: `PatchTests`, `PostgresPatchTests`.
 ## Backups ([ADR-044](../../adr/044-backups.md))
 
 `Backup.cs`: `BackupService` (`WriteAsync`, `RestoreAsync(stream, dryRun, user, ct, maxBytes)`, `RunScheduledAsync`), `BackupOptions`, `BackupService.Skipped` (DocTypes never backed up). `BackupEndpoints.cs`: `GET /api/backup/download` (temp file, then sent), `POST /api/backup/restore?dryRun=` (`application/zip`). `SchedulerService` writes the daily file when `Qahwa:Backup:Path` is set. A zip cannot be written to the response stream (ASP.NET Core forbids synchronous writes), hence the temporary file. Desk: `pages/BackupPage.tsx`, `lib/backup.ts`. Configuration: `Qahwa:Backup:Path`, `Keep`, `MaxRestoreMegabytes`. Tests: `BackupTests`, `BackupApiTests`, `PostgresBackupTests`.
+
+## Report Builder ([ADR-045](../../adr/045-report-builder.md))
+
+`Reports.cs`: `ReportDefinition`, `ReportService` (`ListAsync`, `GetAsync`, `CreateAsync`, `UpdateAsync`, `DeleteAsync`, `RunAsync`, `ExportAsync`, `Validate`); Core DocType `report.json`; `DocumentService.Reports.cs` (`GroupedAsync`, `AggregateKey`). `ReportEndpoints.cs`: `/api/reports` (list, create, `/preview`, `/{id}`, `/{id}/run`, `/{id}/csv`). Desk: `pages/Reports.tsx` (list, viewer, builder), `lib/reports.ts` (draft to definition). To allow another aggregate or operator, change `ReportDefinition.Operators`, `DocumentService.Aggregates` and `Validate` together. Tests: `ReportTests`, `ReportApiTests`, `PostgresReportTests`, `lib/reports.test.ts`.

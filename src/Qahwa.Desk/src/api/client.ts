@@ -1,7 +1,7 @@
 import type { DisplaySettings } from '../lib/display.ts'
 import type {
   DesignerDetail, DocPerm, DesignerItem, DesignerPreview, Doc, DocTypeDefinition, FieldError, FieldTypeInfo,
-  ListResponse, RestoreReport, SignIn, TwoFactorChallenge, TwoFactorSetup, TwoFactorStatus, PublicForm, BundleReport, TranslationCatalog, AttachedFile, WebhookItem, WebhookSet, WebhookView, ApiKeyCreated, ApiKeyInfo, ImportPreview, ImportResult, WorkspaceBlock, WorkspaceDetail, WorkspaceInfo, WorkspaceView, LetterHeadDetail, PrintChoices, PrintFormatDetail, PrintFormatInfo, DashboardDetail, DashboardInfo, DashboardItem, DashboardResult, EmailPreview, EmailTemplateInfo, NotificationRuleItem, NotificationRuleSet, NotificationRuleView, AutoRepeatInfo, AutoRepeatRequest, AssignmentRuleItem, AssignmentRuleSet, AssignmentRuleView, PendingAction, WorkflowDefinition, WorkflowItem, WorkflowStatus, WorkflowView, MetaResponse, MetaSummary, PermissionItem, ActivityItem, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, FollowState, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
+  ListResponse, ReportDetail, ReportInfo, ReportRun, RestoreReport, SignIn, TwoFactorChallenge, TwoFactorSetup, TwoFactorStatus, PublicForm, BundleReport, TranslationCatalog, AttachedFile, WebhookItem, WebhookSet, WebhookView, ApiKeyCreated, ApiKeyInfo, ImportPreview, ImportResult, WorkspaceBlock, WorkspaceDetail, WorkspaceInfo, WorkspaceView, LetterHeadDetail, PrintChoices, PrintFormatDetail, PrintFormatInfo, DashboardDetail, DashboardInfo, DashboardItem, DashboardResult, EmailPreview, EmailTemplateInfo, NotificationRuleItem, NotificationRuleSet, NotificationRuleView, AutoRepeatInfo, AutoRepeatRequest, AssignmentRuleItem, AssignmentRuleSet, AssignmentRuleView, PendingAction, WorkflowDefinition, WorkflowItem, WorkflowStatus, WorkflowView, MetaResponse, MetaSummary, PermissionItem, ActivityItem, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, FollowState, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
 } from './types.ts'
 import type { Filter } from '../lib/filters.ts'
 import { toApiFilters } from '../lib/filters.ts'
@@ -78,6 +78,18 @@ export const api = {
 
   async loginWithCode(token: string, code: string): Promise<SessionUser> {
     return (await request<{ data: SessionUser }>('POST', '/api/auth/login/2fa', { token, code })).data
+  },
+
+  reports: {
+    list: async () => (await request<{ data: ReportInfo[] }>('GET', '/api/reports')).data,
+    get: async (id: string) => (await request<{ data: ReportDetail }>('GET', `/api/reports/${encodeURIComponent(id)}`)).data,
+    create: async (body: { title: string; isPublic: boolean; definition: Record<string, unknown> }) => (await request<{ data: ReportInfo }>('POST', '/api/reports', body)).data,
+    update: async (id: string, body: { title: string; isPublic: boolean; definition: Record<string, unknown> }, modified: string) =>
+      (await request<{ data: ReportInfo }>('PUT', `/api/reports/${encodeURIComponent(id)}?modified=${encodeURIComponent(modified)}`, body)).data,
+    remove: (id: string) => request<unknown>('DELETE', `/api/reports/${encodeURIComponent(id)}`),
+    run: async (id: string) => (await request<{ data: ReportRun }>('GET', `/api/reports/${encodeURIComponent(id)}/run`)).data,
+    preview: async (definition: Record<string, unknown>) => (await request<{ data: ReportRun }>('POST', '/api/reports/preview', definition)).data,
+    csvUrl: (id: string) => `/api/reports/${encodeURIComponent(id)}/csv`,
   },
 
   backup: {

@@ -1,0 +1,14 @@
+{
+  "name": "Report",
+  "module": "Core",
+  "trackChanges": false,
+  "fields": [
+    { "name": "title", "type": "Data", "label": "Title", "required": true, "inListView": true },
+    { "name": "reference_doctype", "type": "Link", "options": "DocType", "label": "DocType", "inListView": true },
+    { "name": "is_public", "type": "Check", "label": "Shared with everyone", "inListView": true },
+    { "name": "definition", "type": "LongText", "label": "Definition" }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "delete": true }
+  ]
+}

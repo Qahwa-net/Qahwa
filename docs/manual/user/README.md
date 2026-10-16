@@ -36,6 +36,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 32. [System Settings and network restrictions](32-system-settings.md)
 33. [Patch Log](33-patch-log.md)
 34. [Backup and restore](34-backup-and-restore.md)
+35. [Reports](35-reports.md)
 
 **Words used**
 

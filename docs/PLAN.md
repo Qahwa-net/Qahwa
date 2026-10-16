@@ -662,7 +662,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 
 | Feature | Notes | Status | Step |
 |---|---|---|---|
-| **Report Builder** (pick fields, filters, group by, sort, save, share) | | ⬜ | L9 |
+| **Report Builder** (pick fields, filters, group by, sort, save, share) | done: lists and multi-number summaries, run with the viewer's rights, CSV (ADR-045); not joins, calculated columns, PDF | ✅ (v1) | L9 |
 | Query Report (SQL), Script Report | | ⬜ | L11 |
 | Dashboard Charts (count, sum, average, group by, time series), Number Cards, Dashboards | done: number, chart and list tiles, per day/month/year, filters, private or shared | ✅ (v1) | L9 |
 | Prepared Reports (background) | | 🔽 | L9 |

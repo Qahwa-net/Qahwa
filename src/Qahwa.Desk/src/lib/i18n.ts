@@ -6,7 +6,7 @@ const RTL = new Set(['ar', 'he', 'fa', 'ur', 'ps', 'sd', 'yi'])
 /** The words of the Desk's own chrome that ship with it. Translations made in the Desk (Translation documents) come on top of these. */
 export const BUILT_IN: Record<string, Record<string, string>> = {
   ar: {
-    'My work': 'عملي', Dashboards: 'لوحات المعلومات', 'Auto Repeat': 'التكرار التلقائي', Tools: 'الأدوات',
+    'My work': 'عملي', Dashboards: 'لوحات المعلومات', Reports: 'التقارير', 'Auto Repeat': 'التكرار التلقائي', Tools: 'الأدوات',
     'DocType Designer': 'مصمم أنواع المستندات', 'Customize Form': 'تخصيص النموذج', 'Role Permissions': 'صلاحيات الأدوار',
     'Workflow Builder': 'منشئ سير العمل', Webhooks: 'الخطافات', 'Export & Import': 'التصدير والاستيراد', Workspaces: 'مساحات العمل',
     'Print Formats': 'تنسيقات الطباعة', 'Notification Rules': 'قواعد الإشعارات', 'Assignment Rules': 'قواعد الإسناد',

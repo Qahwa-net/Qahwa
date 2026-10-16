@@ -114,6 +114,7 @@ public sealed class TestEngine
         AssignmentRules = new AssignmentRuleEngine(AssignmentRuleCatalog, Registry, Repository, Assignments, Notifications);
         Print = new PrintService(Registry, Repository, Documents, Permissions, History);
         Dashboards = new DashboardService(Registry, Repository, Documents, Permissions, Notifications, History);
+        Reports = new ReportService(Registry, Repository, Documents, Permissions, Notifications, History);
         DataImport = new DataImportService(Registry, Documents, Permissions);
         DocumentActions = new DocumentActionEngine(Registry, Repository, Documents, Clock);
         ErrorLog = new ErrorLogService(Documents, new HitCounter(Clock));
@@ -175,6 +176,7 @@ public sealed class TestEngine
     public NotificationRuleEngine NotificationRules { get; }
     public FakeEmailSender EmailSender { get; }
     public DashboardService Dashboards { get; }
+    public ReportService Reports { get; }
     public PrintService Print { get; }
     public WorkspaceService Workspaces { get; }
     public TranslationService Translations { get; }
