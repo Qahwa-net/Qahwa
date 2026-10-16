@@ -195,7 +195,7 @@ export function ListView() {
       </div>
 
       {selected.size > 0 && (
-        <BulkBar doctype={doctype} names={[...selected]} canWrite={Boolean(perms?.write)} canDelete={Boolean(perms?.delete)}
+        <BulkBar doctype={doctype} names={[...selected]} canWrite={Boolean(perms?.write)} canDelete={Boolean(perms?.delete)} canRename={Boolean(meta.allowRename && perms?.write)}
           fields={meta.fields.filter((f) => hasColumn(f.type) && f.type !== 'Password' && !f.formula && !f.readOnly)}
           onDone={() => setSelected(new Set())} onClear={() => setSelected(new Set())} onResult={setBulkReport} />
       )}

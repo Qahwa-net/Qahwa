@@ -691,7 +691,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Schema migration (additive), dry run | | ✅ | done |
 | Patches / data migrations (patch log) | done (ADR-043); not per-app ordering or a CLI to run one | ✅ (v1) | L12 |
 | **Data Import** (CSV/Excel template, validate, preview, background, update existing) | done: CSV, template, preview, row results, update existing; not yet Excel, background, child tables | ✅ (v1) | L10 |
-| Data Export, bulk update, bulk rename | export to CSV and Excel (ADR-064), import from CSV and Excel (ADR-027, ADR-064) and bulk edit (ADR-016) done; not bulk rename | 🟡 | L10 |
+| Data Export, bulk update, bulk rename | export to CSV and Excel (ADR-064), import from CSV and Excel (ADR-027, ADR-064), bulk edit (ADR-016) and bulk rename (ADR-065) done | ✅ | L10 |
 | Backups (download, scheduled, restore) | done: download, daily folder, additive restore (ADR-044); not encryption, file contents, cloud storage | ✅ (v1) | L12 |
 | Error Log, Scheduled Job Log, Recorder (query profiler), System Console | done: Error Log (requests and scheduler); not yet job history, profiler, console | 🟡 | L12 |
 | System Settings (time zone, formats, session expiry, security) | done: time zone, date format, first weekday, default language; session and password policy stay in configuration | 🟡 | L10 |

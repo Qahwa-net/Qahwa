@@ -102,7 +102,7 @@ For versions `data` is `{ changed: [[field, before, after], ...], tables: { fiel
 | `DELETE /list-settings/{doctype}/settings` | Back to the usual view |
 | `POST /list-settings/{doctype}/filters` `{ name, filters: [[field, op, value], ...], isPublic }` | Save (or replace by name) a filter; `isPublic` needs write access to the DocType |
 | `DELETE /list-settings/{doctype}/filters/{id}` | Delete mine (or a shared one as Administrator) |
-| `POST /resource/{doctype}/bulk` `{ action: "update"\|"delete", names: [...], field, value }` | Up to 100 documents; returns `{ data: [{ name, ok, error }], succeeded, failed }`. 401/403 when not signed in / no write or delete right |
+| `POST /resource/{doctype}/bulk` `{ action: "update"\|"delete"|"rename", names: [...], field, value, renames: [{ from, to }], merge }` | Up to 100 documents; returns `{ data: [{ name, ok, error }], succeeded, failed }`. 401/403 when not signed in / no write or delete right |
 
 ## Workflows ([ADR-018](../../adr/018-workflow-engine.md))
 

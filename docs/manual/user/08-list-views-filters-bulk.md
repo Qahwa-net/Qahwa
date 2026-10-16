@@ -40,6 +40,7 @@ If the DocType has a **status field** (set in the DocType Designer by choosing t
 Tick the boxes at the left of the rows (the top box selects the whole page). A bar appears:
 
 - **Set a field…**: choose a field, type or pick the new value, **Apply**, confirm. Every selected document is changed.
+- **Rename…** (only for documents that may be renamed): type the text to find and the text to put in its place, check the example shown, then **Rename**. Links to the documents are updated. Documents whose name does not contain the text are left alone; a name that is already taken is reported for that document.
 - **Delete**: removes every selected document after you confirm.
 - **Clear selection**.
 

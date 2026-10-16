@@ -9,7 +9,7 @@ namespace Qahwa.Api;
 public sealed record SavedFilterRequest(string? Name, JsonElement Filters, bool IsPublic = false);
 
 /// <param name="Action">"update" (set <paramref name="Field"/> to <paramref name="Value"/>) or "delete".</param>
-public sealed record BulkRequest(string? Action, List<string>? Names, string? Field = null, JsonElement? Value = null);
+public sealed record BulkRequest(string? Action, List<string>? Names, string? Field = null, JsonElement? Value = null, List<RenamePair>? Renames = null, bool Merge = false);
 
 /// <summary>List power: per-person list settings, saved filters, and bulk actions on chosen documents.</summary>
 public static class ListEndpoints
@@ -50,7 +50,8 @@ public static class ListEndpoints
             {
                 "update" => await service.UpdateAsync(doctype, body.Names, body.Field, body.Value is { } v ? v : null, user, ct),
                 "delete" => await service.DeleteAsync(doctype, body.Names, user, ct),
-                _ => throw new DocumentValidationException([new FieldError("action", "Use \"update\" or \"delete\".")]),
+                "rename" => await service.RenameAsync(doctype, body.Renames, body.Merge, user, ct),
+                _ => throw new DocumentValidationException([new FieldError("action", "Use \"update\", \"rename\" or \"delete\".")]),
             };
             return Results.Ok(new { data = results, succeeded = results.Count(r => r.Ok), failed = results.Count(r => !r.Ok) });
         });

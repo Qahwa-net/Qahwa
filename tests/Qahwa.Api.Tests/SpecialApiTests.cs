@@ -137,6 +137,39 @@ public sealed class SpecialApiTests : IAsyncDisposable
         Assert.Equal(HttpStatusCode.Forbidden, (await manager.GetAsync("/api/naming/series")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await sysmgr.PutAsJsonAsync("/api/naming/series", new { prefix = "NOPE-", current = 1 })).StatusCode);
     }
+
+    [Fact]
+    public async Task Bulk_rename_over_the_api_reports_each_document()
+    {
+        await CreateDocTypeAsync(new
+        {
+            name = "Binder",
+            allowRename = true,
+            autoname = "field:title",
+            fields = new object[] { new { name = "title", type = "Data", required = true } },
+            permissions = new[] { new { role = "Sales Manager", read = true, write = true, create = true } },
+        });
+        var manager = _factory.ClientFor("m@example.com", "Sales Manager");
+        foreach (var title in new[] { "OLD-1", "OLD-2", "KEEP" })
+            await manager.PostAsJsonAsync("/api/resource/Binder", new { title });
+
+        var response = await manager.PostAsJsonAsync("/api/resource/Binder/bulk", new
+        {
+            action = "rename",
+            names = new[] { "OLD-1", "OLD-2", "KEEP" },
+            renames = new[] { new { from = "OLD-1", to = "NEW-1" }, new { from = "OLD-2", to = "KEEP" }, new { from = "GHOST", to = "X" } },
+        });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await JsonOf(response);
+        Assert.Equal(1, body.GetProperty("succeeded").GetInt32());
+        Assert.Equal(2, body.GetProperty("failed").GetInt32());
+        Assert.Equal(HttpStatusCode.OK, (await manager.GetAsync("/api/resource/Binder/NEW-1")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await manager.GetAsync("/api/resource/Binder/OLD-2")).StatusCode);
+
+        Assert.Equal(HttpStatusCode.BadRequest, (await manager.PostAsJsonAsync("/api/resource/Binder/bulk", new { action = "rename" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateClient().PostAsJsonAsync("/api/resource/Binder/bulk", new { action = "rename", renames = new[] { new { from = "NEW-1", to = "Z" } } })).StatusCode);
+    }
 }
 
 public sealed class LinkApiTests : IAsyncDisposable
