@@ -130,6 +130,7 @@ public static class QahwaEndpoints
         app.MapQahwaBackup();
         app.MapQahwaDeletedDocuments();
         app.MapQahwaRealtime();
+        app.MapQahwaAutoEmailReports();
         app.MapQahwaReports();
         app.MapQahwaPdf();
         app.MapQahwaSso();

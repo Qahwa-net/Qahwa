@@ -36,6 +36,42 @@ public sealed class ReportApiTests : IAsyncDisposable
     };
 
     [Fact]
+    public async Task A_report_can_be_emailed_on_a_schedule_by_a_system_manager()
+    {
+        await SetUpAsync();
+        foreach (var (email, role) in new[] { ("s@example.com", "Sales Manager"), ("m@example.com", "System Manager") })
+        {
+            await Admin.PostAsJsonAsync("/api/resource/Role", new { role_name = role });
+            Assert.Equal(HttpStatusCode.Created, (await Admin.PostAsJsonAsync("/api/resource/User", new { email, full_name = email, enabled = true })).StatusCode);
+            Assert.Equal(HttpStatusCode.Created, (await Admin.PostAsJsonAsync("/api/resource/Has Role", new { user = email, role })).StatusCode);
+        }
+
+        var sales = _factory.ClientFor("s@example.com", "Sales Manager");
+        var boss = _factory.ClientFor("m@example.com", "System Manager");
+        var report = (await (await sales.PostAsJsonAsync("/api/reports", Summary())).Content.ReadFromJsonAsync<JsonElement>()).GetProperty("data").GetProperty("id").GetString();
+
+        Assert.Equal(HttpStatusCode.Forbidden, (await sales.GetAsync("/api/auto-email-reports")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateClient().GetAsync("/api/auto-email-reports")).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await boss.PostAsJsonAsync("/api/auto-email-reports", new { report, recipients = "not an address", frequency = "Daily", sendHour = 8, runAs = "s@example.com" })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await boss.PostAsJsonAsync("/api/auto-email-reports", new { report = "NOPE", recipients = "a@example.com", frequency = "Daily", sendHour = 8, runAs = "s@example.com" })).StatusCode);
+
+        var created = await boss.PostAsJsonAsync("/api/auto-email-reports", new { report, recipients = "a@example.com", frequency = "Weekly", sendHour = 9, runAs = "s@example.com" });
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        var id = (await created.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("data").GetProperty("id").GetString();
+        var list = (await (await boss.GetAsync("/api/auto-email-reports")).Content.ReadFromJsonAsync<JsonElement>()).GetProperty("data");
+        Assert.Equal("Weekly", list[0].GetProperty("frequency").GetString());
+
+        var sent = await boss.PostAsync($"/api/auto-email-reports/{id}/send", null);
+        Assert.Equal(1, (await sent.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("data").GetProperty("queued").GetInt32());
+        var queued = (await (await Admin.GetAsync("/api/resource/Email Queue")).Content.ReadFromJsonAsync<JsonElement>()).GetProperty("data");
+        Assert.Equal("a@example.com", queued[0].GetProperty("recipient").GetString());
+
+        Assert.Equal(HttpStatusCode.OK, (await boss.PutAsJsonAsync($"/api/auto-email-reports/{id}", new { status = "Paused" })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await boss.DeleteAsync($"/api/auto-email-reports/{id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await boss.DeleteAsync($"/api/auto-email-reports/{id}")).StatusCode);
+    }
+
+    [Fact]
     public async Task A_report_is_saved_run_and_downloaded()
     {
         await SetUpAsync();

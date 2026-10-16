@@ -47,6 +47,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **Attachment and image fields**: a form field that names a file attached to the same document, validated on save, with picture preview ([ADR-048](docs/adr/048-attach-and-image-fields.md))
 - **Gallery, map and timeline views**: pictures as tiles, places on a plain grid (no outside map service), documents as bars between two dates ([ADR-049](docs/adr/049-gallery-map-and-timeline-views.md))
 - **Light, dark and automatic themes and a brand**: per-person theme, organisation name, logo, colours and default theme, all checked as plain data, readable colours guaranteed ([ADR-056](docs/adr/056-brand-and-theme.md))
+- **Emailed reports**: a saved report is emailed on a schedule, run with the permissions of a chosen user, set up by System Managers only ([ADR-071](docs/adr/071-auto-email-reports.md))
 - **Live updates**: the bell and open forms update by themselves through a permission-checked event stream (Server-Sent Events) that carries only where something changed ([ADR-070](docs/adr/070-live-updates-server-sent-events.md))
 - **Text Editor, Small Text and Autocomplete fields**: formatted text stored as HTML rebuilt from an allow-list (no script, style or event attribute can survive) ([ADR-069](docs/adr/069-text-editor-small-text-autocomplete.md))
 - **Tags and likes**: label documents, like them, and filter lists by tag or "liked by me" ([ADR-068](docs/adr/068-tags-and-likes.md))

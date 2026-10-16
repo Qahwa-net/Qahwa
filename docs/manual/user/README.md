@@ -58,6 +58,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 54. [Tags and likes](54-tags-and-likes.md)
 55. [Text fields](55-text-fields.md)
 56. [Live updates](56-live-updates.md)
+57. [Emailed reports](57-emailed-reports.md)
 
 **Words used**
 

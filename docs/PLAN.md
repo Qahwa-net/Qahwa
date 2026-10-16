@@ -606,7 +606,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Scheduled Job Types (cron, hourly, daily, weekly, monthly), Scheduler UI and logs | background scheduler loop exists (auto repeat); job types, UI and logs not yet | 🔽 | L8 |
 | Background jobs and queues (short, default, long), job UI | | ⬜ | L8 |
 | Webhooks (outgoing, conditions, signed) | done: events, conditions, signing, retries, SSRF-safe; not yet custom headers, test button | ✅ (v1) | L10 |
-| Auto Email Report | | ⬜ | L9 |
+| Auto Email Report | done: scheduled plain-text emails of a saved report, run as a chosen user (ADR-071) | ✅ | L9 |
 | Document Naming Rule | | ⬜ | L6 |
 | Energy Points and gamification | | 🔽 | later |
 

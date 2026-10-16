@@ -1,4 +1,5 @@
 import type { ScriptSource } from '../lib/clientScripts.ts'
+import type { EmailedReport, EmailedReportRequest } from '../lib/emailedReports.ts'
 import type { SearchResponse } from '../lib/search.ts'
 import type { ImportSource } from '../lib/importFile.ts'
 import type { SsoProviderInfo } from '../lib/sso.ts'
@@ -475,6 +476,16 @@ export const api = {
     save: async (name: string, rules: NotificationRuleSet, modified: string | null | undefined) =>
       (await request<{ data: NotificationRuleView }>('PUT', `/api/notification-rules/doctypes/${encodeURIComponent(name)}`, { rules, modified })).data,
     remove: async (name: string) => { await request<unknown>('DELETE', `/api/notification-rules/doctypes/${encodeURIComponent(name)}`) },
+  },
+
+  emailedReports: {
+    list: async () => (await request<{ data: EmailedReport[] }>('GET', '/api/auto-email-reports')).data,
+    create: async (body: EmailedReportRequest) => (await request<{ data: EmailedReport }>('POST', '/api/auto-email-reports', body)).data,
+    update: async (id: string, body: EmailedReportRequest) =>
+      (await request<{ data: EmailedReport }>('PUT', `/api/auto-email-reports/${encodeURIComponent(id)}`, body)).data,
+    send: async (id: string) =>
+      (await request<{ data: { queued: number } }>('POST', `/api/auto-email-reports/${encodeURIComponent(id)}/send`)).data.queued,
+    remove: async (id: string) => { await request<unknown>('DELETE', `/api/auto-email-reports/${encodeURIComponent(id)}`) },
   },
 
   autoRepeat: {

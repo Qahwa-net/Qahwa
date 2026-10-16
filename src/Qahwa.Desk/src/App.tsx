@@ -13,6 +13,7 @@ import { PrintFormatsPage } from './pages/PrintFormats.tsx'
 import { DashboardsPage } from './pages/Dashboards.tsx'
 import { NotificationRulesPage } from './pages/NotificationRules.tsx'
 import { AutoRepeatPage } from './pages/AutoRepeatPage.tsx'
+import { EmailedReportsPage } from './pages/EmailedReports.tsx'
 import { AssignmentRulesPage } from './pages/AssignmentRules.tsx'
 import { WorkflowBuilderPage } from './pages/WorkflowBuilder.tsx'
 import { DesignerEditor } from './pages/DesignerEditor.tsx'
@@ -77,6 +78,7 @@ export function App() {
           <Route path="notification-rules" element={<NotificationRulesPage />} />
           <Route path="notification-rules/:name" element={<NotificationRulesPage />} />
           <Route path="auto-repeat" element={<AutoRepeatPage />} />
+          <Route path="emailed-reports" element={<EmailedReportsPage />} />
           <Route path="assignment-rules" element={<AssignmentRulesPage />} />
           <Route path="assignment-rules/:name" element={<AssignmentRulesPage />} />
           <Route path="workflows" element={<WorkflowBuilderPage />} />

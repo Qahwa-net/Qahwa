@@ -92,6 +92,7 @@ export function Shell() {
               <li><NavLink to="/permissions">{t('Role Permissions')}</NavLink></li>
               <li><NavLink to="/workflows">{t('Workflow Builder')}</NavLink></li>
               <li><NavLink to="/webhooks">{t('Webhooks')}</NavLink></li>
+              <li><NavLink to="/emailed-reports">{t('Emailed Reports')}</NavLink></li>
               <li><NavLink to="/bundle">{t('Export & Import')}</NavLink></li>
               {user?.roles.includes('Administrator') && <li><NavLink to="/backup">{t('Backup & Restore')}</NavLink></li>}
               <li><NavLink to="/workspaces">{t('Workspaces')}</NavLink></li>

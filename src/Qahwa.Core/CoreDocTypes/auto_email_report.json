@@ -1,0 +1,22 @@
+{
+  "name": "Auto Email Report",
+  "module": "Core",
+  "trackChanges": false,
+  "fields": [
+    { "name": "report", "type": "Data", "label": "Report", "required": true, "inListView": true },
+    { "name": "recipients", "type": "Text", "label": "Recipients", "required": true },
+    { "name": "subject", "type": "Data", "label": "Subject" },
+    { "name": "frequency", "type": "Select", "options": "Daily\nWeekly\nMonthly", "default": "Daily", "label": "Frequency", "inListView": true },
+    { "name": "send_hour", "type": "Int", "label": "Hour (UTC)" },
+    { "name": "max_rows", "type": "Int", "label": "Rows to send" },
+    { "name": "run_as", "type": "Data", "label": "Run as", "required": true },
+    { "name": "status", "type": "Select", "options": "Active\nPaused", "default": "Active", "label": "Status", "indexed": true, "inListView": true },
+    { "name": "next_send", "type": "Datetime", "label": "Next send", "indexed": true, "inListView": true },
+    { "name": "last_sent", "type": "Datetime", "label": "Last sent" },
+    { "name": "sent_count", "type": "Int", "label": "Sent" },
+    { "name": "last_error", "type": "Text", "label": "Last error" }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true }
+  ]
+}

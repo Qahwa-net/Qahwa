@@ -120,6 +120,7 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<CollaborationHooks>();
         services.TryAddSingleton<AssignmentService>();
         services.TryAddSingleton<AutoRepeatService>();
+        services.TryAddSingleton<AutoEmailReportService>();
         services.TryAddSingleton<ListSettingsService>();
         services.TryAddSingleton<BulkService>();
         services.TryAddSingleton<ActivityService>();
