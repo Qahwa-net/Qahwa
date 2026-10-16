@@ -125,6 +125,9 @@ public static class ApiServiceCollectionExtensions
         services.AddRateLimiter(limiter =>
         {
             limiter.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+            limiter.AddPolicy(WebFormEndpoints.RateLimit, http => RateLimitPartition.GetFixedWindowLimiter(
+                http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = 60, Window = TimeSpan.FromMinutes(1), QueueLimit = 0 }));
             limiter.AddPolicy(AuthClaims.LoginRateLimit, http =>
             {
                 var permits = http.RequestServices.GetRequiredService<IOptions<AuthOptions>>().Value.LoginPermitsPerMinute;

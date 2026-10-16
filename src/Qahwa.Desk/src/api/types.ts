@@ -799,3 +799,19 @@ export interface TranslationCatalog {
   rtl: boolean
   messages: Record<string, string>
 }
+
+export interface PublicFormField {
+  name: string
+  label: string
+  type: string
+  required: boolean
+  options: string[]
+  description: string | null
+}
+
+export interface PublicForm {
+  route: string
+  title: string
+  intro: string | null
+  fields: PublicFormField[]
+}

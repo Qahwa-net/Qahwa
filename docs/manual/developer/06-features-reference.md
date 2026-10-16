@@ -141,3 +141,7 @@ Desk only. `pages/BoardView.tsx` and `pages/CalendarView.tsx`, routes `app/:doct
 ## Translations and RTL ([ADR-033](../../adr/033-translations-and-rtl.md))
 
 Core DocType `CoreDocTypes/translation.json`; `Translations.cs` (`TranslationService.CatalogAsync`, `LanguagesAsync`, `IsLanguage`, `IsRightToLeft`); `TranslationEndpoints.cs`. Desk: `i18n.tsx` (`I18nProvider`, `useI18n`, `useT`), `lib/i18n.ts` (`BUILT_IN` words, `mergeMessages`, `translate`), `shell/LanguageSwitcher.tsx`. To translate a new place, use `const t = useT()` and `t('Text')`; add built-in words to `BUILT_IN`. Write CSS with logical properties (`margin-inline-start`, `inset-inline-end`, `text-align: start`), never left/right. Tests: `TranslationTests`, `TranslationApiTests`, `lib/i18n.test.ts`.
+
+## Web forms ([ADR-034](../../adr/034-web-forms.md))
+
+Core DocType `CoreDocTypes/web_form.json`; `WebForms.cs`: `WebFormService` (`GetAsync`, `SubmitAsync`; re-validates the form on every call and fails closed), `HitCounter` (in-memory sliding window), `RateLimitedException`. `WebFormEndpoints.cs`: `GET`/`POST /api/public/forms/{route}` (anonymous, never reads the cookie or API key, 32 KB JSON, policy `qahwa-public-form` in `ApiInfrastructure`). Desk: `pages/PublicFormPage.tsx` at `/forms/:route` (outside `RequireAuth`), `lib/webform.ts`. To allow another field type edit `WebFormService.Allowed`; think about what a stranger could do with it first. Tests: `WebFormTests`, `WebFormApiTests`, `lib/webform.test.ts`.

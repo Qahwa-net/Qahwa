@@ -22,6 +22,7 @@ import { NamingSeriesPage } from './pages/NamingSeriesPage.tsx'
 import { BoardView } from './pages/BoardView.tsx'
 import { CalendarView } from './pages/CalendarView.tsx'
 import { TreeView } from './pages/TreeView.tsx'
+import { PublicFormPage } from './pages/PublicFormPage.tsx'
 import { LoginPage } from './pages/LoginPage.tsx'
 
 function RequireAuth() {
@@ -41,6 +42,7 @@ export function App() {
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/forms/:route" element={<PublicFormPage />} />
         <Route element={<RequireAuth />}>
           <Route index element={<HomePage />} />
           <Route path="account" element={<AccountPage />} />
