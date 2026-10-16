@@ -164,6 +164,13 @@ public static class ApplicationBuilderExtensions
             {
                 var logger = context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("Qahwa.Api");
                 var (status, body) = Map(ex, logger);
+                if (status == 500)
+                {
+                    var user = context.User.Identity?.IsAuthenticated == true ? context.User.Identity.Name : null;
+                    if (context.RequestServices.GetService<ErrorLogService>() is { } errorLog)
+                        await errorLog.RecordAsync("Request", context.Request.Method, context.Request.Path.Value, user, ex);
+                }
+
                 context.Response.Clear();
                 context.Response.StatusCode = status;
                 await context.Response.WriteAsJsonAsync(body);

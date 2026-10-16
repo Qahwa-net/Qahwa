@@ -149,3 +149,7 @@ Core DocType `CoreDocTypes/web_form.json`; `WebForms.cs`: `WebFormService` (`Get
 ## Document actions ([ADR-035](../../adr/035-document-actions.md))
 
 Core DocType `CoreDocTypes/document_action.json`; `DocumentActions.cs`: `DocumentActionEngine` (`AfterSaveAsync`, `Check`, `Invalidate`). `DocumentService` calls it through `Lazy<DocumentActionEngine>` after the other hooks and invalidates its cache when a Document Action is saved or deleted. Runs as the acting user; an ambient `AsyncLocal` flag stops actions starting actions. Status (`last_error`, `run_count`) is written through the repository because those fields are read-only for people. Active rows are filtered with a real `true` (Check columns are booleans). To add an action type, add a case in `RunAsync` and `Check`, and an option to the `action` Select. Tests: `DocumentActionTests`, `DocumentActionApiTests`, `PostgresDocumentActionTests`.
+
+## Error log ([ADR-036](../../adr/036-error-log.md))
+
+Core DocType `CoreDocTypes/error_log.json`; `ErrorLog.cs`: `ErrorLogService.RecordAsync(source, method, path, user, exception)` (never throws, rate limited with `HitCounter`, path stripped of query). `UseQahwaErrors` calls it for every 500; `SchedulerService` calls it with source "Scheduler". Call it from your own background code the same way. Tests: `ErrorLogApiTests` (a TestServer host with a throwing endpoint).

@@ -1,0 +1,18 @@
+{
+  "name": "Error Log",
+  "module": "Core",
+  "autoname": "ERR-.######",
+  "trackChanges": false,
+  "fields": [
+    { "name": "source", "type": "Data", "label": "Where", "readOnly": true, "inListView": true, "indexed": true },
+    { "name": "method", "type": "Data", "label": "Method", "readOnly": true },
+    { "name": "path", "type": "Data", "label": "Address (without the query)", "readOnly": true, "inListView": true },
+    { "name": "user", "type": "Data", "label": "Signed-in user", "readOnly": true },
+    { "name": "error_type", "type": "Data", "label": "Kind of error", "readOnly": true, "inListView": true },
+    { "name": "message", "type": "Text", "label": "Message", "readOnly": true },
+    { "name": "trace", "type": "LongText", "label": "Stack trace", "readOnly": true }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "delete": true }
+  ]
+}

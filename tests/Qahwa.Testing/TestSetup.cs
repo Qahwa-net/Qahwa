@@ -116,6 +116,7 @@ public sealed class TestEngine
         Dashboards = new DashboardService(Registry, Repository, Documents, Permissions, Notifications, History);
         DataImport = new DataImportService(Registry, Documents, Permissions);
         DocumentActions = new DocumentActionEngine(Registry, Repository, Documents, Clock);
+        ErrorLog = new ErrorLogService(Documents, new HitCounter(Clock));
         Translations = new TranslationService(Registry, Repository);
         WebForms = new WebFormService(Registry, Repository, Documents, new HitCounter(Clock));
         Workspaces = new WorkspaceService(Registry, Repository, Dashboards, Permissions, History);
@@ -169,6 +170,7 @@ public sealed class TestEngine
     public PrintService Print { get; }
     public WorkspaceService Workspaces { get; }
     public TranslationService Translations { get; }
+    public ErrorLogService ErrorLog { get; }
     public DocumentActionEngine DocumentActions { get; }
     public WebFormService WebForms { get; }
     public DataImportService DataImport { get; }

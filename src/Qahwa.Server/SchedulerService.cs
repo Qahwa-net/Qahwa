@@ -6,7 +6,7 @@ using Qahwa.Core;
 /// code that is safe to run on several servers at once, so no leader election is needed. Turn it off with
 /// <c>Qahwa:Scheduler:Enabled = false</c>; change the pace with <c>Qahwa:Scheduler:IntervalSeconds</c> (10 to 3600, default 300).
 /// </summary>
-public sealed class SchedulerService(AutoRepeatService autoRepeat, NotificationRuleEngine notificationRules, EmailService email, WebhookService webhooks, IConfiguration configuration, ILogger<SchedulerService> logger) : BackgroundService
+public sealed class SchedulerService(AutoRepeatService autoRepeat, NotificationRuleEngine notificationRules, EmailService email, WebhookService webhooks, ErrorLogService errorLog, IConfiguration configuration, ILogger<SchedulerService> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -30,6 +30,7 @@ public sealed class SchedulerService(AutoRepeatService autoRepeat, NotificationR
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 logger.LogError(ex, "The scheduler could not run auto repeat.");
+                await errorLog.RecordAsync("Scheduler", null, "The scheduler could not run auto repeat.", null, ex);
             }
 
             try
@@ -41,6 +42,7 @@ public sealed class SchedulerService(AutoRepeatService autoRepeat, NotificationR
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 logger.LogError(ex, "The scheduler could not send queued email.");
+                await errorLog.RecordAsync("Scheduler", null, "The scheduler could not send queued email.", null, ex);
             }
 
             try
@@ -52,6 +54,7 @@ public sealed class SchedulerService(AutoRepeatService autoRepeat, NotificationR
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 logger.LogError(ex, "The scheduler could not deliver webhooks.");
+                await errorLog.RecordAsync("Scheduler", null, "The scheduler could not deliver webhooks.", null, ex);
             }
 
             // Rules counted in days from a date: once an hour is plenty, and each person is told once per day whatever happens.
@@ -67,6 +70,7 @@ public sealed class SchedulerService(AutoRepeatService autoRepeat, NotificationR
                 catch (Exception ex) when (ex is not OperationCanceledException)
                 {
                     logger.LogError(ex, "The scheduler could not run notification rules.");
+                await errorLog.RecordAsync("Scheduler", null, "The scheduler could not run notification rules.", null, ex);
                 }
             }
         }

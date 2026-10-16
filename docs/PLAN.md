@@ -693,7 +693,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | **Data Import** (CSV/Excel template, validate, preview, background, update existing) | done: CSV, template, preview, row results, update existing; not yet Excel, background, child tables | ✅ (v1) | L10 |
 | Data Export, bulk update, bulk rename | | ⬜ | L10 |
 | Backups (download, scheduled, restore) | | ⬜ | L12 |
-| Error Log, Scheduled Job Log, Recorder (query profiler), System Console | | ⬜ | L12 |
+| Error Log, Scheduled Job Log, Recorder (query profiler), System Console | done: Error Log (requests and scheduler); not yet job history, profiler, console | 🟡 | L12 |
 | System Settings (time zone, formats, session expiry, security) | | ⬜ | L10 |
 | Fixtures (export UI-made customisations as files) | done: **bundle** export/import of DocTypes, customizations, workflows and rules with preview; not yet print formats/dashboards, patches, CLI | ✅ (v1) | L12 |
 
