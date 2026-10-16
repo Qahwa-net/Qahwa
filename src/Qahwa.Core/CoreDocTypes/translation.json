@@ -1,0 +1,14 @@
+{
+  "name": "Translation",
+  "module": "Core",
+  "autoname": "TR-.#####",
+  "trackChanges": false,
+  "fields": [
+    { "name": "language", "type": "Data", "label": "Language code (ar, fr, de ...)", "required": true, "inListView": true },
+    { "name": "source_text", "type": "Text", "label": "Source text (in English)", "required": true, "inListView": true },
+    { "name": "translated_text", "type": "Text", "label": "Translation", "required": true, "inListView": true }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "write": true, "create": true, "delete": true }
+  ]
+}

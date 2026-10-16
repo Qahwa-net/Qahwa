@@ -5,6 +5,7 @@ import { QueryCache, QueryClient, QueryClientProvider } from '@tanstack/react-qu
 import './styles.css'
 import { ApiError } from './api/client.ts'
 import { App } from './App.tsx'
+import { I18nProvider } from './i18n.tsx'
 import { ToastProvider } from './controls/Toast.tsx'
 
 const queryClient: QueryClient = new QueryClient({
@@ -26,11 +27,13 @@ const queryClient: QueryClient = new QueryClient({
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <ToastProvider>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
-      </ToastProvider>
+      <I18nProvider>
+        <ToastProvider>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </ToastProvider>
+      </I18nProvider>
     </QueryClientProvider>
   </StrictMode>,
 )

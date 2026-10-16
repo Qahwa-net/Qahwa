@@ -106,6 +106,7 @@ public static class QahwaEndpoints
         app.MapQahwaWebhooks();
         app.MapQahwaFiles();
         app.MapQahwaBundle();
+        app.MapQahwaTranslations();
         return app;
     }
 

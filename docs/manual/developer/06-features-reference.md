@@ -137,3 +137,7 @@ Desk only. `pages/BoardView.tsx` and `pages/CalendarView.tsx`, routes `app/:doct
 ## App bundles ([ADR-032](../../adr/032-app-bundles.md))
 
 `Bundle.cs`: `BundleKind`, `AppBundle`, `BundleService` (`ExportAsync`, `ImportAsync(bundle, dryRun, user)`, static `ToJson` / `FromJson`). Import calls `DocTypeDesigner`, `CustomizationManager`, `WorkflowManager`, `AssignmentRuleManager` and `NotificationRuleManager` so all their validation and permission checks apply; each item succeeds or fails alone. To carry a new kind of definition: add a `BundleKind`, an export block and a case in `ApplyAsync`. `BundleEndpoints.cs`: `GET /api/bundle/export?name=&kinds=`, `POST /api/bundle/import?dryRun=` (JSON body, 5 MB). Desk: `pages/Bundle.tsx`, `lib/bundle.ts`. Tests: `BundleTests`, `BundleApiTests`, `PostgresBundleTests`.
+
+## Translations and RTL ([ADR-033](../../adr/033-translations-and-rtl.md))
+
+Core DocType `CoreDocTypes/translation.json`; `Translations.cs` (`TranslationService.CatalogAsync`, `LanguagesAsync`, `IsLanguage`, `IsRightToLeft`); `TranslationEndpoints.cs`. Desk: `i18n.tsx` (`I18nProvider`, `useI18n`, `useT`), `lib/i18n.ts` (`BUILT_IN` words, `mergeMessages`, `translate`), `shell/LanguageSwitcher.tsx`. To translate a new place, use `const t = useT()` and `t('Text')`; add built-in words to `BUILT_IN`. Write CSS with logical properties (`margin-inline-start`, `inset-inline-end`, `text-align: start`), never left/right. Tests: `TranslationTests`, `TranslationApiTests`, `lib/i18n.test.ts`.

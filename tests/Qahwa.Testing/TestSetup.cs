@@ -115,6 +115,7 @@ public sealed class TestEngine
         Print = new PrintService(Registry, Repository, Documents, Permissions, History);
         Dashboards = new DashboardService(Registry, Repository, Documents, Permissions, Notifications, History);
         DataImport = new DataImportService(Registry, Documents, Permissions);
+        Translations = new TranslationService(Registry, Repository);
         Workspaces = new WorkspaceService(Registry, Repository, Dashboards, Permissions, History);
         EmailSender = new FakeEmailSender();
         Email = new EmailService(Registry, Repository, Documents, Permissions, History, EmailSender);
@@ -165,6 +166,7 @@ public sealed class TestEngine
     public DashboardService Dashboards { get; }
     public PrintService Print { get; }
     public WorkspaceService Workspaces { get; }
+    public TranslationService Translations { get; }
     public DataImportService DataImport { get; }
     public ApiKeyService ApiKeys { get; }
     public WebhookCatalog WebhookCatalog { get; }

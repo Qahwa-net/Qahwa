@@ -4,6 +4,8 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { api } from '../api/client.ts'
 import type { MetaSummary } from '../api/types.ts'
 import { useAuth } from '../auth.tsx'
+import { useI18n } from '../i18n.tsx'
+import { LanguageSwitcher } from './LanguageSwitcher.tsx'
 import { NotificationBell } from './NotificationBell.tsx'
 
 function groupByModule(metas: MetaSummary[]): [string, MetaSummary[]][] {
@@ -17,6 +19,7 @@ function groupByModule(metas: MetaSummary[]): [string, MetaSummary[]][] {
 
 export function Shell() {
   const { user, logout } = useAuth()
+  const { t } = useI18n()
   const [open, setOpen] = useState(false)
   const location = useLocation()
   const metas = useQuery({ queryKey: ['metas'], queryFn: api.metas })
@@ -38,9 +41,10 @@ export function Shell() {
           onClick={() => setOpen(!open)}>☰</button>
         <Link to="/" className="brand">Qahwa</Link>
         <span className="spacer" />
+        <LanguageSwitcher />
         <NotificationBell />
         <Link to="/account" className="user-chip" title={user?.user}>{user?.full_name}</Link>
-        <button className="btn" onClick={() => void logout()}>Sign out</button>
+        <button className="btn" onClick={() => void logout()}>{t('Sign out')}</button>
       </header>
 
       <nav className={`sidebar${open ? ' open' : ''}`} aria-label="DocTypes">
@@ -48,37 +52,37 @@ export function Shell() {
         {metas.isError && <p className="muted pad">Could not load DocTypes.</p>}
         {metas.data?.length === 0 && <p className="muted pad">You do not have access to any DocType yet.</p>}
         <section>
-          <h2>My work</h2>
+          <h2>{t('My work')}</h2>
           <ul>
-            <li><NavLink to="/dashboards">Dashboards</NavLink></li>
-            <li><NavLink to="/auto-repeat">Auto Repeat</NavLink></li>
+            <li><NavLink to="/dashboards">{t('Dashboards')}</NavLink></li>
+            <li><NavLink to="/auto-repeat">{t('Auto Repeat')}</NavLink></li>
           </ul>
         </section>
         {canDesign && (
           <section>
-            <h2>Tools</h2>
+            <h2>{t('Tools')}</h2>
             <ul>
-              <li><NavLink to="/designer">DocType Designer</NavLink></li>
-              <li><NavLink to="/customize">Customize Form</NavLink></li>
-              <li><NavLink to="/permissions">Role Permissions</NavLink></li>
-              <li><NavLink to="/workflows">Workflow Builder</NavLink></li>
-              <li><NavLink to="/webhooks">Webhooks</NavLink></li>
-              <li><NavLink to="/bundle">Export &amp; Import</NavLink></li>
-              <li><NavLink to="/workspaces">Workspaces</NavLink></li>
-              <li><NavLink to="/print-formats">Print Formats</NavLink></li>
-              <li><NavLink to="/notification-rules">Notification Rules</NavLink></li>
-              <li><NavLink to="/assignment-rules">Assignment Rules</NavLink></li>
-              <li><NavLink to="/naming">Naming Series</NavLink></li>
+              <li><NavLink to="/designer">{t('DocType Designer')}</NavLink></li>
+              <li><NavLink to="/customize">{t('Customize Form')}</NavLink></li>
+              <li><NavLink to="/permissions">{t('Role Permissions')}</NavLink></li>
+              <li><NavLink to="/workflows">{t('Workflow Builder')}</NavLink></li>
+              <li><NavLink to="/webhooks">{t('Webhooks')}</NavLink></li>
+              <li><NavLink to="/bundle">{t('Export & Import')}</NavLink></li>
+              <li><NavLink to="/workspaces">{t('Workspaces')}</NavLink></li>
+              <li><NavLink to="/print-formats">{t('Print Formats')}</NavLink></li>
+              <li><NavLink to="/notification-rules">{t('Notification Rules')}</NavLink></li>
+              <li><NavLink to="/assignment-rules">{t('Assignment Rules')}</NavLink></li>
+              <li><NavLink to="/naming">{t('Naming Series')}</NavLink></li>
             </ul>
           </section>
         )}
         {groups.map(([module, items]) => (
           <section key={module}>
-            <h2>{module}</h2>
+            <h2>{t(module)}</h2>
             <ul>
               {items.map((meta) => (
                 <li key={meta.name}>
-                  <NavLink to={`/app/${encodeURIComponent(meta.name)}`}>{meta.name}</NavLink>
+                  <NavLink to={`/app/${encodeURIComponent(meta.name)}`}>{t(meta.name)}</NavLink>
                 </li>
               ))}
             </ul>

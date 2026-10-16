@@ -653,8 +653,8 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Workspaces (shortcuts, charts, number cards, onboarding) and **Workspace Builder** | done: headings, shortcut rows, embedded dashboards, role-based; not yet onboarding | ✅ (v1) | L9 |
 | Awesomebar (global search, create, commands), global search index | | ⬜ | L9 |
 | Notification bell, toasts, dialogs | | ⬜ | L8 |
-| Themes (light, dark, automatic), RTL layout | | 🟡 | L12 |
-| Translations (Translation DocType, language switch) | | ⬜ | L12 |
+| Themes (light, dark, automatic), RTL layout | RTL done (logical CSS, dir follows the language); themes not yet | 🟡 | L12 |
+| Translations (Translation DocType, language switch) | done: Translation DocType, catalog API, language switch, built-in Arabic chrome; not yet every message, plurals, per-user language | ✅ (v1) | L12 |
 | User settings: language, time zone, date/number/currency formats | | ⬜ | L7 |
 | Page Builder / Custom HTML Block | | 🔽 | L11 |
 

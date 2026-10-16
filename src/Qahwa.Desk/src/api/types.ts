@@ -793,3 +793,9 @@ export interface BundleReport {
   failed: number
   items: BundleItemResult[]
 }
+
+export interface TranslationCatalog {
+  language: string
+  rtl: boolean
+  messages: Record<string, string>
+}

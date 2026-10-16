@@ -30,6 +30,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **Attachments**: files on documents, checked against the document on every request, typed by content (only pictures inline), limited in size and number ([ADR-030](docs/adr/030-attachments.md))
 - **Board and calendar views**: any DocType with a choice or date field can be shown as a kanban board (drag cards to change the value, keyboard-friendly) or a month calendar ([ADR-031](docs/adr/031-board-and-calendar-views.md))
 - **Export & import bundles**: what was built in the Desk (DocTypes, customizations, workflows, rules) as one JSON file, previewed before it is applied and validated item by item like hand-typed input ([ADR-032](docs/adr/032-app-bundles.md))
+- **Translations and right-to-left**: translations are ordinary documents; pick a language in the top bar and the Desk mirrors for Arabic, Hebrew and the like ([ADR-033](docs/adr/033-translations-and-rtl.md))
 - **Webhooks**: signed JSON posts to other systems when documents are created, changed, submitted, cancelled or deleted, queued with retries and guarded against requests to internal networks ([ADR-029](docs/adr/029-webhooks.md))
 - **API keys**: Bearer tokens that act as a person within their permissions, shown once and stored hashed, with read-only and expiry options ([ADR-028](docs/adr/028-api-keys.md))
 - **Data import**: CSV files become documents through the normal insert or update rules, with a preview, row-by-row results and an update mode ([ADR-027](docs/adr/027-data-import.md))

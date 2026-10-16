@@ -1,6 +1,7 @@
 import { useId } from 'react'
 import { api } from '../api/client.ts'
 import type { DocField } from '../api/types.ts'
+import { useT } from '../i18n.tsx'
 import { isEditable, labelOf, selectOptions } from '../lib/fields.ts'
 import type { FieldState } from '../lib/logic.ts'
 import { LinkSelect } from './LinkSelect.tsx'
@@ -98,7 +99,8 @@ export function FieldControl(props: Props) {
   const { field, value, onChange, error, preview, state } = props
   const readOnly = Boolean(props.readOnly || field.readOnly || state?.readOnly)
   const id = useId()
-  const label = labelOf(field)
+  const t = useT()
+  const label = t(labelOf(field))
 
   if (field.hidden && !preview) return null
   if (state && !state.active && !preview) return null
