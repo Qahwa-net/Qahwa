@@ -117,6 +117,13 @@ foreach (var failure in await app.Services.GetRequiredService<AssignmentRuleMana
 foreach (var failure in await app.Services.GetRequiredService<WorkflowManager>().LoadAsync())
     app.Logger.LogError("{Failure}", failure);
 
+// One-time data patches that have not run on this site yet. A failing patch stops the server here: carrying on with half-migrated data is worse.
+{
+    var patched = await app.Services.GetRequiredService<PatchRunner>().RunPendingAsync();
+    foreach (var name in patched.Ran)
+        app.Logger.LogInformation("Patch {Patch} ran.", name);
+}
+
 // Permission rules customised in the Role Permission Manager.
 foreach (var failure in await app.Services.GetRequiredService<PermissionManager>().LoadAsync())
     app.Logger.LogError("{Failure}", failure);

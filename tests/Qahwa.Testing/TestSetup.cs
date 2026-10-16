@@ -117,6 +117,8 @@ public sealed class TestEngine
         DataImport = new DataImportService(Registry, Documents, Permissions);
         DocumentActions = new DocumentActionEngine(Registry, Repository, Documents, Clock);
         ErrorLog = new ErrorLogService(Documents, new HitCounter(Clock));
+        Patches = new List<IPatch>();
+        PatchRunner = new PatchRunner(Registry, Repository, Patches, new EmptyServices(), Clock);
         Translations = new TranslationService(Registry, Repository);
         WebForms = new WebFormService(Registry, Repository, Documents, new HitCounter(Clock));
         Workspaces = new WorkspaceService(Registry, Repository, Dashboards, Permissions, History);
@@ -175,6 +177,8 @@ public sealed class TestEngine
     public PrintService Print { get; }
     public WorkspaceService Workspaces { get; }
     public TranslationService Translations { get; }
+    public List<IPatch> Patches { get; }
+    public PatchRunner PatchRunner { get; }
     public ErrorLogService ErrorLog { get; }
     public DocumentActionEngine DocumentActions { get; }
     public WebFormService WebForms { get; }
@@ -214,4 +218,10 @@ public sealed class TestEngine
 
     public static Dictionary<string, object?> Values(params (string Key, object? Value)[] pairs) =>
         pairs.ToDictionary(p => p.Key, p => p.Value);
+}
+
+/// <summary>A service provider that has nothing in it, for code that is handed one but does not need it in a test.</summary>
+public sealed class EmptyServices : IServiceProvider
+{
+    public object? GetService(Type serviceType) => null;
 }

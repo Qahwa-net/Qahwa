@@ -131,6 +131,7 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<SessionService>();
         services.TryAddSingleton<PasswordResetService>();
         services.TryAddSingleton<SystemSettingsService>();
+        services.TryAddSingleton<PatchRunner>();
         services.TryAddSingleton(sp =>
         {
             try
@@ -158,4 +159,11 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<QahwaMigrator>();
         return services;
     }
+}
+
+public static class PatchRegistration
+{
+    /// <summary>Registers a one-time data patch (see <see cref="IPatch"/>); it runs at the next start-up on every site that has not run it.</summary>
+    public static IServiceCollection AddQahwaPatch<T>(this IServiceCollection services) where T : class, IPatch =>
+        services.AddSingleton<IPatch, T>();
 }

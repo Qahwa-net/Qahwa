@@ -1,0 +1,17 @@
+{
+  "name": "Patch Log",
+  "module": "Core",
+  "autoname": "field:patch",
+  "titleField": "patch",
+  "trackChanges": false,
+  "fields": [
+    { "name": "patch", "type": "Data", "label": "Patch", "required": true, "readOnly": true, "inListView": true },
+    { "name": "status", "type": "Select", "label": "Status", "options": "Running\nDone\nFailed", "readOnly": true, "inListView": true },
+    { "name": "started", "type": "Datetime", "label": "Started", "readOnly": true, "inListView": true },
+    { "name": "finished", "type": "Datetime", "label": "Finished", "readOnly": true },
+    { "name": "error", "type": "Text", "label": "Problem", "readOnly": true }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "delete": true }
+  ]
+}
