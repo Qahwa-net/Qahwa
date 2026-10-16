@@ -46,6 +46,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **More field types**: rating, duration, colour, barcode, place and signature, validated on the server and usable in the Designer ([ADR-047](docs/adr/047-more-field-types.md))
 - **Attachment and image fields**: a form field that names a file attached to the same document, validated on save, with picture preview ([ADR-048](docs/adr/048-attach-and-image-fields.md))
 - **Gallery, map and timeline views**: pictures as tiles, places on a plain grid (no outside map service), documents as bars between two dates ([ADR-049](docs/adr/049-gallery-map-and-timeline-views.md))
+- **Single sign-on with OpenID Connect**: authorization code with PKCE, state and nonce, fully checked ID tokens, accounts linked by the provider's id and verified email, allowed domains, no open redirects ([ADR-051](docs/adr/051-openid-connect-sign-in.md))
 - **PDF files of printouts**: made by a headless Chrome, Chromium or Edge on the server, with the page made inert, no network and strict limits ([ADR-050](docs/adr/050-server-side-pdf.md))
 - **Webhooks**: signed JSON posts to other systems when documents are created, changed, submitted, cancelled or deleted, queued with retries and guarded against requests to internal networks ([ADR-029](docs/adr/029-webhooks.md))
 - **API keys**: Bearer tokens that act as a person within their permissions, shown once and stored hashed, with read-only and expiry options ([ADR-028](docs/adr/028-api-keys.md))

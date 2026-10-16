@@ -127,6 +127,15 @@ public sealed class PostgresDialect : ISqlDialect
         "\"revoked\" boolean NOT NULL DEFAULT false); " +
         "CREATE INDEX IF NOT EXISTS \"__sessions_user\" ON \"__sessions\" (\"user_name\")";
 
+    public string CreateIdentityTableSql =>
+        "CREATE TABLE IF NOT EXISTS \"__identities\" (" +
+        "\"issuer\" varchar(300) NOT NULL, " +
+        "\"subject\" varchar(255) NOT NULL, " +
+        "\"user_name\" varchar(140) NOT NULL, " +
+        "\"created\" timestamp with time zone NOT NULL, " +
+        "PRIMARY KEY (\"issuer\", \"subject\")); " +
+        "CREATE INDEX IF NOT EXISTS \"__identities_user\" ON \"__identities\" (\"user_name\")";
+
     public string LikeOperator => "ILIKE";
 
     public string ListSeriesSql => "SELECT \"name\", \"current\" FROM \"tabSeries\" ORDER BY \"name\"";

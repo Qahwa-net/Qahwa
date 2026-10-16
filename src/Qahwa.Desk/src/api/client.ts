@@ -1,3 +1,4 @@
+import type { SsoProviderInfo } from '../lib/sso.ts'
 import type { DisplaySettings } from '../lib/display.ts'
 import type {
   DesignerDetail, DocPerm, DesignerItem, DesignerPreview, Doc, DocTypeDefinition, FieldError, FieldTypeInfo,
@@ -112,6 +113,9 @@ export const api = {
     reset: (token: string, newPassword: string) => request<unknown>('POST', '/api/auth/reset-password', { token, new_password: newPassword }),
   },
 
+  sso: {
+    providers: async () => (await request<{ data: SsoProviderInfo[] }>('GET', '/api/auth/sso')).data,
+  },
   sessions: {
     list: async () => (await request<{ data: SignIn[] }>('GET', '/api/auth/sessions')).data,
     end: (id: string) => request<unknown>('DELETE', `/api/auth/sessions/${encodeURIComponent(id)}`),

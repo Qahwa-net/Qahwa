@@ -1,7 +1,8 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { ApiError, api } from '../api/client.ts'
 import { useAuth } from '../auth.tsx'
+import { ssoErrorText, ssoStartUrl, type SsoProviderInfo } from '../lib/sso.ts'
 
 /** Only follow same-site relative paths after login, never an arbitrary URL. */
 function safeNext(next: string | null): string {
@@ -21,6 +22,11 @@ export function LoginPage() {
   const [newPassword, setNewPassword] = useState('')
   const [repeat, setRepeat] = useState('')
   const [notice, setNotice] = useState<string | null>(null)
+  const [providers, setProviders] = useState<SsoProviderInfo[]>([])
+
+  useEffect(() => {
+    api.sso.providers().then(setProviders, () => setProviders([]))
+  }, [])
 
   if (user) return <Navigate to={safeNext(params.get('next'))} replace />
 
@@ -76,7 +82,7 @@ export function LoginPage() {
         <p className="muted">{challenge && expired ? 'Your password has expired. Choose a new one to continue.' : challenge ? 'Enter the code from your authenticator app' : 'Sign in to continue'}</p>
         {notice && !challenge && <div className="banner info" role="status">{notice}</div>}
 
-        {error && <div className="banner error" role="alert">{error}</div>}
+        {(error ?? ssoErrorText(params.get('sso_error'))) && <div className="banner error" role="alert">{error ?? ssoErrorText(params.get('sso_error'))}</div>}
 
         {challenge && expired ? (<>
           <label className="field"><span>Current password</span>
@@ -107,6 +113,9 @@ export function LoginPage() {
         </>)}
 
         <button className="btn primary" type="submit" disabled={busy}>{busy ? 'Working…' : challenge && expired ? 'Change password' : challenge ? 'Verify' : 'Sign in'}</button>
+        {!challenge && providers.map((p) => (
+          <a key={p.name} className="btn" href={ssoStartUrl(p.name, params.get('next'))}>Sign in with {p.display_name}</a>
+        ))}
         {!challenge && <Link to="/forgot-password" className="muted">Forgot your password?</Link>}
         {challenge && <button className="btn" type="button" onClick={() => { setChallenge(null); setExpired(false); setCode(''); setError(null) }}>Back</button>}
       </form>

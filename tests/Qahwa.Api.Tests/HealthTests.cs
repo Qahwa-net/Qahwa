@@ -47,6 +47,9 @@ public sealed class QahwaFactory(
     /// <summary>The PDF maker the server uses in tests: it keeps the pages it was asked to print.</summary>
     public FakePdfRenderer Pdf { get; } = new();
 
+    /// <summary>The stand-in identity provider behind the "idp" single sign-on provider.</summary>
+    public FakeIdentityProvider IdentityProvider { get; } = new();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment(environment);
@@ -57,6 +60,10 @@ public sealed class QahwaFactory(
             ["Qahwa:Auth:HashIterations"] = "1000",
             ["Qahwa:Auth:SessionCacheSeconds"] = "0",
             ["Qahwa:Auth:LoginPermitsPerMinute"] = loginPermitsPerMinute.ToString(),
+            ["Qahwa:Auth:Sso:Providers:idp:DisplayName"] = "Company login",
+            ["Qahwa:Auth:Sso:Providers:idp:Authority"] = FakeIdentityProvider.Authority,
+            ["Qahwa:Auth:Sso:Providers:idp:ClientId"] = FakeIdentityProvider.ClientId,
+            ["Qahwa:Auth:Sso:Providers:idp:ClientSecret"] = "s3cret",
         }));
         builder.ConfigureServices(services =>
         {
@@ -97,6 +104,10 @@ public sealed class QahwaFactory(
             services.AddSingleton<ITotpStore>(new InMemoryTotpStore());
             services.RemoveAll<ISecretProtector>();
             services.AddSingleton<ISecretProtector>(new FakeSecretProtector());
+            services.RemoveAll<IOidcBackchannel>();
+            services.AddSingleton<IOidcBackchannel>(IdentityProvider);
+            services.RemoveAll<IIdentityStore>();
+            services.AddSingleton<IIdentityStore>(new InMemoryIdentityStore());
             services.RemoveAll<IAuthStore>();
             services.AddSingleton<IAuthStore>(new InMemoryAuthStore());
 

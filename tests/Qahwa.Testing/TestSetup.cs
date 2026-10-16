@@ -143,6 +143,10 @@ public sealed class TestEngine
             Clock);
         TotpStore = new InMemoryTotpStore();
         var protector = new FakeSecretProtector();
+        IdentityProvider = new FakeIdentityProvider();
+        IdentityStore = new InMemoryIdentityStore();
+        SsoOptions = new SsoOptions { Providers = { ["idp"] = new SsoProvider { DisplayName = "Company login", Authority = FakeIdentityProvider.Authority, ClientId = FakeIdentityProvider.ClientId, ClientSecret = "s3cret" } } };
+        Sso = new SsoService(Options.Create(SsoOptions), IdentityProvider, IdentityStore, Auth, protector, Clock);
         TwoFactor = new TwoFactorService(TotpStore, protector, AuthStore, Options.Create(AuthOptions), Clock);
         Sessions = new SessionService(new InMemorySessionStore(), Options.Create(AuthOptions), Clock);
         PasswordReset = new PasswordResetService(Auth, AuthStore, protector, Sessions, EmailSender, new HitCounter(Clock), Clock);
@@ -182,6 +186,10 @@ public sealed class TestEngine
     public PrintService Print { get; }
     public WorkspaceService Workspaces { get; }
     public TranslationService Translations { get; }
+    public FakeIdentityProvider IdentityProvider { get; }
+    public InMemoryIdentityStore IdentityStore { get; }
+    public SsoOptions SsoOptions { get; }
+    public SsoService Sso { get; }
     public FakePdfRenderer PdfRenderer { get; }
     public PdfService Pdf { get; }
     public BackupService Backup { get; }

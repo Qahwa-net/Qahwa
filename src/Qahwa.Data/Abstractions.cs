@@ -56,6 +56,9 @@ public interface ISqlDialect
     /// <summary>Table holding sign-in sessions (see <c>ISessionStore</c>).</summary>
     string CreateSessionTableSql { get; }
 
+    /// <summary>Table linking identity-provider identities to users (see <c>IIdentityStore</c>).</summary>
+    string CreateIdentityTableSql { get; }
+
     /// <summary>Increments the counter named by parameter 0 and returns the new value.</summary>
     string NextSeriesSql { get; }
 

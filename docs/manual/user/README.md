@@ -42,6 +42,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 38. [Attachment and image fields](38-attachment-and-image-fields.md)
 39. [Gallery, map and timeline views](39-gallery-map-and-timeline.md)
 40. [PDF files of printouts](40-pdf.md)
+41. [Signing in with your company account](41-single-sign-on.md)
 
 **Words used**
 

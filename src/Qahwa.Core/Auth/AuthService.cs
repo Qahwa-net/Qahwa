@@ -5,6 +5,14 @@ namespace Qahwa.Core.Auth;
 
 public sealed record SessionInfo(UserContext User, string FullName, long PasswordVersion);
 
+public enum AccountState
+{
+    None,
+    Disabled,
+    NoPassword,
+    Active,
+}
+
 public sealed class InvalidCredentialsException()
     : QahwaException("Invalid email or password.", 401, "invalid_credentials");
 
@@ -72,6 +80,17 @@ public sealed class AuthService(
         }
 
         return key;
+    }
+
+    /// <summary>What there is for an email: no account, a disabled one, an enabled one that has no password yet, or a usable one.</summary>
+    public async Task<AccountState> AccountStateAsync(string key, CancellationToken ct = default)
+    {
+        var user = await GetUserAsync(key, ct);
+        if (user is null)
+            return AccountState.None;
+        if (user.GetValueOrDefault("enabled") is not true)
+            return AccountState.Disabled;
+        return IsActive(user, await store.GetAsync(key, ct)) ? AccountState.Active : AccountState.NoPassword;
     }
 
     /// <summary>True when the person's password is older than <see cref="AuthOptions.PasswordMaxAgeDays"/> (never, when that is 0).</summary>

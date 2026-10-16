@@ -127,6 +127,7 @@ public static class ApiServiceCollectionExtensions
         services.AddMemoryCache();
         services.AddDataProtection();
         services.TryAddSingleton<ISecretProtector, DataProtectionSecretProtector>();
+        services.TryAddSingleton<IOidcBackchannel, HttpOidcBackchannel>();
         services.AddSingleton<IUserContextResolver, CookieUserContextResolver>();
 
         // Cross-site request forgery: the cookie is SameSite=Lax (not sent on cross-site POST/PUT/DELETE) and every

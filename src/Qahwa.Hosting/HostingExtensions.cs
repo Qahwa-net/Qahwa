@@ -129,6 +129,8 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<ITotpStore, TotpStore>();
         services.TryAddSingleton<ISessionStore, SessionStore>();
         services.TryAddSingleton<SessionService>();
+        services.TryAddSingleton<IIdentityStore, IdentityStore>();
+        services.TryAddSingleton<SsoService>();
         services.TryAddSingleton<PasswordResetService>();
         services.TryAddSingleton<SystemSettingsService>();
         services.TryAddSingleton<PatchRunner>();

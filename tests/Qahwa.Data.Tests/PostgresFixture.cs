@@ -114,6 +114,7 @@ public sealed class PgStack : IAsyncDisposable
         AuthStore = new AuthStore(_connections, Dialect);
         TotpStore = new TotpStore(_connections, Dialect);
         SessionStore = new SessionStore(_connections, Dialect);
+        IdentityStore = new IdentityStore(_connections, Dialect);
         AuthOptions = new AuthOptions { HashIterations = 1000 };
         Auth = new AuthService(
             Registry, Repository, Documents, AuthStore,
@@ -176,6 +177,7 @@ public sealed class PgStack : IAsyncDisposable
     public DocTypeDesigner Designer { get; }
     public TotpStore TotpStore { get; }
     public SessionStore SessionStore { get; }
+    public IdentityStore IdentityStore { get; }
     public DocumentActionEngine DocumentActions { get; }
     public BundleService Bundle { get; }
     public BackupService Backup { get; }
