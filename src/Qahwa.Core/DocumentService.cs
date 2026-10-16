@@ -101,6 +101,7 @@ public sealed partial class DocumentService(
         var errors = new List<FieldError>();
         var values = Coerce(meta, input, errors, meta.Autoname == "prompt", out var promptName, access: fieldAccess);
         CheckRestrictedValues(restrictions, values, errors);
+        await RequireAppPermissionAsync(meta, PermAction.Create, values, user, ct);
         CheckProfileAssignment(meta, values, user, errors);
         var tables = ReadTables(meta, input, errors);
         foreach (var table in tables.Where(t => t.Rows.Count > 0 && !fieldAccess.CanWrite(t.Field)))
@@ -252,6 +253,7 @@ public sealed partial class DocumentService(
             ?? (meta.IsSingle && name == meta.Name ? SingleSkeleton(meta) : throw new NotFoundException($"{meta.Name} '{name}' was not found."));
         var viaShare = Settle(level, share, PermAction.Read, doc, user);
         RequireRestrictions(await RestrictionsAsync(meta, user, ct), doc, meta);
+        await RequireAppPermissionAsync(meta, PermAction.Read, doc, user, ct);
         return Strip(meta, doc, SharedAccess(permissions.FieldAccessFor(meta, user, doc.GetValueOrDefault("owner") as string, creating: false), viaShare, share));
     }
 
@@ -350,6 +352,7 @@ public sealed partial class DocumentService(
             throw General("A cancelled document cannot be changed.");
         var restrictions = await RestrictionsAsync(meta, user, ct);
         RequireRestrictions(restrictions, existing, meta);
+        await RequireAppPermissionAsync(meta, transition switch { 1 => PermAction.Submit, 2 => PermAction.Cancel, _ => PermAction.Write }, existing, user, ct);
         var fieldAccess = SharedAccess(permissions.FieldAccessFor(meta, user, existing.GetValueOrDefault("owner") as string, creating: false), viaShare, share);
 
         var errors = new List<FieldError>();
@@ -521,6 +524,7 @@ public sealed partial class DocumentService(
             ?? throw new NotFoundException($"{meta.Name} '{name}' was not found.");
         permissions.RequireOwnership(access, existing, user);
         RequireRestrictions(await RestrictionsAsync(meta, user, ct), existing, meta);
+        await RequireAppPermissionAsync(meta, PermAction.Delete, existing, user, ct);
         if (meta.IsSubmittable && Convert.ToInt32(existing.GetValueOrDefault("docstatus") ?? 0) == 1)
             throw General("A submitted document cannot be deleted. Cancel it first.");
         if (meta.IsTree && await HasChildrenAsync(meta, name, ct))
@@ -604,6 +608,9 @@ public sealed partial class DocumentService(
             query = query with { Filters = [.. query.Filters, new QueryFilter("name", FilterOp.In, sharedNames.Cast<object?>().ToList())] };
         else if (access == AccessLevel.Owner)
             query = query with { Filters = [.. query.Filters, new QueryFilter("owner", sharedNames.Count > 0 ? FilterOp.OwnerOrNames : FilterOp.Eq, sharedNames.Count > 0 ? new OwnerOrNames(user.User, sharedNames) : user.User)] };
+
+        if (appHooks is not null && AssignmentRuleManager.Applies(meta) && !permissions.IsAdministrator(user) && appHooks.Value.HasPermissionRules(meta.Name))
+            query = query with { Filters = [.. query.Filters, .. await appHooks.Value.FiltersAsync(meta, user, ct)] };
 
         foreach (var restriction in await RestrictionsAsync(meta, user, ct))
         {

@@ -412,6 +412,7 @@ public sealed partial class DocumentService
         if (Settle(level, share, PermAction.Write, existing, user))
             throw new PermissionDeniedException($"Renaming a {meta.Name} needs write access through your roles.");
         RequireRestrictions(await RestrictionsAsync(meta, user, ct), existing, meta);
+        await RequireAppPermissionAsync(meta, PermAction.Write, existing, user, ct);
         if (meta.IsSubmittable && Convert.ToInt32(existing.GetValueOrDefault("docstatus") ?? 0) == 1)
             throw General("A submitted document cannot be renamed. Cancel it first.");
 

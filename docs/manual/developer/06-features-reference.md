@@ -311,3 +311,7 @@ See [Writing an app](08-writing-an-app.md). Code: `Apps.cs` (`IQahwaApp`, `IAppB
 ## Naming rules and expressions ([ADR-073](../../adr/073-naming-rules-and-expressions.md))
 
 `NamingService` (`ExpressionPrefix`, `RuleForAsync` picks the first matching enabled `Document Naming Rule` of the DocType, `NextNameAsync(..., user)` evaluates `expression:` names; `CheckName` rejects control characters), `DocTypeLoader.CheckNamingRule` (shared by the DocType's own rule and rule rows), `NamingRuleCheck.Check` (called from `DocumentService.RunScriptsAsync` when a Document Naming Rule is saved), `NamingSeriesManager.IsSeries` skips expression rules. Core DocType `document_naming_rule.json`. `NamingService` takes the meta registry (optional) to find the rules table. Desk: `AutonameKind` has `expression` in `lib/designer.ts`, with the input in `DesignerEditor`.
+
+## App permission hooks ([ADR-074](../../adr/074-app-permission-hooks.md))
+
+`Apps.cs`: `IAppBuilder.HasPermission`/`PermissionQuery`, `PermissionContext`, `PermissionFilter`, `AppHookRunner.AllowsAsync` (false on refusal or exception) and `FiltersAsync` (fail closed). `DocumentService.Passwords.cs` (`RequireAppPermissionAsync`, skipped for Administrators, Core DocTypes and DocTypes without rules) is called next to every `RequireRestrictions` (get, update/submit/cancel, delete, rename) and for create; `PrepareListQueryAsync` appends the query filters. Tests: `AppPermissionTests`.

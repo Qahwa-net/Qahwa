@@ -1,3 +1,4 @@
+using Qahwa.Abstractions;
 using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -44,6 +45,31 @@ public sealed class DocHookContext(
 
 public delegate Task DocHook(DocHookContext context);
 
+/// <summary>What a permission check of an app is given: what is being done, to which document, by whom.</summary>
+public sealed class PermissionContext(DocTypeMeta meta, PermAction action, IReadOnlyDictionary<string, object?> doc, IUserContext user)
+{
+    public string DocType => meta.Name;
+    public PermAction Action { get; } = action;
+
+    /// <summary>The document as stored (for a new one, the values being saved). Changing it changes nothing.</summary>
+    public IReadOnlyDictionary<string, object?> Doc { get; } = doc;
+
+    public IUserContext User { get; } = user;
+}
+
+/// <summary>Decides whether the person may do this to this document. Returning false refuses; it can never allow what roles do not.</summary>
+public delegate bool PermissionCheck(PermissionContext context);
+
+/// <summary>A condition an app adds to every list of a DocType: the field must be one of the values. No values means no documents.</summary>
+public sealed record PermissionFilter(string Field, IReadOnlyList<object?> Values);
+
+/// <summary>Lists the conditions to add to the lists this person sees. It can only narrow what roles already allow.</summary>
+public delegate IReadOnlyList<PermissionFilter> PermissionQuery(IUserContext user);
+
+internal sealed record RegisteredPermissionCheck(string App, string DocType, PermissionCheck Check);
+
+internal sealed record RegisteredPermissionQuery(string App, string DocType, PermissionQuery Query);
+
 /// <summary>Who may call a method, how often, and whether a GET may.</summary>
 public sealed record MethodOptions
 {
@@ -81,6 +107,19 @@ public interface IAppBuilder
 {
     /// <summary>Run <paramref name="hook"/> when a document of this DocType is saved, submitted, cancelled or deleted.</summary>
     IAppBuilder On(string doctype, DocEvent @event, DocHook hook);
+
+    /// <summary>
+    /// Narrows who may do what to the documents of this DocType. Roles and User Permissions are applied first; this can only take access
+    /// away (never grant it), for read, write, create, delete, submit and cancel. It does not apply to Administrators or to the
+    /// framework's own DocTypes. A check that throws refuses the action (and is logged).
+    /// </summary>
+    IAppBuilder HasPermission(string doctype, PermissionCheck check);
+
+    /// <summary>
+    /// Adds conditions to every list, count, group-by and export of this DocType for a person, so documents they may not open are not
+    /// listed either (a list is filtered, not refused). Use together with <see cref="HasPermission"/>. A query that throws lists nothing.
+    /// </summary>
+    IAppBuilder PermissionQuery(string doctype, PermissionQuery query);
 
     /// <summary>A server function people (or other systems) may call at <c>POST /api/method/&lt;app&gt;.&lt;name&gt;</c>.</summary>
     IAppBuilder Method(string name, MethodHandler handler, MethodOptions? options = null);
@@ -139,6 +178,8 @@ public sealed partial class AppCatalog
     private static partial Regex ShortName();
 
     private readonly List<RegisteredHook> _hooks = [];
+    private readonly List<RegisteredPermissionCheck> _permissionChecks = [];
+    private readonly List<RegisteredPermissionQuery> _permissionQueries = [];
     private readonly Dictionary<string, RegisteredMethod> _methods = new(StringComparer.Ordinal);
     private readonly List<RegisteredJob> _jobs = [];
     private readonly List<RegisteredFixture> _fixtures = [];
@@ -167,6 +208,10 @@ public sealed partial class AppCatalog
 
     internal IReadOnlyList<RegisteredHook> HooksFor(string doctype, DocEvent @event) => _hooks.Where(h => h.DocType == doctype && h.Event == @event).ToList();
 
+    internal IReadOnlyList<RegisteredPermissionCheck> PermissionChecksFor(string doctype) => _permissionChecks.Where(c => c.DocType == doctype).ToList();
+
+    internal IReadOnlyList<RegisteredPermissionQuery> PermissionQueriesFor(string doctype) => _permissionQueries.Where(c => c.DocType == doctype).ToList();
+
     internal IReadOnlyList<RegisteredJob> Jobs => _jobs;
 
     internal IReadOnlyList<RegisteredFixture> Fixtures => _fixtures;
@@ -180,6 +225,10 @@ public sealed partial class AppCatalog
     {
         foreach (var hook in _hooks.Where(h => !registry.TryGet(h.DocType, out _)))
             throw new InvalidOperationException($"The app '{hook.App}' has a hook for the DocType '{hook.DocType}', which does not exist.");
+        foreach (var check in _permissionChecks.Where(c => !registry.TryGet(c.DocType, out _)))
+            throw new InvalidOperationException($"The app '{check.App}' has a permission check for the DocType '{check.DocType}', which does not exist.");
+        foreach (var query in _permissionQueries.Where(c => !registry.TryGet(c.DocType, out _)))
+            throw new InvalidOperationException($"The app '{query.App}' has a permission query for the DocType '{query.DocType}', which does not exist.");
         foreach (var fixture in _fixtures.Where(f => !registry.TryGet(f.DocType, out _)))
             throw new InvalidOperationException($"The app '{fixture.App}' has a fixture for the DocType '{fixture.DocType}', which does not exist.");
     }
@@ -191,6 +240,22 @@ public sealed partial class AppCatalog
             if (string.IsNullOrWhiteSpace(doctype))
                 throw new InvalidOperationException($"The app '{app}' has a hook without a DocType.");
             catalog._hooks.Add(new RegisteredHook(app, doctype, @event, hook ?? throw new ArgumentNullException(nameof(hook))));
+            return this;
+        }
+
+        public IAppBuilder HasPermission(string doctype, PermissionCheck check)
+        {
+            if (string.IsNullOrWhiteSpace(doctype))
+                throw new InvalidOperationException($"The app '{app}' has a permission check without a DocType.");
+            catalog._permissionChecks.Add(new RegisteredPermissionCheck(app, doctype, check ?? throw new ArgumentNullException(nameof(check))));
+            return this;
+        }
+
+        public IAppBuilder PermissionQuery(string doctype, PermissionQuery query)
+        {
+            if (string.IsNullOrWhiteSpace(doctype))
+                throw new InvalidOperationException($"The app '{app}' has a permission query without a DocType.");
+            catalog._permissionQueries.Add(new RegisteredPermissionQuery(app, doctype, query ?? throw new ArgumentNullException(nameof(query))));
             return this;
         }
 
@@ -246,6 +311,54 @@ public sealed class AppHookRunner(AppCatalog catalog, IServiceProvider services,
     private static readonly AsyncLocal<bool> Running = new();
 
     public bool Has(string doctype) => catalog.HookedDocTypes.Contains(doctype, StringComparer.Ordinal);
+
+    public bool HasPermissionRules(string doctype) => catalog.PermissionChecksFor(doctype).Count > 0 || catalog.PermissionQueriesFor(doctype).Count > 0;
+
+    /// <summary>False when an app's check refuses. A check that throws refuses too: a rule that cannot run cannot be trusted.</summary>
+    public async Task<bool> AllowsAsync(DocTypeMeta meta, PermAction action, IReadOnlyDictionary<string, object?> doc, IUserContext user, CancellationToken ct)
+    {
+        foreach (var registered in catalog.PermissionChecksFor(meta.Name))
+        {
+            try
+            {
+                if (!registered.Check(new PermissionContext(meta, action, doc, user)))
+                    return false;
+            }
+            catch (Exception e) when (e is not OperationCanceledException)
+            {
+                await errors.RecordAsync("App permission", null, $"{registered.App}: {action} on {meta.Name}", user.User, e);
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <summary>The conditions the apps add to a person's lists of this DocType. A query that fails (or names a column that does not exist) leaves no document visible.</summary>
+    public async Task<IReadOnlyList<QueryFilter>> FiltersAsync(DocTypeMeta meta, IUserContext user, CancellationToken ct)
+    {
+        var columns = meta.ColumnTypes();
+        var filters = new List<QueryFilter>();
+        foreach (var registered in catalog.PermissionQueriesFor(meta.Name))
+        {
+            try
+            {
+                foreach (var filter in registered.Query(user))
+                {
+                    if (!columns.TryGetValue(filter.Field, out var type) || type == FieldType.Password)
+                        throw new InvalidOperationException($"'{filter.Field}' is not a column of {meta.Name}.");
+                    filters.Add(new QueryFilter(filter.Field, FilterOp.In, filter.Values.Select(v => FieldValueConverter.ToStorage(type, v)).ToList()));
+                }
+            }
+            catch (Exception e) when (e is not OperationCanceledException)
+            {
+                await errors.RecordAsync("App permission", null, $"{registered.App}: list of {meta.Name}", user.User, e);
+                filters.Add(new QueryFilter("name", FilterOp.In, new List<object?>()));
+            }
+        }
+
+        return filters;
+    }
 
     /// <returns>The fields the hooks changed on the document (for the caller to convert, check and store).</returns>
     public async Task<Dictionary<string, object?>> BeforeAsync(

@@ -61,6 +61,17 @@ Register it in the host (`Program.cs`): `builder.Services.AddQahwaApp<CrmApp>();
 - A change a hook makes through `ctx.Documents` does not start other hooks (so they cannot loop), but it is validated, permission-checked and logged normally, as the person who made the original change.
 - Hooks apply to DocTypes that are not part of the system (module Core) and are matched by exact DocType name; a hook for a DocType that does not exist stops the server at start-up with the app's name.
 
+## Permission checks and queries ([ADR-074](../../adr/074-app-permission-hooks.md))
+
+```csharp
+app.HasPermission("Ticket", ctx => (string?)ctx.Doc.GetValueOrDefault("region") == RegionOf(ctx.User))
+   .PermissionQuery("Ticket", user => [new PermissionFilter("region", [RegionOf(user)])]);
+```
+
+- `HasPermission` is asked for read, write, create, delete, submit and cancel (`ctx.Action`); `false` refuses. `PermissionQuery` adds "field is one of these values" conditions to every list, count, group-by and export, so refused documents are not even listed.
+- They can **only take access away**; they run after roles, User Permissions and shares. A check that throws refuses, a query that throws (or names a bad column) lists nothing, and both are logged.
+- They do not apply to Administrators or to the framework's own DocTypes, and a registration for a DocType that does not exist stops the server at start-up.
+
 ## Server functions (`/api/method`)
 
 `POST /api/method/<app>.<name>` with a JSON object calls a registered function; the answer is `{ "data": … }`. `GET` works only for functions registered with `AllowGet`. Calls need a signed-in person (and one of `Roles`, when given; Administrators always pass), are limited per person and function (`PerMinute`, default 60), and the body may be at most 1 MB. Unknown or oddly written names are 404. `GET /api/method` lists the functions and the installed apps.

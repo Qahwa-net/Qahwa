@@ -621,7 +621,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | **Role Permission Manager** UI, Custom DocPerm | customise, reset to default, apply at once | ✅ | L5 |
 | User Permissions (restrict by Link value, apply to all or some DocTypes) | `User Permission` DocType, enforced on the server | ✅ | L5 |
 | Role Profile, Module Profile, User Types | profiles done; user types planned | 🟡 | L5 |
-| Permission query and `has_permission` hooks | | ⬜ | L11 |
+| Permission query and `has_permission` hooks | done: app checks and list conditions that can only narrow access, fail closed (ADR-074) | ✅ | L11 |
 | Password hashing, lockout, rate limit, change password | | ✅ | done |
 | Password policy (strength, expiry), password reset by email, email verification, sign-up | done: strength rules, reset by email and expiry (ADR-041), self sign-up with email verification (ADR-052); not email verification, sign-up | 🟡 | L10 |
 | Two-factor authentication (TOTP, email, SMS) | done: TOTP with recovery codes and admin reset (ADR-039); not email/SMS/passkeys | ✅ (v1) | L10 |

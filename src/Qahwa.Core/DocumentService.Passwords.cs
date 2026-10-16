@@ -8,6 +8,15 @@ public sealed partial class DocumentService
     /// <summary>What a set Password field is shown as. It is never the secret, and sending it back leaves the secret unchanged.</summary>
     public const string PasswordMask = "********";
 
+    /// <summary>Refuses the action when an app's permission check says so (apps can only take access away; Administrators and the framework's own DocTypes are not affected).</summary>
+    private async Task RequireAppPermissionAsync(DocTypeMeta meta, PermAction action, IReadOnlyDictionary<string, object?> doc, IUserContext user, CancellationToken ct)
+    {
+        if (appHooks is null || !AssignmentRuleManager.Applies(meta) || permissions.IsAdministrator(user) || !appHooks.Value.HasPermissionRules(meta.Name))
+            return;
+        if (!await appHooks.Value.AllowsAsync(meta, action, doc, user, ct))
+            throw new PermissionDeniedException($"You are not allowed to access this {meta.Name}.");
+    }
+
     /// <summary>Tells the people who have this document open that it changed (where it is, not what changed).</summary>
     private void Announce(DocTypeMeta meta, string name, IUserContext user, bool deleted) =>
         realtime?.Publish(new RealtimeEvent("doc", user.User, meta.Name, name, deleted));
