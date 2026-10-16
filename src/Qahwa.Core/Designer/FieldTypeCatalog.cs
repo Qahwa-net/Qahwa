@@ -28,6 +28,9 @@ public static class FieldTypeCatalog
     [
         new(FieldType.Data, "Data", "Text", "Short text, up to 140 characters", OptionsKind.None, true),
         new(FieldType.Text, "Text", "Text", "A few lines of text", OptionsKind.None, true),
+        new(FieldType.SmallText, "Small Text", "Text", "A couple of lines of plain text, up to 5,000 characters", OptionsKind.None, true),
+        new(FieldType.TextEditor, "Text Editor", "Text", "Formatted text: bold, italic, lists and links", OptionsKind.None, true),
+        new(FieldType.Autocomplete, "Autocomplete", "Text", "Short text that suggests values you list, but allows any", OptionsKind.Choices, true),
         new(FieldType.LongText, "Long Text", "Text", "Long free text", OptionsKind.None, true),
         new(FieldType.Markdown, "Markdown", "Text", "Text written in Markdown", OptionsKind.None, true),
         new(FieldType.Code, "Code", "Text", "Source code or any monospaced text", OptionsKind.None, true),

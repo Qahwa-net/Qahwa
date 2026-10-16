@@ -1,4 +1,5 @@
 import { formatDate, formatDateTime } from './display.ts'
+import { htmlToText } from './richText.ts'
 import { formatDuration, placeLabel, starsLabel } from './fieldtypes.ts'
 import type { DocField, FieldType } from '../api/types.ts'
 import type { FilterOp } from './filters.ts'
@@ -109,6 +110,7 @@ export function formatCell(field: DocField, value: unknown): string {
     case 'Duration': return formatDuration(Number(value))
     case 'Geolocation': return placeLabel(value)
     case 'Signature': return '(signed)'
+    case 'TextEditor': return htmlToText(String(value)).slice(0, 200)
     case 'Date': return formatDate(value)
     case 'Datetime': return formatDateTime(value)
     default: return String(value)

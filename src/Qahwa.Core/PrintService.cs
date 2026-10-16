@@ -165,7 +165,7 @@ public sealed partial class PrintService(
             if (!doc.TryGetValue(field.Name, out var value) || value is null or "")
                 continue;
             html.Append("<tr><th>").Append(E(field.Label ?? field.Name)).Append("</th><td>")
-                .Append(field.Type is FieldType.Text or FieldType.LongText ? E(PrintTemplate.Show(field, value)).Replace("\n", "<br>") : E(PrintTemplate.Show(field, value))).Append("</td></tr>");
+                .Append(field.Type is FieldType.Text or FieldType.LongText or FieldType.SmallText or FieldType.TextEditor ? E(PrintTemplate.Show(field, value)).Replace("\n", "<br>") : E(PrintTemplate.Show(field, value))).Append("</td></tr>");
         }
 
         html.Append("</tbody></table>");

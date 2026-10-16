@@ -719,3 +719,11 @@ kbd { font: .75rem ui-monospace, Consolas, monospace; padding: .05rem .35rem; bo
 .palette-list li { display: flex; justify-content: space-between; gap: 1rem; padding: .5rem .75rem; border-radius: var(--radius); cursor: pointer; }
 .palette-list li.on { background: var(--accent-soft); }
 .chip-button.active { background: var(--accent-soft); border-color: var(--accent); }
+.rich-editor { border: 1px solid var(--border); border-radius: .4rem; background: var(--surface); }
+.rich-toolbar { display: flex; gap: .2rem; padding: .25rem; border-bottom: 1px solid var(--border); }
+.rich-toolbar button { font: inherit; min-width: 2rem; border: 1px solid transparent; background: transparent; color: var(--text); border-radius: .3rem; cursor: pointer; }
+.rich-toolbar button:hover { background: var(--accent-soft); }
+.rich-area { min-height: 6rem; padding: .5rem .6rem; outline: none; }
+.rich-area:focus-visible { box-shadow: inset 0 0 0 2px var(--accent); }
+.rich-view :is(p, ul, ol, blockquote, pre) { margin: 0 0 .5rem; }
+.rich-view a, .rich-area a { color: var(--accent); }

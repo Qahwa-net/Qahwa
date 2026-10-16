@@ -19,6 +19,8 @@ public static class FieldValueConverter
     /// <summary>The longest secret a Password field holds (before it is encrypted).</summary>
     public const int MaxPasswordCharacters = 1000;
 
+    public const int MaxSmallTextCharacters = 5000;
+
     public static object? Unwrap(object? raw)
     {
         if (raw is not JsonElement e)
@@ -145,6 +147,10 @@ public static class FieldValueConverter
         var text = raw as string ?? System.Convert.ToString(raw, inv) ?? string.Empty;
         switch (type)
         {
+            case FieldType.SmallText when text.Length > MaxSmallTextCharacters:
+                throw new FormatException($"Value must be at most {MaxSmallTextCharacters} characters.");
+            case FieldType.TextEditor:
+                return HtmlSanitizer.Clean(text);
             case FieldType.Email when !MailAddress.TryCreate(text, out _):
                 throw new FormatException("Value must be a valid email address.");
             case FieldType.Url when !Uri.TryCreate(text, UriKind.Absolute, out _):

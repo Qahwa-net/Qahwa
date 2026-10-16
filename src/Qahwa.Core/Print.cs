@@ -195,6 +195,8 @@ public static partial class PrintTemplate
                     return new string('★', stars) + new string('☆', 5 - stars);
                 case FieldType.Duration when value is int or long or decimal:
                     return Duration(Convert.ToInt64(value, CultureInfo.InvariantCulture));
+                case FieldType.TextEditor when value is string html:
+                    return HtmlSanitizer.ToPlainText(html); // formatted text is printed as the text it holds
                 case FieldType.Signature:
                     return "(signed)"; // the picture itself is never put on a printout
                 case FieldType.Attach or FieldType.AttachImage:
@@ -263,7 +265,7 @@ public static partial class PrintTemplate
                 return Html(field?.Label ?? name, false);
             if (field is { Type: FieldType.Password })
                 return string.Empty;
-            return Html(Show(field, row.GetValueOrDefault(name)), field?.Type is FieldType.Text or FieldType.LongText);
+            return Html(Show(field, row.GetValueOrDefault(name)), field?.Type is FieldType.Text or FieldType.LongText or FieldType.SmallText or FieldType.TextEditor);
         }
 
         bool Truthy(string name, DocTypeMeta scopeMeta, IReadOnlyDictionary<string, object?> row)

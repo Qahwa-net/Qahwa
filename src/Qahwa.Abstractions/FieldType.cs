@@ -52,4 +52,13 @@ public enum FieldType
 
     /// <summary>A drawn signature as a small PNG picture (a data address).</summary>
     Signature,
+
+    /// <summary>A few lines of plain text (shorter than a Text field is expected to be, up to 5,000 characters).</summary>
+    SmallText,
+
+    /// <summary>Short text with suggestions: any value is allowed, the options are only offered.</summary>
+    Autocomplete,
+
+    /// <summary>Formatted text (bold, lists, links), stored as HTML that has been cleaned by the server.</summary>
+    TextEditor,
 }

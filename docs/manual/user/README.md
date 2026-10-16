@@ -56,6 +56,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 52. [Password fields](52-password-fields.md)
 53. [Restoring deleted documents](53-restoring-deleted-documents.md)
 54. [Tags and likes](54-tags-and-likes.md)
+55. [Text fields](55-text-fields.md)
 
 **Words used**
 

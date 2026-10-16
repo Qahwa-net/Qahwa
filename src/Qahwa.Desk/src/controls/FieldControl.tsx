@@ -6,6 +6,7 @@ import { isEditable, labelOf, selectOptions } from '../lib/fields.ts'
 import type { FieldState } from '../lib/logic.ts'
 import { LinkSelect } from './LinkSelect.tsx'
 import { AttachInput, ColorInput, DurationInput, GeolocationInput, IconInput, RatingInput, SignatureInput } from './SpecialInputs.tsx'
+import { RichTextInput } from './RichTextInput.tsx'
 
 export type InputValue = string | boolean
 
@@ -72,6 +73,18 @@ export function FieldInput(props: InputProps) {
     case 'Signature': return <SignatureInput id={id} ariaLabel={ariaLabel} value={value} readOnly={readOnly} invalid={invalid} onChange={onChange} />
     case 'Password':
       return <input {...common} type="password" maxLength={1000} autoComplete="new-password" value={text} onChange={(e) => onChange(e.target.value)} />
+    case 'TextEditor': return <RichTextInput id={id ?? ""} ariaLabel={ariaLabel} value={text} readOnly={readOnly} invalid={invalid} onChange={onChange} />
+    case 'SmallText':
+      return <textarea {...common} rows={2} maxLength={5000} value={text} onChange={(e) => onChange(e.target.value)} />
+    case 'Autocomplete': {
+      const listId = `${id ?? field.name}-suggestions`
+      return (
+        <>
+          <input {...common} maxLength={140} list={listId} autoComplete="off" value={text} onChange={(e) => onChange(e.target.value)} />
+          <datalist id={listId}>{selectOptions(field).map((o) => <option key={o} value={o} />)}</datalist>
+        </>
+      )
+    }
     case 'Barcode':
       return <input {...common} className="mono" maxLength={140} inputMode="text" autoComplete="off" value={text} onChange={(e) => onChange(e.target.value)} />
     case 'Text':
@@ -139,7 +152,7 @@ export function FieldControl(props: Props) {
   const required = state ? state.required : field.required
   const conditional = Boolean(state && !state.active)
   const isCheck = field.type === 'Check'
-  const wide = ['Text', 'LongText', 'Markdown', 'Code', 'Json'].includes(field.type)
+  const wide = ['Text', 'SmallText', 'TextEditor', 'LongText', 'Markdown', 'Code', 'Json'].includes(field.type)
 
   return (
     <div className={`field${isCheck ? ' check' : ''}${wide ? ' full' : ''}${field.hidden || conditional ? ' dimmed' : ''}`}>

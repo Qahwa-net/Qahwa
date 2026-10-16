@@ -34,7 +34,7 @@ export function inputType(type: string): string {
   }
 }
 
-export const isMultiline = (type: string): boolean => type === 'Text' || type === 'LongText'
+export const isMultiline = (type: string): boolean => type === 'Text' || type === 'SmallText' || type === 'LongText'
 
 /** Names of required fields that were left empty (the server checks too). */
 export function missing(fields: PublicFormField[], answers: Answers): string[] {

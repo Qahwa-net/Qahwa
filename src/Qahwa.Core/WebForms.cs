@@ -63,7 +63,7 @@ public sealed partial class WebFormService(IMetaRegistry registry, IDocumentRepo
 
     private static readonly HashSet<FieldType> Allowed =
     [
-        FieldType.Data, FieldType.Text, FieldType.LongText, FieldType.Int, FieldType.Float, FieldType.Decimal, FieldType.Currency, FieldType.Percent,
+        FieldType.Data, FieldType.Text, FieldType.SmallText, FieldType.LongText, FieldType.Int, FieldType.Float, FieldType.Decimal, FieldType.Currency, FieldType.Percent,
         FieldType.Check, FieldType.Select, FieldType.Rating, FieldType.Color, FieldType.Date, FieldType.Datetime, FieldType.Time, FieldType.Email, FieldType.Phone, FieldType.Url,
     ];
 

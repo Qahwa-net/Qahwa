@@ -261,7 +261,7 @@ export function errorMap(errors: FieldError[]): Record<string, string> {
 
 /** Types whose value is text, where "convert to lower case" makes sense. */
 export const isTextType = (type: FieldType) =>
-  ['Data', 'Text', 'LongText', 'Email', 'Phone', 'Url', 'Code', 'Markdown'].includes(type)
+  ['Data', 'Text', 'SmallText', 'Autocomplete', 'LongText', 'Email', 'Phone', 'Url', 'Code', 'Markdown'].includes(type)
 
 /** Types that cannot sensibly be unique or hold a default (long text, layout). */
 export const isLayoutType = (type: FieldType) => type === 'SectionBreak' || type === 'TabBreak' || type === 'ColumnBreak'

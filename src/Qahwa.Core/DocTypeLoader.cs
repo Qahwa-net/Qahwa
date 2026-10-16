@@ -364,6 +364,13 @@ public static partial class DocTypeLoader
         if (field.Type == FieldType.DynamicLink && string.IsNullOrWhiteSpace(field.Options))
             add($"{path}.options", "Dynamic Link fields need the name of the field that holds the DocType.");
 
+        if (field.Type == FieldType.Autocomplete)
+        {
+            var suggestions = field.SelectOptions().ToList();
+            if (suggestions.Count > 200 || suggestions.Any(s => s.Length > FieldTypes.ShortTextLength))
+                add($"{path}.options", $"Autocomplete fields take at most 200 suggestions of up to {FieldTypes.ShortTextLength} characters.");
+        }
+
         if (field.Type == FieldType.Select)
         {
             var options = field.SelectOptions().ToList();

@@ -3,7 +3,7 @@ export type FieldType =
   | 'Check' | 'Select' | 'Date' | 'Datetime' | 'Time' | 'Link' | 'DynamicLink' | 'Table'
   | 'Attach' | 'AttachImage' | 'Json' | 'Password' | 'Email' | 'Phone' | 'Url' | 'Code'
   | 'Markdown' | 'SectionBreak' | 'ColumnBreak' | 'TabBreak'
-  | 'Icon' | 'Rating' | 'Duration' | 'Color' | 'Barcode' | 'Geolocation' | 'Signature'
+  | 'Icon' | 'Rating' | 'Duration' | 'Color' | 'Barcode' | 'Geolocation' | 'Signature' | 'SmallText' | 'Autocomplete' | 'TextEditor'
 
 export type IndicatorColor = 'gray' | 'blue' | 'green' | 'orange' | 'red' | 'purple'
 
