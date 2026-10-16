@@ -296,6 +296,19 @@ public sealed class SpecialApiTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task The_desk_gets_what_installed_apps_hand_it_at_start_up()
+    {
+        var ann = _factory.ClientFor("ann@example.com", "Sales Manager");
+
+        var boot = await ann.GetAsync("/api/boot");
+
+        Assert.Equal(HttpStatusCode.OK, boot.StatusCode);
+        Assert.Equal("no-store", boot.Headers.CacheControl?.ToString());
+        Assert.Equal("ann@example.com", (await JsonOf(boot)).GetProperty("data").GetProperty("apps").GetProperty("testapp").GetProperty("hello").GetString());
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateClient().GetAsync("/api/boot")).StatusCode);
+    }
+
+    [Fact]
     public async Task Bulk_rename_over_the_api_reports_each_document()
     {
         await CreateDocTypeAsync(new

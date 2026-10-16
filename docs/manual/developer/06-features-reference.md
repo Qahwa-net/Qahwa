@@ -351,3 +351,7 @@ Core DocTypes `contact.json`, `address.json`, `dynamic_link.json` (module "Conta
 ## List client scripts ([ADR-083](../../adr/083-list-client-scripts.md))
 
 `public/client-script-worker.js` (`qahwa.ui.list.on`, `makeList`, `list_event`/`list_button` messages), `lib/clientScripts.ts` (`set_row_indicator`/`set_filter` ops in `sanitizeOps`, `ClientScriptRunner.runList`/`runListButton`), `lib/useListScripts.ts` (the hook; filters from `refresh` are ignored), `pages/ListView.tsx` (buttons, note, row marks). Tests: `listScripts.test.ts` runs the real worker file against a stand-in scope.
+
+## Boot hooks ([ADR-084](../../adr/084-boot-hooks.md))
+
+`Apps.cs`: `IAppBuilder.Boot`, `BootHook`, `BootContext`, `BootService.CollectAsync` (16 KB per app, failures logged). Endpoint `GET /api/boot` in `MethodEndpoints.cs`. Desk: `api.boot`, `lib/useBoot.ts`. Tests: `BootHookTests`, `The_desk_gets_what_installed_apps_hand_it_at_start_up`.

@@ -72,6 +72,14 @@ app.HasPermission("Ticket", ctx => (string?)ctx.Doc.GetValueOrDefault("region") 
 - They can **only take access away**; they run after roles, User Permissions and shares. A check that throws refuses, a query that throws (or names a bad column) lists nothing, and both are logged.
 - They do not apply to Administrators or to the framework's own DocTypes, and a registration for a DocType that does not exist stops the server at start-up.
 
+## Boot hooks ([ADR-084](../../adr/084-boot-hooks.md))
+
+```csharp
+app.Boot(async ctx => new { company = "Acme", canApprove = ctx.User.Roles.Contains("Approver") });
+```
+
+The answer (a small object, at most 16 KB) is sent to the Desk at start-up under the app's name: `GET /api/boot` returns `{ data: { apps: { acme: { … } } } }`, and the Desk reads it with `useAppBoot<T>("acme")`. It is built for each person who starts the Desk, so keep it fast; a hook that throws or answers too much is left out and written to the Error Log. One hook per app.
+
 ## Server functions (`/api/method`)
 
 `POST /api/method/<app>.<name>` with a JSON object calls a registered function; the answer is `{ "data": … }`. `GET` works only for functions registered with `AllowGet`. Calls need a signed-in person (and one of `Roles`, when given; Administrators always pass), are limited per person and function (`PerMinute`, default 60), and the body may be at most 1 MB. Unknown or oddly written names are 404. `GET /api/method` lists the functions and the installed apps.

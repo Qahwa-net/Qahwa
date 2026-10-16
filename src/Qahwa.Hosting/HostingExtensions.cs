@@ -123,6 +123,7 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<AutoEmailReportService>();
         services.TryAddSingleton<EmailDigestService>();
         services.TryAddSingleton<JobLogService>();
+        services.TryAddSingleton<BootService>();
         services.TryAddSingleton<ViewLogService>();
         services.TryAddSingleton<AccessLogService>();
         services.TryAddSingleton<ListSettingsService>();

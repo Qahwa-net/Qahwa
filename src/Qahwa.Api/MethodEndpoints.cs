@@ -20,6 +20,13 @@ public static class MethodEndpoints
             return Results.Ok(new { data = new { methods = methods.Names.Order(StringComparer.Ordinal), apps = await installer.ListAsync(ct) } });
         });
 
+        // What installed apps hand the Desk at start-up (one object per app that has a boot hook).
+        app.MapGet("/api/boot", async (HttpContext http, IUserContextResolver users, BootService boot, CancellationToken ct) =>
+        {
+            http.Response.Headers["Cache-Control"] = "no-store";
+            return Results.Ok(new { data = new { apps = await boot.CollectAsync(await users.ResolveAsync(http, ct), ct) } });
+        });
+
         group.MapPost("/{name}", async (string name, HttpContext http, IUserContextResolver users, MethodService methods, CancellationToken ct) =>
         {
             var user = await users.ResolveAsync(http, ct);

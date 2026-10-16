@@ -66,6 +66,23 @@ public sealed record PermissionFilter(string Field, IReadOnlyList<object?> Value
 /// <summary>Lists the conditions to add to the lists this person sees. It can only narrow what roles already allow.</summary>
 public delegate IReadOnlyList<PermissionFilter> PermissionQuery(IUserContext user);
 
+/// <summary>What a boot hook is given: the person who is starting the Desk.</summary>
+public sealed class BootContext(IUserContext user, DocumentService documents, IServiceProvider services, CancellationToken ct)
+{
+    public IUserContext User { get; } = user;
+
+    /// <summary>Reads documents as this person, with their permissions.</summary>
+    public DocumentService Documents { get; } = documents;
+
+    public IServiceProvider Services { get; } = services;
+    public CancellationToken Cancellation { get; } = ct;
+}
+
+/// <summary>Returns a small object of facts the Desk needs at start-up (a company name, a feature switch). It is sent to this person only.</summary>
+public delegate Task<object?> BootHook(BootContext context);
+
+internal sealed record RegisteredBoot(string App, BootHook Hook);
+
 internal sealed record RegisteredPermissionCheck(string App, string DocType, PermissionCheck Check);
 
 internal sealed record RegisteredPermissionQuery(string App, string DocType, PermissionQuery Query);
@@ -120,6 +137,13 @@ public interface IAppBuilder
     /// listed either (a list is filtered, not refused). Use together with <see cref="HasPermission"/>. A query that throws lists nothing.
     /// </summary>
     IAppBuilder PermissionQuery(string doctype, PermissionQuery query);
+
+    /// <summary>
+    /// Adds a small object to what the Desk receives when it starts (`GET /api/boot`, under the app's name), so an app can hand its
+    /// pages a few facts without a request each. Each answer is limited to 16 KB; a hook that throws or answers too much is left out
+    /// and logged. It runs for every start-up of every signed-in person, so keep it fast.
+    /// </summary>
+    IAppBuilder Boot(BootHook hook);
 
     /// <summary>A server function people (or other systems) may call at <c>POST /api/method/&lt;app&gt;.&lt;name&gt;</c>.</summary>
     IAppBuilder Method(string name, MethodHandler handler, MethodOptions? options = null);
@@ -178,6 +202,7 @@ public sealed partial class AppCatalog
     private static partial Regex ShortName();
 
     private readonly List<RegisteredHook> _hooks = [];
+    private readonly List<RegisteredBoot> _boots = [];
     private readonly List<RegisteredPermissionCheck> _permissionChecks = [];
     private readonly List<RegisteredPermissionQuery> _permissionQueries = [];
     private readonly Dictionary<string, RegisteredMethod> _methods = new(StringComparer.Ordinal);
@@ -212,6 +237,8 @@ public sealed partial class AppCatalog
 
     internal IReadOnlyList<RegisteredPermissionQuery> PermissionQueriesFor(string doctype) => _permissionQueries.Where(c => c.DocType == doctype).ToList();
 
+    internal IReadOnlyList<RegisteredBoot> Boots => _boots;
+
     internal IReadOnlyList<RegisteredJob> Jobs => _jobs;
 
     internal IReadOnlyList<RegisteredFixture> Fixtures => _fixtures;
@@ -240,6 +267,14 @@ public sealed partial class AppCatalog
             if (string.IsNullOrWhiteSpace(doctype))
                 throw new InvalidOperationException($"The app '{app}' has a hook without a DocType.");
             catalog._hooks.Add(new RegisteredHook(app, doctype, @event, hook ?? throw new ArgumentNullException(nameof(hook))));
+            return this;
+        }
+
+        public IAppBuilder Boot(BootHook hook)
+        {
+            if (catalog._boots.Any(b => b.App == app))
+                throw new InvalidOperationException($"The app '{app}' has more than one boot hook.");
+            catalog._boots.Add(new RegisteredBoot(app, hook ?? throw new ArgumentNullException(nameof(hook))));
             return this;
         }
 
@@ -420,6 +455,37 @@ public sealed class AppHookRunner(AppCatalog catalog, IServiceProvider services,
                 Running.Value = false;
             }
         }
+    }
+}
+
+/// <summary>Collects what the apps' boot hooks answer, for the Desk's start-up.</summary>
+public sealed class BootService(AppCatalog catalog, IServiceProvider services, Lazy<DocumentService> documents, ErrorLogService errors)
+{
+    public const int MaxBytesPerApp = 16 * 1024;
+
+    public async Task<IReadOnlyDictionary<string, JsonElement>> CollectAsync(IUserContext user, CancellationToken ct = default)
+    {
+        var result = new Dictionary<string, JsonElement>(StringComparer.Ordinal);
+        if (!user.IsAuthenticated)
+            throw new UnauthenticatedException();
+        foreach (var boot in catalog.Boots)
+        {
+            try
+            {
+                var answer = await boot.Hook(new BootContext(user, documents.Value, services, ct));
+                var json = JsonSerializer.SerializeToUtf8Bytes(answer);
+                if (json.Length > MaxBytesPerApp)
+                    throw new InvalidOperationException($"The boot answer is {json.Length} bytes; the limit is {MaxBytesPerApp}.");
+                using var parsed = JsonDocument.Parse(json);
+                result[boot.App] = parsed.RootElement.Clone();
+            }
+            catch (Exception e) when (e is not OperationCanceledException)
+            {
+                await errors.RecordAsync("App boot", null, boot.App, user.User, e);
+            }
+        }
+
+        return result;
     }
 }
 

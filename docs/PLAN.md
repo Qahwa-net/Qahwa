@@ -583,7 +583,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Validation rules without code | expression language, per document and per table row | ✅ | L4 |
 | Server Script (DocType event, API, scheduler event, permission query) | sandboxed | 🟡 | L11 |
 | Client Script (form/list events, field change) | done for forms (ADR-057) and lists: buttons, notes, row marks, filters (ADR-083) | ✅ | L11 |
-| Hooks per app (doc events, scheduler events, fixtures, boot) | done except boot hooks (ADR-062) | 🟡 | L12 |
+| Hooks per app (doc events, scheduler events, fixtures, boot) | done (ADR-062, ADR-084) | ✅ | L12 |
 | Versions: updates log on every document (field-level history, who/when, restore deleted) | on by default for all DocTypes, same transaction; restore of deleted documents done (ADR-067) | ✅ | L7 |
 | Comments on every document with @mentions, merged timeline | mentions highlighted, not yet notified | ✅ | L7 |
 | Assign (ToDo), Assignment Rules (round robin, load balancing, by field) | assign done (L7); rules done: round robin, load balancing, by field, conditions, withdraw condition; not yet working hours or leave | ✅ (v1) | L7, L8 |

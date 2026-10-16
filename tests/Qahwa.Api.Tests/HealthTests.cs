@@ -47,6 +47,7 @@ public sealed class FactoryTestApp : IQahwaApp
     {
         app.Method("hello", ctx => Task.FromResult<object?>(new { greeting = "Hello " + (ctx.Text("who") ?? "world"), user = ctx.User.User }), new MethodOptions { AllowGet = true });
         app.Method("secret", _ => Task.FromResult<object?>("classified"), new MethodOptions { Roles = ["System Manager"] });
+        app.Boot(ctx => Task.FromResult<object?>(new { hello = ctx.User.User }));
     }
 }
 

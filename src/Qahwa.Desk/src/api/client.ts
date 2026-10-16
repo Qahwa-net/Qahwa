@@ -480,6 +480,8 @@ export const api = {
     remove: async (name: string) => { await request<unknown>('DELETE', `/api/notification-rules/doctypes/${encodeURIComponent(name)}`) },
   },
 
+  boot: async () => (await request<{ data: { apps: Record<string, unknown> } }>('GET', '/api/boot')).data.apps,
+
   emailDigest: {
     get: async () => (await request<{ data: EmailDigest }>('GET', '/api/email-digest')).data,
     set: async (body: { enabled?: boolean; frequency?: string; sendHour?: number }) => (await request<{ data: EmailDigest }>('PUT', '/api/email-digest', body)).data,

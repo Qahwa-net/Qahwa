@@ -131,6 +131,7 @@ public sealed class TestEngine
         Methods = new MethodService(AppCatalog, new EmptyServices(), lazyDocs, new HitCounter(Clock));
         AppInstaller = new AppInstaller(AppCatalog, Registry, Repository, Documents, Clock);
         JobLog = new JobLogService(Registry, Repository, History);
+        Boot = new BootService(AppCatalog, new EmptyServices(), new Lazy<DocumentService>(() => Documents), ErrorLog);
         AppJobs = new AppJobRunner(AppCatalog, new EmptyServices(), ErrorLog, Clock, JobLog);
         Patches = new List<IPatch>();
         PatchRunner = new PatchRunner(Registry, Repository, Patches, new EmptyServices(), Clock);
@@ -222,6 +223,7 @@ public sealed class TestEngine
     public AppInstaller AppInstaller { get; }
     public AppJobRunner AppJobs { get; }
     public JobLogService JobLog { get; }
+    public BootService Boot { get; }
     public FakeSamlIdp SamlIdp { get; }
     public SamlOptions SamlOptions { get; }
     public SamlService Saml { get; }
