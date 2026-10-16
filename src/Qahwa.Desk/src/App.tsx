@@ -5,6 +5,7 @@ import { AccountPage } from './pages/AccountPage.tsx'
 import { CustomizeFormPage } from './pages/CustomizeForm.tsx'
 import { ReportEditorPage, ReportViewPage, ReportsPage } from './pages/Reports.tsx'
 import { BackupPage } from './pages/BackupPage.tsx'
+import { BrandPage } from './pages/BrandPage.tsx'
 import { BundlePage } from './pages/Bundle.tsx'
 import { WebhooksPage } from './pages/Webhooks.tsx'
 import { WorkspacesPage } from './pages/Workspaces.tsx'
@@ -63,6 +64,7 @@ export function App() {
           <Route path="webhooks" element={<WebhooksPage />} />
           <Route path="bundle" element={<BundlePage />} />
           <Route path="backup" element={<BackupPage />} />
+          <Route path="brand" element={<BrandPage />} />
           <Route path="reports" element={<ReportsPage />} />
           <Route path="reports/new" element={<ReportEditorPage />} />
           <Route path="reports/:id" element={<ReportViewPage />} />

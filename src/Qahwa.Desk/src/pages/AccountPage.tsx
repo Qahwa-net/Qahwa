@@ -1,12 +1,15 @@
 import { useState, type FormEvent } from 'react'
 import { ApiError, api } from '../api/client.ts'
 import { useAuth } from '../auth.tsx'
+import { isThemePref } from '../lib/theme.ts'
+import { useTheme } from '../theme.tsx'
 import { ApiKeysSection } from './ApiKeysSection.tsx'
 import { SessionsSection } from './SessionsSection.tsx'
 import { TwoFactorSection } from './TwoFactorSection.tsx'
 
 export function AccountPage() {
   const { user } = useAuth()
+  const { pref, brand, setPref } = useTheme()
   const [oldPassword, setOldPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [repeat, setRepeat] = useState('')
@@ -43,6 +46,17 @@ export function AccountPage() {
       <h1>My account</h1>
       <p className="muted">{user?.full_name} · {user?.user}</p>
       <p className="muted">Roles: {user?.roles.join(', ') || 'none'}</p>
+
+      <section className="card narrow">
+        <h2>Appearance</h2>
+        <label className="field"><span>Theme</span>
+          <select value={pref ?? 'default'} onChange={(e) => setPref(isThemePref(e.target.value) ? e.target.value : null)}>
+            <option value="default">Organisation default ({brand.theme})</option>
+            <option value="auto">Automatic (follows my device)</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select></label>
+      </section>
 
       <form className="card narrow" onSubmit={submit}>
         <h2>Change password</h2>

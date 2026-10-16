@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { ApiError, api } from '../api/client.ts'
 import { useAuth } from '../auth.tsx'
+import { useTheme } from '../theme.tsx'
 import { ssoErrorText, ssoStartUrl, type SsoProviderInfo } from '../lib/sso.ts'
 
 /** Only follow same-site relative paths after login, never an arbitrary URL. */
@@ -11,6 +12,7 @@ function safeNext(next: string | null): string {
 
 export function LoginPage() {
   const { user, login, loginWithCode } = useAuth()
+  const { brand } = useTheme()
   const [params] = useSearchParams()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -80,7 +82,9 @@ export function LoginPage() {
   return (
     <main className="center-screen">
       <form className="card login" onSubmit={submit}>
-        <h1>Qahwa</h1>
+        {brand.logo && <img src={brand.logo} alt="" className="login-logo" />}
+        <h1>{brand.name}</h1>
+        {brand.login_message && <p className="login-message">{brand.login_message}</p>}
         <p className="muted">{challenge && expired ? 'Your password has expired. Choose a new one to continue.' : challenge ? 'Enter the code from your authenticator app' : 'Sign in to continue'}</p>
         {notice && !challenge && <div className="banner info" role="status">{notice}</div>}
 

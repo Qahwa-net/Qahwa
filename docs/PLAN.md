@@ -582,7 +582,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Submit events: before_submit, on_submit, before_cancel, on_cancel, on_update_after_submit | done as Server Script events (ADR-053) | ✅ | L6 |
 | Validation rules without code | expression language, per document and per table row | ✅ | L4 |
 | Server Script (DocType event, API, scheduler event, permission query) | sandboxed | 🟡 | L11 |
-| Client Script (form/list events, field change) | | ⬜ | L11 |
+| Client Script (form/list events, field change) | not started (Server Script is done, ADR-053) | ⬜ | L11 |
 | Hooks per app (doc events, scheduler events, fixtures, boot) | | ⬜ | L12 |
 | Versions: updates log on every document (field-level history, who/when, restore deleted) | on by default for all DocTypes, same transaction; restore of deleted documents not yet | 🟡 | L7 |
 | Comments on every document with @mentions, merged timeline | mentions highlighted, not yet notified | ✅ | L7 |
@@ -655,7 +655,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Notification bell, toasts, dialogs | | ⬜ | L8 |
 | Themes (light, dark, automatic), RTL layout | RTL done (logical CSS, dir follows the language); themes not yet | 🟡 | L12 |
 | Translations (Translation DocType, language switch) | done: Translation DocType, catalog API, language switch, built-in Arabic chrome; not yet every message, plurals, per-user language | ✅ (v1) | L12 |
-| User settings: language, time zone, date/number/currency formats | | ⬜ | L7 |
+| User settings: language, time zone, date/number/currency formats | language and time zone/date formats done (ADR-033, ADR-042); light/dark/auto theme per person and organisation brand done (ADR-056) | 🟡 | L7 |
 | Page Builder / Custom HTML Block | | 🔽 | L11 |
 
 ### A6. Reports, charts and printing

@@ -17,6 +17,13 @@ public static class SettingsEndpoints
             return Results.Ok(new { data = await settings.GetAsync(ct) });
         });
 
+        // The sign-in page needs the name, logo and colours before anyone is signed in; they are public by nature.
+        app.MapGet("/api/brand", async (IMetaRegistry registry, IDocumentRepository repository, CancellationToken ct) =>
+        {
+            var brand = await BrandService.GetAsync(registry, repository, ct);
+            return Results.Ok(new { data = new { name = brand.Name, logo = brand.Logo, color = brand.Color, color_dark = brand.ColorDark, theme = brand.Theme, login_message = brand.LoginMessage } });
+        });
+
         return app;
     }
 }

@@ -7,6 +7,7 @@ import { ApiError } from './api/client.ts'
 import { App } from './App.tsx'
 import { I18nProvider } from './i18n.tsx'
 import { ToastProvider } from './controls/Toast.tsx'
+import { ThemeProvider } from './theme.tsx'
 
 const queryClient: QueryClient = new QueryClient({
   // When the session ends (expired, disabled, signed out elsewhere) any request returns 401: drop to the login page.
@@ -27,13 +28,15 @@ const queryClient: QueryClient = new QueryClient({
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <I18nProvider>
-        <ToastProvider>
-          <BrowserRouter>
-            <App />
-          </BrowserRouter>
-        </ToastProvider>
-      </I18nProvider>
+      <ThemeProvider>
+        <I18nProvider>
+          <ToastProvider>
+            <BrowserRouter>
+              <App />
+            </BrowserRouter>
+          </ToastProvider>
+        </I18nProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   </StrictMode>,
 )

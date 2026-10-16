@@ -106,6 +106,8 @@ export const api = {
     },
   },
 
+  brand: async (): Promise<unknown> => (await request<{ data: unknown }>('GET', '/api/brand')).data,
+
   settings: async () => (await request<{ data: DisplaySettings }>('GET', '/api/settings')).data,
 
   signUp: {

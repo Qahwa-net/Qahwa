@@ -1,0 +1,17 @@
+{
+  "name": "Brand Settings",
+  "module": "Core",
+  "isSingle": true,
+  "trackChanges": true,
+  "fields": [
+    { "name": "brand_name", "type": "Data", "label": "Name shown in the header and on the sign-in page", "description": "Up to 60 characters. Empty means Qahwa." },
+    { "name": "brand_logo", "type": "Text", "label": "Logo (an embedded picture: PNG, JPEG, GIF, WebP or SVG, up to 100 KB)", "description": "A data: address, for example made by the Brand page from an uploaded file." },
+    { "name": "brand_color", "type": "Color", "label": "Brand colour (light theme)" },
+    { "name": "brand_color_dark", "type": "Color", "label": "Brand colour (dark theme, optional)", "description": "Empty means a lighter version of the brand colour." },
+    { "name": "default_theme", "type": "Select", "label": "Theme for people who have not chosen one", "options": "Auto\nLight\nDark", "default": "Auto" },
+    { "name": "login_message", "type": "Text", "label": "Message on the sign-in page (up to 300 characters)" }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "write": true, "create": true }
+  ]
+}

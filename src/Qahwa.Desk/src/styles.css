@@ -20,8 +20,12 @@
   color-scheme: light dark;
 }
 
+:root[data-theme='light'] { color-scheme: light; }
+:root[data-theme='dark'] { color-scheme: dark; }
+
+/* Dark: when the system asks for it and the person has not chosen light, or when they chose it. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme='light']):not([data-theme='dark']) {
     --bg: #171412;
     --surface: #211d1a;
     --surface-2: #2a2521;
@@ -39,6 +43,24 @@
     --focus: #7aa7ff;
   }
 }
+:root[data-theme='dark'] {
+  --bg: #171412;
+  --surface: #211d1a;
+  --surface-2: #2a2521;
+  --text: #efe9e3;
+  --muted: #a59b92;
+  --border: #3a332e;
+  --brand: #c69c7b;
+  --brand-text: #1a1411;
+  --accent-soft: #3a2f27;
+  --danger: #f2a49d;
+  --danger-soft: #3b1f1c;
+  --ok: #7fd1a0;
+  --ok-soft: #1b2e22;
+  --info-soft: #1e2736;
+  --focus: #7aa7ff;
+}
+
 
 * { box-sizing: border-box; }
 html, body, #root { min-block-size: 100%; }
@@ -100,7 +122,11 @@ textarea.mono { font-family: ui-monospace, Consolas, monospace; font-size: .9em;
   grid-column: 1 / -1; display: flex; align-items: center; gap: .75rem; padding: .6rem 1rem;
   background: var(--surface); border-block-end: 1px solid var(--border);
 }
-.brand { font-weight: 700; font-size: 1.1rem; color: var(--brand); text-decoration: none; }
+.brand { font-weight: 700; font-size: 1.1rem; color: var(--brand); text-decoration: none; display: inline-flex; align-items: center; gap: .5rem; }
+.brand-logo { block-size: 1.8rem; inline-size: auto; max-inline-size: 8rem; object-fit: contain; }
+.login-logo { display: block; max-block-size: 4rem; max-inline-size: 12rem; margin-block-end: .5rem; object-fit: contain; }
+.login-message { white-space: pre-line; }
+.row { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
 .user-chip { color: var(--text); text-decoration: none; padding: .25rem .6rem; border-radius: 999px; background: var(--accent-soft); }
 .menu-toggle { display: none; }
 .sidebar { background: var(--surface); border-inline-end: 1px solid var(--border); padding: .75rem 0; overflow-y: auto; }

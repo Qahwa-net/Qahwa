@@ -8,6 +8,8 @@ import { useI18n } from '../i18n.tsx'
 import { setDisplaySettings } from '../lib/display.ts'
 import { LanguageSwitcher } from './LanguageSwitcher.tsx'
 import { NotificationBell } from './NotificationBell.tsx'
+import { ThemeToggle } from './ThemeToggle.tsx'
+import { useTheme } from '../theme.tsx'
 
 function groupByModule(metas: MetaSummary[]): [string, MetaSummary[]][] {
   const groups = new Map<string, MetaSummary[]>()
@@ -21,6 +23,7 @@ function groupByModule(metas: MetaSummary[]): [string, MetaSummary[]][] {
 export function Shell() {
   const { user, logout } = useAuth()
   const { t, applyDefault } = useI18n()
+  const { brand } = useTheme()
   const settings = useQuery({ queryKey: ['display-settings'], queryFn: api.settings, staleTime: 60_000, retry: false })
   if (settings.data) setDisplaySettings(settings.data) // before the page below renders, so dates follow the settings
   const defaultLanguage = settings.data?.defaultLanguage
@@ -44,9 +47,10 @@ export function Shell() {
       <header className="topbar">
         <button className="btn icon menu-toggle" aria-label="Toggle navigation" aria-expanded={open}
           onClick={() => setOpen(!open)}>☰</button>
-        <Link to="/" className="brand">Qahwa</Link>
+        <Link to="/" className="brand">{brand.logo && <img src={brand.logo} alt="" className="brand-logo" />}<span>{brand.name}</span></Link>
         <span className="spacer" />
         <LanguageSwitcher />
+        <ThemeToggle />
         <NotificationBell />
         <Link to="/account" className="user-chip" title={user?.user}>{user?.full_name}</Link>
         <button className="btn" onClick={() => void logout()}>{t('Sign out')}</button>
@@ -76,6 +80,7 @@ export function Shell() {
               <li><NavLink to="/bundle">{t('Export & Import')}</NavLink></li>
               {user?.roles.includes('Administrator') && <li><NavLink to="/backup">{t('Backup & Restore')}</NavLink></li>}
               <li><NavLink to="/workspaces">{t('Workspaces')}</NavLink></li>
+              <li><NavLink to="/brand">{t('Brand')}</NavLink></li>
               <li><NavLink to="/print-formats">{t('Print Formats')}</NavLink></li>
               <li><NavLink to="/notification-rules">{t('Notification Rules')}</NavLink></li>
               <li><NavLink to="/assignment-rules">{t('Assignment Rules')}</NavLink></li>
