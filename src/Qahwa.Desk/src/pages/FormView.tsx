@@ -20,6 +20,8 @@ import { Link, useMatch, useNavigate, useParams, useSearchParams } from 'react-r
 import { ApiError, api } from '../api/client.ts'
 import type { Doc, DocField, DocTypeMeta, Permissions } from '../api/types.ts'
 import { useAuth } from '../auth.tsx'
+import { liveAction } from '../lib/realtime.ts'
+import { useLive } from '../lib/useLive.ts'
 import { FieldControl, type InputValue } from '../controls/FieldControl.tsx'
 import { TableControl } from '../controls/TableControl.tsx'
 import { DocContext } from '../controls/DocContext.tsx'
@@ -173,6 +175,19 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
   const changedNames = Object.keys(view.values).filter((key) => view.values[key] !== original[key] && canWriteField(meta.fields.find((f) => f.name === key)!))
   const changedTables = tableDefs.filter(({ field }) => canWriteField(field) && rowsChanged(originalTables[field.name] ?? [], view.tables[field.name] ?? []))
   const dirty = isNew ? true : changedNames.length > 0 || changedTables.length > 0
+
+  // Someone else saved or deleted this document while it is open: show it, or warn when there are unsaved edits (never replace them).
+  useLive((event) => {
+    const action = liveAction(event, user?.user, dirty)
+    if (action.kind === 'refresh') {
+      void queryClient.invalidateQueries({ queryKey: ['doc', meta.name, doc?.name] })
+      toast(`Updated by ${action.by}`)
+    } else if (action.kind === 'warn') {
+      setBanner({ text: `${action.by} changed this document. Your edits are not saved yet; load the latest to see their changes.`, conflict: true })
+    } else if (action.kind === 'deleted') {
+      setBanner({ text: `${action.by} deleted this document.`, conflict: false })
+    }
+  }, meta.name, doc?.name, !isNew && doc !== undefined && doc !== null)
 
   // Warn before leaving the page with edits that are not saved.
   useEffect(() => {

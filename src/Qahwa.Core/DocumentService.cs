@@ -29,7 +29,8 @@ public sealed partial class DocumentService(
     Lazy<DocumentActionEngine>? documentActions = null,
     Lazy<ServerScriptEngine>? serverScripts = null,
     Lazy<AppHookRunner>? appHooks = null,
-    ISecretProtector? secrets = null)
+    ISecretProtector? secrets = null,
+    IRealtimePublisher? realtime = null)
 {
     private readonly DocumentLogic _logic = new(registry, repository, permissions, clock);
 
@@ -271,6 +272,7 @@ public sealed partial class DocumentService(
     private async Task AfterSaveAsync(
         DocTypeMeta meta, string name, IReadOnlySet<string> changed, bool isNew, IUserContext user, CancellationToken ct, IReadOnlyDictionary<string, object?>? before = null)
     {
+        Announce(meta, name, user, deleted: false);
         if (profiles is not null && await LoadAsync(meta, name, ct) is { } saved)
             await profiles.AfterSaveAsync(meta, saved, changed, isNew, ct);
         if (collaboration is not null)
@@ -548,6 +550,7 @@ public sealed partial class DocumentService(
             serverScripts.Value.Invalidate();
         if (appHooks is not null && appHooks.Value.Has(meta.Name) && AssignmentRuleManager.Applies(meta))
             await appHooks.Value.AfterAsync(meta, DocEvent.AfterDelete, name, false, existing, existing, user, ct);
+        Announce(meta, name, user, deleted: true);
         if (files is not null)
             await files.Value.DeleteForDocumentAsync(meta.Name, name, ct);
         if (shares is not null)

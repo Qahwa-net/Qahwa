@@ -33,7 +33,7 @@ public static partial class Mentions
 /// who could not open it.
 /// </summary>
 public sealed class NotificationService(
-    IMetaRegistry registry, IDocumentRepository repository, Lazy<DocumentService> documents, HistoryRecorder history)
+    IMetaRegistry registry, IDocumentRepository repository, Lazy<DocumentService> documents, HistoryRecorder history, IRealtimePublisher? realtime = null)
 {
     public const string DocTypeName = "Notification Log";
     public const int MaxPage = 50;
@@ -121,6 +121,7 @@ public sealed class NotificationService(
         row["rule"] = rule;
         row["rule_key"] = ruleKey;
         await repository.InsertAsync(meta, row, null, ct);
+        realtime?.Publish(new RealtimeEvent("notification", forUser));
         return true;
     }
 

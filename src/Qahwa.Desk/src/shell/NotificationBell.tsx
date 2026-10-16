@@ -2,10 +2,12 @@ import { useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api/client.ts'
+import { useLive } from '../lib/useLive.ts'
 import type { NotificationItem } from '../api/types.ts'
 import { timeAgo } from '../lib/activity.ts'
 
-const POLL_MS = 30_000
+// The live stream tells the bell at once; this slower check only covers a stream that is not available.
+const POLL_MS = 300_000
 
 /** The bell in the top bar: how many notifications are unread, and a list to open them from. */
 export function NotificationBell() {
@@ -17,6 +19,7 @@ export function NotificationBell() {
   const unread = useQuery({ queryKey: ['notifications', 'count'], queryFn: api.notifications.unread, refetchInterval: POLL_MS, retry: false })
   const list = useQuery({ queryKey: ['notifications', 'list'], queryFn: () => api.notifications.list(false), enabled: open, retry: false })
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['notifications'] })
+  useLive((event) => { if (event.type === 'notification') void refresh() })
 
   const read = useMutation({ mutationFn: (id: string) => api.notifications.read(id), onSuccess: refresh })
   const readAll = useMutation({ mutationFn: api.notifications.readAll, onSuccess: refresh })

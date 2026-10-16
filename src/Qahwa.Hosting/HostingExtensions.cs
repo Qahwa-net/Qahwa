@@ -113,6 +113,8 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<HistoryRecorder>();
         services.TryAddSingleton(sp => new Lazy<DocumentService>(() => sp.GetRequiredService<DocumentService>()));
         services.TryAddSingleton<NotificationService>();
+        services.TryAddSingleton<RealtimeHub>();
+        services.TryAddSingleton<IRealtimePublisher>(sp => sp.GetRequiredService<RealtimeHub>());
         services.TryAddSingleton<FollowService>();
         services.TryAddSingleton<LabelService>();
         services.TryAddSingleton<CollaborationHooks>();

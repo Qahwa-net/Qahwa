@@ -233,6 +233,47 @@ public sealed class SpecialApiTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Live_updates_stream_to_people_watching_a_document_they_can_read()
+    {
+        await CreateDocTypeAsync(new
+        {
+            name = "Whiteboard",
+            autoname = "field:title",
+            fields = new object[] { new { name = "title", type = "Data", required = true }, new { name = "note", type = "Data" } },
+            permissions = new object[] { new { role = "Sales Manager", read = true, write = true, create = true }, new { role = "Sales User", read = true } },
+        });
+        var manager = _factory.ClientFor("m@example.com", "Sales Manager");
+        var reader = _factory.ClientFor("r@example.com", "Sales User");
+        await manager.PostAsJsonAsync("/api/resource/Whiteboard", new { title = "w1" });
+
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateClient().GetAsync("/api/realtime", HttpCompletionOption.ResponseHeadersRead)).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await reader.GetAsync("/api/realtime?doctype=Whiteboard", HttpCompletionOption.ResponseHeadersRead)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await reader.GetAsync("/api/realtime?doctype=Whiteboard&name=ghost", HttpCompletionOption.ResponseHeadersRead)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await _factory.ClientFor("n@example.com", "Nobody").GetAsync("/api/realtime?doctype=Whiteboard&name=w1", HttpCompletionOption.ResponseHeadersRead)).StatusCode);
+
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var stream = await reader.GetAsync("/api/realtime?doctype=Whiteboard&name=w1", HttpCompletionOption.ResponseHeadersRead, timeout.Token);
+        Assert.Equal(HttpStatusCode.OK, stream.StatusCode);
+        Assert.Equal("text/event-stream", stream.Content.Headers.ContentType?.MediaType);
+        using var lines = new StreamReader(await stream.Content.ReadAsStreamAsync(timeout.Token));
+        Assert.StartsWith(":", (await lines.ReadLineAsync(timeout.Token))!); // connected
+
+        await manager.PutAsJsonAsync("/api/resource/Whiteboard/w1", new { note = "changed" });
+
+        string? eventLine = null, dataLine = null;
+        while (dataLine is null && await lines.ReadLineAsync(timeout.Token) is { } line)
+        {
+            if (line.StartsWith("event:")) eventLine = line;
+            if (line.StartsWith("data:")) dataLine = line;
+        }
+
+        Assert.Equal("event: doc", eventLine);
+        Assert.Contains("\"name\":\"w1\"", dataLine);
+        Assert.Contains("m@example.com", dataLine);
+        Assert.DoesNotContain("changed", dataLine); // where, never what
+    }
+
+    [Fact]
     public async Task Bulk_rename_over_the_api_reports_each_document()
     {
         await CreateDocTypeAsync(new

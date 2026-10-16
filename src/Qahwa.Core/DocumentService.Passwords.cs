@@ -8,6 +8,10 @@ public sealed partial class DocumentService
     /// <summary>What a set Password field is shown as. It is never the secret, and sending it back leaves the secret unchanged.</summary>
     public const string PasswordMask = "********";
 
+    /// <summary>Tells the people who have this document open that it changed (where it is, not what changed).</summary>
+    private void Announce(DocTypeMeta meta, string name, IUserContext user, bool deleted) =>
+        realtime?.Publish(new RealtimeEvent("doc", user.User, meta.Name, name, deleted));
+
     /// <summary>Encrypts the Password fields in <paramref name="values"/> just before they are stored; an empty one clears the secret.</summary>
     private void ProtectPasswords(DocTypeMeta meta, Dictionary<string, object?> values)
     {
