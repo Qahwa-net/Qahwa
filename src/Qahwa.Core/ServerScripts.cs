@@ -258,8 +258,8 @@ public sealed class ScriptSandbox(DocumentService documents, TimeProvider clock)
 
         if (errors.Count > 0)
             throw new DocumentValidationException(errors);
-        if (changes.Count > 0 && input.Event != ServerScriptEngine.ValidateEvent)
-            throw Fail("Only a Validate script may change the document; use qahwa.update in an After Save script.");
+        if (changes.Count > 0 && !ServerScriptEngine.MayChange(input.Event))
+            throw Fail("Only a Validate or Before Submit script may change the document; use qahwa.update in an After script.");
         return new ScriptOutcome(changes, log, reads, writes);
     }
 
@@ -297,6 +297,16 @@ public sealed class ServerScriptEngine(IMetaRegistry registry, IDocumentReposito
     public const string DocTypeName = "Server Script";
     public const string ValidateEvent = "Validate";
     public const string AfterSaveEvent = "After Save";
+    public const string BeforeSubmitEvent = "Before Submit";
+    public const string BeforeCancelEvent = "Before Cancel";
+    public const string BeforeDeleteEvent = "Before Delete";
+    public const string AfterSubmitEvent = "After Submit";
+    public const string AfterCancelEvent = "After Cancel";
+
+    public static readonly IReadOnlyList<string> Events = [ValidateEvent, BeforeSubmitEvent, BeforeCancelEvent, BeforeDeleteEvent, AfterSaveEvent, AfterSubmitEvent, AfterCancelEvent];
+
+    /// <summary>Before events run before the change is stored (they can refuse it); only Validate and Before Submit may also change the document.</summary>
+    public static bool MayChange(string kind) => kind is ValidateEvent or BeforeSubmitEvent;
     public const int MaxPerEvent = 10;
     private static readonly TimeSpan CacheFor = TimeSpan.FromSeconds(15);
     private static readonly AsyncLocal<bool> Running = new();
@@ -325,6 +335,19 @@ public sealed class ServerScriptEngine(IMetaRegistry registry, IDocumentReposito
         return snapshot.Scripts[$"{doctype}|{kind}"].Take(MaxPerEvent).ToList();
     }
 
+    private async Task<List<(string Kind, Dictionary<string, object?> Script)>> ScriptsForAsync(string doctype, IEnumerable<string> kinds, CancellationToken ct)
+    {
+        var all = new List<(string, Dictionary<string, object?>)>();
+        foreach (var kind in kinds)
+            foreach (var script in await ScriptsAsync(doctype, kind, ct))
+                all.Add((kind, script));
+        return all;
+    }
+
+    /// <summary>Runs the Before Delete scripts: any of them can refuse the deletion.</summary>
+    public async Task BeforeDeleteAsync(DocTypeMeta meta, IReadOnlyDictionary<string, object?> existing, IUserContext user, CancellationToken ct) =>
+        await ValidateAsync(meta, existing, existing, isNew: false, user, ct, BeforeDeleteEvent);
+
     /// <summary>Checks a Server Script document when it is saved: the DocType must exist and the source must parse.</summary>
     public void CheckScript(IReadOnlyDictionary<string, object?> script, List<FieldError> errors)
     {
@@ -338,19 +361,19 @@ public sealed class ServerScriptEngine(IMetaRegistry registry, IDocumentReposito
     /// <returns>The fields the scripts changed (to be checked and stored with the rest).</returns>
     /// <exception cref="DocumentValidationException">A script refused the change or could not run.</exception>
     public async Task<Dictionary<string, object?>> ValidateAsync(
-        DocTypeMeta meta, IReadOnlyDictionary<string, object?> doc, IReadOnlyDictionary<string, object?>? existing, bool isNew, IUserContext user, CancellationToken ct)
+        DocTypeMeta meta, IReadOnlyDictionary<string, object?> doc, IReadOnlyDictionary<string, object?>? existing, bool isNew, IUserContext user, CancellationToken ct, string kind = ValidateEvent)
     {
         var changes = new Dictionary<string, object?>(StringComparer.Ordinal);
         if (Running.Value || !AssignmentRuleManager.Applies(meta))
             return changes;
 
         var current = new Dictionary<string, object?>(doc, StringComparer.Ordinal);
-        foreach (var script in await ScriptsAsync(meta.Name, ValidateEvent, ct))
+        foreach (var script in await ScriptsAsync(meta.Name, kind, ct))
         {
             ScriptOutcome outcome;
             try
             {
-                outcome = await sandbox.RunAsync((string)script["script"]!, new ScriptInput(meta, ValidateEvent, isNew, current, existing, user, AllowWrites: false), ct);
+                outcome = await sandbox.RunAsync((string)script["script"]!, new ScriptInput(meta, kind, isNew, current, existing, user, AllowWrites: false), ct);
             }
             catch (DocumentValidationException e) when (e.Errors.Any(x => x.Field.Length == 0))
             {
@@ -374,14 +397,22 @@ public sealed class ServerScriptEngine(IMetaRegistry registry, IDocumentReposito
         if (Running.Value || !AssignmentRuleManager.Applies(meta))
             return;
 
+        var oldStatus = Convert.ToInt32(before?.GetValueOrDefault("docstatus") ?? 0, CultureInfo.InvariantCulture);
+        var newStatus = Convert.ToInt32(after.GetValueOrDefault("docstatus") ?? 0, CultureInfo.InvariantCulture);
+        var kinds = new List<string> { AfterSaveEvent };
+        if (!isNew && oldStatus == 0 && newStatus == 1)
+            kinds.Add(AfterSubmitEvent);
+        else if (!isNew && oldStatus == 1 && newStatus == 2)
+            kinds.Add(AfterCancelEvent);
+
         Running.Value = true;
         try
         {
-            foreach (var script in await ScriptsAsync(meta.Name, AfterSaveEvent, ct))
+            foreach (var (kind, script) in await ScriptsForAsync(meta.Name, kinds, ct))
             {
                 try
                 {
-                    await sandbox.RunAsync((string)script["script"]!, new ScriptInput(meta, AfterSaveEvent, isNew, after, before, user, AllowWrites: true), ct);
+                    await sandbox.RunAsync((string)script["script"]!, new ScriptInput(meta, kind, isNew, after, before, user, AllowWrites: true), ct);
                     await RecordAsync(script, null, ct);
                 }
                 catch (DocumentValidationException e)

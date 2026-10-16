@@ -21,9 +21,8 @@ public static class ServerScriptEndpoints
                 throw new PermissionDeniedException("Only a System Manager can try scripts.");
 
             var meta = registry.Get(body.Doctype ?? string.Empty);
-            var kind = body.Event is ServerScriptEngine.ValidateEvent or ServerScriptEngine.AfterSaveEvent
-                ? body.Event
-                : throw new DocumentValidationException([new FieldError("event", "The event must be Validate or After Save.")]);
+            var kind = ServerScriptEngine.Events.FirstOrDefault(e => e == body.Event)
+                ?? throw new DocumentValidationException([new FieldError("event", "The event must be one of: " + string.Join(", ", ServerScriptEngine.Events) + ".")]);
             var doc = (body.Doc ?? []).ToDictionary(kv => kv.Key, kv => Plain(kv.Value), StringComparer.Ordinal);
             var outcome = await scripts.TestAsync(meta, kind, body.Script ?? string.Empty, doc, body.IsNew ?? true, user, ct);
             return Results.Ok(new { data = new { changes = outcome.Changes, log = outcome.Log, reads = outcome.Reads } });

@@ -5,8 +5,10 @@ A **Server Script** is a few lines of JavaScript that run on the server when doc
 Open **Server Script** and create one:
 - **DocType**: which documents it is about.
 - **When**:
-  - **Validate**: before a document is saved. It can change fields and can refuse the save.
-  - **After Save**: after it is saved. It can look at and create other documents.
+  - **Validate**: before a document is saved (not when it is cancelled). It can change fields and can refuse the save.
+  - **Before Submit**: before a submittable document is submitted. It can change fields and refuse.
+  - **Before Cancel**, **Before Delete**: it can refuse the cancellation or deletion.
+  - **After Save**, **After Submit**, **After Cancel**: after it happened. They can look at and create other documents.
 - **Script**: the code. It is checked when you save.
 
 ## What you can use
@@ -20,8 +22,8 @@ Open **Server Script** and create one:
 | `qahwa.today()`, `qahwa.now()` | today's date and the current time (UTC) |
 | `qahwa.get("Customer", "ACME")` | one document, or `null` if there is none |
 | `qahwa.list("Order", { fields: ["name","total"], filters: [["customer","=",doc.customer]], limit: 20 })` | a list of documents |
-| `qahwa.insert("ToDo", { description: "Call " + doc.customer })` | create a document (After Save only) |
-| `qahwa.update("Order", "SO-0001", { status: "Closed" })` | change a document (After Save only) |
+| `qahwa.insert("ToDo", { description: "Call " + doc.customer })` | create a document (After events only) |
+| `qahwa.update("Order", "SO-0001", { status: "Closed" })` | change a document (After events only) |
 
 Examples:
 

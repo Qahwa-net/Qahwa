@@ -153,7 +153,7 @@ public sealed partial class DocumentService(
     /// </summary>
     /// <returns>The names of the fields the scripts changed.</returns>
     private async Task<IReadOnlyCollection<string>> RunScriptsAsync(
-        DocTypeMeta meta, Dictionary<string, object?> values, IReadOnlyDictionary<string, object?>? existing, bool isNew, IUserContext user, List<FieldError> errors, CancellationToken ct)
+        DocTypeMeta meta, Dictionary<string, object?> values, IReadOnlyDictionary<string, object?>? existing, bool isNew, IUserContext user, List<FieldError> errors, CancellationToken ct, int? transition = null)
     {
         if (serverScripts is null)
             return [];
@@ -163,13 +163,27 @@ public sealed partial class DocumentService(
             return [];
         }
 
-        var changes = await serverScripts.Value.ValidateAsync(meta, values, existing, isNew, user, ct);
-        if (changes.Count == 0)
-            return [];
-        var coerced = Coerce(meta, changes, errors, false, out _);
-        foreach (var (key, value) in coerced)
-            values[key] = value;
-        return coerced.Keys.ToList();
+        // Validate runs for every save except a cancellation (an old document that no longer passes today's rules can still be cancelled);
+        // the Before Cancel scripts are the place to refuse that.
+        var changed = new List<string>();
+        var kinds = transition switch
+        {
+            2 => new[] { ServerScriptEngine.BeforeCancelEvent },
+            1 => [ServerScriptEngine.ValidateEvent, ServerScriptEngine.BeforeSubmitEvent],
+            _ => new[] { ServerScriptEngine.ValidateEvent },
+        };
+        foreach (var kind in kinds)
+        {
+            var changes = await serverScripts.Value.ValidateAsync(meta, values, existing, isNew, user, ct, kind);
+            if (changes.Count == 0)
+                continue;
+            var coerced = Coerce(meta, changes, errors, false, out _);
+            foreach (var (key, value) in coerced)
+                values[key] = value;
+            changed.AddRange(coerced.Keys);
+        }
+
+        return changed;
     }
 
     public async Task<Dictionary<string, object?>> GetAsync(
@@ -365,7 +379,7 @@ public sealed partial class DocumentService(
 
         var changed = changes.Keys.ToHashSet(StringComparer.Ordinal);
         await _logic.RunAsync(meta, merged, changed, tables, user, isNew: false, errors, ct);
-        foreach (var key in await RunScriptsAsync(meta, merged, existing, isNew: false, user, errors, ct))
+        foreach (var key in await RunScriptsAsync(meta, merged, existing, isNew: false, user, errors, ct, transition))
             changed.Add(key);
         foreach (var key in changed)
             changes[key] = merged[key]; // calculated, fetched and script-set values are saved too
@@ -443,6 +457,9 @@ public sealed partial class DocumentService(
             throw General("A submitted document cannot be deleted. Cancel it first.");
         if (meta.IsTree && await HasChildrenAsync(meta, name, ct))
             throw General($"'{name}' has child nodes. Move or delete them first.");
+
+        if (serverScripts is not null && AssignmentRuleManager.Applies(meta))
+            await serverScripts.Value.BeforeDeleteAsync(meta, existing, user, ct);
 
         var childTables = TableFields(meta).Select(f => registry.Get(f.Options!)).ToList();
         List<ChildChanges>? log = null;

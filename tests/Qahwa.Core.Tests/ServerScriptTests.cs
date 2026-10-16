@@ -11,6 +11,7 @@ public class ServerScriptTests
 
     public ServerScriptTests()
     {
+        RegisterInvoice();
         _engine.Registry.Add(DocTypeLoader.Parse("""
             { "name": "Ticket", "autoname": "TK-.####", "fields": [
                 { "name": "customer", "type": "Data" }, { "name": "priority", "type": "Data" }, { "name": "amount", "type": "Float" },
@@ -20,6 +21,14 @@ public class ServerScriptTests
         _engine.Registry.Add(DocTypeLoader.Parse("""
             { "name": "Followup", "autoname": "FU-.####", "fields": [ { "name": "subject", "type": "Data", "required": true }, { "name": "ticket", "type": "Data" } ],
               "permissions": [ { "role": "Clerk", "read": true, "write": true, "create": true } ] }
+            """));
+    }
+
+    private void RegisterInvoice()
+    {
+        _engine.Registry.Add(DocTypeLoader.Parse("""
+            { "name": "Invoice", "isSubmittable": true, "autoname": "INV-.####", "fields": [ { "name": "total", "type": "Float" }, { "name": "note", "type": "Text" } ],
+              "permissions": [ { "role": "Clerk", "read": true, "write": true, "create": true, "submit": true, "cancel": true, "delete": true } ] }
             """));
     }
 
@@ -334,5 +343,83 @@ public class ServerScriptTests
 
         Assert.Equal(ScriptSandbox.MaxLogLines, outcome.Log.Count);
         Assert.All(outcome.Log, line => Assert.True(line.Length <= ScriptSandbox.MaxLogLength));
+    }
+
+    private async Task<string> OrderScriptAsync(string source, string @event, string title = "O")
+    {
+        _engine.Clock.Advance(TimeSpan.FromSeconds(1));
+        var created = await _engine.Documents.InsertAsync("Server Script", Values(("title", title), ("active", 1), ("reference_doctype", "Invoice"), ("event", @event), ("script", source)), TestUsers.SystemManager);
+        return (string)created["name"]!;
+    }
+
+    private async Task<Dictionary<string, object?>> InvoiceAsync(double total = 10)
+    {
+        _engine.Clock.Advance(TimeSpan.FromSeconds(1));
+        return await _engine.Documents.InsertAsync("Invoice", Values(("total", total)), Ann);
+    }
+
+    [Fact]
+    public async Task Before_submit_can_refuse_or_change_and_after_submit_can_follow_up()
+    {
+        await InvoiceAsync();
+        await OrderScriptAsync("if (doc.total > 100) qahwa.error('Big invoices need approval.'); doc.note = 'submitted by ' + user.name;", "Before Submit");
+        await OrderScriptAsync("qahwa.insert('Followup', { subject: 'Submitted ' + doc.name });", "After Submit", "F");
+        var small = await InvoiceAsync(10);
+        var big = await InvoiceAsync(500);
+
+        var error = await RefusedAsync(() => _engine.Documents.SubmitAsync("Invoice", (string)big["name"]!, Ann));
+        Assert.Contains("approval", error.Errors.Single().Message);
+        Assert.Equal(0, Convert.ToInt32((await _engine.Documents.GetAsync("Invoice", (string)big["name"]!, Ann))["docstatus"]));
+
+        var submitted = await _engine.Documents.SubmitAsync("Invoice", (string)small["name"]!, Ann);
+        Assert.Equal("submitted by ann@example.com", submitted["note"]);
+        Assert.Equal($"Submitted {small["name"]}", Assert.Single((await _engine.Documents.ListAsync("Followup", new ListRequest { Fields = ["subject"] }, TestUsers.Admin)).Data)["subject"]);
+    }
+
+    [Fact]
+    public async Task Before_cancel_can_refuse_and_validate_does_not_run_on_cancel()
+    {
+        var invoice = await InvoiceAsync();
+        var name = (string)invoice["name"]!;
+        var fine = await InvoiceAsync();
+        await _engine.Documents.SubmitAsync("Invoice", name, Ann);
+        await OrderScriptAsync("qahwa.error('Never validates');", "Validate", "V");
+        await OrderScriptAsync("qahwa.error('Cancelling is not allowed.');", "Before Cancel", "C");
+
+        var error = await RefusedAsync(() => _engine.Documents.CancelAsync("Invoice", name, Ann));
+
+        Assert.Equal("Cancelling is not allowed.", error.Errors.Single().Message);
+        await Assert.ThrowsAsync<DocumentValidationException>(() => _engine.Documents.SubmitAsync("Invoice", (string)fine["name"]!, Ann)); // Validate does run on submit
+    }
+
+    [Fact]
+    public async Task Before_delete_can_refuse_a_deletion_and_scripts_in_it_cannot_change_things()
+    {
+        var invoice = await InvoiceAsync(1000);
+        var name = (string)invoice["name"]!;
+        var id = await OrderScriptAsync("if (doc.total >= 1000) qahwa.error('Large invoices must be kept.');", "Before Delete");
+
+        await RefusedAsync(() => _engine.Documents.DeleteAsync("Invoice", name, Ann));
+        Assert.NotNull(await _engine.Documents.GetAsync("Invoice", name, Ann));
+
+        await _engine.Documents.UpdateAsync("Server Script", id, Values(("script", "doc.note = 'x';")), TestUsers.SystemManager);
+        await RefusedAsync(() => _engine.Documents.DeleteAsync("Invoice", name, Ann)); // changes are not allowed here
+
+        await _engine.Documents.UpdateAsync("Server Script", id, Values(("active", 0)), TestUsers.SystemManager);
+        await _engine.Documents.DeleteAsync("Invoice", name, Ann);
+    }
+
+    [Fact]
+    public async Task After_cancel_runs_once_the_document_is_cancelled()
+    {
+        var invoice = await InvoiceAsync();
+        var name = (string)invoice["name"]!;
+        await OrderScriptAsync("qahwa.insert('Followup', { subject: 'Cancelled ' + doc.name });", "After Cancel");
+        await _engine.Documents.SubmitAsync("Invoice", name, Ann);
+        Assert.Empty((await _engine.Documents.ListAsync("Followup", new ListRequest(), TestUsers.Admin)).Data);
+
+        await _engine.Documents.CancelAsync("Invoice", name, Ann);
+
+        Assert.Single((await _engine.Documents.ListAsync("Followup", new ListRequest(), TestUsers.Admin)).Data);
     }
 }

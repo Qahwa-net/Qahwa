@@ -8,7 +8,7 @@
     { "name": "title", "type": "Data", "label": "Title", "required": true, "inListView": true },
     { "name": "active", "type": "Check", "label": "Active", "default": "1", "inListView": true },
     { "name": "reference_doctype", "type": "Link", "options": "DocType", "label": "DocType", "required": true, "indexed": true, "inListView": true },
-    { "name": "event", "type": "Select", "label": "When", "options": "Validate\nAfter Save", "default": "Validate", "required": true, "inListView": true },
+    { "name": "event", "type": "Select", "label": "When", "options": "Validate\nBefore Submit\nBefore Cancel\nBefore Delete\nAfter Save\nAfter Submit\nAfter Cancel", "default": "Validate", "required": true, "inListView": true },
     { "name": "script", "type": "Code", "label": "Script (JavaScript)", "required": true },
     { "name": "run_count", "type": "Int", "label": "Times run", "readOnly": true },
     { "name": "last_error", "type": "Text", "label": "Last problem", "readOnly": true }
