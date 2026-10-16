@@ -144,6 +144,7 @@ public static class HostingServiceCollectionExtensions
         services.AddSingleton<IPatch, MasterDataPatch>();
         services.TryAddSingleton<ReportService>();
         services.TryAddSingleton<BackupService>();
+        services.TryAddSingleton<DeletedDocumentService>();
         services.TryAddSingleton(sp =>
         {
             try

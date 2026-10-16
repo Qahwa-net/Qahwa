@@ -240,7 +240,7 @@ public sealed class BackupService(IMetaRegistry registry, IDocumentRepository re
 
             try
             {
-                var values = ToStorage(meta, line);
+                var values = RowFromJson(meta, line);
                 var name = (string)values["name"]!;
                 if (await repository.ExistsAsync(meta, name, ct))
                 {
@@ -269,7 +269,7 @@ public sealed class BackupService(IMetaRegistry registry, IDocumentRepository re
     private static readonly string[] Standard = ["name", "owner", "creation", "modified", "modified_by", "docstatus", "idx", "parent", "parenttype", "parentfield"];
 
     /// <summary>One line of a backup as the values the database layer stores. Only columns of the DocType are taken; everything else is ignored.</summary>
-    private static Dictionary<string, object?> ToStorage(DocTypeMeta meta, string line)
+    internal static Dictionary<string, object?> RowFromJson(DocTypeMeta meta, string line)
     {
         using var document = JsonDocument.Parse(line);
         if (document.RootElement.ValueKind != JsonValueKind.Object)

@@ -198,6 +198,11 @@ export const api = {
     return (await request<{ data: Record<string, LinkOption> }>('GET', `/api/link/${encodeURIComponent(doctype)}/titles?${query}`)).data
   },
 
+  /** Puts a deleted document back (System Manager). Returns the name it has again. */
+  async restoreDeleted(id: string): Promise<string> {
+    return (await request<{ data: { name: string } }>('POST', `/api/deleted-documents/${encodeURIComponent(id)}/restore`)).data.name
+  },
+
   /** Renames a document, or merges it into an existing one. Returns the new name. */
   async rename(doctype: string, name: string, newName: string, merge: boolean): Promise<string> {
     return (await request<{ data: { name: string } }>('POST', `${resource(doctype, name)}/rename`, { newName, merge })).data.name

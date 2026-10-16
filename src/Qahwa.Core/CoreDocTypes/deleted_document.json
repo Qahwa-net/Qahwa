@@ -1,0 +1,14 @@
+{
+  "name": "Deleted Document",
+  "module": "Core",
+  "autoname": "DEL-.######",
+  "trackChanges": false,
+  "fields": [
+    { "name": "deleted_doctype", "type": "Data", "label": "DocType", "readOnly": true, "inListView": true, "indexed": true },
+    { "name": "deleted_name", "type": "Data", "label": "Name", "readOnly": true, "inListView": true, "indexed": true },
+    { "name": "data", "type": "Json", "label": "What was deleted", "readOnly": true, "hidden": true }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "delete": true }
+  ]
+}

@@ -531,6 +531,13 @@ public sealed partial class DocumentService(
             log = [deleted];
         }
 
+        // A copy is kept (in the same transaction) so a System Manager can restore the document.
+        if (DeletedDocumentService.Keeps(meta) && await LoadAsync(meta, name, ct) is { } copyOf
+            && DeletedDocumentService.Capture(registry, meta, copyOf, user.User, Now()) is { } kept)
+        {
+            (log ??= []).Add(kept);
+        }
+
         if (!await repository.DeleteAsync(meta, name, childTables, ct, log))
             throw new NotFoundException($"{meta.Name} '{name}' was not found.");
         if (webhooks is not null)

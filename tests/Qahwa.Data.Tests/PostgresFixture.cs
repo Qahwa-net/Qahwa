@@ -202,6 +202,7 @@ public sealed class PgStack : IAsyncDisposable
         WebhookManager = new WebhookManager(Registry, WebhookStore, WebhookCatalog, permissions, Clock, allowInsecure: false);
         Bundle = new BundleService(Registry, Designer, Customization, Workflows, AssignmentRuleManager, NotificationRuleManager, permissions, Clock);
         Backup = new BackupService(Registry, Repository, Bundle, permissions, Clock);
+        DeletedDocuments = new DeletedDocumentService(Registry, Repository, permissions, History, Clock);
         Reports = new ReportService(Registry, Repository, Documents, permissions, Notifications, History);
         DocumentActions = new DocumentActionEngine(Registry, Repository, Documents, Clock);
         AppCatalog = new AppCatalog([]);
@@ -270,6 +271,7 @@ public sealed class PgStack : IAsyncDisposable
     public AppInstaller AppInstaller { get; }
     public BundleService Bundle { get; }
     public BackupService Backup { get; }
+    public DeletedDocumentService DeletedDocuments { get; }
     public ReportService Reports { get; }
     public AuthStore AuthStore { get; }
     public AuthOptions AuthOptions { get; }

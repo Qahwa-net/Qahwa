@@ -6,7 +6,7 @@ using Qahwa.Core;
 /// code that is safe to run on several servers at once, so no leader election is needed. Turn it off with
 /// <c>Qahwa:Scheduler:Enabled = false</c>; change the pace with <c>Qahwa:Scheduler:IntervalSeconds</c> (10 to 3600, default 300).
 /// </summary>
-public sealed class SchedulerService(AutoRepeatService autoRepeat, NotificationRuleEngine notificationRules, EmailService email, WebhookService webhooks, ErrorLogService errorLog, BackupService backup, BackupOptions backupOptions, AppJobRunner appJobs, IConfiguration configuration, ILogger<SchedulerService> logger) : BackgroundService
+public sealed class SchedulerService(AutoRepeatService autoRepeat, NotificationRuleEngine notificationRules, EmailService email, WebhookService webhooks, ErrorLogService errorLog, BackupService backup, BackupOptions backupOptions, AppJobRunner appJobs, DeletedDocumentService deletedDocuments, IConfiguration configuration, ILogger<SchedulerService> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -20,6 +20,7 @@ public sealed class SchedulerService(AutoRepeatService autoRepeat, NotificationR
         using var timer = new PeriodicTimer(interval);
         var lastRules = DateTime.MinValue;
         var lastBackup = DateTime.MinValue;
+        var lastPurge = DateTime.MinValue;
         do
         {
             try
@@ -72,6 +73,24 @@ public sealed class SchedulerService(AutoRepeatService autoRepeat, NotificationR
                 {
                     logger.LogError(ex, "The scheduler could not make a backup.");
                     await errorLog.RecordAsync("Scheduler", null, "The scheduler could not make a backup.", null, ex);
+                }
+            }
+
+            // Copies of deleted documents are kept for a while (30 days unless the site says otherwise), then removed.
+            if (DateTime.UtcNow - lastPurge >= TimeSpan.FromHours(1))
+            {
+                lastPurge = DateTime.UtcNow;
+                try
+                {
+                    var days = Math.Clamp(configuration.GetValue("Qahwa:DeletedDocuments:RetentionDays", DeletedDocumentService.DefaultRetentionDays), 1, 3650);
+                    var purged = await deletedDocuments.PurgeAsync(TimeSpan.FromDays(days), stoppingToken);
+                    if (purged > 0)
+                        logger.LogInformation("Removed {Count} old copy(ies) of deleted documents.", purged);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    logger.LogError(ex, "The scheduler could not remove old copies of deleted documents.");
+                    await errorLog.RecordAsync("Scheduler", null, "The scheduler could not remove old copies of deleted documents.", null, ex);
                 }
             }
 

@@ -289,6 +289,16 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
     },
   })
 
+  const restore = useMutation({
+    mutationFn: () => api.restoreDeleted(doc!.name),
+    onSuccess: async (restored) => {
+      toast('Restored')
+      await queryClient.invalidateQueries({ queryKey: ['list'] })
+      navigate(`/app/${encodeURIComponent(String(doc!.deleted_doctype))}/${encodeURIComponent(restored)}`, { replace: true })
+    },
+    onError: (error) =>
+      setBanner({ text: error instanceof ApiError ? error.message : 'Could not restore.', conflict: false }),
+  })
   const remove = useMutation({
     mutationFn: () => api.remove(meta.name, doc!.name),
     onSuccess: async () => {
@@ -394,6 +404,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
           {!isNew && !meta.isSingle && perms.write && docstatus !== 2 && <IconButton icon="mail" label="Email" onClick={() => setEmailing(true)} />}
           {!isNew && !meta.isSingle && perms.create && meta.module !== 'Core' && meta.autoname !== 'prompt' && <IconButton icon="repeat" label="Repeat" onClick={() => setRepeating(true)} />}
           {!isNew && meta.allowRename && perms.write && docstatus !== 1 && <IconButton icon="pencil" label="Rename" onClick={() => setRenaming(true)} />}
+          {!isNew && meta.name === 'Deleted Document' && perms.delete && <IconButton icon="undo" label="Restore" tone="primary" disabled={restore.isPending} onClick={() => restore.mutate()} />}
           {!isNew && !meta.isSingle && perms.delete && docstatus !== 1 && <IconButton icon="trash" label="Delete" tone="danger" disabled={remove.isPending} onClick={() => setConfirm('delete')} />}
           {!isNew && !flow && docstatus === 0 && meta.isSubmittable && perms.submit && (
             <IconButton icon="checkCircle" label={dirty ? 'Save your changes before submitting' : 'Submit'} tone="primary" disabled={dirty || transition.isPending} onClick={() => setConfirm('submit')} />

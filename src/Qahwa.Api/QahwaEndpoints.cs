@@ -128,6 +128,7 @@ public static class QahwaEndpoints
         app.MapQahwaOpenApi();
         app.MapQahwaSettings();
         app.MapQahwaBackup();
+        app.MapQahwaDeletedDocuments();
         app.MapQahwaReports();
         app.MapQahwaPdf();
         app.MapQahwaSso();

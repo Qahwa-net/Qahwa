@@ -166,6 +166,35 @@ public sealed class SpecialApiTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task A_deleted_document_can_be_restored_by_a_system_manager()
+    {
+        await CreateDocTypeAsync(new
+        {
+            name = "Keepsake",
+            autoname = "field:title",
+            fields = new object[] { new { name = "title", type = "Data", required = true }, new { name = "note", type = "Data" } },
+            permissions = new object[] { new { role = "Sales Manager", read = true, write = true, create = true, delete = true }, new { role = "System Manager", read = true, create = true } },
+        });
+        var manager = _factory.ClientFor("m@example.com", "Sales Manager");
+        var sysmgr = _factory.ClientFor("s@example.com", "System Manager");
+        await manager.PostAsJsonAsync("/api/resource/Keepsake", new { title = "gone", note = "hello" });
+        Assert.Equal(HttpStatusCode.OK, (await manager.DeleteAsync("/api/resource/Keepsake/gone")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await manager.GetAsync("/api/resource/Keepsake/gone")).StatusCode);
+
+        var listed = await JsonOf(await sysmgr.GetAsync("/api/resource/Deleted Document?filters=[[\"deleted_doctype\",\"=\",\"Keepsake\"]]"));
+        var id = listed.GetProperty("data")[0].GetProperty("name").GetString();
+        Assert.Equal(HttpStatusCode.Forbidden, (await manager.PostAsync($"/api/deleted-documents/{id}/restore", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateClient().PostAsync($"/api/deleted-documents/{id}/restore", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await sysmgr.PostAsync("/api/deleted-documents/NOPE/restore", null)).StatusCode);
+
+        var restored = await sysmgr.PostAsync($"/api/deleted-documents/{id}/restore", null);
+        Assert.Equal(HttpStatusCode.OK, restored.StatusCode);
+        Assert.Equal("gone", (await JsonOf(restored)).GetProperty("data").GetProperty("name").GetString());
+        Assert.Equal("hello", (await JsonOf(await manager.GetAsync("/api/resource/Keepsake/gone"))).GetProperty("data").GetProperty("note").GetString());
+        Assert.Equal(HttpStatusCode.NotFound, (await sysmgr.PostAsync($"/api/deleted-documents/{id}/restore", null)).StatusCode);
+    }
+
+    [Fact]
     public async Task Bulk_rename_over_the_api_reports_each_document()
     {
         await CreateDocTypeAsync(new
