@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { DocField } from '../api/types.ts'
 import { kindOf, labelOf, operatorsFor, selectOptions } from '../lib/fields.ts'
-import { describeFilter, type Filter, type FilterOp } from '../lib/filters.ts'
+import { describeFilter, TIMESPANS, type Filter, type FilterOp } from '../lib/filters.ts'
 
 interface Props {
   fields: DocField[]
@@ -13,6 +13,14 @@ interface Props {
 function buildValue(field: DocField, op: FilterOp, raw: string): Filter['value'] | null {
   if (op === 'is') return raw === 'not set' ? 'not set' : 'set'
   if (raw === '') return null
+  if (op === 'timespan') return (TIMESPANS as readonly string[]).includes(raw) ? raw : null
+  if (op === 'between') {
+    // Two ends kept in one text box as "from|to" (the form below shows two boxes).
+    const [from, to] = raw.split('|')
+    if (!from || !to) return null
+    const ends = [from, to].map((e) => (kindOf(field.type) === 'number' ? Number(e) : e))
+    return ends.some((e) => typeof e === 'number' && !Number.isFinite(e)) ? null : [ends[0]!, ends[1]!]
+  }
 
   switch (kindOf(field.type)) {
     case 'number': {
@@ -32,6 +40,25 @@ function ValueInput({ field, op, value, onChange }: {
   field: DocField; op: FilterOp; value: string; onChange: (v: string) => void
 }) {
   const label = 'Filter value'
+  if (op === 'timespan') {
+    return (
+      <select aria-label={label} value={value || 'today'} onChange={(e) => onChange(e.target.value)}>
+        {TIMESPANS.map((t) => <option key={t} value={t}>{t}</option>)}
+      </select>
+    )
+  }
+
+  if (op === 'between') {
+    const [from = '', to = ''] = value.split('|')
+    const type = kindOf(field.type) === 'number' ? 'number' : kindOf(field.type) === 'datetime' ? 'date' : 'date'
+    return (
+      <>
+        <input aria-label="From" type={type} step="any" value={from} onChange={(e) => onChange(`${e.target.value}|${to}`)} />
+        <input aria-label="To" type={type} step="any" value={to} onChange={(e) => onChange(`${from}|${e.target.value}`)} />
+      </>
+    )
+  }
+
   if (op === 'is') {
     return (
       <select aria-label={label} value={value || 'set'} onChange={(e) => onChange(e.target.value)}>

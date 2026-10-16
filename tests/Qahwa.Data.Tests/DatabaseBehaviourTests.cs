@@ -123,4 +123,37 @@ public class DatabaseBehaviourTests(PostgresFixture postgres) : IClassFixture<Po
         var tooMany = Enumerable.Range(0, db.Dialect.MaxParameters + 10).Select(i => (object)$"n{i}").ToList();
         await Assert.ThrowsAsync<FormatException>(() => db.Documents.ListAsync("Gadget", new ListRequest { Filters = [new RawFilter("title", "in", tooMany)], Fields = ["title"] }, Clerk));
     }
+
+    [SkippableFact]
+    public async Task A_backslash_makes_a_wildcard_character_literal_in_a_search()
+    {
+        await using var db = await StackAsync();
+        await db.Documents.InsertAsync("Gadget", Values(("title", "x_a_y")), Clerk);
+        await db.Documents.InsertAsync("Gadget", Values(("title", "xZaZy")), Clerk);
+        await db.Documents.InsertAsync("Gadget", Values(("title", "100% sure")), Clerk);
+
+        async Task<string[]> Find(string pattern) =>
+            (await db.Documents.ListAsync("Gadget", new ListRequest { Filters = [new RawFilter("title", "like", pattern)], Fields = ["title"], OrderBy = "title", Descending = false }, Clerk)).Data.Select(r => (string)r["title"]!).ToArray();
+
+        Assert.Equal(["x_a_y"], await Find(@"%x\_a\_y%"));
+        Assert.Equal(["100% sure"], await Find(@"100\%%"));
+        Assert.Equal(["x_a_y", "xZaZy"], await Find("x_a_y")); // an unescaped _ is a wildcard
+    }
+
+    [SkippableFact]
+    public async Task Negative_and_range_filters_agree_on_empty_values_and_whole_days()
+    {
+        await using var db = await StackAsync();
+        await db.Documents.InsertAsync("Gadget", Values(("title", "Alpha"), ("seen", "2026-03-10T08:00:00Z"), ("price", 5)), Clerk);
+        await db.Documents.InsertAsync("Gadget", Values(("title", "Beta"), ("seen", "2026-03-10T23:59:59Z"), ("price", 10)), Clerk);
+        await db.Documents.InsertAsync("Gadget", Values(("seen", "2026-03-11T00:00:00Z"), ("price", 20)), Clerk); // no title
+
+        async Task<string[]> Prices(params RawFilter[] filters) =>
+            (await db.Documents.ListAsync("Gadget", new ListRequest { Filters = filters, Fields = ["price"], OrderBy = "price", Descending = false }, Clerk)).Data.Select(r => r["price"]!.ToString()!).ToArray();
+
+        Assert.Equal(["10", "20"], await Prices(new RawFilter("title", "not like", "%alpha%")));
+        Assert.Equal(["5", "20"], await Prices(new RawFilter("title", "not in", new[] { "Beta" })));
+        Assert.Equal(["5", "10"], await Prices(new RawFilter("seen", "between", new[] { "2026-03-10", "2026-03-10" })));
+        Assert.Equal(["10", "20"], await Prices(new RawFilter("price", "between", new object[] { 10, 20 })));
+    }
 }

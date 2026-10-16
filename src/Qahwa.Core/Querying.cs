@@ -11,6 +11,12 @@ public enum FilterOp
     Like,
     In,
 
+    /// <summary>Does not match the pattern (and an empty value counts as not matching it).</summary>
+    NotLike,
+
+    /// <summary>Not in the list (and an empty value counts as not in it).</summary>
+    NotIn,
+
     /// <summary>In the list, or empty (used by User Permissions on Link fields).</summary>
     InOrNull,
 

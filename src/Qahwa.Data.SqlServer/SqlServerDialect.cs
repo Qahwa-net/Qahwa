@@ -109,6 +109,8 @@ public sealed class SqlServerDialect : ISqlDialect
         "UPDATE [tabSeries] WITH (UPDLOCK, HOLDLOCK) SET [current] = @p1 WHERE [name] = @p0; " +
         "IF @@ROWCOUNT = 0 INSERT INTO [tabSeries] ([name], [current]) VALUES (@p0, @p1); COMMIT;";
 
+    public string LikeEscape => " ESCAPE '\\'";
+
     // SQL Server allows 2,100 parameters in a statement; keep some for the other conditions.
     public int MaxParameters => 2000;
 

@@ -11,6 +11,14 @@ On any list click **Columns**.
 
 You can only choose columns you are allowed to see; protected fields do not appear in the list.
 
+## Conditions you can use
+Besides *equals*, *not equals*, *greater/less*, *contains* and *is set / not set*, a filter can be:
+- **does not contain** (text) and **not equals / not in**: documents with an empty value are included, because an empty value is not equal to anything;
+- **between** (numbers, dates, moments): both ends are included. For a moment, a date as the end means the whole of that day;
+- **in the period** (dates, moments): today, yesterday, tomorrow, this/last/next week (Monday to Sunday), month, quarter or year, the last 7, 30 or 90 days, the next 7 or 30 days.
+
+In saved filters and in the address you can write `__user` (you), `__today` and `__now`, so a filter such as "Assigned to = __user" means *you* for everyone who uses it.
+
 ## Saved filters
 
 1. Set filters on the list (field, condition, value).

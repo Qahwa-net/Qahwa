@@ -198,6 +198,28 @@ public sealed class SqlBuilder(ISqlDialect dialect)
 
                     sql.Append(')');
                     break;
+                case FilterOp.NotIn:
+                    var excluded = (filter.Value as IEnumerable<object?> ?? []).Where(v => v is not null).ToList();
+                    if (excluded.Count == 0)
+                    {
+                        sql.Append("1 = 1");
+                        break;
+                    }
+
+                    sql.Append('(').Append(column).Append(" IS NULL OR ").Append(column).Append(" NOT IN (");
+                    for (var n = 0; n < excluded.Count; n++)
+                    {
+                        sql.Append(n == 0 ? string.Empty : ", ").Append(dialect.Parameter(parameters.Count));
+                        parameters.Add(excluded[n]);
+                    }
+
+                    sql.Append("))");
+                    break;
+                case FilterOp.NotLike:
+                    sql.Append('(').Append(column).Append(" IS NULL OR ").Append(column).Append(" NOT ").Append(dialect.LikeOperator).Append(' ')
+                        .Append(dialect.Parameter(parameters.Count)).Append(dialect.LikeEscape).Append(')');
+                    parameters.Add(filter.Value);
+                    break;
                 case FilterOp.In:
                     var items = (filter.Value as IEnumerable<object?> ?? []).Where(v => v is not null).ToList();
                     if (items.Count == 0)
@@ -218,6 +240,8 @@ public sealed class SqlBuilder(ISqlDialect dialect)
                 default:
                     sql.Append(column).Append(' ').Append(Symbol(filter.Op)).Append(' ')
                         .Append(dialect.Parameter(parameters.Count));
+                    if (filter.Op == FilterOp.Like)
+                        sql.Append(dialect.LikeEscape);
                     parameters.Add(filter.Value);
                     break;
             }

@@ -83,6 +83,9 @@ public interface ISqlDialect
     /// <summary>The text-matching operator. Searches are case-insensitive, so a typed "acme" finds "Acme Ltd".</summary>
     string LikeOperator => "LIKE";
 
+    /// <summary>Said after a pattern so that a backslash makes the next character literal (the Desk writes <c>\_</c> for a real underscore). PostgreSQL does this by default.</summary>
+    string LikeEscape => string.Empty;
+
     string TableName(string docType) => Quote("tab" + docType);
 }
 

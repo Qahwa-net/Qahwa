@@ -294,6 +294,10 @@ public sealed class InMemoryDocumentRepository : IDocumentRepository
             case FilterOp.OwnerOrNames: { var o = (OwnerOrNames)filter.Value!; return Equals(actual, o.Owner) || o.Names.Contains(name); }
             case FilterOp.InOrNull: return actual is null || (filter.Value as IEnumerable<object?> ?? []).Any(v => Equals(v, actual));
             case FilterOp.In: return (filter.Value as IEnumerable<object?> ?? []).Any(v => Equals(v, actual));
+            case FilterOp.NotIn: return actual is null || !(filter.Value as IEnumerable<object?> ?? []).Any(v => Equals(v, actual));
+            case FilterOp.NotLike:
+                var notPattern = "^" + Regex.Escape((string)filter.Value!).Replace("%", ".*").Replace("_", ".") + "$";
+                return actual is not string t || !Regex.IsMatch(t, notPattern, RegexOptions.IgnoreCase | RegexOptions.Singleline);
             case FilterOp.Like:
                 var pattern = "^" + Regex.Escape((string)filter.Value!).Replace("%", ".*").Replace("_", ".") + "$";
                 return actual is string s && Regex.IsMatch(s, pattern, RegexOptions.IgnoreCase | RegexOptions.Singleline);

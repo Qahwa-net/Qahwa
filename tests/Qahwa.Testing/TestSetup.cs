@@ -13,6 +13,8 @@ public sealed class TestClock(DateTimeOffset now) : TimeProvider
     public override DateTimeOffset GetUtcNow() => _now;
 
     public void Advance(TimeSpan by) => _now += by;
+
+    public void Set(DateTimeOffset moment) => _now = moment;
 }
 
 public static class TestMetas

@@ -59,7 +59,7 @@ Instead of the cookie, a program sends `Authorization: Bearer qk_<id>.<secret>`.
 | `GET /resource/{doctype}/group-by?field=&filters=&limit=` | Counts per value of a field under the list filters: `[{ value, count }]` (`value` null = empty; Check fields give "1"/"0"). Select, Link, Check, Data, Email, Phone, Int fields you may read, or `owner`, `modified_by`, `docstatus`; max 50 groups |
 | `GET /resource/{doctype}/comment-counts?names=["a","b"]` | `{ name: count }` for the documents you may read (max 100 names; system notes not counted) |
 
-**Filters** are `[[field, operator, value], ...]` or an object of equality pairs. Operators: `=` `!=` `>` `<` `>=` `<=` `like` `in` `is` (`"set"` / `"not set"`). Fields must be columns the user may read. Text matching is case-insensitive.
+**Filters** are `[[field, operator, value], ...]` or an object of equality pairs. Operators: `=` `!=` `>` `<` `>=` `<=` `like` `not like` `in` `not in` `between` (`[from, to]`, ends included) `timespan` (`"today"`, `"this month"`, `"last 7 days"`, … see ADR-060) `is` (`"set"` / `"not set"`). The values `"__user"`, `"__today"` and `"__now"` stand for the caller and the current date or moment. Fields must be columns the user may read. Text matching is case-insensitive.
 
 **Single DocTypes:** `GET /resource/{doctype}/{doctype}` returns the defaults until first saved; `PUT` to the same URL creates then updates it.
 

@@ -44,7 +44,9 @@ public sealed partial class DocumentService(
         [">="] = FilterOp.Ge,
         ["<="] = FilterOp.Le,
         ["like"] = FilterOp.Like,
+        ["not like"] = FilterOp.NotLike,
         ["in"] = FilterOp.In,
+        ["not in"] = FilterOp.NotIn,
         ["is"] = FilterOp.IsNull, // resolved below from the value ("set" / "not set")
     };
 
@@ -525,7 +527,7 @@ public sealed partial class DocumentService(
             : (await shares.ForUserAsync(meta.Name, user, ct)).Where(kv => kv.Value.Allows(PermAction.Read)).Select(kv => kv.Key).ToList();
         if (access == AccessLevel.None && sharedNames.Count == 0)
             permissions.Require(meta, user, PermAction.Read); // throws
-        var query = Normalize(meta, request, permissions.FieldAccessFor(meta, user, documentOwner: null, creating: false));
+        var query = Normalize(meta, request, permissions.FieldAccessFor(meta, user, documentOwner: null, creating: false), user);
 
         if (access == AccessLevel.None)
             query = query with { Filters = [.. query.Filters, new QueryFilter("name", FilterOp.In, sharedNames.Cast<object?>().ToList())] };
@@ -689,8 +691,9 @@ public sealed partial class DocumentService(
         return shaped;
     }
 
-    private ListQuery Normalize(DocTypeMeta meta, ListRequest request, FieldAccess access)
+    private ListQuery Normalize(DocTypeMeta meta, ListRequest request, FieldAccess access, IUserContext? asker = null)
     {
+        var moment = clock.GetUtcNow().UtcDateTime;
         var columns = meta.ColumnTypes();
         var errors = new List<FieldError>();
 
@@ -731,7 +734,8 @@ public sealed partial class DocumentService(
                 continue;
             }
 
-            if (!Operators.TryGetValue(raw.Op, out var op))
+            var opName = raw.Op.Trim().ToLowerInvariant();
+            if (!Operators.ContainsKey(opName) && opName is not ("between" or "timespan"))
             {
                 errors.Add(new FieldError(raw.Field, $"Unsupported filter operator '{raw.Op}'."));
                 continue;
@@ -739,7 +743,10 @@ public sealed partial class DocumentService(
 
             try
             {
-                filters.Add(BuildFilter(raw, type, op));
+                // "__user" and "__today" first, then "between" and "timespan" become bounds, then the usual conversion for the field's type.
+                var withWords = raw with { Op = opName, Value = FilterExpansion.Dynamic(raw.Value, asker?.User, moment) };
+                foreach (var part in FilterExpansion.Expand(withWords, type, moment))
+                    filters.Add(BuildFilter(part, type, Operators[part.Op]));
             }
             catch (FormatException ex)
             {
@@ -786,13 +793,13 @@ public sealed partial class DocumentService(
                     _ => throw new FormatException("Use 'set' or 'not set' with the 'is' operator."),
                 };
 
-            case FilterOp.In:
+            case FilterOp.In or FilterOp.NotIn:
                 var items = FieldValueConverter.UnwrapList(raw.Value)
                     .Select(v => FieldValueConverter.ToStorage(type, v))
                     .ToList();
                 return new QueryFilter(raw.Field, op, items);
 
-            case FilterOp.Like:
+            case FilterOp.Like or FilterOp.NotLike:
                 if (!FieldTypes.IsTextual(type))
                     throw new FormatException("'like' only works on text fields.");
                 return new QueryFilter(raw.Field, op, FieldValueConverter.ToStorage(FieldType.Data, raw.Value));

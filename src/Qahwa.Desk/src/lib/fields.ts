@@ -55,8 +55,10 @@ export function operatorsFor(type: FieldType): { op: FilterOp; label: string }[]
   const isSet = { op: 'is', label: 'is' } as const
 
   switch (kindOf(type)) {
-    case 'number': case 'date': case 'datetime': case 'time':
-      return [...compare, isSet]
+    case 'number': case 'time':
+      return [...compare, ...(kindOf(type) === 'number' ? [{ op: 'between', label: 'between' } as const] : []), isSet]
+    case 'date': case 'datetime':
+      return [...compare, { op: 'between', label: 'between' }, { op: 'timespan', label: 'in the period' }, isSet]
     case 'check':
       return [{ op: '=', label: 'equals' }]
     case 'select':
@@ -65,7 +67,7 @@ export function operatorsFor(type: FieldType): { op: FilterOp; label: string }[]
       return [{ op: '=', label: 'equals' }, { op: '!=', label: 'not equals' }, { op: 'like', label: 'contains' }, isSet]
     default:
       return [
-        { op: 'like', label: 'contains' }, { op: '=', label: 'equals' }, { op: '!=', label: 'not equals' }, isSet,
+        { op: 'like', label: 'contains' }, { op: 'not like', label: 'does not contain' }, { op: '=', label: 'equals' }, { op: '!=', label: 'not equals' }, isSet,
       ]
   }
 }
