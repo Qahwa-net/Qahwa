@@ -12,4 +12,8 @@
     <ProjectReference Include="..\Qahwa.Core\Qahwa.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="System.DirectoryServices.Protocols" Version="10.0.13" />
+  </ItemGroup>
+
 </Project>

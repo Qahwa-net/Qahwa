@@ -40,7 +40,8 @@ public sealed class QahwaFactory(
     string environment = "Development",
     bool realAuth = false,
     int loginPermitsPerMinute = 1000,
-    bool signUp = false) : WebApplicationFactory<Program>
+    bool signUp = false,
+    bool ldap = false) : WebApplicationFactory<Program>
 {
     /// <summary>Every email the server tried to send.</summary>
     public FakeEmailSender Mail { get; } = new();
@@ -50,6 +51,9 @@ public sealed class QahwaFactory(
 
     /// <summary>The stand-in identity provider behind the "idp" single sign-on provider.</summary>
     public FakeIdentityProvider IdentityProvider { get; } = new();
+
+    /// <summary>The stand-in company directory (used when the factory is made with <c>ldap: true</c>).</summary>
+    public FakeLdapDirectory Directory { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
@@ -63,6 +67,12 @@ public sealed class QahwaFactory(
             ["Qahwa:Auth:LoginPermitsPerMinute"] = loginPermitsPerMinute.ToString(),
             ["Qahwa:Auth:SignUp:Enabled"] = signUp ? "true" : "false",
             ["Qahwa:Auth:SignUp:DefaultRoles:0"] = "Clerk",
+            ["Qahwa:Auth:Ldap:Enabled"] = ldap ? "true" : "false",
+            ["Qahwa:Auth:Ldap:Server"] = "ldap.example.com",
+            ["Qahwa:Auth:Ldap:BaseDn"] = "dc=example,dc=com",
+            ["Qahwa:Auth:Ldap:AutoCreate"] = "true",
+            ["Qahwa:Auth:Ldap:AllowedDomains:0"] = "example.com",
+            ["Qahwa:Auth:Ldap:DefaultRoles:0"] = "Clerk",
             ["Qahwa:Auth:Sso:Providers:idp:DisplayName"] = "Company login",
             ["Qahwa:Auth:Sso:Providers:idp:Authority"] = FakeIdentityProvider.Authority,
             ["Qahwa:Auth:Sso:Providers:idp:ClientId"] = FakeIdentityProvider.ClientId,
@@ -109,6 +119,8 @@ public sealed class QahwaFactory(
             services.AddSingleton<ISecretProtector>(new FakeSecretProtector());
             services.RemoveAll<IOidcBackchannel>();
             services.AddSingleton<IOidcBackchannel>(IdentityProvider);
+            services.RemoveAll<ILdapDirectory>();
+            services.AddSingleton<ILdapDirectory>(Directory);
             services.RemoveAll<IIdentityStore>();
             services.AddSingleton<IIdentityStore>(new InMemoryIdentityStore());
             services.RemoveAll<IAuthStore>();

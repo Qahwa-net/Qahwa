@@ -36,6 +36,7 @@ builder.Services.AddSingleton(fileOptions);
 builder.Services.AddSingleton<IFileStorage>(new DiskFileStorage(builder.Configuration["Qahwa:Files:Path"] ?? Path.Combine(builder.Environment.ContentRootPath, "data", "files")));
 builder.Services.Configure<SsoOptions>(builder.Configuration.GetSection("Qahwa:Auth:Sso"));
 builder.Services.Configure<SignUpOptions>(builder.Configuration.GetSection("Qahwa:Auth:SignUp"));
+builder.Services.Configure<LdapOptions>(builder.Configuration.GetSection("Qahwa:Auth:Ldap"));
 builder.Services.AddSingleton(builder.Configuration.GetSection("Qahwa:Backup").Get<BackupOptions>() ?? new BackupOptions());
 builder.Services.Replace(ServiceDescriptor.Singleton<IPdfRenderer>(new BrowserPdfRenderer(builder.Configuration.GetSection("Qahwa:Pdf").Get<PdfOptions>() ?? new PdfOptions())));
 builder.Services.AddHostedService<SchedulerService>();
@@ -105,6 +106,8 @@ foreach (var failure in await app.Services.GetRequiredService<CustomizationManag
 
 // A mistake in Qahwa:Auth:AllowedIps must stop the server here, not quietly open or close the system.
 _ = app.Services.GetRequiredService<IpAllowList>();
+if (LdapService.Problem(app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<LdapOptions>>().Value) is { } ldapProblem)
+    throw new InvalidOperationException(ldapProblem);
 
 // Webhooks.
 foreach (var failure in await app.Services.GetRequiredService<WebhookManager>().LoadAsync())

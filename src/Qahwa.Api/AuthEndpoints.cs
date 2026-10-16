@@ -43,13 +43,32 @@ public static class AuthEndpoints
     {
         var auth = app.MapGroup("/api/auth");
 
-        auth.MapPost("/login", async (LoginRequest body, HttpContext http, AuthService service, TwoFactorService twoFactor, SessionService sessions, PasswordResetService reset, CancellationToken ct) =>
+        auth.MapPost("/login", async (LoginRequest body, HttpContext http, AuthService service, TwoFactorService twoFactor, SessionService sessions, PasswordResetService reset, LdapService ldap, CancellationToken ct) =>
         {
-            var key = await service.VerifyPasswordAsync(body.Email, body.Password, ct)
-                ?? throw new InvalidCredentialsException();
+            // People who sign in through the company directory use only that (their local password is a random one nobody knows);
+            // everyone else uses their password here and, if that does not fit, the directory gets a try (which may link them).
+            string? key;
+            var viaDirectory = false;
+            if (ldap.Enabled && AuthService.Normalize(body.Email) is { } wanted && await ldap.IsDirectoryUserAsync(wanted, ct))
+            {
+                key = await ldap.SignInAsync(body.Email, body.Password, ct);
+                viaDirectory = key is not null;
+            }
+            else
+            {
+                key = await service.VerifyPasswordAsync(body.Email, body.Password, ct);
+                if (key is null && ldap.Enabled)
+                {
+                    key = await ldap.SignInAsync(body.Email, body.Password, ct);
+                    viaDirectory = key is not null;
+                }
+            }
+
+            if (key is null)
+                throw new InvalidCredentialsException();
 
             // A password that has grown too old must be replaced before anything else: no session, only a short-lived way to do that.
-            if (await service.PasswordExpiredAsync(key, ct) && await reset.CreateExpiredTokenAsync(key, ct) is { } expired)
+            if (!viaDirectory && await service.PasswordExpiredAsync(key, ct) && await reset.CreateExpiredTokenAsync(key, ct) is { } expired)
                 return Results.Ok(new { data = new { password_expired = true, token = expired } });
 
             // With two-factor on, the password alone gets no session: only a short-lived challenge to answer with a code.

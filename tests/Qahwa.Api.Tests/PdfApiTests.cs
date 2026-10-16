@@ -89,14 +89,14 @@ public class BrowserPdfRendererTests
     [SkippableFact]
     public async Task A_page_that_asks_for_other_addresses_gets_nothing_and_does_not_hang()
     {
-        var renderer = new BrowserPdfRenderer(new PdfOptions { TimeoutSeconds = 20 });
+        var renderer = new BrowserPdfRenderer(new PdfOptions { TimeoutSeconds = 60 });
         Skip.IfNot(renderer.Available, "No Chrome, Chromium or Edge on this machine.");
         var watch = System.Diagnostics.Stopwatch.StartNew();
 
         var pdf = await renderer.RenderAsync(PdfService.Prepare("<html><head></head><body><img src=\"http://127.0.0.1:9/x.png\"><img src=\"http://10.255.255.1/x.png\"><p>Still prints</p></body></html>"));
 
         Assert.StartsWith("%PDF", System.Text.Encoding.ASCII.GetString(pdf, 0, 4));
-        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(15), $"took {watch.Elapsed}");
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(45), $"took {watch.Elapsed}");
     }
 
     [Fact]

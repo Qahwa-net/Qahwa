@@ -150,6 +150,9 @@ public sealed class TestEngine
         Sso = new SsoService(Options.Create(SsoOptions), IdentityProvider, IdentityStore, Auth, protector, Clock);
         TwoFactor = new TwoFactorService(TotpStore, protector, AuthStore, Options.Create(AuthOptions), Clock);
         Sessions = new SessionService(new InMemorySessionStore(), Options.Create(AuthOptions), Clock);
+        LdapDirectory = new FakeLdapDirectory();
+        LdapOptions = new LdapOptions { Enabled = true, Server = "ldap.example.com", BaseDn = "dc=example,dc=com", BindDn = "cn=reader,dc=example,dc=com", BindPassword = "x" };
+        Ldap = new LdapService(Options.Create(LdapOptions), LdapDirectory, IdentityStore, Auth, Clock);
         SignUpOptions = new SignUpOptions { Enabled = true, DefaultRoles = ["Clerk"] };
         SignUp = new SignUpService(Auth, protector, EmailSender, new HitCounter(Clock), Options.Create(SignUpOptions), Clock);
         PasswordReset = new PasswordResetService(Auth, AuthStore, protector, Sessions, EmailSender, new HitCounter(Clock), Clock);
@@ -193,6 +196,9 @@ public sealed class TestEngine
     public InMemoryIdentityStore IdentityStore { get; }
     public SsoOptions SsoOptions { get; }
     public SsoService Sso { get; }
+    public FakeLdapDirectory LdapDirectory { get; }
+    public LdapOptions LdapOptions { get; }
+    public LdapService Ldap { get; }
     public SignUpOptions SignUpOptions { get; }
     public SignUpService SignUp { get; }
     public FakePdfRenderer PdfRenderer { get; }

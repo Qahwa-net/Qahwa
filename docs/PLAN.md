@@ -627,7 +627,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Two-factor authentication (TOTP, email, SMS) | done: TOTP with recovery codes and admin reset (ADR-039); not email/SMS/passkeys | ✅ (v1) | L10 |
 | API keys / secrets, token auth | done: per-person Bearer keys, hashed, read-only and expiry; not yet scopes, rate limits, OAuth | ✅ (v1) | L10 |
 | OAuth 2 provider, social login (Google, GitHub, Microsoft, Keycloak), OpenID Connect | done: OpenID Connect sign-in (code + PKCE, state, nonce, full token checks, identity linking, domain allow-list, auto-create) with any provider; not an OAuth provider for other apps, no group/role mapping (ADR-051) | 🟡 | L10 |
-| LDAP, SAML single sign-on | | ⬜ | L12 |
+| LDAP, SAML single sign-on | done: LDAP / Active Directory sign-in (ADR-054, tested against a stand-in directory); not SAML | 🟡 | L12 |
 | Session management (list/revoke, expiry), login as user (impersonation) | done: list, revoke, admin sign-out-everywhere, absolute limit (ADR-040); impersonation deliberately not built | ✅ (v1) | L10 |
 | IP restrictions, system settings (security) | done: IP allow-list in configuration, System Settings (display) (ADR-042); not per-role IP rules | ✅ (v1) | L10 |
 | Encrypted fields (Password type) | | ⬜ | L3 |
