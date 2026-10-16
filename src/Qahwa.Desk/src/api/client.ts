@@ -108,6 +108,12 @@ export const api = {
 
   settings: async () => (await request<{ data: DisplaySettings }>('GET', '/api/settings')).data,
 
+  signUp: {
+    enabled: async () => (await request<{ data: { enabled: boolean } }>('GET', '/api/auth/signup')).data.enabled,
+    ask: (email: string, fullName: string) => request<{ message: string }>('POST', '/api/auth/signup', { email, full_name: fullName }),
+    confirm: (token: string, password: string) => request<unknown>('POST', '/api/auth/signup/confirm', { token, password }),
+  },
+
   passwordReset: {
     ask: (email: string) => request<{ message: string }>('POST', '/api/auth/forgot', { email }),
     reset: (token: string, newPassword: string) => request<unknown>('POST', '/api/auth/reset-password', { token, new_password: newPassword }),

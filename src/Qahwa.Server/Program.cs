@@ -35,6 +35,7 @@ fileOptions.MaxMegabytes = Math.Clamp(fileOptions.MaxMegabytes, 1, 100);
 builder.Services.AddSingleton(fileOptions);
 builder.Services.AddSingleton<IFileStorage>(new DiskFileStorage(builder.Configuration["Qahwa:Files:Path"] ?? Path.Combine(builder.Environment.ContentRootPath, "data", "files")));
 builder.Services.Configure<SsoOptions>(builder.Configuration.GetSection("Qahwa:Auth:Sso"));
+builder.Services.Configure<SignUpOptions>(builder.Configuration.GetSection("Qahwa:Auth:SignUp"));
 builder.Services.AddSingleton(builder.Configuration.GetSection("Qahwa:Backup").Get<BackupOptions>() ?? new BackupOptions());
 builder.Services.Replace(ServiceDescriptor.Singleton<IPdfRenderer>(new BrowserPdfRenderer(builder.Configuration.GetSection("Qahwa:Pdf").Get<PdfOptions>() ?? new PdfOptions())));
 builder.Services.AddHostedService<SchedulerService>();

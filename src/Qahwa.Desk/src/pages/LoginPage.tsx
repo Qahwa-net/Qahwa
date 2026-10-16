@@ -23,9 +23,11 @@ export function LoginPage() {
   const [repeat, setRepeat] = useState('')
   const [notice, setNotice] = useState<string | null>(null)
   const [providers, setProviders] = useState<SsoProviderInfo[]>([])
+  const [canSignUp, setCanSignUp] = useState(false)
 
   useEffect(() => {
     api.sso.providers().then(setProviders, () => setProviders([]))
+    api.signUp.enabled().then(setCanSignUp, () => setCanSignUp(false))
   }, [])
 
   if (user) return <Navigate to={safeNext(params.get('next'))} replace />
@@ -117,6 +119,7 @@ export function LoginPage() {
           <a key={p.name} className="btn" href={ssoStartUrl(p.name, params.get('next'))}>Sign in with {p.display_name}</a>
         ))}
         {!challenge && <Link to="/forgot-password" className="muted">Forgot your password?</Link>}
+        {!challenge && canSignUp && <Link to="/sign-up" className="muted">Create an account</Link>}
         {challenge && <button className="btn" type="button" onClick={() => { setChallenge(null); setExpired(false); setCode(''); setError(null) }}>Back</button>}
       </form>
     </main>

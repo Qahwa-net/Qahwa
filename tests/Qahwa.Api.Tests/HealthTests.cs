@@ -39,7 +39,8 @@ internal sealed class HeaderUserContextResolver : IUserContextResolver
 public sealed class QahwaFactory(
     string environment = "Development",
     bool realAuth = false,
-    int loginPermitsPerMinute = 1000) : WebApplicationFactory<Program>
+    int loginPermitsPerMinute = 1000,
+    bool signUp = false) : WebApplicationFactory<Program>
 {
     /// <summary>Every email the server tried to send.</summary>
     public FakeEmailSender Mail { get; } = new();
@@ -60,6 +61,8 @@ public sealed class QahwaFactory(
             ["Qahwa:Auth:HashIterations"] = "1000",
             ["Qahwa:Auth:SessionCacheSeconds"] = "0",
             ["Qahwa:Auth:LoginPermitsPerMinute"] = loginPermitsPerMinute.ToString(),
+            ["Qahwa:Auth:SignUp:Enabled"] = signUp ? "true" : "false",
+            ["Qahwa:Auth:SignUp:DefaultRoles:0"] = "Clerk",
             ["Qahwa:Auth:Sso:Providers:idp:DisplayName"] = "Company login",
             ["Qahwa:Auth:Sso:Providers:idp:Authority"] = FakeIdentityProvider.Authority,
             ["Qahwa:Auth:Sso:Providers:idp:ClientId"] = FakeIdentityProvider.ClientId,

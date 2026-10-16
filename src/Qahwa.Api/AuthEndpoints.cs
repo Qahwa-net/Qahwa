@@ -27,6 +27,10 @@ public sealed record ResetPasswordRequest(string? Token, [property: JsonProperty
 
 public sealed record ExpiredPasswordRequest(string? Token, [property: JsonPropertyName("old_password")] string? OldPassword, [property: JsonPropertyName("new_password")] string? NewPassword);
 
+public sealed record SignUpRequest(string? Email, [property: JsonPropertyName("full_name")] string? FullName);
+
+public sealed record SignUpConfirmRequest(string? Token, string? Password);
+
 public sealed record TwoFactorLoginRequest(string? Token, string? Code);
 
 public sealed record TwoFactorCodeRequest(string? Code, string? Password);
@@ -88,6 +92,30 @@ public static class AuthEndpoints
             }
 
             return Results.Ok(new { message = "If that address has an account, we have sent a link to reset the password." });
+        }).RequireRateLimiting(AuthClaims.LoginRateLimit);
+
+        // Self sign-up: off unless switched on. The answer never says whether the address already has an account.
+        auth.MapGet("/signup", (SignUpService signUp) => Results.Ok(new { data = new { enabled = signUp.Enabled } }));
+
+        auth.MapPost("/signup", async (SignUpRequest body, HttpContext http, SignUpService signUp, IOptions<AuthOptions> options, IHostEnvironment env, ILoggerFactory logs, ErrorLogService errorLog, CancellationToken ct) =>
+        {
+            var baseUrl = options.Value.PublicUrl ?? (env.IsDevelopment() ? $"{http.Request.Scheme}://{http.Request.Host}" : null);
+            if (baseUrl is null)
+                logs.CreateLogger("Qahwa.Auth").LogWarning("A sign-up was made but Qahwa:Auth:PublicUrl is not set, so no link was sent.");
+            else if (await signUp.PrepareAsync(body.Email, body.FullName, baseUrl, http.Connection.RemoteIpAddress?.ToString() ?? "unknown", ct) is { } mail)
+            {
+                if (env.IsDevelopment())
+                    logs.CreateLogger("Qahwa.Auth").LogInformation("Sign-up link for {User} (shown only in Development): {Link}", mail.To, mail.Link);
+                signUp.SendInBackground(mail, ex => _ = errorLog.RecordAsync("Request", "POST", "/api/auth/signup", null, ex));
+            }
+
+            return Results.Ok(new { message = "If that address can be used, we have sent a link to confirm it and finish making your account." });
+        }).RequireRateLimiting(AuthClaims.LoginRateLimit);
+
+        auth.MapPost("/signup/confirm", async (SignUpConfirmRequest body, SignUpService signUp, CancellationToken ct) =>
+        {
+            await signUp.ConfirmAsync(body.Token, body.Password, ct);
+            return Results.Ok(new { message = "ok" });
         }).RequireRateLimiting(AuthClaims.LoginRateLimit);
 
         auth.MapPost("/reset-password", async (ResetPasswordRequest body, PasswordResetService reset, CancellationToken ct) =>

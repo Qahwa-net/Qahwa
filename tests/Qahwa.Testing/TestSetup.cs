@@ -149,6 +149,8 @@ public sealed class TestEngine
         Sso = new SsoService(Options.Create(SsoOptions), IdentityProvider, IdentityStore, Auth, protector, Clock);
         TwoFactor = new TwoFactorService(TotpStore, protector, AuthStore, Options.Create(AuthOptions), Clock);
         Sessions = new SessionService(new InMemorySessionStore(), Options.Create(AuthOptions), Clock);
+        SignUpOptions = new SignUpOptions { Enabled = true, DefaultRoles = ["Clerk"] };
+        SignUp = new SignUpService(Auth, protector, EmailSender, new HitCounter(Clock), Options.Create(SignUpOptions), Clock);
         PasswordReset = new PasswordResetService(Auth, AuthStore, protector, Sessions, EmailSender, new HitCounter(Clock), Clock);
         Webhooks = new WebhookService(WebhookCatalog, Registry, Repository, Documents, WebhookSender, History);
         WebhookManager = new WebhookManager(Registry, WebhookStore, WebhookCatalog, Permissions, Clock, allowInsecure: false);
@@ -190,6 +192,8 @@ public sealed class TestEngine
     public InMemoryIdentityStore IdentityStore { get; }
     public SsoOptions SsoOptions { get; }
     public SsoService Sso { get; }
+    public SignUpOptions SignUpOptions { get; }
+    public SignUpService SignUp { get; }
     public FakePdfRenderer PdfRenderer { get; }
     public PdfService Pdf { get; }
     public BackupService Backup { get; }

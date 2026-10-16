@@ -202,6 +202,31 @@ public sealed class AuthService(
 
         await SetPasswordAsync(key, password, ct);
 
+        await GrantRolesAsync(key, roles, ct);
+    }
+
+    /// <summary>
+    /// Makes a new, enabled account with a password. Unlike <see cref="EnsureUserAsync"/> it never touches an account that already exists
+    /// (no re-enabling, no new password), which is what self sign-up needs.
+    /// </summary>
+    public async Task CreateUserAsync(string email, string fullName, string password, IEnumerable<string> roles, CancellationToken ct = default)
+    {
+        var key = Normalize(email) ?? throw new DocumentValidationException([new FieldError("email", "A valid email is required.")]);
+        ValidatePassword(key, password, "password", fullName);
+        if (await GetUserAsync(key, ct) is not null)
+            throw new ConflictException("There is already an account for that email address.");
+
+        await documents.InsertAsync(
+            UserDocType,
+            new Dictionary<string, object?> { ["email"] = key, ["full_name"] = fullName, ["enabled"] = true },
+            SystemContext,
+            ct);
+        await SetPasswordAsync(key, password, ct);
+        await GrantRolesAsync(key, roles, ct);
+    }
+
+    private async Task GrantRolesAsync(string key, IEnumerable<string> roles, CancellationToken ct)
+    {
         var created = (DateTime)(await GetUserAsync(key, ct))!["creation"]!;
         foreach (var role in roles.Distinct(StringComparer.Ordinal))
         {

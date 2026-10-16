@@ -27,6 +27,7 @@ import { CalendarView } from './pages/CalendarView.tsx'
 import { TreeView } from './pages/TreeView.tsx'
 import { PublicFormPage } from './pages/PublicFormPage.tsx'
 import { ForgotPasswordPage, ResetPasswordPage } from './pages/PasswordResetPages.tsx'
+import { ConfirmSignUpPage, SignUpPage } from './pages/SignUpPages.tsx'
 import { LoginPage } from './pages/LoginPage.tsx'
 
 function RequireAuth() {
@@ -48,6 +49,8 @@ export function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/sign-up" element={<SignUpPage />} />
+        <Route path="/sign-up/confirm" element={<ConfirmSignUpPage />} />
         <Route path="/forms/:route" element={<PublicFormPage />} />
         <Route element={<RequireAuth />}>
           <Route index element={<HomePage />} />
