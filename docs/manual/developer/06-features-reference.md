@@ -319,3 +319,7 @@ See [Writing an app](08-writing-an-app.md). Code: `Apps.cs` (`IQahwaApp`, `IAppB
 ## Scheduled Job Log ([ADR-075](../../adr/075-scheduled-job-log.md))
 
 `JobLog.cs`: `JobLogService` (`RecordAsync` never throws, `RecentAsync`, `PurgeAsync`). `SchedulerService.StepAsync` wraps every scheduler step; `AppJobRunner` logs each app job run. Core DocType `scheduled_job_log.json`. Retention `Qahwa:JobLog:RetentionDays` (default 30, purged hourly with the deleted-document copies).
+
+## Table rows as CSV ([ADR-076](../../adr/076-table-csv.md))
+
+Desk only: `lib/tableCsv.ts` (`rowsToCsv`, `rowsFromCsv`, `parseCsv`, `csvCell`; limits `MAX_TABLE_ROWS`, `MAX_TABLE_CSV_BYTES`) with `tableCsv.test.ts`, and the buttons in `controls/TableControl.tsx`. No API change: uploaded rows are validated by the server when the document is saved.

@@ -1,9 +1,11 @@
-import { useId, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import type { DocField, DocTypeMeta } from '../api/types.ts'
 import { editableFields, emptyRow, gridColumns, moveRow, rowErrorList, rowErrors, type TableRow } from '../lib/tables.ts'
 import { labelOf } from '../lib/fields.ts'
 import type { FieldState } from '../lib/logic.ts'
 import { FieldControl, FieldInput } from './FieldControl.tsx'
+import { useToast } from './Toast.tsx'
+import { MAX_TABLE_CSV_BYTES, MAX_TABLE_ROWS, rowsFromCsv, rowsToCsv } from '../lib/tableCsv.ts'
 
 interface Props {
   field: DocField
@@ -26,6 +28,9 @@ interface Props {
 /** An editable grid for a child table: type into the cells, add, remove and reorder rows. */
 export function TableControl({ field, child, rows, onChange, readOnly, errors, preview, rowState, makeRow, onCellEdited }: Props) {
   const id = useId()
+  const toast = useToast()
+  const picker = useRef<HTMLInputElement>(null)
+  const [csvMessage, setCsvMessage] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
   const columns = gridColumns(child)
   const all = editableFields(child).filter((f) => preview || !f.hidden)
@@ -36,6 +41,29 @@ export function TableControl({ field, child, rows, onChange, readOnly, errors, p
   const update = (index: number, name: string, value: string | boolean) => {
     onChange(rows.map((r, i) => (i === index ? { ...r, values: { ...r.values, [name]: value } } : r)))
     onCellEdited?.(index, name, value)
+  }
+
+  function download() {
+    const blob = new Blob(['\uFEFF', rowsToCsv(child, rows)], { type: 'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${field.name.replace(/[^A-Za-z0-9_-]/g, '') || 'table'}.csv`
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  async function upload(file: File | undefined) {
+    if (!file) return
+    setCsvMessage(null)
+    if (file.size > MAX_TABLE_CSV_BYTES) return setCsvMessage('The file is too large (1 MB at most).')
+    if (!/\.(csv|txt)$/i.test(file.name)) return setCsvMessage('Choose a CSV file.')
+    const result = rowsFromCsv(child, await file.text())
+    if (result.error) return setCsvMessage(result.error)
+    if (rows.length + result.rows.length > MAX_TABLE_ROWS) return setCsvMessage(`A table holds at most ${MAX_TABLE_ROWS} rows.`)
+    onChange([...rows, ...result.rows])
+    toast(`${result.rows.length} row(s) added`)
+    if (result.ignored.length > 0) setCsvMessage(`Ignored columns: ${result.ignored.join(', ')}.`)
   }
 
   function addRow() {
@@ -126,6 +154,19 @@ export function TableControl({ field, child, rows, onChange, readOnly, errors, p
       </div>
 
       {!locked && <button type="button" className="btn small btn-gap" onClick={addRow}>+ Add row</button>}
+      {!preview && (
+        <span className="table-csv">
+          {rows.length > 0 && <button type="button" className="btn small btn-gap" onClick={download}>Download CSV</button>}
+          {!locked && (
+            <>
+              <button type="button" className="btn small btn-gap" onClick={() => picker.current?.click()}>Upload CSV</button>
+              <input ref={picker} type="file" accept=".csv,.txt,text/csv" hidden aria-label={`Upload rows of ${labelOf(field)} from a CSV file`}
+                onChange={(e) => { void upload(e.target.files?.[0]); e.target.value = '' }} />
+            </>
+          )}
+        </span>
+      )}
+      {csvMessage && <small className="muted" role="status">{csvMessage}</small>}
       {tableError && <small className="error-text" role="alert">{tableError}</small>}
       {messages.length > 0 && (
         <ul className="row-messages" role="alert">

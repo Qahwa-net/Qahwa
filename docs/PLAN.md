@@ -645,7 +645,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Form view: field controls per type, validation, conflict warning, delete | | ✅ | done |
 | Form view: tabs/sections/columns layout, collapsible sections | | 🟡 | L1, L3 |
 | Form view: child table grid (editable, reorder, row form) | | ✅ | L2 |
-| Form view: child table grid, upload/download rows as CSV | | ⬜ | L10 |
+| Form view: child table grid, upload/download rows as CSV | done in the browser: download and upload (adds rows), formula-safe, checked by the server on save (ADR-076) | ✅ | L10 |
 | Form view: sidebar (assign, attachments, tags, share, follow, like), timeline, form dashboard with linked documents | done (ADR-019, ADR-068) | ✅ | L7 |
 | Form: quick entry dialog, auto-save indicator, keyboard shortcuts, unsaved-changes warning | | 🟡 | L7 |
 | Report view (editable columns, group by, totals, export) | Report Builder with group by, totals and CSV export done (ADR-045) | 🟡 | L9 |
