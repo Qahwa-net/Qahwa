@@ -32,6 +32,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 28. [Choosing DocTypes and documents](28-choosing-doctypes-and-documents.md)
 29. [Two-factor sign-in](29-two-factor-sign-in.md)
 30. [Where you are signed in](30-where-you-are-signed-in.md)
+31. [Forgot your password](31-forgot-password.md)
 
 **Words used**
 

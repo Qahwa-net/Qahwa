@@ -126,9 +126,8 @@ public sealed class AuthService(
     public async Task SetPasswordAsync(string email, string newPassword, CancellationToken ct = default)
     {
         var key = Normalize(email) ?? throw new DocumentValidationException([new FieldError("email", "A valid email is required.")]);
-        ValidatePassword(key, newPassword, "new_password");
-
         var user = await GetUserAsync(key, ct) ?? throw new NotFoundException($"User '{key}' was not found.");
+        ValidatePassword(key, newPassword, "new_password", user.GetValueOrDefault("full_name") as string);
         await store.SetPasswordAsync(key, hasher.HashPassword(key, newPassword), (DateTime)user["creation"]!, Now(), ct);
     }
 
@@ -155,7 +154,7 @@ public sealed class AuthService(
         CancellationToken ct = default)
     {
         var key = Normalize(email) ?? throw new DocumentValidationException([new FieldError("email", "A valid email is required.")]);
-        ValidatePassword(key, password, "password");
+        ValidatePassword(key, password, "password", fullName);
 
         var user = await GetUserAsync(key, ct);
         if (user is null)
@@ -212,20 +211,11 @@ public sealed class AuthService(
         return string.IsNullOrEmpty(key) || key.Length > FieldTypes.ShortTextLength ? null : key;
     }
 
-    private void ValidatePassword(string email, string? password, string field)
+    private void ValidatePassword(string email, string? password, string field, string? fullName)
     {
-        var min = options.Value.MinPasswordLength;
-        var errors = new List<FieldError>();
-
-        if (string.IsNullOrEmpty(password) || password.Length < min)
-            errors.Add(new FieldError(field, $"Password must be at least {min} characters long."));
-        else if (password.Length > MaxPasswordLength)
-            errors.Add(new FieldError(field, $"Password must be at most {MaxPasswordLength} characters long."));
-        else if (string.Equals(password, email, StringComparison.OrdinalIgnoreCase))
-            errors.Add(new FieldError(field, "Password cannot be your email address."));
-
-        if (errors.Count > 0)
-            throw new DocumentValidationException(errors);
+        var problem = PasswordPolicy.Problem(password, email, fullName, options.Value.MinPasswordLength, MaxPasswordLength);
+        if (problem is not null)
+            throw new DocumentValidationException([new FieldError(field, problem)]);
     }
 
     private Task<Dictionary<string, object?>?> GetUserAsync(string key, CancellationToken ct) =>

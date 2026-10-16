@@ -40,6 +40,9 @@ public sealed class QahwaFactory(
     bool realAuth = false,
     int loginPermitsPerMinute = 1000) : WebApplicationFactory<Program>
 {
+    /// <summary>Every email the server tried to send.</summary>
+    public FakeEmailSender Mail { get; } = new();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment(environment);
@@ -80,6 +83,8 @@ public sealed class QahwaFactory(
             services.AddSingleton<ISchemaManager>(new InMemorySchemaManager());
             services.RemoveAll<IDocumentRepository>();
             services.AddSingleton<IDocumentRepository>(new InMemoryDocumentRepository());
+            services.RemoveAll<IEmailSender>();
+            services.AddSingleton<IEmailSender>(Mail);
             services.RemoveAll<ISessionStore>();
             services.AddSingleton<ISessionStore>(new InMemorySessionStore());
             services.RemoveAll<ITotpStore>();

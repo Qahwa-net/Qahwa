@@ -169,3 +169,7 @@ Use `{ "type": "Link", "options": "DocType" }` for a field that names a DocType 
 ## Sessions ([ADR-040](../../adr/040-sessions.md))
 
 `Core/Auth/Sessions.cs`: `SessionService` (`StartAsync`, `IsValidAsync`, `ListAsync`, `RevokeAsync`, `RevokeOthersAsync`, `RevokeAllForAsync`), `ISessionStore`. `Qahwa.Data/SessionStore.cs` (table `__sessions`). The cookie claim `qahwa:sid` is checked in `CookieUserContextResolver` (cached like the user check). Endpoints in `AuthEndpoints.cs` (`/api/auth/sessions...`). `AuthOptions.AbsoluteSessionDays`. Desk: `pages/SessionsSection.tsx`, `lib/sessions.ts`. Tests: `SessionTests`, `SessionApiTests`, `PostgresSessionTests`.
+
+## Password reset and rules ([ADR-041](../../adr/041-password-reset-and-rules.md))
+
+`Core/Auth/PasswordReset.cs`: `PasswordPolicy.Problem` (used by `AuthService.ValidatePassword`), `PasswordResetService` (`PrepareAsync`, `SendInBackground`, `RedeemAsync`, `ResetAsync`), `InvalidResetLinkException`. Endpoints `POST /api/auth/forgot` and `/api/auth/reset-password` in `AuthEndpoints.cs`. Configuration: `Qahwa:Auth:PublicUrl` (required in production for mail links) and `Qahwa:Email` (SMTP). Desk: `pages/PasswordResetPages.tsx`. The token must never be put in the Email Queue or any document. Tests: `PasswordPolicyTests`, `PasswordResetTests`, `PasswordResetApiTests` (the factory exposes sent mail as `Mail`).

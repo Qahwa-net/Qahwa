@@ -23,6 +23,7 @@ import { BoardView } from './pages/BoardView.tsx'
 import { CalendarView } from './pages/CalendarView.tsx'
 import { TreeView } from './pages/TreeView.tsx'
 import { PublicFormPage } from './pages/PublicFormPage.tsx'
+import { ForgotPasswordPage, ResetPasswordPage } from './pages/PasswordResetPages.tsx'
 import { LoginPage } from './pages/LoginPage.tsx'
 
 function RequireAuth() {
@@ -42,6 +43,8 @@ export function App() {
     <AuthProvider>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/forms/:route" element={<PublicFormPage />} />
         <Route element={<RequireAuth />}>
           <Route index element={<HomePage />} />

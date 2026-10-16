@@ -20,6 +20,12 @@ public sealed class AuthOptions
     public int AbsoluteSessionDays { get; set; } = 14;
 
     /// <summary>
+    /// The public address of this site (https://qahwa.example.com), used in links sent by email. Never taken from the request in
+    /// production: a forged Host header could otherwise point a reset link at someone else's site.
+    /// </summary>
+    public string? PublicUrl { get; set; }
+
+    /// <summary>
     /// How long a user's enabled flag, roles and password version are cached per user.
     /// A role change or disabled account takes at most this long to apply to open sessions. 0 disables the cache.
     /// </summary>

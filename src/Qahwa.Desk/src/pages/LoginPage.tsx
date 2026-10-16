@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Navigate, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { ApiError } from '../api/client.ts'
 import { useAuth } from '../auth.tsx'
 
@@ -80,6 +80,7 @@ export function LoginPage() {
         </>)}
 
         <button className="btn primary" type="submit" disabled={busy}>{busy ? 'Signing in…' : challenge ? 'Verify' : 'Sign in'}</button>
+        {!challenge && <Link to="/forgot-password" className="muted">Forgot your password?</Link>}
         {challenge && <button className="btn" type="button" onClick={() => { setChallenge(null); setCode(''); setError(null) }}>Back</button>}
       </form>
     </main>

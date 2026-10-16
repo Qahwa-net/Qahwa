@@ -137,7 +137,10 @@ public sealed class TestEngine
             Options.Create(AuthOptions),
             Clock);
         TotpStore = new InMemoryTotpStore();
-        TwoFactor = new TwoFactorService(TotpStore, new FakeSecretProtector(), AuthStore, Options.Create(AuthOptions), Clock);
+        var protector = new FakeSecretProtector();
+        TwoFactor = new TwoFactorService(TotpStore, protector, AuthStore, Options.Create(AuthOptions), Clock);
+        Sessions = new SessionService(new InMemorySessionStore(), Options.Create(AuthOptions), Clock);
+        PasswordReset = new PasswordResetService(Auth, AuthStore, protector, Sessions, EmailSender, new HitCounter(Clock), Clock);
         Webhooks = new WebhookService(WebhookCatalog, Registry, Repository, Documents, WebhookSender, History);
         WebhookManager = new WebhookManager(Registry, WebhookStore, WebhookCatalog, Permissions, Clock, allowInsecure: false);
         Bundle = new BundleService(Registry, Designer, Customization, Workflows, AssignmentRuleManager, NotificationRuleManager, Permissions, Clock);
@@ -204,6 +207,8 @@ public sealed class TestEngine
     public IAuthStore AuthStore { get; }
     public InMemoryTotpStore TotpStore { get; }
     public TwoFactorService TwoFactor { get; }
+    public SessionService Sessions { get; }
+    public PasswordResetService PasswordReset { get; }
     public AuthOptions AuthOptions { get; }
     public AuthService Auth { get; }
 

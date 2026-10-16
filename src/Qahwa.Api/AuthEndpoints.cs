@@ -7,6 +7,9 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Qahwa.Core;
 using Qahwa.Core.Auth;
 
@@ -17,6 +20,10 @@ public sealed record LoginRequest(string? Email, string? Password);
 public sealed record ChangePasswordRequest(
     [property: JsonPropertyName("old_password")] string? OldPassword,
     [property: JsonPropertyName("new_password")] string? NewPassword);
+
+public sealed record ForgotPasswordRequest(string? Email);
+
+public sealed record ResetPasswordRequest(string? Token, [property: JsonPropertyName("new_password")] string? NewPassword);
 
 public sealed record TwoFactorLoginRequest(string? Token, string? Code);
 
@@ -53,6 +60,28 @@ public static class AuthEndpoints
             var session = await service.CompleteLoginAsync(key, ct) ?? throw new InvalidCredentialsException();
             await SignInAsync(http, session, await StartSessionAsync(http, sessions, session.User.User, ct));
             return Results.Ok(new { data = Describe(session) });
+        }).RequireRateLimiting(AuthClaims.LoginRateLimit);
+
+        // "Forgot password": the answer is the same whether or not the address has an account.
+        auth.MapPost("/forgot", async (ForgotPasswordRequest body, HttpContext http, PasswordResetService reset, IOptions<AuthOptions> options, IHostEnvironment env, ILoggerFactory logs, ErrorLogService errorLog, CancellationToken ct) =>
+        {
+            var baseUrl = options.Value.PublicUrl ?? (env.IsDevelopment() ? $"{http.Request.Scheme}://{http.Request.Host}" : null);
+            if (baseUrl is null)
+                logs.CreateLogger("Qahwa.Auth").LogWarning("A password reset was asked for but Qahwa:Auth:PublicUrl is not set, so no link was sent.");
+            else if (await reset.PrepareAsync(body.Email, baseUrl, ct) is { } mail)
+            {
+                if (env.IsDevelopment())
+                    logs.CreateLogger("Qahwa.Auth").LogInformation("Password reset link for {User} (shown only in Development): {Link}", mail.To, mail.Link);
+                reset.SendInBackground(mail, ex => _ = errorLog.RecordAsync("Request", "POST", "/api/auth/forgot", null, ex));
+            }
+
+            return Results.Ok(new { message = "If that address has an account, we have sent a link to reset the password." });
+        }).RequireRateLimiting(AuthClaims.LoginRateLimit);
+
+        auth.MapPost("/reset-password", async (ResetPasswordRequest body, PasswordResetService reset, CancellationToken ct) =>
+        {
+            await reset.ResetAsync(body.Token, body.NewPassword, ct);
+            return Results.Ok(new { message = "ok" });
         }).RequireRateLimiting(AuthClaims.LoginRateLimit);
 
         // The person's own sign-ins: see where they are signed in and end any of them.

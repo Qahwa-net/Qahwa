@@ -79,6 +79,11 @@ export const api = {
     return (await request<{ data: SessionUser }>('POST', '/api/auth/login/2fa', { token, code })).data
   },
 
+  passwordReset: {
+    ask: (email: string) => request<{ message: string }>('POST', '/api/auth/forgot', { email }),
+    reset: (token: string, newPassword: string) => request<unknown>('POST', '/api/auth/reset-password', { token, new_password: newPassword }),
+  },
+
   sessions: {
     list: async () => (await request<{ data: SignIn[] }>('GET', '/api/auth/sessions')).data,
     end: (id: string) => request<unknown>('DELETE', `/api/auth/sessions/${encodeURIComponent(id)}`),
