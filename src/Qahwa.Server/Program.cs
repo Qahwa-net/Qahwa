@@ -8,38 +8,17 @@ using Qahwa.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddOptions<QahwaOptions>().Configure<IConfiguration, IHostEnvironment>((options, config, env) =>
-{
-    foreach (var path in config.GetSection("Qahwa:DocTypePaths").Get<string[]>() ?? [])
-        options.DocTypePaths.Add(Path.GetFullPath(path, env.ContentRootPath));
-});
-builder.Services.AddOptions<AuthOptions>().BindConfiguration("Qahwa:Auth");
+// The main site is described by the host's own settings; extra sites (Qahwa:Sites:Path) each get a container of their own.
+builder.Services.AddQahwaSite(builder.Configuration, builder.Environment, null);
 
-builder.Services.AddQahwa();
-builder.Services.AddQahwaPostgres(sp =>
-    sp.GetRequiredService<IConfiguration>().GetConnectionString("Default")
-    ?? throw new InvalidOperationException("ConnectionStrings:Default is not configured."));
-builder.Services.AddQahwaApi();
-
-var emailSettings = builder.Configuration.GetSection("Qahwa:Email").Get<EmailSettings>() ?? new EmailSettings();
-builder.Services.AddSingleton(emailSettings);
-if (string.IsNullOrWhiteSpace(emailSettings.Host))
-    builder.Services.AddSingleton<IEmailSender, LogEmailSender>();
-else
-    builder.Services.AddSingleton<IEmailSender, SmtpEmailSender>();
-var webhookOptions = builder.Configuration.GetSection("Qahwa:Webhooks").Get<WebhookOptions>() ?? new WebhookOptions();
-builder.Services.AddSingleton(webhookOptions);
-builder.Services.AddSingleton<IWebhookSender, WebhookSender>();
-var fileOptions = builder.Configuration.GetSection("Qahwa:Files").Get<AttachmentOptions>() ?? new AttachmentOptions();
-fileOptions.MaxMegabytes = Math.Clamp(fileOptions.MaxMegabytes, 1, 100);
-builder.Services.AddSingleton(fileOptions);
-builder.Services.AddSingleton<IFileStorage>(new DiskFileStorage(builder.Configuration["Qahwa:Files:Path"] ?? Path.Combine(builder.Environment.ContentRootPath, "data", "files")));
-builder.Services.Configure<SsoOptions>(builder.Configuration.GetSection("Qahwa:Auth:Sso"));
-builder.Services.Configure<SignUpOptions>(builder.Configuration.GetSection("Qahwa:Auth:SignUp"));
-builder.Services.Configure<LdapOptions>(builder.Configuration.GetSection("Qahwa:Auth:Ldap"));
-builder.Services.AddSingleton(builder.Configuration.GetSection("Qahwa:Backup").Get<BackupOptions>() ?? new BackupOptions());
-builder.Services.Replace(ServiceDescriptor.Singleton<IPdfRenderer>(new BrowserPdfRenderer(builder.Configuration.GetSection("Qahwa:Pdf").Get<PdfOptions>() ?? new PdfOptions())));
-builder.Services.AddHostedService<SchedulerService>();
+var sitesPath = builder.Configuration["Qahwa:Sites:Path"];
+var siteDefinitions = string.IsNullOrWhiteSpace(sitesPath) ? [] : SiteCatalog.Load(Path.GetFullPath(sitesPath, builder.Environment.ContentRootPath));
+var mainSiteServes = siteDefinitions.Count == 0 || !string.IsNullOrWhiteSpace(builder.Configuration.GetConnectionString("Default"));
+builder.Services.AddSingleton(sp => new SiteHost(siteDefinitions, sp.GetRequiredService<IConfiguration>(), sp.GetRequiredService<IHostEnvironment>(), sp.GetRequiredService<ILoggerFactory>(),
+    sp.GetServices<ISiteServicesCustomizer>(), mainSiteServes));
+builder.Services.AddHostedService(sp => sp.GetRequiredService<SiteHost>());
+if (mainSiteServes)
+    builder.Services.AddHostedService<SchedulerService>();
 
 var app = builder.Build();
 
@@ -61,6 +40,7 @@ app.Use(async (context, next) =>
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
+app.UseQahwaSites();
 app.UseQahwa();
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok", framework = "Qahwa" }));
 app.MapQahwaApi();
@@ -86,55 +66,10 @@ app.MapFallback(async context =>
     await context.Response.SendFileAsync(index);
 });
 
-if (app.Configuration.GetValue<bool>("Qahwa:AutoMigrate"))
-{
-    var result = await app.Services.GetRequiredService<QahwaMigrator>().MigrateAsync();
-    foreach (var plan in result.Plans)
-    {
-        foreach (var warning in plan.Warnings)
-            app.Logger.LogWarning("Schema: {Warning}", warning);
-    }
-}
-
-// DocTypes created in the designer live in the database; load them (a no-op if already loaded by the migration).
-foreach (var failure in await app.Services.GetRequiredService<CustomDocTypeLoader>().LoadAsync())
-    app.Logger.LogError("{Failure}", failure);
-
-// Fields and properties customised in the Customize Form (a no-op if the migration already applied them).
-foreach (var failure in await app.Services.GetRequiredService<CustomizationManager>().LoadAsync())
-    app.Logger.LogError("{Failure}", failure);
-
-// A mistake in Qahwa:Auth:AllowedIps must stop the server here, not quietly open or close the system.
-_ = app.Services.GetRequiredService<IpAllowList>();
-if (LdapService.Problem(app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<LdapOptions>>().Value) is { } ldapProblem)
-    throw new InvalidOperationException(ldapProblem);
-
-// Webhooks.
-foreach (var failure in await app.Services.GetRequiredService<WebhookManager>().LoadAsync())
-    app.Logger.LogError("{Failure}", failure);
-
-// Notification rules.
-foreach (var failure in await app.Services.GetRequiredService<NotificationRuleManager>().LoadAsync())
-    app.Logger.LogError("{Failure}", failure);
-
-// Assignment rules.
-foreach (var failure in await app.Services.GetRequiredService<AssignmentRuleManager>().LoadAsync())
-    app.Logger.LogError("{Failure}", failure);
-
-// Workflows built in the Workflow Builder.
-foreach (var failure in await app.Services.GetRequiredService<WorkflowManager>().LoadAsync())
-    app.Logger.LogError("{Failure}", failure);
-
-// One-time data patches that have not run on this site yet. A failing patch stops the server here: carrying on with half-migrated data is worse.
-{
-    var patched = await app.Services.GetRequiredService<PatchRunner>().RunPendingAsync();
-    foreach (var name in patched.Ran)
-        app.Logger.LogInformation("Patch {Patch} ran.", name);
-}
-
-// Permission rules customised in the Role Permission Manager.
-foreach (var failure in await app.Services.GetRequiredService<PermissionManager>().LoadAsync())
-    app.Logger.LogError("{Failure}", failure);
+var autoMigrate = app.Configuration.GetValue<bool>("Qahwa:AutoMigrate");
+if (mainSiteServes)
+    await SiteStartup.RunAsync(app.Services, app.Logger, autoMigrate);
+await app.Services.GetRequiredService<SiteHost>().PrepareAsync(app.Services.GetRequiredService<ILoggerFactory>(), autoMigrate);
 
 app.Run();
 

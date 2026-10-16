@@ -17,6 +17,8 @@ public sealed class PostgresFixture : IAsyncLifetime
     private PostgreSqlContainer? _container;
 
     public bool Available { get; private set; }
+
+    public string ConnectionString => _container!.GetConnectionString();
     public string SkipReason { get; private set; } = "Docker is not available.";
 
     public async Task InitializeAsync()

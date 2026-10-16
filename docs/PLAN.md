@@ -702,9 +702,9 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Feature | Notes | Status | Step |
 |---|---|---|---|
 | CLI: migrate, create-admin | | ✅ | done |
-| CLI: init, new-site, new-app, install-app, backup, restore, console, run-tests, set-config | like `bench` | ⬜ | L12 |
+| CLI: init, new-site, new-app, install-app, backup, restore, console, run-tests, set-config | `migrate`, `create-admin`, `new-site`, `list-sites` done (ADR-055); the rest not yet | 🟡 | L12 |
 | Apps (installable packages with DocTypes, hooks, fixtures, patches) | | ⬜ | L12 |
-| Multi-tenancy (sites, per-site config, database per site) | | ⬜ | L12 |
+| Multi-tenancy (sites, per-site config, database per site) | done: Host-header sites, a container and database per site, per-site config files, `qahwa new-site` (ADR-055); not live add/remove, no site manager UI | ✅ (v1) | L12 |
 | Developer mode (UI-made DocTypes written to the app's files) | export of L1 definitions | ⬜ | L12 |
 | Caching, boot info, performance | | 🟡 | L12 |
 | Test framework (unit, integration, UI) | | 🟡 | ongoing |

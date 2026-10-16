@@ -41,7 +41,9 @@ public sealed class QahwaFactory(
     bool realAuth = false,
     int loginPermitsPerMinute = 1000,
     bool signUp = false,
-    bool ldap = false) : WebApplicationFactory<Program>
+    bool ldap = false,
+    string? sitesPath = null,
+    bool mainSite = true) : WebApplicationFactory<Program>
 {
     /// <summary>Every email the server tried to send.</summary>
     public FakeEmailSender Mail { get; } = new();
@@ -55,9 +57,22 @@ public sealed class QahwaFactory(
     /// <summary>The stand-in company directory (used when the factory is made with <c>ldap: true</c>).</summary>
     public FakeLdapDirectory Directory { get; } = new();
 
+    /// <summary>What each extra site (see <c>sitesPath</c>) tried to send by email, by site name.</summary>
+    public System.Collections.Concurrent.ConcurrentDictionary<string, FakeEmailSender> SiteMail { get; } = new();
+
+    private sealed class TestSites(QahwaFactory factory) : ISiteServicesCustomizer
+    {
+        public void Customize(string siteName, IServiceCollection services) => factory.UseTestStores(services, factory.SiteMail.GetOrAdd(siteName, _ => new FakeEmailSender()));
+    }
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment(environment);
+        // Read by Program before the host is built, so they must be host settings (ConfigureAppConfiguration comes too late).
+        if (sitesPath is not null)
+            builder.UseSetting("Qahwa:Sites:Path", sitesPath);
+        if (!mainSite)
+            builder.UseSetting("ConnectionStrings:Default", "");
         builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?>
         {
             ["Qahwa:AutoMigrate"] = "false",
@@ -79,6 +94,14 @@ public sealed class QahwaFactory(
             ["Qahwa:Auth:Sso:Providers:idp:ClientSecret"] = "s3cret",
         }));
         builder.ConfigureServices(services =>
+        {
+            UseTestStores(services, Mail);
+            services.AddSingleton<ISiteServicesCustomizer>(new TestSites(this));
+        });
+    }
+
+    private void UseTestStores(IServiceCollection services, FakeEmailSender mail)
+    {
         {
             var registry = TestMetas.Registry();
             services.RemoveAll<IMetaRegistry>();
@@ -110,7 +133,7 @@ public sealed class QahwaFactory(
             services.RemoveAll<IPdfRenderer>();
             services.AddSingleton<IPdfRenderer>(Pdf);
             services.RemoveAll<IEmailSender>();
-            services.AddSingleton<IEmailSender>(Mail);
+            services.AddSingleton<IEmailSender>(mail);
             services.RemoveAll<ISessionStore>();
             services.AddSingleton<ISessionStore>(new InMemorySessionStore());
             services.RemoveAll<ITotpStore>();
@@ -131,7 +154,7 @@ public sealed class QahwaFactory(
                 services.RemoveAll<IUserContextResolver>();
                 services.AddSingleton<IUserContextResolver, HeaderUserContextResolver>();
             }
-        });
+        }
     }
 
     public HttpClient ClientFor(string? user, string? roles = null)
