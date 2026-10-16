@@ -44,6 +44,9 @@ public sealed class QahwaFactory(
     /// <summary>Every email the server tried to send.</summary>
     public FakeEmailSender Mail { get; } = new();
 
+    /// <summary>The PDF maker the server uses in tests: it keeps the pages it was asked to print.</summary>
+    public FakePdfRenderer Pdf { get; } = new();
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.UseEnvironment(environment);
@@ -84,6 +87,8 @@ public sealed class QahwaFactory(
             services.AddSingleton<ISchemaManager>(new InMemorySchemaManager());
             services.RemoveAll<IDocumentRepository>();
             services.AddSingleton<IDocumentRepository>(new InMemoryDocumentRepository());
+            services.RemoveAll<IPdfRenderer>();
+            services.AddSingleton<IPdfRenderer>(Pdf);
             services.RemoveAll<IEmailSender>();
             services.AddSingleton<IEmailSender>(Mail);
             services.RemoveAll<ISessionStore>();

@@ -219,3 +219,7 @@ Validation in `DocumentService.ValidateAsync` calls `FileService.CheckFieldFileA
 ## Gallery, map and timeline views ([ADR-049](../../adr/049-gallery-map-and-timeline-views.md))
 
 Desk only: `pages/MoreViews.tsx` (`GalleryView`, `MapView`, `GanttView`), routes `app/:doctype/gallery`, `/map`, `/timeline` in `App.tsx`, toolbar links in `ListView.tsx`. Pure layout in `lib/gantt.ts` (`layout`, `dayNumber`) and `lib/map.ts` (`layoutMap`, `gridStep`). Tests: `lib/views2.test.ts`.
+
+## PDF ([ADR-050](../../adr/050-server-side-pdf.md))
+
+`Pdf.cs`: `IPdfRenderer`, `PdfService` (`Prepare`, `RenderAsync`), `NoPdfRenderer`, `PdfNotAvailableException` (501); `Qahwa.Server/BrowserPdfRenderer.cs` (`PdfOptions`: `BrowserPath`, `TimeoutSeconds`, `MaxMegabytes`, `Concurrency`, `NoSandbox`), registered in `Program.cs` with `Replace`. `PdfEndpoints.cs`: `/api/pdf/status` and `/api/pdf/{doctype}/{name}`. To use another engine implement `IPdfRenderer` and register it. Desk: "Download PDF" in `PrintDialog`. Tests: `PdfTests` (the page is made inert), `PdfApiTests` and `BrowserPdfRendererTests` (a real browser; skipped where none is installed), with `FakePdfRenderer` in `Qahwa.Testing`.

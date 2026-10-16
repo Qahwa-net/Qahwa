@@ -367,6 +367,17 @@ export const api = {
     remove: async (id: string) => { await request<unknown>('DELETE', `/api/workspaces/${encodeURIComponent(id)}`) },
   },
 
+  pdf: {
+    status: async () => (await request<{ data: { available: boolean } }>('GET', '/api/pdf/status')).data.available,
+    /** The address of the PDF file of a printout. */
+    url: (doctype: string, name: string, format: string, letterHead: string) => {
+      const query = new URLSearchParams()
+      if (format) query.set('format', format)
+      if (letterHead) query.set('letterhead', letterHead)
+      return `/api/pdf/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}${query.size ? `?${query}` : ''}`
+    },
+  },
+
   print: {
     choices: async (doctype: string) => (await request<{ data: PrintChoices }>('GET', `/api/print/choices?doctype=${encodeURIComponent(doctype)}`)).data,
     /** The URL of the printable page (opens in its own tab, which has a Print button). */

@@ -112,6 +112,7 @@ public static class QahwaEndpoints
         app.MapQahwaSettings();
         app.MapQahwaBackup();
         app.MapQahwaReports();
+        app.MapQahwaPdf();
         return app;
     }
 

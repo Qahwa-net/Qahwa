@@ -10,12 +10,14 @@ export function PrintDialog({ doctype, name, onClose }: { doctype: string; name:
   const [format, setFormat] = useState('')
   const [letterHead, setLetterHead] = useState('')
   const url = api.print.url(doctype, name, format, letterHead)
+  const pdf = useQuery({ queryKey: ['pdf', 'status'], queryFn: api.pdf.status, retry: false, staleTime: 60_000 })
   const page = useQuery({ queryKey: ['print', 'page', url], queryFn: () => api.print.page(url), retry: false, staleTime: 0 })
 
   return (
     <Modal title="Print" subtitle={`${doctype === name ? doctype : `${doctype} ${name}`}. Choose how it looks, then open it to print or save as PDF.`} size="lg" onClose={onClose}
       footer={<>
         <button className="btn" onClick={onClose}>Close</button>
+        {pdf.data === true && <a className="btn" href={api.pdf.url(doctype, name, format, letterHead)} download>Download PDF</a>}
         <a className="btn primary" href={url} target="_blank" rel="noopener noreferrer"><Icon name="printer" /> Open to print</a>
       </>}>
       <div className="modal-row">

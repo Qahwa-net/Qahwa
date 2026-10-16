@@ -120,6 +120,8 @@ public sealed class TestEngine
         ErrorLog = new ErrorLogService(Documents, new HitCounter(Clock));
         Patches = new List<IPatch>();
         PatchRunner = new PatchRunner(Registry, Repository, Patches, new EmptyServices(), Clock);
+        PdfRenderer = new FakePdfRenderer();
+        Pdf = new PdfService(Print, PdfRenderer, new HitCounter(Clock));
         Translations = new TranslationService(Registry, Repository);
         WebForms = new WebFormService(Registry, Repository, Documents, new HitCounter(Clock));
         Workspaces = new WorkspaceService(Registry, Repository, Dashboards, Permissions, History);
@@ -180,6 +182,8 @@ public sealed class TestEngine
     public PrintService Print { get; }
     public WorkspaceService Workspaces { get; }
     public TranslationService Translations { get; }
+    public FakePdfRenderer PdfRenderer { get; }
+    public PdfService Pdf { get; }
     public BackupService Backup { get; }
     public List<IPatch> Patches { get; }
     public PatchRunner PatchRunner { get; }
