@@ -560,7 +560,7 @@ public sealed class AppInstaller(AppCatalog catalog, IMetaRegistry registry, IDo
 }
 
 /// <summary>Runs the scheduled jobs of the apps when they are due (called by the scheduler on each tick).</summary>
-public sealed class AppJobRunner(AppCatalog catalog, IServiceProvider services, ErrorLogService errors, TimeProvider clock)
+public sealed class AppJobRunner(AppCatalog catalog, IServiceProvider services, ErrorLogService errors, TimeProvider clock, JobLogService? jobLog = null)
 {
     private readonly Dictionary<string, DateTime> _last = new(StringComparer.Ordinal);
     private readonly object _gate = new();
@@ -579,14 +579,19 @@ public sealed class AppJobRunner(AppCatalog catalog, IServiceProvider services, 
                 _last[key] = now;
             }
 
+            var timer = System.Diagnostics.Stopwatch.StartNew();
             try
             {
                 await job.Job(services, ct);
                 ran++;
+                if (jobLog is not null)
+                    await jobLog.RecordAsync(key, true, "Ran.", timer.Elapsed, ct);
             }
             catch (Exception e) when (e is not OperationCanceledException)
             {
                 await errors.RecordAsync("App job", null, key, null, e);
+                if (jobLog is not null)
+                    await jobLog.RecordAsync(key, false, e.Message, timer.Elapsed, ct);
             }
         }
 

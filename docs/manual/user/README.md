@@ -61,6 +61,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 57. [Emailed reports](57-emailed-reports.md)
 58. [Email digest](58-email-digest.md)
 59. [Naming documents by rule](59-naming-rules.md)
+60. [Scheduled Job Log](60-job-log.md)
 
 **Words used**
 

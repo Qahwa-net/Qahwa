@@ -604,7 +604,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Communication (email threads on documents), send email from a document | send from a document done; threads not yet | 🔽 | L8 |
 | Notification Log (bell icon), Email Digest | bell and log done (ADR-015); Email Digest done (ADR-072) | ✅ | L8 |
 | Scheduled Job Types (cron, hourly, daily, weekly, monthly), Scheduler UI and logs | background scheduler loop exists (auto repeat); job types, UI and logs not yet | 🔽 | L8 |
-| Background jobs and queues (short, default, long), job UI | | ⬜ | L8 |
+| Background jobs and queues (short, default, long), job UI | scheduler steps and app jobs are timed and written to the Scheduled Job Log (ADR-075); no separate queues or retries (the scheduler is safe on several servers) | 🟡 | L8 |
 | Webhooks (outgoing, conditions, signed) | done: events, conditions, signing, retries, SSRF-safe; not yet custom headers, test button | ✅ (v1) | L10 |
 | Auto Email Report | done: scheduled plain-text emails of a saved report, run as a chosen user (ADR-071) | ✅ | L9 |
 | Document Naming Rule | done: rules with priority and conditions, naming by expression (ADR-073) | ✅ | L6 |
@@ -693,7 +693,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | **Data Import** (CSV/Excel template, validate, preview, background, update existing) | done: CSV, template, preview, row results, update existing; not yet Excel, background, child tables | ✅ (v1) | L10 |
 | Data Export, bulk update, bulk rename | export to CSV and Excel (ADR-064), import from CSV and Excel (ADR-027, ADR-064), bulk edit (ADR-016) and bulk rename (ADR-065) done | ✅ | L10 |
 | Backups (download, scheduled, restore) | done: download, daily folder, additive restore (ADR-044); not encryption, file contents, cloud storage | ✅ (v1) | L12 |
-| Error Log, Scheduled Job Log, Recorder (query profiler), System Console | done: Error Log (requests and scheduler); not yet job history, profiler, console | 🟡 | L12 |
+| Error Log, Scheduled Job Log, Recorder (query profiler), System Console | done: Error Log (requests and scheduler), Scheduled Job Log (ADR-075); not yet profiler, console | 🟡 | L12 |
 | System Settings (time zone, formats, session expiry, security) | done: time zone, date format, first weekday, default language; session and password policy stay in configuration | 🟡 | L10 |
 | Fixtures (export UI-made customisations as files) | done: **bundle** export/import of DocTypes, customizations, workflows and rules with preview; not yet print formats/dashboards, patches, CLI | ✅ (v1) | L12 |
 

@@ -315,3 +315,7 @@ See [Writing an app](08-writing-an-app.md). Code: `Apps.cs` (`IQahwaApp`, `IAppB
 ## App permission hooks ([ADR-074](../../adr/074-app-permission-hooks.md))
 
 `Apps.cs`: `IAppBuilder.HasPermission`/`PermissionQuery`, `PermissionContext`, `PermissionFilter`, `AppHookRunner.AllowsAsync` (false on refusal or exception) and `FiltersAsync` (fail closed). `DocumentService.Passwords.cs` (`RequireAppPermissionAsync`, skipped for Administrators, Core DocTypes and DocTypes without rules) is called next to every `RequireRestrictions` (get, update/submit/cancel, delete, rename) and for create; `PrepareListQueryAsync` appends the query filters. Tests: `AppPermissionTests`.
+
+## Scheduled Job Log ([ADR-075](../../adr/075-scheduled-job-log.md))
+
+`JobLog.cs`: `JobLogService` (`RecordAsync` never throws, `RecentAsync`, `PurgeAsync`). `SchedulerService.StepAsync` wraps every scheduler step; `AppJobRunner` logs each app job run. Core DocType `scheduled_job_log.json`. Retention `Qahwa:JobLog:RetentionDays` (default 30, purged hourly with the deleted-document copies).

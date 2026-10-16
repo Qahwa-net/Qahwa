@@ -1,0 +1,15 @@
+{
+  "name": "Scheduled Job Log",
+  "module": "Core",
+  "autoname": "JOB-.#######",
+  "trackChanges": false,
+  "fields": [
+    { "name": "job", "type": "Data", "label": "Job", "readOnly": true, "inListView": true, "indexed": true },
+    { "name": "status", "type": "Select", "options": "Success\nFailed", "label": "Status", "readOnly": true, "inListView": true, "indexed": true },
+    { "name": "message", "type": "Text", "label": "What happened", "readOnly": true, "inListView": true },
+    { "name": "duration_ms", "type": "Int", "label": "Took (ms)", "readOnly": true }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "delete": true }
+  ]
+}

@@ -47,6 +47,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **Attachment and image fields**: a form field that names a file attached to the same document, validated on save, with picture preview ([ADR-048](docs/adr/048-attach-and-image-fields.md))
 - **Gallery, map and timeline views**: pictures as tiles, places on a plain grid (no outside map service), documents as bars between two dates ([ADR-049](docs/adr/049-gallery-map-and-timeline-views.md))
 - **Light, dark and automatic themes and a brand**: per-person theme, organisation name, logo, colours and default theme, all checked as plain data, readable colours guaranteed ([ADR-056](docs/adr/056-brand-and-theme.md))
+- **Scheduled Job Log**: every scheduler step and app job that did something or failed is recorded, with how long it took ([ADR-075](docs/adr/075-scheduled-job-log.md))
 - **App permission hooks**: apps can add per-document checks and list conditions that only ever take access away ([ADR-074](docs/adr/074-app-permission-hooks.md))
 - **Naming rules and naming by expression**: names built from fields, and rule tables that choose the series by condition ([ADR-073](docs/adr/073-naming-rules-and-expressions.md))
 - **Email digest**: an opt-in daily or weekly email to yourself with your unread notifications and open assignments ([ADR-072](docs/adr/072-email-digest.md))

@@ -1,13 +1,41 @@
+using System.Diagnostics;
 using Qahwa.Core;
 
-
 /// <summary>
-/// The scheduler: wakes up every few seconds-to-minutes and makes the repeating documents that are due. It only ever calls
-/// code that is safe to run on several servers at once, so no leader election is needed. Turn it off with
-/// <c>Qahwa:Scheduler:Enabled = false</c>; change the pace with <c>Qahwa:Scheduler:IntervalSeconds</c> (10 to 3600, default 300).
+/// The scheduler: wakes up every few seconds-to-minutes and does the work that is due (repeating documents, queued email, webhooks,
+/// emailed reports and digests, backups, rules, app jobs). It only ever calls code that is safe to run on several servers at once, so
+/// no leader election is needed. Every step is written to the Scheduled Job Log when it did something or failed. Turn the scheduler off
+/// with <c>Qahwa:Scheduler:Enabled = false</c>; change the pace with <c>Qahwa:Scheduler:IntervalSeconds</c> (10 to 3600, default 300).
 /// </summary>
-public sealed class SchedulerService(AutoRepeatService autoRepeat, NotificationRuleEngine notificationRules, EmailService email, WebhookService webhooks, ErrorLogService errorLog, BackupService backup, BackupOptions backupOptions, AppJobRunner appJobs, DeletedDocumentService deletedDocuments, AutoEmailReportService emailedReports, EmailDigestService digests, IConfiguration configuration, ILogger<SchedulerService> logger) : BackgroundService
+public sealed class SchedulerService(
+    AutoRepeatService autoRepeat, NotificationRuleEngine notificationRules, EmailService email, WebhookService webhooks, ErrorLogService errorLog,
+    BackupService backup, BackupOptions backupOptions, AppJobRunner appJobs, DeletedDocumentService deletedDocuments, AutoEmailReportService emailedReports,
+    EmailDigestService digests, JobLogService jobLog, IConfiguration configuration, ILogger<SchedulerService> logger) : BackgroundService
 {
+    /// <summary>
+    /// Runs one step. It returns what to say about the run, or null when there was nothing to do (nothing is logged then). A step that
+    /// throws is written to the Error Log and the job log, and never stops the other steps.
+    /// </summary>
+    private async Task StepAsync(string job, Func<Task<string?>> run, CancellationToken ct)
+    {
+        var clock = Stopwatch.StartNew();
+        try
+        {
+            var message = await run();
+            if (message is not null)
+            {
+                logger.LogInformation("{Job}: {Message}", job, message);
+                await jobLog.RecordAsync(job, true, message, clock.Elapsed, ct);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogError(ex, "The scheduler could not run {Job}.", job);
+            await errorLog.RecordAsync("Scheduler", null, $"The scheduler could not run {job}.", null, ex);
+            await jobLog.RecordAsync(job, false, ex.Message, clock.Elapsed, ct);
+        }
+    }
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         if (!configuration.GetValue("Qahwa:Scheduler:Enabled", true))
@@ -23,129 +51,77 @@ public sealed class SchedulerService(AutoRepeatService autoRepeat, NotificationR
         var lastPurge = DateTime.MinValue;
         do
         {
-            try
+            await StepAsync("auto repeat", async () =>
             {
                 var run = await autoRepeat.RunDueAsync(stoppingToken);
-                if (run.Created + run.Failed > 0)
-                    logger.LogInformation("Auto repeat made {Created} document(s), {Failed} failed.", run.Created, run.Failed);
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                logger.LogError(ex, "The scheduler could not run auto repeat.");
-                await errorLog.RecordAsync("Scheduler", null, "The scheduler could not run auto repeat.", null, ex);
-            }
+                return run.Created + run.Failed > 0 ? $"{run.Created} document(s) made, {run.Failed} failed." : null;
+            }, stoppingToken);
 
-            try
+            await StepAsync("emailed reports", async () =>
             {
-                var (reportsSent, reportsFailed) = await emailedReports.RunDueAsync(stoppingToken);
-                if (reportsSent + reportsFailed > 0)
-                    logger.LogInformation("Emailed reports: {Sent} sent, {Failed} failed.", reportsSent, reportsFailed);
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                logger.LogError(ex, "The scheduler could not send emailed reports.");
-                await errorLog.RecordAsync("Scheduler", null, "The scheduler could not send emailed reports.", null, ex);
-            }
+                var (sent, failed) = await emailedReports.RunDueAsync(stoppingToken);
+                return sent + failed > 0 ? $"{sent} sent, {failed} failed." : null;
+            }, stoppingToken);
 
-            try
+            await StepAsync("email digests", async () =>
             {
-                var (digestsSent, _) = await digests.RunDueAsync(stoppingToken);
-                if (digestsSent > 0)
-                    logger.LogInformation("Email digests: {Sent} sent.", digestsSent);
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                logger.LogError(ex, "The scheduler could not send email digests.");
-                await errorLog.RecordAsync("Scheduler", null, "The scheduler could not send email digests.", null, ex);
-            }
+                var (sent, _) = await digests.RunDueAsync(stoppingToken);
+                return sent > 0 ? $"{sent} sent." : null;
+            }, stoppingToken);
 
-            try
+            await StepAsync("email queue", async () =>
             {
                 var mail = await email.SendPendingAsync(stoppingToken);
-                if (mail.Sent + mail.Failed > 0)
-                    logger.LogInformation("Email queue: {Sent} sent, {Failed} failed.", mail.Sent, mail.Failed);
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                logger.LogError(ex, "The scheduler could not send queued email.");
-                await errorLog.RecordAsync("Scheduler", null, "The scheduler could not send queued email.", null, ex);
-            }
+                return mail.Sent + mail.Failed > 0 ? $"{mail.Sent} sent, {mail.Failed} failed." : null;
+            }, stoppingToken);
 
-            try
+            await StepAsync("webhooks", async () =>
             {
-                var (sentHooks, failedHooks) = await webhooks.DeliverPendingAsync(stoppingToken);
-                if (sentHooks + failedHooks > 0)
-                    logger.LogInformation("Webhooks: {Sent} delivered, {Failed} failed.", sentHooks, failedHooks);
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                logger.LogError(ex, "The scheduler could not deliver webhooks.");
-                await errorLog.RecordAsync("Scheduler", null, "The scheduler could not deliver webhooks.", null, ex);
-            }
+                var (sent, failed) = await webhooks.DeliverPendingAsync(stoppingToken);
+                return sent + failed > 0 ? $"{sent} delivered, {failed} failed." : null;
+            }, stoppingToken);
 
             // A backup file once a day into the configured folder (the first server to create today's file does the work).
             if (!string.IsNullOrWhiteSpace(backupOptions.Path) && DateTime.UtcNow - lastBackup >= TimeSpan.FromHours(1))
             {
                 lastBackup = DateTime.UtcNow;
-                try
+                await StepAsync("backup", async () =>
                 {
                     var written = await backup.RunScheduledAsync(backupOptions.Path, backupOptions.Keep, new UserContext("system@qahwa", [UserContext.AdministratorRole]), stoppingToken);
-                    if (written is not null)
-                        logger.LogInformation("Backup written to {Path}.", written);
-                }
-                catch (Exception ex) when (ex is not OperationCanceledException)
-                {
-                    logger.LogError(ex, "The scheduler could not make a backup.");
-                    await errorLog.RecordAsync("Scheduler", null, "The scheduler could not make a backup.", null, ex);
-                }
+                    return written is null ? null : $"Backup written to {Path.GetFileName(written)}.";
+                }, stoppingToken);
             }
 
-            // Copies of deleted documents are kept for a while (30 days unless the site says otherwise), then removed.
+            // Copies of deleted documents and old job log rows are kept for a while (30 days unless the site says otherwise), then removed.
             if (DateTime.UtcNow - lastPurge >= TimeSpan.FromHours(1))
             {
                 lastPurge = DateTime.UtcNow;
-                try
+                await StepAsync("clean-up", async () =>
                 {
                     var days = Math.Clamp(configuration.GetValue("Qahwa:DeletedDocuments:RetentionDays", DeletedDocumentService.DefaultRetentionDays), 1, 3650);
-                    var purged = await deletedDocuments.PurgeAsync(TimeSpan.FromDays(days), stoppingToken);
-                    if (purged > 0)
-                        logger.LogInformation("Removed {Count} old copy(ies) of deleted documents.", purged);
-                }
-                catch (Exception ex) when (ex is not OperationCanceledException)
-                {
-                    logger.LogError(ex, "The scheduler could not remove old copies of deleted documents.");
-                    await errorLog.RecordAsync("Scheduler", null, "The scheduler could not remove old copies of deleted documents.", null, ex);
-                }
+                    var copies = await deletedDocuments.PurgeAsync(TimeSpan.FromDays(days), stoppingToken);
+                    var logDays = Math.Clamp(configuration.GetValue("Qahwa:JobLog:RetentionDays", JobLogService.DefaultRetentionDays), 1, 3650);
+                    await jobLog.PurgeAsync(TimeSpan.FromDays(logDays), stoppingToken);
+                    return copies > 0 ? $"Removed {copies} old copy(ies) of deleted documents." : null;
+                }, stoppingToken);
             }
 
             // The scheduled jobs of installed apps, each when it is due.
-            try
+            await StepAsync("app jobs", async () =>
             {
-                var ranJobs = await appJobs.RunDueAsync(stoppingToken);
-                if (ranJobs > 0)
-                    logger.LogInformation("App jobs: {Count} ran.", ranJobs);
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                logger.LogError(ex, "The scheduler could not run app jobs.");
-                await errorLog.RecordAsync("Scheduler", null, "The scheduler could not run app jobs.", null, ex);
-            }
+                await appJobs.RunDueAsync(stoppingToken); // each job writes its own line to the job log
+                return null;
+            }, stoppingToken);
 
             // Rules counted in days from a date: once an hour is plenty, and each person is told once per day whatever happens.
             if (DateTime.UtcNow - lastRules >= TimeSpan.FromHours(1))
             {
                 lastRules = DateTime.UtcNow;
-                try
+                await StepAsync("notification rules", async () =>
                 {
                     var told = await notificationRules.RunScheduledAsync(stoppingToken);
-                    if (told > 0)
-                        logger.LogInformation("Notification rules told {Count} person(s).", told);
-                }
-                catch (Exception ex) when (ex is not OperationCanceledException)
-                {
-                    logger.LogError(ex, "The scheduler could not run notification rules.");
-                await errorLog.RecordAsync("Scheduler", null, "The scheduler could not run notification rules.", null, ex);
-                }
+                    return told > 0 ? $"Told {told} person(s)." : null;
+                }, stoppingToken);
             }
         }
         while (await timer.WaitForNextTickAsync(stoppingToken));

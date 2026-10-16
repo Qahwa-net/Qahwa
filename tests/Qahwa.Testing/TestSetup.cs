@@ -128,7 +128,8 @@ public sealed class TestEngine
         AppHooks = new AppHookRunner(AppCatalog, new EmptyServices(), lazyDocs, ErrorLog);
         Methods = new MethodService(AppCatalog, new EmptyServices(), lazyDocs, new HitCounter(Clock));
         AppInstaller = new AppInstaller(AppCatalog, Registry, Repository, Documents, Clock);
-        AppJobs = new AppJobRunner(AppCatalog, new EmptyServices(), ErrorLog, Clock);
+        JobLog = new JobLogService(Registry, Repository, History);
+        AppJobs = new AppJobRunner(AppCatalog, new EmptyServices(), ErrorLog, Clock, JobLog);
         Patches = new List<IPatch>();
         PatchRunner = new PatchRunner(Registry, Repository, Patches, new EmptyServices(), Clock);
         PdfRenderer = new FakePdfRenderer();
@@ -218,6 +219,7 @@ public sealed class TestEngine
     public MethodService Methods { get; }
     public AppInstaller AppInstaller { get; }
     public AppJobRunner AppJobs { get; }
+    public JobLogService JobLog { get; }
     public FakeSamlIdp SamlIdp { get; }
     public SamlOptions SamlOptions { get; }
     public SamlService Saml { get; }
