@@ -47,7 +47,7 @@ export const FUNCTIONS: { value: string; label: string }[] = [
   { value: 'max', label: 'Largest' },
 ]
 
-const NUMERIC = new Set(['Int', 'Float', 'Decimal', 'Currency', 'Percent'])
+const NUMERIC = new Set(['Int', 'Float', 'Decimal', 'Currency', 'Percent', 'Rating', 'Duration'])
 
 export const isNumeric = (field: DocField): boolean => NUMERIC.has(field.type)
 

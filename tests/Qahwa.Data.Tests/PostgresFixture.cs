@@ -205,5 +205,12 @@ public sealed class PgStack : IAsyncDisposable
         return Convert.ToInt64(await command.ExecuteScalarAsync());
     }
 
+    /// <summary>The database type of a column, from the catalog (for example "integer" or "character varying").</summary>
+    public async Task<string?> ColumnTypeAsync(string table, string column)
+    {
+        await using var command = DataSource.CreateCommand($"SELECT data_type FROM information_schema.columns WHERE table_name = '{table.Replace("'", "")}' AND column_name = '{column.Replace("'", "")}'");
+        return await command.ExecuteScalarAsync() as string;
+    }
+
     public ValueTask DisposeAsync() => _connections.DisposeAsync();
 }

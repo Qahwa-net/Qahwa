@@ -12,7 +12,7 @@ public sealed class PostgresDialect : ISqlDialect
     public string ColumnType(FieldType type) => type switch
     {
         _ when FieldTypes.IsShortText(type) => "varchar(140)",
-        FieldType.Int => "integer",
+        FieldType.Int or FieldType.Rating or FieldType.Duration => "integer",
         FieldType.Float => "double precision",
         FieldType.Decimal or FieldType.Currency or FieldType.Percent => "numeric(21,9)",
         FieldType.Check => "boolean",

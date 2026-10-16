@@ -186,6 +186,30 @@ public static partial class PrintTemplate
     /// <summary>The text of a value as it appears on paper (not yet escaped).</summary>
     public static string Show(DocFieldMeta? field, object? value)
     {
+        if (value is not null && field is not null)
+        {
+            switch (field.Type)
+            {
+                case FieldType.Rating when value is int or long or decimal:
+                    var stars = Math.Clamp(Convert.ToInt32(value, CultureInfo.InvariantCulture), 0, 5);
+                    return new string('★', stars) + new string('☆', 5 - stars);
+                case FieldType.Duration when value is int or long or decimal:
+                    return Duration(Convert.ToInt64(value, CultureInfo.InvariantCulture));
+                case FieldType.Signature:
+                    return "(signed)"; // the picture itself is never put on a printout
+                case FieldType.Geolocation when value is string place:
+                    try
+                    {
+                        using var json = System.Text.Json.JsonDocument.Parse(place);
+                        return string.Create(CultureInfo.InvariantCulture, $"{json.RootElement.GetProperty("lat").GetDouble()}, {json.RootElement.GetProperty("lng").GetDouble()}");
+                    }
+                    catch (Exception ex) when (ex is System.Text.Json.JsonException or KeyNotFoundException or InvalidOperationException)
+                    {
+                        return string.Empty;
+                    }
+            }
+        }
+
         var text = value switch
         {
             null => string.Empty,
@@ -199,6 +223,23 @@ public static partial class PrintTemplate
             _ => value.ToString() ?? string.Empty,
         };
         return text.Replace("\0", string.Empty);
+    }
+
+    /// <summary>Seconds as "2d 3h", "1h 30m" or "45s": the two largest units that are not zero.</summary>
+    public static string Duration(long seconds)
+    {
+        if (seconds <= 0)
+            return "0s";
+        var parts = new List<string>();
+        foreach (var (unit, size) in new[] { ("d", 86400L), ("h", 3600L), ("m", 60L), ("s", 1L) })
+        {
+            var n = seconds / size;
+            seconds %= size;
+            if (n > 0)
+                parts.Add($"{n}{unit}");
+        }
+
+        return string.Join(' ', parts.Take(2));
     }
 
     private static string Html(string text, bool multiline) =>

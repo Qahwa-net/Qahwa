@@ -64,7 +64,7 @@ public sealed partial class WebFormService(IMetaRegistry registry, IDocumentRepo
     private static readonly HashSet<FieldType> Allowed =
     [
         FieldType.Data, FieldType.Text, FieldType.LongText, FieldType.Int, FieldType.Float, FieldType.Decimal, FieldType.Currency, FieldType.Percent,
-        FieldType.Check, FieldType.Select, FieldType.Date, FieldType.Datetime, FieldType.Time, FieldType.Email, FieldType.Phone, FieldType.Url,
+        FieldType.Check, FieldType.Select, FieldType.Rating, FieldType.Color, FieldType.Date, FieldType.Datetime, FieldType.Time, FieldType.Email, FieldType.Phone, FieldType.Url,
     ];
 
     private static readonly HashSet<FieldType> Layout = [FieldType.SectionBreak, FieldType.ColumnBreak, FieldType.TabBreak];

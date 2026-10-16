@@ -5,7 +5,7 @@ import type { DocField } from '../api/types.ts'
 import type { Filter } from '../lib/filters.ts'
 import { hasColumn, labelOf } from '../lib/fields.ts'
 
-const NUMERIC = new Set(['Int', 'Float', 'Decimal', 'Currency', 'Percent'])
+const NUMERIC = new Set(['Int', 'Float', 'Decimal', 'Currency', 'Percent', 'Rating', 'Duration'])
 const FUNCTIONS = [['count', 'Count'], ['sum', 'Sum'], ['avg', 'Average'], ['min', 'Smallest'], ['max', 'Largest']] as const
 
 /** A grouped summary of the documents the list is showing: count, or sum/average/min/max of a number, per value of a field. */

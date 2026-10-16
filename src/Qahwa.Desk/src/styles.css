@@ -651,3 +651,14 @@ kbd { font: .75rem ui-monospace, Consolas, monospace; padding: .05rem .35rem; bo
 .grid td.num { text-align: end; font-variant-numeric: tabular-nums; }
 .row { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; margin-block: .4rem; }
 .segmented { display: flex; gap: 1rem; margin-block-end: .75rem; }
+
+/* Rich field types */
+.rating { display: inline-flex; align-items: center; gap: .1rem; }
+.rating .star { background: none; border: 0; cursor: pointer; font-size: 1.5rem; line-height: 1; color: var(--border, #888); padding: 0 .1rem; }
+.rating .star.on { color: #f5b301; }
+.color-input { display: inline-flex; gap: .4rem; align-items: center; }
+.color-input input[type=color] { inline-size: 2.5rem; padding: 0; }
+.geo-input { display: inline-flex; flex-wrap: wrap; gap: .4rem; align-items: center; }
+.geo-input input { inline-size: 9rem; }
+.signature canvas { background: #fff; border: 1px solid var(--border, #ccc); border-radius: 8px; inline-size: min(100%, 400px); block-size: auto; aspect-ratio: 400 / 150; cursor: crosshair; }
+.signature img { background: #fff; border: 1px solid var(--border, #ccc); border-radius: 8px; display: block; margin-block-end: .3rem; }

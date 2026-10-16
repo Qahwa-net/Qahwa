@@ -256,7 +256,7 @@ public sealed partial class DocumentService
 
     public const int MaxGroups = 50;
 
-    private static readonly HashSet<FieldType> Groupable = [FieldType.Select, FieldType.Link, FieldType.Check, FieldType.Data, FieldType.Email, FieldType.Phone, FieldType.Int];
+    private static readonly HashSet<FieldType> Groupable = [FieldType.Select, FieldType.Link, FieldType.Check, FieldType.Data, FieldType.Email, FieldType.Phone, FieldType.Int, FieldType.Rating];
     private static readonly string[] GroupableStandard = ["owner", "modified_by", "docstatus"];
 
     private static string? Plain(object? value) => value switch
@@ -293,7 +293,7 @@ public sealed partial class DocumentService
 
     private static bool IsExportable(DocFieldMeta field) => FieldTypes.HasColumn(field.Type) && field.Type != FieldType.Password;
 
-    private static readonly HashSet<FieldType> Numeric = [FieldType.Int, FieldType.Float, FieldType.Decimal, FieldType.Currency, FieldType.Percent];
+    private static readonly HashSet<FieldType> Numeric = [FieldType.Int, FieldType.Float, FieldType.Decimal, FieldType.Currency, FieldType.Percent, FieldType.Rating, FieldType.Duration];
 
     /// <summary>Reads up to <see cref="ExportLimit"/> rows through the normal list rules, so every permission still applies.</summary>
     private async Task<(List<Dictionary<string, object?>> Rows, bool Truncated)> ReadAllAsync(

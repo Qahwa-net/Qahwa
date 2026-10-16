@@ -31,4 +31,22 @@ public enum FieldType
     SectionBreak,
     ColumnBreak,
     TabBreak,
+
+    /// <summary>A whole number of stars from 0 to 5.</summary>
+    Rating,
+
+    /// <summary>A length of time as a whole number of seconds.</summary>
+    Duration,
+
+    /// <summary>A colour as #rrggbb.</summary>
+    Color,
+
+    /// <summary>The text of a barcode or QR code (letters, digits and punctuation), up to 140 characters.</summary>
+    Barcode,
+
+    /// <summary>A place on earth as {"lat":..,"lng":..}.</summary>
+    Geolocation,
+
+    /// <summary>A drawn signature as a small PNG picture (a data address).</summary>
+    Signature,
 }

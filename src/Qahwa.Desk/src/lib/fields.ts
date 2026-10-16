@@ -1,4 +1,5 @@
 import { formatDate, formatDateTime } from './display.ts'
+import { formatDuration, placeLabel, starsLabel } from './fieldtypes.ts'
 import type { DocField, FieldType } from '../api/types.ts'
 import type { FilterOp } from './filters.ts'
 
@@ -15,7 +16,7 @@ export type Kind = 'text' | 'number' | 'date' | 'datetime' | 'time' | 'check' | 
 
 export function kindOf(type: FieldType): Kind {
   switch (type) {
-    case 'Int': case 'Float': case 'Decimal': case 'Currency': case 'Percent':
+    case 'Int': case 'Float': case 'Decimal': case 'Currency': case 'Percent': case 'Rating': case 'Duration':
       return 'number'
     case 'Date': return 'date'
     case 'Datetime': return 'datetime'
@@ -102,6 +103,10 @@ export function formatCell(field: DocField, value: unknown): string {
     case 'Check': return value ? '✓' : ''
     case 'Currency': case 'Decimal': case 'Float': case 'Percent':
       return typeof value === 'number' ? value.toLocaleString(undefined, { maximumFractionDigits: 9 }) : String(value)
+    case 'Rating': return starsLabel(value)
+    case 'Duration': return formatDuration(Number(value))
+    case 'Geolocation': return placeLabel(value)
+    case 'Signature': return '(signed)'
     case 'Date': return formatDate(value)
     case 'Datetime': return formatDateTime(value)
     default: return String(value)

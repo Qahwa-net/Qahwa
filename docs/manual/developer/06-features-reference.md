@@ -207,3 +207,7 @@ Tests: `PatchTests`, `PostgresPatchTests`.
 ## Master data and the "All" role ([ADR-046](../../adr/046-master-data.md))
 
 `CoreDocTypes/{currency,country,language,salutation,gender}.json`; `MasterData.cs` (`MasterDataPatch`, registered as an `IPatch` in `HostingExtensions`), data files `MasterData/countries.json` and `currencies.json` (embedded). `UserContext.AllRole` is appended in `AuthService.LoadSessionAsync` (so sessions and API keys have it); the test header resolver adds it too. To add reference data of your own, use a Core-style DocType with `{ "role": "All", "read": true }` and a patch like `MasterDataPatch`. Tests: `MasterDataTests`.
+
+## More field types ([ADR-047](../../adr/047-more-field-types.md))
+
+`FieldType` (Qahwa.Abstractions) gained `Rating`, `Duration`, `Color`, `Barcode`, `Geolocation`, `Signature`. Validation is in `FieldValueConverter.Convert` (the only place values from clients become stored values); column types in `PostgresDialect.ColumnType`; `FieldTypes.IsShortText` includes Color and Barcode; numeric sets in `DocumentService.Special`, `Dashboards`, `Reports` include Rating and Duration; printing in `PrintTemplate.Show`; `FieldTypeCatalog` makes them available in the Designer. Desk: `controls/SpecialInputs.tsx`, `lib/fieldtypes.ts` (duration parsing, place helpers), cases in `FieldInput` and `formatCell`. To add another type touch all of these places. Tests: `NewFieldTypeTests`, `PostgresFieldTypeTests`, `lib/fieldtypes.test.ts`.

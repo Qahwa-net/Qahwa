@@ -263,7 +263,7 @@ public sealed class DashboardService(
         return errors;
     }
 
-    private static bool IsNumeric(FieldType t) => t is FieldType.Int or FieldType.Float or FieldType.Decimal or FieldType.Currency or FieldType.Percent;
+    private static bool IsNumeric(FieldType t) => t is FieldType.Int or FieldType.Float or FieldType.Decimal or FieldType.Currency or FieldType.Percent or FieldType.Rating or FieldType.Duration;
 
     public async Task<DashboardInfo> CreateAsync(DashboardRequest request, IUserContext user, CancellationToken ct = default)
     {

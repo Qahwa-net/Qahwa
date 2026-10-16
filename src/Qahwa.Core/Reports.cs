@@ -175,7 +175,7 @@ public sealed class ReportService(
                 var a = definition.Aggregates[i];
                 if (!new[] { "count", "sum", "avg", "min", "max" }.Contains(a.Function))
                     Add($"aggregates[{i}].function", "Use count, sum, avg, min or max.");
-                else if (a.Function != "count" && (a.Field is null || !columns.TryGetValue(a.Field, out var t) || t is not (FieldType.Int or FieldType.Float or FieldType.Decimal or FieldType.Currency or FieldType.Percent)))
+                else if (a.Function != "count" && (a.Field is null || !columns.TryGetValue(a.Field, out var t) || t is not (FieldType.Int or FieldType.Float or FieldType.Decimal or FieldType.Currency or FieldType.Percent or FieldType.Rating or FieldType.Duration)))
                     Add($"aggregates[{i}].field", "Choose a numeric field.");
             }
 

@@ -13,7 +13,7 @@ export function toPayload(fields: PublicFormField[], answers: Answers): Record<s
     }
     const text = typeof raw === 'string' ? raw.trim() : ''
     if (text === '') continue
-    payload[field.name] = ['Int', 'Float', 'Decimal', 'Currency', 'Percent'].includes(field.type) && Number.isFinite(Number(text)) ? Number(text) : text
+    payload[field.name] = ['Int', 'Float', 'Decimal', 'Currency', 'Percent', 'Rating'].includes(field.type) && Number.isFinite(Number(text)) ? Number(text) : text
   }
 
   return payload
@@ -22,7 +22,8 @@ export function toPayload(fields: PublicFormField[], answers: Answers): Record<s
 /** What the browser's own input type should be for a field. */
 export function inputType(type: string): string {
   switch (type) {
-    case 'Int': case 'Float': case 'Decimal': case 'Currency': case 'Percent': return 'number'
+    case 'Int': case 'Float': case 'Decimal': case 'Currency': case 'Percent': case 'Rating': return 'number'
+    case 'Color': return 'color'
     case 'Email': return 'email'
     case 'Phone': return 'tel'
     case 'Url': return 'url'

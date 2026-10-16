@@ -13,6 +13,8 @@ namespace Qahwa.Core;
 public static class FieldValueConverter
 {
     private const decimal MaxDecimal = 1_000_000_000_000m; // numeric(21,9) holds 12 integer digits
+    private const int MaxDurationSeconds = 315_360_000; // ten years
+    public const int MaxSignatureCharacters = 150_000;
 
     public static object? Unwrap(object? raw)
     {
@@ -82,6 +84,20 @@ public static class FieldValueConverter
                     throw new FormatException("Value must be a whole number.");
                 return checked((int)d);
             }
+            case FieldType.Rating:
+            {
+                var d = ToDecimal(raw, inv);
+                if (d != decimal.Truncate(d) || d < 0 || d > 5)
+                    throw new FormatException("A rating is a whole number from 0 to 5.");
+                return (int)d;
+            }
+            case FieldType.Duration:
+            {
+                var d = ToDecimal(raw, inv);
+                if (d != decimal.Truncate(d) || d < 0 || d > MaxDurationSeconds)
+                    throw new FormatException("A duration is a whole number of seconds, from 0 up to ten years.");
+                return (int)d;
+            }
             case FieldType.Float:
             {
                 if (raw is bool)
@@ -128,8 +144,74 @@ public static class FieldValueConverter
             case FieldType.Json:
                 using (JsonDocument.Parse(text)) { }
                 break;
+            case FieldType.Color:
+                return ToColor(text);
+            case FieldType.Barcode:
+                if (text.Any(c => char.IsControl(c)))
+                    throw new FormatException("A barcode holds letters, digits and punctuation only.");
+                return text.Trim();
+            case FieldType.Geolocation:
+                return ToGeolocation(text);
+            case FieldType.Signature:
+                return ToSignature(text);
         }
 
+        return text;
+    }
+
+    private static string? ToColor(string text)
+    {
+        text = text.Trim();
+        if (text.Length == 0)
+            return null;
+        if (text.Length != 7 || text[0] != '#' || !text.Skip(1).All(char.IsAsciiHexDigit))
+            throw new FormatException("A colour looks like #1a2b3c.");
+        return text.ToLowerInvariant();
+    }
+
+    /// <summary>A place as normalised JSON <c>{"lat":24.7136,"lng":46.6753}</c>, latitude within 90 and longitude within 180.</summary>
+    private static string? ToGeolocation(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return null;
+        try
+        {
+            using var document = JsonDocument.Parse(text);
+            var root = document.RootElement;
+            if (root.ValueKind != JsonValueKind.Object || !root.TryGetProperty("lat", out var lat) || !root.TryGetProperty("lng", out var lng)
+                || lat.ValueKind != JsonValueKind.Number || lng.ValueKind != JsonValueKind.Number || root.EnumerateObject().Count() != 2)
+                throw new FormatException("A place is {\"lat\": 24.7, \"lng\": 46.7}.");
+            var (la, lo) = (lat.GetDouble(), lng.GetDouble());
+            if (double.IsNaN(la) || double.IsNaN(lo) || Math.Abs(la) > 90 || Math.Abs(lo) > 180)
+                throw new FormatException("Latitude must be within 90 and longitude within 180.");
+            return string.Create(CultureInfo.InvariantCulture, $"{{\"lat\":{Math.Round(la, 6)},\"lng\":{Math.Round(lo, 6)}}}");
+        }
+        catch (JsonException)
+        {
+            throw new FormatException("A place is {\"lat\": 24.7, \"lng\": 46.7}.");
+        }
+    }
+
+    /// <summary>A signature is a small PNG picture as a data address; the picture's own first bytes are checked, not what it claims to be.</summary>
+    private static string? ToSignature(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return null;
+        const string Prefix = "data:image/png;base64,";
+        if (text.Length > MaxSignatureCharacters || !text.StartsWith(Prefix, StringComparison.Ordinal))
+            throw new FormatException("A signature is a small PNG picture.");
+        byte[] bytes;
+        try
+        {
+            bytes = System.Convert.FromBase64String(text[Prefix.Length..]);
+        }
+        catch (FormatException)
+        {
+            throw new FormatException("A signature is a small PNG picture.");
+        }
+
+        if (bytes.Length < 8 || !bytes.AsSpan(0, 8).SequenceEqual(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A }))
+            throw new FormatException("A signature is a small PNG picture.");
         return text;
     }
 

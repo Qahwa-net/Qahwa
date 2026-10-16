@@ -21,6 +21,11 @@ public static partial class OpenApiBuilder
         var schema = field.Type switch
         {
             FieldType.Int => new Dictionary<string, object?> { ["type"] = "integer" },
+            FieldType.Rating => new Dictionary<string, object?> { ["type"] = "integer", ["minimum"] = 0, ["maximum"] = 5 },
+            FieldType.Duration => new Dictionary<string, object?> { ["type"] = "integer", ["minimum"] = 0, ["description"] = "Seconds." },
+            FieldType.Color => new Dictionary<string, object?> { ["type"] = "string", ["pattern"] = "^#[0-9a-fA-F]{6}$" },
+            FieldType.Geolocation => new Dictionary<string, object?> { ["type"] = "string", ["description"] = "JSON text: {\"lat\": 24.7136, \"lng\": 46.6753}." },
+            FieldType.Signature => new Dictionary<string, object?> { ["type"] = "string", ["description"] = "A PNG picture as a data: address." },
             FieldType.Float or FieldType.Decimal or FieldType.Currency or FieldType.Percent => new Dictionary<string, object?> { ["type"] = "number" },
             FieldType.Check => new Dictionary<string, object?> { ["type"] = "boolean" },
             FieldType.Date => new Dictionary<string, object?> { ["type"] = "string", ["format"] = "date" },

@@ -35,12 +35,18 @@ public static class FieldTypeCatalog
         new(FieldType.Email, "Email", "Text", "A validated email address", OptionsKind.None, true),
         new(FieldType.Phone, "Phone", "Text", "A phone number", OptionsKind.None, true),
         new(FieldType.Url, "URL", "Text", "A web address", OptionsKind.None, true),
+        new(FieldType.Color, "Color", "Text", "A colour, picked from a palette", OptionsKind.None, true),
+        new(FieldType.Barcode, "Barcode", "Text", "The text of a barcode or QR code", OptionsKind.None, true),
+        new(FieldType.Geolocation, "Geolocation", "Text", "A place: latitude and longitude", OptionsKind.None, true),
+        new(FieldType.Signature, "Signature", "Text", "A signature drawn with the mouse or a finger", OptionsKind.None, true),
 
         new(FieldType.Int, "Integer", "Number", "A whole number", OptionsKind.None, true),
         new(FieldType.Float, "Float", "Number", "A decimal number", OptionsKind.None, true),
         new(FieldType.Decimal, "Decimal", "Number", "An exact decimal number", OptionsKind.None, true),
         new(FieldType.Currency, "Currency", "Number", "An amount of money", OptionsKind.None, true),
         new(FieldType.Percent, "Percent", "Number", "A percentage", OptionsKind.None, true),
+        new(FieldType.Rating, "Rating", "Number", "Stars from 0 to 5", OptionsKind.None, true),
+        new(FieldType.Duration, "Duration", "Number", "A length of time (hours, minutes, seconds)", OptionsKind.None, true),
 
         new(FieldType.Check, "Checkbox", "Choice", "Yes or no", OptionsKind.None, true),
         new(FieldType.Select, "Select", "Choice", "One choice from a list you define", OptionsKind.Choices, true),

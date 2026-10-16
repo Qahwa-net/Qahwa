@@ -11,7 +11,7 @@ export const FUNCTIONS: { value: TileFunction; label: string }[] = [
 
 export const OPERATORS = ['=', '!=', '>', '<', '>=', '<=', 'like', 'is'] as const
 
-const NUMERIC = new Set(['Int', 'Float', 'Decimal', 'Currency', 'Percent'])
+const NUMERIC = new Set(['Int', 'Float', 'Decimal', 'Currency', 'Percent', 'Rating', 'Duration'])
 export const numericFields = (fields: DocField[]) => fields.filter((f) => NUMERIC.has(f.type))
 export const dateFields = (fields: DocField[]) => fields.filter((f) => f.type === 'Date' || f.type === 'Datetime')
 export const groupableFields = (fields: DocField[]) => fields.filter((f) => hasColumn(f.type) && f.type !== 'Password')
