@@ -51,13 +51,9 @@ public class PostgresChildTableTests(PostgresFixture postgres) : IClassFixture<P
     {
         await using var db = await StackAsync();
 
-        Assert.Equal(1, await db.ScalarAsync(
-            "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'tabOrder Line' " +
-            "AND column_name IN ('parent', 'parenttype', 'parentfield', 'idx')") / 4);
-        Assert.Equal(0, await db.ScalarAsync(
-            "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'tabOrder' AND column_name = 'lines'"));
-        Assert.Equal(1, await db.ScalarAsync(
-            "SELECT COUNT(*) FROM pg_indexes WHERE schemaname = current_schema() AND tablename = 'tabOrder Line' AND indexdef LIKE '%(parent)%'"));
+        Assert.Equal(1, await db.ColumnCountAsync("tabOrder Line", "parent", "parenttype", "parentfield", "idx") / 4);
+        Assert.Equal(0, await db.ColumnCountAsync("tabOrder", "lines"));
+        Assert.Equal(1, await db.IndexCountAsync("tabOrder Line", "parent"));
     }
 
     [SkippableFact]

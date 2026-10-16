@@ -150,6 +150,9 @@ public sealed class TestEngine
         Sso = new SsoService(Options.Create(SsoOptions), IdentityProvider, IdentityStore, Auth, protector, Clock);
         TwoFactor = new TwoFactorService(TotpStore, protector, AuthStore, Options.Create(AuthOptions), Clock);
         Sessions = new SessionService(new InMemorySessionStore(), Options.Create(AuthOptions), Clock);
+        SamlIdp = new FakeSamlIdp();
+        SamlOptions = new SamlOptions { Providers = { ["saml"] = new SamlProvider { DisplayName = "Company SAML", IdpEntityId = FakeSamlIdp.EntityId, SsoUrl = FakeSamlIdp.SsoUrl, Certificates = [SamlIdp.CertificateText] } } };
+        Saml = new SamlService(Options.Create(SamlOptions), IdentityStore, Auth, protector, Clock);
         LdapDirectory = new FakeLdapDirectory();
         LdapOptions = new LdapOptions { Enabled = true, Server = "ldap.example.com", BaseDn = "dc=example,dc=com", BindDn = "cn=reader,dc=example,dc=com", BindPassword = "x" };
         Ldap = new LdapService(Options.Create(LdapOptions), LdapDirectory, IdentityStore, Auth, Clock);
@@ -196,6 +199,9 @@ public sealed class TestEngine
     public InMemoryIdentityStore IdentityStore { get; }
     public SsoOptions SsoOptions { get; }
     public SsoService Sso { get; }
+    public FakeSamlIdp SamlIdp { get; }
+    public SamlOptions SamlOptions { get; }
+    public SamlService Saml { get; }
     public FakeLdapDirectory LdapDirectory { get; }
     public LdapOptions LdapOptions { get; }
     public LdapService Ldap { get; }

@@ -14,12 +14,22 @@ const MESSAGES: Record<string, string> = {
   already_linked: 'This account is already linked to a different identity.',
   expired: 'The sign-in took too long or was started elsewhere. Please try again.',
   bad_state: 'The sign-in could not be checked. Please try again.',
+  bad_signature: 'The answer from your company login could not be trusted.',
+  unsigned: 'The answer from your company login was not signed.',
+  bad_audience: 'Your company login answered for another application.',
+  expired_assertion: 'The answer from your company login has expired. Please try again.',
+  replayed: 'That sign-in was already used. Please start again.',
 }
 
 /** What to tell the person when the server sent them back with a short code; unknown codes get the general text. */
 export function ssoErrorText(code: string | null): string | null {
   if (!code) return null
   return Object.prototype.hasOwnProperty.call(MESSAGES, code) ? MESSAGES[code]! : 'Single sign-on failed. Please try again or use your password.'
+}
+
+/** The same, for a SAML provider. */
+export function samlLoginUrl(name: string, next: string | null): string {
+  return ssoStartUrl(name, next).replace('/api/auth/sso/', '/api/auth/saml/').replace('/start?', '/login?')
 }
 
 /** Where the button goes. The name comes from the server's list and is encoded anyway; `next` stays a same-site path. */

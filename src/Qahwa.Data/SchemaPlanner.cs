@@ -45,7 +45,7 @@ public sealed class SchemaPlanner(ISqlDialect dialect)
                 {
                     statements.Add(new SchemaStatement(
                         $"Add column {table}.{name}",
-                        $"ALTER TABLE {quotedTable} ADD COLUMN {ColumnDefinition(name, type)}"));
+                        dialect.AddColumnSql(quotedTable, ColumnDefinition(name, type))));
                 }
                 else if (!string.Equals(actual, dialect.CatalogType(type), StringComparison.OrdinalIgnoreCase))
                 {
@@ -74,7 +74,7 @@ public sealed class SchemaPlanner(ISqlDialect dialect)
         {
             var index = IndexName(table, column, unique: true);
             if (existingIndexes.Contains(index) && !wantedUnique.Contains(column))
-                statements.Add(new SchemaStatement($"Drop unique index on {table}.{column}", dialect.DropIndexSql(index)));
+                statements.Add(new SchemaStatement($"Drop unique index on {table}.{column}", dialect.DropIndexSql(index, quotedTable)));
         }
 
         return new SchemaPlan(meta.Name, table, current is not null, statements, warnings);

@@ -6,6 +6,7 @@ using Qahwa.Core;
 using Qahwa.Core.Auth;
 using Qahwa.Core.Designer;
 using Qahwa.Data.Postgres;
+using Qahwa.Data.SqlServer;
 using Qahwa.Hosting;
 
 /// <summary>Lets a host (or a test) change what one site gets, for example to give it other stores.</summary>
@@ -31,7 +32,19 @@ public static class QahwaSiteServices
         services.AddOptions<AuthOptions>().Bind(config.GetSection("Qahwa:Auth"));
 
         services.AddQahwa();
-        services.AddQahwaPostgres(_ => config.GetConnectionString("Default") ?? throw new InvalidOperationException("ConnectionStrings:Default is not configured."));
+        Func<IServiceProvider, string> connection = _ => config.GetConnectionString("Default") ?? throw new InvalidOperationException("ConnectionStrings:Default is not configured.");
+        switch (config["Qahwa:Database:Provider"] ?? "Postgres")
+        {
+            case var p when string.Equals(p, "Postgres", StringComparison.OrdinalIgnoreCase):
+                services.AddQahwaPostgres(connection);
+                break;
+            case var p when string.Equals(p, "SqlServer", StringComparison.OrdinalIgnoreCase):
+                services.AddQahwaSqlServer(connection);
+                break;
+            default:
+                throw new InvalidOperationException("Qahwa:Database:Provider must be Postgres or SqlServer.");
+        }
+
         services.AddQahwaApi();
         if (siteName is not null)
             services.AddDataProtection().SetApplicationName("qahwa:site:" + siteName); // a token made for one site means nothing at another
@@ -51,6 +64,7 @@ public static class QahwaSiteServices
         services.Configure<SsoOptions>(config.GetSection("Qahwa:Auth:Sso"));
         services.Configure<SignUpOptions>(config.GetSection("Qahwa:Auth:SignUp"));
         services.Configure<LdapOptions>(config.GetSection("Qahwa:Auth:Ldap"));
+        services.Configure<SamlOptions>(config.GetSection("Qahwa:Auth:Saml"));
         services.AddSingleton(config.GetSection("Qahwa:Backup").Get<BackupOptions>() ?? new BackupOptions());
         services.Replace(ServiceDescriptor.Singleton<IPdfRenderer>(new BrowserPdfRenderer(config.GetSection("Qahwa:Pdf").Get<PdfOptions>() ?? new PdfOptions())));
     }
@@ -82,6 +96,8 @@ public static class SiteStartup
         _ = sp.GetRequiredService<IpAllowList>();
         if (LdapService.Problem(sp.GetRequiredService<IOptions<LdapOptions>>().Value) is { } ldapProblem)
             throw new InvalidOperationException(ldapProblem);
+        if (SamlService.Problem(sp.GetRequiredService<IOptions<SamlOptions>>().Value) is { } samlProblem)
+            throw new InvalidOperationException(samlProblem);
 
         foreach (var failure in await sp.GetRequiredService<WebhookManager>().LoadAsync())
             logger.LogError("{Failure}", failure);

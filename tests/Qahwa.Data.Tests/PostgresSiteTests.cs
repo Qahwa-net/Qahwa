@@ -35,6 +35,7 @@ public class PostgresSiteTests(PostgresFixture postgres) : IClassFixture<Postgre
     [SkippableFact]
     public async Task A_site_database_is_made_once_and_is_a_database_of_its_own()
     {
+        Skip.If(PostgresFixture.UseSqlServer, "This one is about PostgreSQL databases.");
         Skip.IfNot(postgres.Available, postgres.SkipReason);
         var admin = postgres.ConnectionString;
         var name = "qahwa_test_" + Guid.NewGuid().ToString("N")[..10];

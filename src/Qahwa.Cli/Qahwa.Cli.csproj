@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Qahwa.Hosting\Qahwa.Hosting.csproj" />
     <ProjectReference Include="..\Qahwa.Data.Postgres\Qahwa.Data.Postgres.csproj" />
+    <ProjectReference Include="..\Qahwa.Data.SqlServer\Qahwa.Data.SqlServer.csproj" />
   </ItemGroup>
 
   <ItemGroup>

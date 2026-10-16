@@ -37,7 +37,7 @@ public class PostgresIntegrationTests(PostgresFixture postgres) : IClassFixture<
         var plan = await db.Sync.PlanAsync(extended);
         await db.Sync.ApplyAsync(plan);
 
-        Assert.Contains(plan.Statements, s => s.Sql.Contains("ADD COLUMN \"region\""));
+        Assert.Contains(plan.Statements, s => s.Sql.Contains("ADD") && s.Sql.Contains("region"));
         Assert.True((await db.Sync.PlanAsync(extended)).IsEmpty);
         Assert.Equal(1, await db.ScalarAsync("SELECT COUNT(*) FROM \"tabTerritory\""));
     }
@@ -47,7 +47,7 @@ public class PostgresIntegrationTests(PostgresFixture postgres) : IClassFixture<
     {
         await using var db = await StackAsync();
         await using (var command = db.DataSource.CreateCommand(
-            "ALTER TABLE \"tabCustomer\" ALTER COLUMN \"credit_limit\" TYPE text"))
+            db.IsPostgres ? "ALTER TABLE \"tabCustomer\" ALTER COLUMN \"credit_limit\" TYPE text" : "ALTER TABLE [tabCustomer] ALTER COLUMN [credit_limit] nvarchar(max)"))
             await command.ExecuteNonQueryAsync();
 
         var plan = await db.Sync.PlanAsync(db.Registry.Get("Customer"));

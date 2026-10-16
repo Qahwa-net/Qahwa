@@ -49,6 +49,8 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 45. [Running several sites in one server](45-several-sites.md)
 46. [Light and dark themes, and your organisation's look](46-themes-and-brand.md)
 47. [Client Scripts](47-client-scripts.md)
+48. [Signing in with SAML](48-saml-sign-in.md)
+49. [Using SQL Server](49-sql-server.md)
 
 **Words used**
 

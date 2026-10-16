@@ -529,7 +529,7 @@ Rules that keep it honest:
 | L9: Presentation | Report Builder, Dashboard Charts, Number Cards, Workspace Builder, Print Format Builder, Letter Head | **done (v1)**. Done: dashboards with number, chart (bars, line, pie; per day, month or year) and list tiles, conditions, sharing, always the viewer's permissions (ADR-024) and print formats and letter heads (HTML templates with placeholders, a safe default layout, strict checks and CSP, browser print or Save as PDF, ADR-025). and workspaces (role-based home pages of headings, shortcuts and dashboards, filtered per person, ADR-026). Server-side PDF done (ADR-050). Not yet: multi-column report views |
 | L10: Data and outside world | Data Import / Export, Web Forms, Webhooks, API keys, OAuth, file manager | **done (v1)** except OAuth. Done: public web forms (ADR-034), CSV data import with preview, row-by-row results, create and update modes (ADR-027), API keys (Bearer tokens acting as a person within their permissions, hashed, optional read-only and expiry, ADR-028), webhooks (signed JSON posts on new, change, submit, cancel and delete; queued with retries; public https addresses only with SSRF guard at connect time, ADR-029) and attachments (files on documents with per-request permissions, content-based types, only pictures inline, size and count limits, disk storage behind an interface, ADR-030). OpenID Connect sign-in done (ADR-051). Not yet: Qahwa as an OAuth provider |
 | L11: Scripting escape hatch | Sandboxed server and client scripts, custom HTML blocks | **started**: no-code Document Actions (set a field, create a document; ADR-035). Server Scripts done: sandboxed JavaScript on Validate, Before/After Submit, Before/After Cancel, Before Delete and After Save with strict limits (ADR-053; Jint instead of Roslyn, which cannot be sandboxed in process). Client Scripts for forms done (ADR-057). Not yet: API, scheduler and permission-query scripts, list-view client scripts |
-| L12: Platform | App/plugin packaging and fixtures export, multi-site, SQL Server, translations, more views (Kanban, Calendar, Gantt, Map, Tree) | planned |
+| L12: Platform | App/plugin packaging and fixtures export, multi-site, SQL Server, translations, more views (Kanban, Calendar, Gantt, Map, Tree) | **mostly done**: multi-site (ADR-055), SQL Server (ADR-059), translations and right-to-left (ADR-033), bundles (ADR-032), Kanban, Calendar, Gantt, Map, Gallery and Tree views (ADR-031, ADR-049), LDAP and SAML sign-in (ADR-054, ADR-058). Not yet: installable apps with hooks, developer mode |
 
 ---
 
@@ -627,7 +627,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Two-factor authentication (TOTP, email, SMS) | done: TOTP with recovery codes and admin reset (ADR-039); not email/SMS/passkeys | ✅ (v1) | L10 |
 | API keys / secrets, token auth | done: per-person Bearer keys, hashed, read-only and expiry; not yet scopes, rate limits, OAuth | ✅ (v1) | L10 |
 | OAuth 2 provider, social login (Google, GitHub, Microsoft, Keycloak), OpenID Connect | done: OpenID Connect sign-in (code + PKCE, state, nonce, full token checks, identity linking, domain allow-list, auto-create) with any provider; not an OAuth provider for other apps, no group/role mapping (ADR-051) | 🟡 | L10 |
-| LDAP, SAML single sign-on | done: LDAP / Active Directory sign-in (ADR-054, tested against a stand-in directory); not SAML | 🟡 | L12 |
+| LDAP, SAML single sign-on | done: LDAP / Active Directory sign-in (ADR-054) and SAML 2.0 sign-in (ADR-058), both tested against stand-in providers | ✅ (v1) | L12 |
 | Session management (list/revoke, expiry), login as user (impersonation) | done: list, revoke, admin sign-out-everywhere, absolute limit (ADR-040); impersonation deliberately not built | ✅ (v1) | L10 |
 | IP restrictions, system settings (security) | done: IP allow-list in configuration, System Settings (display) (ADR-042); not per-role IP rules | ✅ (v1) | L10 |
 | Encrypted fields (Password type) | | ⬜ | L3 |
@@ -704,6 +704,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | CLI: migrate, create-admin | | ✅ | done |
 | CLI: init, new-site, new-app, install-app, backup, restore, console, run-tests, set-config | `migrate`, `create-admin`, `new-site`, `list-sites` done (ADR-055); the rest not yet | 🟡 | L12 |
 | Apps (installable packages with DocTypes, hooks, fixtures, patches) | | ⬜ | L12 |
+| SQL Server dialect | done: second database product, per site, same tests on both (ADR-059) | ✅ (v1) | L12 |
 | Multi-tenancy (sites, per-site config, database per site) | done: Host-header sites, a container and database per site, per-site config files, `qahwa new-site` (ADR-055); not live add/remove, no site manager UI | ✅ (v1) | L12 |
 | Developer mode (UI-made DocTypes written to the app's files) | export of L1 definitions | ⬜ | L12 |
 | Caching, boot info, performance | | 🟡 | L12 |

@@ -62,7 +62,7 @@ public sealed class SqlBuilder(ISqlDialect dialect)
 
     public SqlStatement Exists(DocTypeMeta meta, string name)
     {
-        var sql = $"SELECT 1 FROM {dialect.TableName(meta.Name)} WHERE {dialect.Quote("name")} = {dialect.Parameter(0)} {dialect.Page(1, 0)}";
+        var sql = $"SELECT 1 FROM {dialect.TableName(meta.Name)} WHERE {dialect.Quote("name")} = {dialect.Parameter(0)} ORDER BY {dialect.Quote("name")} {dialect.Page(1, 0)}";
         return new SqlStatement(sql, [name]);
     }
 
@@ -222,6 +222,14 @@ public sealed class SqlBuilder(ISqlDialect dialect)
                     break;
             }
         }
+
+        CheckParameterCount(parameters.Count);
+    }
+
+    private void CheckParameterCount(int count)
+    {
+        if (count > dialect.MaxParameters)
+            throw new FormatException($"A filter may name at most {dialect.MaxParameters} values.");
     }
 
     private string Symbol(FilterOp op) => op switch

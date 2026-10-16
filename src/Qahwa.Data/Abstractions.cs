@@ -20,7 +20,11 @@ public interface ISqlDialect
 
     string CreateIndexSql(string indexName, string quotedTable, string column, bool unique);
 
-    string DropIndexSql(string indexName);
+    /// <param name="quotedTable">The table the index belongs to (some databases need it to drop an index).</param>
+    string DropIndexSql(string indexName, string quotedTable);
+
+    /// <summary>Adds one column (already quoted and typed, e.g. <c>"since" date</c>) to a table.</summary>
+    string AddColumnSql(string quotedTable, string columnDefinition);
 
     string DropTableSql(string quotedTable);
 
@@ -67,6 +71,9 @@ public interface ISqlDialect
 
     /// <summary>Sets the counter named by parameter 0 to parameter 1.</summary>
     string SetSeriesSql { get; }
+
+    /// <summary>The most values one statement may bind (a longer list of values is refused with a clear message instead of a database error).</summary>
+    int MaxParameters => 30_000;
 
     bool IsUniqueViolation(Exception exception);
 

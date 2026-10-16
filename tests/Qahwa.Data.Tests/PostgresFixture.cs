@@ -1,37 +1,82 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
+using System.Data.Common;
+using Microsoft.Data.SqlClient;
 using Npgsql;
 using Qahwa.Core;
 using Qahwa.Core.Auth;
 using Qahwa.Core.Designer;
 using Qahwa.Data;
 using Qahwa.Data.Postgres;
+using Qahwa.Data.SqlServer;
 using Qahwa.Testing;
+using Testcontainers.MsSql;
 using Testcontainers.PostgreSql;
 
 namespace Qahwa.Data.Tests;
 
-/// <summary>Starts one PostgreSQL container per test class. Tests skip themselves when Docker is unavailable.</summary>
+/// <summary>
+/// Everything a stack needs from one database product. The whole suite runs against PostgreSQL, or against SQL Server when the
+/// environment variable <c>QAHWA_TEST_DB</c> is <c>sqlserver</c> (tests that look at one product's catalogs skip themselves on the other).
+/// </summary>
+public sealed class DbFlavor(string name, ISqlDialect dialect, IDbConnectionFactory connections, Func<IDbConnectionFactory, ISchemaInspector> inspector, Func<string, DbCommand> rawCommand, Func<ValueTask> dispose)
+{
+    public string Name { get; } = name;
+    public ISqlDialect Dialect { get; } = dialect;
+    public IDbConnectionFactory Connections { get; } = connections;
+    public Func<IDbConnectionFactory, ISchemaInspector> Inspector { get; } = inspector;
+    public Func<string, DbCommand> RawCommand { get; } = rawCommand;
+    public Func<ValueTask> Dispose { get; } = dispose;
+}
+
+/// <summary>A way to run a statement of the test's own on the stack's database.</summary>
+public sealed class RawSql(Func<string, DbCommand> create)
+{
+    public DbCommand CreateCommand(string sql) => create(sql);
+}
+
+/// <summary>Starts one database container per test class. Tests skip themselves when Docker is unavailable.</summary>
 public sealed class PostgresFixture : IAsyncLifetime
 {
     private PostgreSqlContainer? _container;
+    private MsSqlContainer? _mssql;
+
+    // One SQL Server for the whole run: each needs about 2 GB, and test classes would otherwise start one apiece, at the same time.
+    private static readonly Lazy<Task<MsSqlContainer>> SharedSqlServer = new(async () =>
+    {
+        var container = new MsSqlBuilder("mcr.microsoft.com/mssql/server:2022-latest").Build();
+        await container.StartAsync();
+        return container;
+    });
+
+    public static bool UseSqlServer { get; } = string.Equals(Environment.GetEnvironmentVariable("QAHWA_TEST_DB"), "sqlserver", StringComparison.OrdinalIgnoreCase);
 
     public bool Available { get; private set; }
 
-    public string ConnectionString => _container!.GetConnectionString();
+    public string ConnectionString => UseSqlServer ? _mssql!.GetConnectionString() : _container!.GetConnectionString();
     public string SkipReason { get; private set; } = "Docker is not available.";
 
     public async Task InitializeAsync()
     {
         try
         {
-            _container = new PostgreSqlBuilder("postgres:17").Build();
-            await _container.StartAsync();
+            if (UseSqlServer)
+            {
+                _mssql = await SharedSqlServer.Value;
+            }
+            else
+            {
+                _container = new PostgreSqlBuilder("postgres:17").Build();
+                await _container.StartAsync();
+            }
+
             Available = true;
         }
         catch (Exception ex)
         {
-            SkipReason = $"PostgreSQL container could not start: {ex.GetType().Name}";
+            if (UseSqlServer)
+                throw new InvalidOperationException("QAHWA_TEST_DB=sqlserver was asked for but SQL Server could not start: " + ex.Message, ex); // never skip silently
+            SkipReason = $"The database container could not start: {ex.GetType().Name}";
         }
     }
 
@@ -39,18 +84,47 @@ public sealed class PostgresFixture : IAsyncLifetime
     {
         if (_container is not null)
             await _container.DisposeAsync();
+        // The shared SQL Server stays up for the other classes; it is removed when the test run ends.
     }
 
-    /// <summary>A fully wired data stack in its own schema, so tests never see each other's tables.</summary>
     public async Task<PgStack> CreateStackAsync()
     {
-        var schema = "t_" + Guid.NewGuid().ToString("N")[..12];
-        await using (var admin = NpgsqlDataSource.Create(_container!.GetConnectionString()))
-        await using (var command = admin.CreateCommand($"CREATE SCHEMA {schema}"))
-            await command.ExecuteNonQueryAsync();
+        var unique = "t_" + Guid.NewGuid().ToString("N")[..12];
+        DbFlavor flavor;
+        if (UseSqlServer)
+        {
+            // A database of its own for each stack (a schema would need a user of its own).
+            await using (var admin = new SqlConnection(_mssql!.GetConnectionString()))
+            {
+                await admin.OpenAsync();
+                await using var create = admin.CreateCommand();
+                create.CommandText = $"CREATE DATABASE [{unique}]";
+                await create.ExecuteNonQueryAsync();
+            }
 
-        var connectionString = new NpgsqlConnectionStringBuilder(_container.GetConnectionString()) { SearchPath = schema }.ToString();
-        var stack = new PgStack(NpgsqlDataSource.Create(connectionString));
+            var connectionString = new SqlConnectionStringBuilder(_mssql.GetConnectionString()) { InitialCatalog = unique, Pooling = false }.ConnectionString;
+            var factory = new SqlServerConnectionFactory(connectionString);
+            flavor = new DbFlavor("sqlserver", new SqlServerDialect(), factory, c => new SqlServerSchemaInspector(c), sql =>
+            {
+                var connection = new SqlConnection(connectionString);
+                connection.Open();
+                var command = connection.CreateCommand();
+                command.CommandText = sql;
+                return command;
+            }, () => ValueTask.CompletedTask);
+        }
+        else
+        {
+            await using (var admin = NpgsqlDataSource.Create(_container!.GetConnectionString()))
+            await using (var command = admin.CreateCommand($"CREATE SCHEMA {unique}"))
+                await command.ExecuteNonQueryAsync();
+
+            var source = NpgsqlDataSource.Create(new NpgsqlConnectionStringBuilder(_container.GetConnectionString()) { SearchPath = unique }.ToString());
+            var factory = new NpgsqlConnectionFactory(source);
+            flavor = new DbFlavor("postgres", new PostgresDialect(), factory, c => new PostgresSchemaInspector(c), sql => source.CreateCommand(sql), () => factory.DisposeAsync());
+        }
+
+        var stack = new PgStack(flavor);
         await stack.MigrateAsync();
         return stack;
     }
@@ -58,19 +132,21 @@ public sealed class PostgresFixture : IAsyncLifetime
 
 public sealed class PgStack : IAsyncDisposable
 {
-    private readonly NpgsqlConnectionFactory _connections;
+    private readonly IDbConnectionFactory _connections;
+    private readonly DbFlavor _flavor;
 
-    public PgStack(NpgsqlDataSource dataSource)
+    public PgStack(DbFlavor flavor)
     {
-        DataSource = dataSource;
-        _connections = new NpgsqlConnectionFactory(dataSource);
-        Dialect = new PostgresDialect();
-        Sync = new SchemaSync(_connections, Dialect, new PostgresSchemaInspector(_connections));
+        _flavor = flavor;
+        DataSource = new RawSql(flavor.RawCommand);
+        _connections = flavor.Connections;
+        Dialect = flavor.Dialect;
+        Sync = new SchemaSync(_connections, Dialect, flavor.Inspector(_connections));
         Registry = TestMetas.Registry();
         Repository = new DocumentRepository(_connections, Dialect, new SqlBuilder(Dialect));
         Clock = new TestClock(DateTimeOffset.UtcNow);
         Overrides = new PermissionOverrides();
-        PermissionStore = new PermissionStore(_connections, Dialect, new PostgresSchemaInspector(_connections));
+        PermissionStore = new PermissionStore(_connections, Dialect, flavor.Inspector(_connections));
         PermissionManager = new PermissionManager(Registry, PermissionStore, Overrides, Clock);
         var permissions = new PermissionService(Overrides);
         Shares = new ShareStore(Registry, Repository);
@@ -78,11 +154,11 @@ public sealed class PgStack : IAsyncDisposable
         AssignmentRuleCatalog = new AssignmentRuleCatalog();
         NotificationRuleCatalog = new NotificationRuleCatalog();
         WebhookCatalog = new WebhookCatalog();
-        WebhookStore = new WebhookStore(_connections, Dialect, new PostgresSchemaInspector(_connections));
+        WebhookStore = new WebhookStore(_connections, Dialect, flavor.Inspector(_connections));
         WebhookSender = new FakeWebhookSender();
         FileStorage = new InMemoryFileStorage();
-        NotificationRuleStore = new NotificationRuleStore(_connections, Dialect, new PostgresSchemaInspector(_connections));
-        AssignmentRuleStore = new AssignmentRuleStore(_connections, Dialect, new PostgresSchemaInspector(_connections));
+        NotificationRuleStore = new NotificationRuleStore(_connections, Dialect, flavor.Inspector(_connections));
+        AssignmentRuleStore = new AssignmentRuleStore(_connections, Dialect, flavor.Inspector(_connections));
         Profiles = new ProfileService(Registry, Repository, Clock);
         History = new HistoryRecorder(Registry, Repository, Clock);
         var lazyDocuments = new Lazy<DocumentService>(() => Documents!);
@@ -96,11 +172,11 @@ public sealed class PgStack : IAsyncDisposable
         AutoRepeat = new AutoRepeatService(Registry, Repository, Documents, permissions, Notifications, History);
         ListSettings = new ListSettingsService(Registry, Repository, Documents, permissions, History);
         Bulk = new BulkService(Registry, Documents);
-        DocTypeStore = new DocTypeStore(_connections, Dialect, new PostgresSchemaInspector(_connections));
+        DocTypeStore = new DocTypeStore(_connections, Dialect, flavor.Inspector(_connections));
         SchemaManager = new SchemaManager(Sync, Dialect);
         Designer = new DocTypeDesigner(Registry, DocTypeStore, SchemaManager, Repository, Clock);
-        CustomizationStore = new CustomizationStore(_connections, Dialect, new PostgresSchemaInspector(_connections));
-        WorkflowStore = new WorkflowStore(_connections, Dialect, new PostgresSchemaInspector(_connections));
+        CustomizationStore = new CustomizationStore(_connections, Dialect, flavor.Inspector(_connections));
+        WorkflowStore = new WorkflowStore(_connections, Dialect, flavor.Inspector(_connections));
         AssignmentRules = new AssignmentRuleEngine(AssignmentRuleCatalog, Registry, Repository, Assignments, Notifications);
         Print = new PrintService(Registry, Repository, Documents, permissions, History);
         Dashboards = new DashboardService(Registry, Repository, Documents, permissions, Notifications, History);
@@ -190,8 +266,9 @@ public sealed class PgStack : IAsyncDisposable
     public AuthOptions AuthOptions { get; }
     public AuthService Auth { get; }
 
-    public NpgsqlDataSource DataSource { get; }
-    public PostgresDialect Dialect { get; }
+    public RawSql DataSource { get; }
+    public ISqlDialect Dialect { get; }
+    public bool IsPostgres => _flavor.Name == "postgres";
     public SchemaSync Sync { get; }
     public MetaRegistry Registry { get; }
     public DocumentRepository Repository { get; }
@@ -204,6 +281,25 @@ public sealed class PgStack : IAsyncDisposable
         foreach (var meta in Registry.All)
             await Sync.ApplyAsync(await Sync.PlanAsync(meta));
     }
+
+    public async Task<bool> TableExistsAsync(string table) =>
+        await ScalarAsync(IsPostgres
+            ? $"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = current_schema() AND table_name = '{table.Replace("'", "")}'"
+            : $"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = SCHEMA_NAME() AND table_name = '{table.Replace("'", "")}'") == 1;
+
+    /// <summary>How many of these columns the table has.</summary>
+    public Task<long> ColumnCountAsync(string table, params string[] columns) =>
+        ScalarAsync($"SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = {(IsPostgres ? "current_schema()" : "SCHEMA_NAME()")} AND table_name = '{table.Replace("'", "")}' AND column_name IN ({string.Join(", ", columns.Select(c => "'" + c.Replace("'", "") + "'"))})");
+
+    /// <summary>How many indexes the table has on exactly this column.</summary>
+    public Task<long> IndexCountAsync(string table, string column) => ScalarAsync(IsPostgres
+        ? $"SELECT COUNT(*) FROM pg_indexes WHERE schemaname = current_schema() AND tablename = '{table.Replace("'", "")}' AND indexdef LIKE '%({column.Replace("'", "")})%'"
+        : $"SELECT COUNT(*) FROM sys.indexes i JOIN sys.index_columns ic ON ic.object_id = i.object_id AND ic.index_id = i.index_id JOIN sys.columns c ON c.object_id = ic.object_id AND c.column_id = ic.column_id WHERE i.object_id = OBJECT_ID(QUOTENAME(SCHEMA_NAME()) + '.' + QUOTENAME('{table.Replace("'", "")}')) AND c.name = '{column.Replace("'", "")}' AND i.is_primary_key = 0");
+
+    /// <summary>The statement that changes a column to long text behind the application's back.</summary>
+    public string ChangeColumnToTextSql(string table, string column) => IsPostgres
+        ? $"ALTER TABLE \"{table}\" ALTER COLUMN \"{column}\" TYPE text"
+        : $"ALTER TABLE [{table}] ALTER COLUMN [{column}] nvarchar(max)";
 
     public async Task<long> ScalarAsync(string sql)
     {
@@ -218,5 +314,5 @@ public sealed class PgStack : IAsyncDisposable
         return await command.ExecuteScalarAsync() as string;
     }
 
-    public ValueTask DisposeAsync() => _connections.DisposeAsync();
+    public ValueTask DisposeAsync() => _flavor.Dispose();
 }

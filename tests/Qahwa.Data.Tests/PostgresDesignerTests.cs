@@ -29,8 +29,7 @@ public class PostgresDesignerTests(PostgresFixture postgres) : IClassFixture<Pos
         Fields = [Field("supplier_name", FieldType.Data), Field("rating", FieldType.Int), .. extra],
     };
 
-    private static async Task<bool> TableExistsAsync(PgStack db, string table) =>
-        await db.ScalarAsync($"SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = current_schema() AND table_name = '{table}'") == 1;
+    private static Task<bool> TableExistsAsync(PgStack db, string table) => db.TableExistsAsync(table);
 
     [SkippableFact]
     public async Task Creating_a_doctype_creates_a_real_table_and_documents_work_at_once()
@@ -129,7 +128,7 @@ public class PostgresDesignerTests(PostgresFixture postgres) : IClassFixture<Pos
     {
         await using var db = await StackAsync();
         var created = await db.Designer.CreateAsync(Supplier(), Admin);
-        await using (var command = db.DataSource.CreateCommand("ALTER TABLE \"tabSupplier\" ALTER COLUMN \"rating\" TYPE text"))
+        await using (var command = db.DataSource.CreateCommand(db.ChangeColumnToTextSql("tabSupplier", "rating")))
             await command.ExecuteNonQueryAsync();
 
         var ex = await Assert.ThrowsAsync<DocumentValidationException>(() =>
@@ -178,7 +177,7 @@ public class PostgresDesignerTests(PostgresFixture postgres) : IClassFixture<Pos
         var preview = await db.Designer.PreviewAsync(Supplier(), null, Admin);
 
         Assert.Empty(preview.Errors);
-        Assert.StartsWith("CREATE TABLE \"tabSupplier\"", preview.Schema!.Changes[0].Sql);
+        Assert.StartsWith("CREATE TABLE " + db.Dialect.Quote("tabSupplier"), preview.Schema!.Changes[0].Sql);
         Assert.False(await TableExistsAsync(db, "tabSupplier"));
     }
 

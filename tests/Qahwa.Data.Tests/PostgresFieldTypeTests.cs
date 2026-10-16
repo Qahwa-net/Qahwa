@@ -25,10 +25,10 @@ public class PostgresFieldTypeTests(PostgresFixture postgres) : IClassFixture<Po
         Assert.Equal("#ff0000", saved["tint"]);
         Assert.Equal("ABC-123", saved["code"]);
         Assert.Equal(Png, saved["sign"]);
-        Assert.Equal("integer", await db.ColumnTypeAsync("tabVisit", "stars"));
-        Assert.Equal("integer", await db.ColumnTypeAsync("tabVisit", "spent"));
-        Assert.Equal("character varying", await db.ColumnTypeAsync("tabVisit", "tint"));
-        Assert.Equal("text", await db.ColumnTypeAsync("tabVisit", "sign"));
+        Assert.Equal(db.IsPostgres ? "integer" : "int", await db.ColumnTypeAsync("tabVisit", "stars"));
+        Assert.Equal(db.IsPostgres ? "integer" : "int", await db.ColumnTypeAsync("tabVisit", "spent"));
+        Assert.Equal(db.IsPostgres ? "character varying" : "nvarchar", await db.ColumnTypeAsync("tabVisit", "tint"));
+        Assert.Equal(db.IsPostgres ? "text" : "nvarchar", await db.ColumnTypeAsync("tabVisit", "sign"));
         var top = await db.Documents.ListAsync("Visit", new ListRequest { Filters = [new RawFilter("stars", ">=", 4)], Fields = ["name"], Limit = 5 }, clerk);
         Assert.Single(top.Data);
     }

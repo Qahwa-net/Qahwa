@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ssoErrorText, ssoStartUrl } from './sso.ts'
+import { samlLoginUrl, ssoErrorText, ssoStartUrl } from './sso.ts'
 
 describe('single sign-on helpers', () => {
   it('turns codes into sentences and never echoes unknown text', () => {
@@ -7,6 +7,11 @@ describe('single sign-on helpers', () => {
     expect(ssoErrorText('disabled')).toContain('switched off')
     expect(ssoErrorText('<script>alert(1)</script>')).toBe('Single sign-on failed. Please try again or use your password.')
     expect(ssoErrorText('constructor')).toBe('Single sign-on failed. Please try again or use your password.')
+  })
+
+  it('builds the SAML login address the same careful way', () => {
+    expect(samlLoginUrl('company', '/app/Customer')).toBe('/api/auth/saml/company/login?next=%2Fapp%2FCustomer')
+    expect(samlLoginUrl('company', '//evil.example.com')).toBe('/api/auth/saml/company/login?next=%2F')
   })
 
   it('builds the start address with an encoded name and a same-site next', () => {

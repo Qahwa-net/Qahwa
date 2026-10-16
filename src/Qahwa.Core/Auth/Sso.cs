@@ -192,14 +192,35 @@ public sealed class SsoService(
         return new Claims(subject, Text("email"), verified || provider.TrustEmail, Text("name"));
     }
 
-    private async Task<string> ResolveAsync(SsoProvider provider, string issuer, Claims claims, CancellationToken ct)
+    private Task<string> ResolveAsync(SsoProvider provider, string issuer, Claims claims, CancellationToken ct) =>
+        new ExternalIdentityResolver(identities, auth, clock).ResolveAsync(new ExternalPolicy(provider.AllowedDomains, provider.AutoCreate, provider.DefaultRoles), issuer, claims.Subject, claims.Email, claims.EmailVerified, claims.Name, ct);
+}
+
+/// <summary>What may happen to a person who signs in through an outside system for the first time.</summary>
+public sealed record ExternalPolicy(string[] AllowedDomains, bool AutoCreate, string[] DefaultRoles);
+
+/// <summary>
+/// Turns "this person, as this outside system knows them" into one of our users, the same way for every outside system (OpenID Connect,
+/// SAML): the system's own id for the person is trusted first; the very first time, a verified email of an existing account (within the
+/// allowed domains) is; an account that was switched off stays off; an account already tied to a different id is refused; unknown people
+/// get an account only when allowed to, and then only the configured roles.
+/// </summary>
+public sealed class ExternalIdentityResolver(IIdentityStore identities, AuthService auth, TimeProvider clock)
+{
+    private DateTime Now()
+    {
+        var utc = clock.GetUtcNow().UtcDateTime;
+        return new DateTime(utc.Ticks - utc.Ticks % 10, DateTimeKind.Utc);
+    }
+
+    public async Task<string> ResolveAsync(ExternalPolicy provider, string issuer, string subject, string? claimedEmail, bool emailVerified, string? claimedName, CancellationToken ct = default)
     {
         // Someone already linked: trust the provider's own id, not the email (which can change or be given to someone else).
-        if (await identities.FindUserAsync(issuer, claims.Subject, ct) is { } known)
+        if (await identities.FindUserAsync(issuer, subject, ct) is { } known)
             return await auth.LoadSessionAsync(known, ct) is null ? throw new SsoException("disabled", "The account is disabled.") : known;
 
-        var email = AuthService.Normalize(claims.Email);
-        if (email is null || !EmailService.ValidAddress(email) || !claims.EmailVerified)
+        var email = AuthService.Normalize(claimedEmail);
+        if (email is null || !EmailService.ValidAddress(email) || !emailVerified)
             throw new SsoException("email_not_verified", "The provider did not give a verified email.");
         var domain = email[(email.LastIndexOf('@') + 1)..];
         if (provider.AllowedDomains.Length > 0 && !provider.AllowedDomains.Contains(domain, StringComparer.OrdinalIgnoreCase))
@@ -213,14 +234,14 @@ public sealed class SsoService(
         {
             // A first sign-in by an account that exists. If that account is already tied to a *different* person at this provider, refuse:
             // someone else who obtained the same email there must not be able to take over.
-            if ((await identities.SubjectsOfAsync(issuer, email, ct)).Any(s => s != claims.Subject))
+            if ((await identities.SubjectsOfAsync(issuer, email, ct)).Any(s => s != subject))
                 throw new SsoException("already_linked", "That account is linked to another identity.");
             if (state == AccountState.NoPassword)
                 await auth.SetPasswordAsync(email, Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)), ct); // a sign-in needs a credential record; nobody knows this password
         }
         else if (provider.AutoCreate && provider.AllowedDomains.Length > 0)
         {
-            var name = string.IsNullOrWhiteSpace(claims.Name) ? email[..email.LastIndexOf('@')] : claims.Name.Trim();
+            var name = string.IsNullOrWhiteSpace(claimedName) ? email[..email.LastIndexOf('@')] : claimedName.Trim();
             await auth.EnsureUserAsync(email, name.Length > 140 ? name[..140] : name, Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)), provider.DefaultRoles, ct);
         }
         else
@@ -228,7 +249,7 @@ public sealed class SsoService(
             throw new SsoException("no_account", "There is no account for that email.");
         }
 
-        if (!await identities.LinkAsync(issuer, claims.Subject, email, Now(), ct) && await identities.FindUserAsync(issuer, claims.Subject, ct) != email)
+        if (!await identities.LinkAsync(issuer, subject, email, Now(), ct) && await identities.FindUserAsync(issuer, subject, ct) != email)
             throw new SsoException("already_linked", "That identity is linked to another account.");
         return email;
     }

@@ -3,7 +3,7 @@ import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { ApiError, api } from '../api/client.ts'
 import { useAuth } from '../auth.tsx'
 import { useTheme } from '../theme.tsx'
-import { ssoErrorText, ssoStartUrl, type SsoProviderInfo } from '../lib/sso.ts'
+import { samlLoginUrl, ssoErrorText, ssoStartUrl, type SsoProviderInfo } from '../lib/sso.ts'
 
 /** Only follow same-site relative paths after login, never an arbitrary URL. */
 function safeNext(next: string | null): string {
@@ -25,10 +25,12 @@ export function LoginPage() {
   const [repeat, setRepeat] = useState('')
   const [notice, setNotice] = useState<string | null>(null)
   const [providers, setProviders] = useState<SsoProviderInfo[]>([])
+  const [samlProviders, setSamlProviders] = useState<SsoProviderInfo[]>([])
   const [canSignUp, setCanSignUp] = useState(false)
 
   useEffect(() => {
     api.sso.providers().then(setProviders, () => setProviders([]))
+    api.sso.samlProviders().then(setSamlProviders, () => setSamlProviders([]))
     api.signUp.enabled().then(setCanSignUp, () => setCanSignUp(false))
   }, [])
 
@@ -121,6 +123,9 @@ export function LoginPage() {
         <button className="btn primary" type="submit" disabled={busy}>{busy ? 'Working…' : challenge && expired ? 'Change password' : challenge ? 'Verify' : 'Sign in'}</button>
         {!challenge && providers.map((p) => (
           <a key={p.name} className="btn" href={ssoStartUrl(p.name, params.get('next'))}>Sign in with {p.display_name}</a>
+        ))}
+        {!challenge && samlProviders.map((p) => (
+          <a key={`saml-${p.name}`} className="btn" href={samlLoginUrl(p.name, params.get('next'))}>Sign in with {p.display_name}</a>
         ))}
         {!challenge && <Link to="/forgot-password" className="muted">Forgot your password?</Link>}
         {!challenge && canSignUp && <Link to="/sign-up" className="muted">Create an account</Link>}

@@ -219,7 +219,7 @@ public class PostgresCustomizationTests(PostgresFixture postgres) : IClassFixtur
         };
 
         var view = await db.Customization.SaveAsync("Customer", customization, null, TestUsers.SystemManager);
-        Assert.Equal(1, await db.ScalarAsync("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'tabCustomer' AND column_name = 'custom_phone'"));
+        Assert.Equal(1, await db.ColumnCountAsync("tabCustomer", "custom_phone"));
         var id = (string)(await db.Documents.InsertAsync("Customer", Values(("customer_name", "Acme"), ("custom_phone", "555")), TestUsers.Admin))["name"]!;
 
         // "Restart": a fresh registry, the stored customisation applied again.
@@ -270,7 +270,7 @@ public class PostgresActivityTests(PostgresFixture postgres) : IClassFixture<Pos
         Assert.Equal("note", timeline.First(i => i.Event == "Update").Data!["changed"]![0]![0]!.ToString());
         Assert.Equal("Looks fine – مرحبا", timeline.Single(i => i.Kind == "comment").Content);
 
-        Assert.Equal(1, await db.ScalarAsync("SELECT COUNT(*) FROM pg_indexes WHERE schemaname = current_schema() AND tablename = 'tabVersion' AND indexdef LIKE '%(ref_docname)%'"));
+        Assert.Equal(1, await db.IndexCountAsync("tabVersion", "ref_docname"));
         db.Clock.Advance(TimeSpan.FromMinutes(1));
         await db.Documents.DeleteAsync("Folder", "Papers", editor);
         Assert.Equal(1, await db.ScalarAsync("SELECT COUNT(*) FROM \"tabVersion\" WHERE \"ref_docname\" = 'Papers' AND \"event\" = 'Delete'"));
@@ -310,7 +310,7 @@ public class PostgresCollaborationTests(PostgresFixture postgres) : IClassFixtur
         Assert.Equal(1, await db.Notifications.UnreadCountAsync(ann));
         Assert.True((await db.Follows.StateAsync("Deal", id, bob)).Following);
         Assert.Equal("Closed", (await db.Assignments.CompleteAsync(todo.Id, bob)).Status);
-        Assert.Equal(1, await db.ScalarAsync("SELECT COUNT(*) FROM pg_indexes WHERE schemaname = current_schema() AND tablename = 'tabNotification Log' AND indexdef LIKE '%(for_user)%'"));
+        Assert.Equal(1, await db.IndexCountAsync("tabNotification Log", "for_user"));
     }
 }
 

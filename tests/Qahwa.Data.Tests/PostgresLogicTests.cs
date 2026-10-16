@@ -143,7 +143,7 @@ public class PostgresLogicTests(PostgresFixture postgres) : IClassFixture<Postgr
 
         Assert.Contains(ex.Errors, e => e.Field == "fields[0].formula");
         Assert.False(db.Registry.TryGet("Broken", out _));
-        Assert.Equal(0, await db.ScalarAsync("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = current_schema() AND table_name = 'tabBroken'"));
+        Assert.False(await db.TableExistsAsync("tabBroken"));
     }
 
     [SkippableFact]

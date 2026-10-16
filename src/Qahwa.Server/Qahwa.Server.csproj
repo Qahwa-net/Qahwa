@@ -4,6 +4,7 @@
     <ProjectReference Include="..\Qahwa.Hosting\Qahwa.Hosting.csproj" />
     <ProjectReference Include="..\Qahwa.Data.Postgres\Qahwa.Data.Postgres.csproj" />
     <ProjectReference Include="..\Qahwa.Api\Qahwa.Api.csproj" />
+    <ProjectReference Include="..\Qahwa.Data.SqlServer\Qahwa.Data.SqlServer.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

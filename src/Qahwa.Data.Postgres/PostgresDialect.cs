@@ -38,7 +38,9 @@ public sealed class PostgresDialect : ISqlDialect
     public string CreateIndexSql(string indexName, string quotedTable, string column, bool unique) =>
         $"CREATE {(unique ? "UNIQUE " : string.Empty)}INDEX IF NOT EXISTS {Quote(indexName)} ON {quotedTable} ({Quote(column)})";
 
-    public string DropIndexSql(string indexName) => $"DROP INDEX IF EXISTS {Quote(indexName)}";
+    public string DropIndexSql(string indexName, string quotedTable) => $"DROP INDEX IF EXISTS {Quote(indexName)}";
+
+    public string AddColumnSql(string quotedTable, string columnDefinition) => $"ALTER TABLE {quotedTable} ADD COLUMN {columnDefinition}";
 
     public string DropTableSql(string quotedTable) => $"DROP TABLE IF EXISTS {quotedTable}";
 

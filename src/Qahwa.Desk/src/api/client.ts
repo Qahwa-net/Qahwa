@@ -127,6 +127,7 @@ export const api = {
 
   sso: {
     providers: async () => (await request<{ data: SsoProviderInfo[] }>('GET', '/api/auth/sso')).data,
+    samlProviders: async () => (await request<{ data: SsoProviderInfo[] }>('GET', '/api/auth/saml')).data,
   },
   sessions: {
     list: async () => (await request<{ data: SignIn[] }>('GET', '/api/auth/sessions')).data,

@@ -2,6 +2,7 @@ using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Qahwa.Core.Auth;
 using Qahwa.Data.Postgres;
+using Qahwa.Data.SqlServer;
 using Qahwa.Hosting;
 
 const string usage = """
@@ -9,7 +10,7 @@ const string usage = """
     qahwa create-admin (--connection <cs> | --site <name> --sites <dir>) --email <email> [--full-name <name>]
                        [--password-stdin] [--doctypes <dir> ...]
     qahwa new-site     <name> --sites <dir> --host <host> [--host <host> ...] --admin-connection <cs>
-                       [--connection-env <VARIABLE>] [--doctypes <dir> ...] [--email <email> [--full-name <name>] [--password-stdin]]
+                       [--provider postgres|sqlserver] [--connection-env <VARIABLE>] [--doctypes <dir> ...] [--email <email> [--full-name <name>] [--password-stdin]]
     qahwa list-sites   --sites <dir>
 
     migrate       Creates or updates database tables for the framework and every DocType found in the directories.
@@ -24,6 +25,8 @@ const string usage = """
     list-sites    Shows the sites found in the directory.
 
     --connection (or QAHWA_CONNECTION) names the database directly; --site names a site made by new-site.
+    --provider chooses the database product: postgres (the default) or sqlserver (also QAHWA_PROVIDER). For an existing site
+    it is read from the site's file.
     """;
 
 if (args.Length == 0 || args[0] is "-h" or "--help")
@@ -42,6 +45,7 @@ if (command is not ("migrate" or "create-admin" or "new-site" or "list-sites"))
 var connection = Environment.GetEnvironmentVariable("QAHWA_CONNECTION");
 var doctypePaths = new List<string>();
 var hosts = new List<string>();
+var product = (Environment.GetEnvironmentVariable("QAHWA_PROVIDER") ?? "postgres").ToLowerInvariant();
 string? email = null, fullName = null, site = null, sitesDir = null, adminConnection = null, connectionEnv = null, siteName = null;
 var planOnly = false;
 var passwordFromStdin = false;
@@ -72,6 +76,9 @@ for (var i = 1; i < args.Length; i++)
             break;
         case "--site" when hasValue && command is "migrate" or "create-admin":
             site = args[++i];
+            break;
+        case "--provider" when hasValue && command is "migrate" or "create-admin" or "new-site":
+            product = args[++i].ToLowerInvariant();
             break;
         case "--sites" when hasValue:
             sitesDir = Path.GetFullPath(args[++i]);
@@ -117,8 +124,14 @@ try
     {
         if (string.IsNullOrWhiteSpace(sitesDir))
             return Fail("--sites is required with --site.");
-        connection = SiteCatalog.Load(sitesDir).FirstOrDefault(s => s.Name == site)?.ConnectionString
+        var found = SiteCatalog.Load(sitesDir).FirstOrDefault(s => s.Name == site)
             ?? throw new InvalidOperationException($"There is no site '{site}' in {sitesDir}.");
+        connection = found.ConnectionString;
+        using (var file = JsonDocument.Parse(File.ReadAllText(found.ConfigPath), new JsonDocumentOptions { CommentHandling = JsonCommentHandling.Skip, AllowTrailingCommas = true }))
+        {
+            if (file.RootElement.TryGetProperty("Qahwa", out var q) && q.TryGetProperty("Database", out var d) && d.TryGetProperty("Provider", out var p) && p.GetString() is { } named)
+                product = named.ToLowerInvariant();
+        }
     }
 
     if (string.IsNullOrWhiteSpace(connection))
@@ -155,7 +168,10 @@ ServiceProvider Build(string connectionString)
     var services = new ServiceCollection();
     services.Configure<QahwaOptions>(o => o.DocTypePaths.AddRange(doctypePaths));
     services.AddQahwa();
-    services.AddQahwaPostgres(_ => connectionString);
+    if (product == "sqlserver")
+        services.AddQahwaSqlServer(_ => connectionString);
+    else
+        services.AddQahwaPostgres(_ => connectionString);
     return services.BuildServiceProvider();
 }
 
@@ -212,8 +228,11 @@ async Task<int> NewSiteAsync()
     var folder = Path.Combine(sitesDir, siteName);
     if (Directory.Exists(folder))
         return Fail($"The site '{siteName}' already exists in {sitesDir}.");
-    var database = PostgresSites.DatabaseNameFor(siteName);
-    var siteConnection = PostgresSites.ConnectionFor(adminConnection, database);
+    if (product is not ("postgres" or "sqlserver"))
+        return Fail("--provider must be postgres or sqlserver.");
+    var sqlServer = product == "sqlserver";
+    var database = sqlServer ? SqlServerSites.DatabaseNameFor(siteName) : PostgresSites.DatabaseNameFor(siteName);
+    var siteConnection = sqlServer ? SqlServerSites.ConnectionFor(adminConnection, database) : PostgresSites.ConnectionFor(adminConnection, database);
     var existing = SiteCatalog.Load(sitesDir).ToList();
     var problems = SiteCatalog.Check([.. existing, new SiteDefinition(siteName, normalized, siteConnection, Path.Combine(folder, SiteCatalog.ConfigFile))]).ToList();
     if (problems.Count > 0)
@@ -227,11 +246,13 @@ async Task<int> NewSiteAsync()
             return Fail("No password provided.");
     }
 
-    var made = await PostgresSites.CreateDatabaseAsync(adminConnection, database);
+    var made = sqlServer ? await SqlServerSites.CreateDatabaseAsync(adminConnection, database) : await PostgresSites.CreateDatabaseAsync(adminConnection, database);
     Console.WriteLine(made ? $"Database {database} created." : $"Database {database} already existed; it will be used.");
 
     Directory.CreateDirectory(folder);
     var config = new Dictionary<string, object?> { ["hosts"] = normalized };
+    if (sqlServer)
+        config["Qahwa"] = new Dictionary<string, object?> { ["Database"] = new Dictionary<string, object?> { ["Provider"] = "SqlServer" } };
     if (connectionEnv is null)
         config["connectionString"] = siteConnection;
     else

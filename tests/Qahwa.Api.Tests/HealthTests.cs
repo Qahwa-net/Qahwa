@@ -54,6 +54,9 @@ public sealed class QahwaFactory(
     /// <summary>The stand-in identity provider behind the "idp" single sign-on provider.</summary>
     public FakeIdentityProvider IdentityProvider { get; } = new();
 
+    /// <summary>The stand-in SAML provider behind the "saml" single sign-on provider.</summary>
+    public FakeSamlIdp SamlIdp { get; } = new();
+
     /// <summary>The stand-in company directory (used when the factory is made with <c>ldap: true</c>).</summary>
     public FakeLdapDirectory Directory { get; } = new();
 
@@ -82,6 +85,10 @@ public sealed class QahwaFactory(
             ["Qahwa:Auth:LoginPermitsPerMinute"] = loginPermitsPerMinute.ToString(),
             ["Qahwa:Auth:SignUp:Enabled"] = signUp ? "true" : "false",
             ["Qahwa:Auth:SignUp:DefaultRoles:0"] = "Clerk",
+            ["Qahwa:Auth:Saml:Providers:saml:DisplayName"] = "Company SAML",
+            ["Qahwa:Auth:Saml:Providers:saml:IdpEntityId"] = FakeSamlIdp.EntityId,
+            ["Qahwa:Auth:Saml:Providers:saml:SsoUrl"] = FakeSamlIdp.SsoUrl,
+            ["Qahwa:Auth:Saml:Providers:saml:Certificates:0"] = SamlIdp.CertificateText,
             ["Qahwa:Auth:Ldap:Enabled"] = ldap ? "true" : "false",
             ["Qahwa:Auth:Ldap:Server"] = "ldap.example.com",
             ["Qahwa:Auth:Ldap:BaseDn"] = "dc=example,dc=com",

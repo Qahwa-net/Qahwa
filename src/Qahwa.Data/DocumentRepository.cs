@@ -139,7 +139,7 @@ public sealed class DocumentRepository(
         while (await reader.ReadAsync(ct))
         {
             var raw = await reader.IsDBNullAsync(0, ct) ? null : reader.GetValue(0);
-            result.Add(new GroupCount(FieldValueConverter.FromStorage(type, raw), reader.GetInt64(1)));
+            result.Add(new GroupCount(FieldValueConverter.FromStorage(type, raw), Convert.ToInt64(reader.GetValue(1), System.Globalization.CultureInfo.InvariantCulture)));
         }
 
         return result;
@@ -156,7 +156,7 @@ public sealed class DocumentRepository(
         await using var reader = await command.ExecuteReaderAsync(ct);
         var result = new List<SeriesCounter>();
         while (await reader.ReadAsync(ct))
-            result.Add(new SeriesCounter(reader.GetString(0), reader.GetInt64(1)));
+            result.Add(new SeriesCounter(reader.GetString(0), Convert.ToInt64(reader.GetValue(1), System.Globalization.CultureInfo.InvariantCulture)));
         return result;
     }
 

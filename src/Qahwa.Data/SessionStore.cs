@@ -37,7 +37,7 @@ public sealed class SessionStore(IDbConnectionFactory connections, ISqlDialect d
     {
         await using var connection = await connections.OpenAsync(ct);
         await using var command = DbCommands.Create(connection,
-            $"SELECT {Columns} FROM {Table} WHERE {Q("user_name")} = {P(0)} AND {Q("revoked")} = {P(2)} AND {Q("expires")} > {P(1)} ORDER BY {Q("created")} DESC LIMIT 100",
+            $"SELECT {Columns} FROM {Table} WHERE {Q("user_name")} = {P(0)} AND {Q("revoked")} = {P(2)} AND {Q("expires")} > {P(1)} ORDER BY {Q("created")} DESC {dialect.Page(100, 0)}",
             [user, now, false]);
         await using var reader = await command.ExecuteReaderAsync(ct);
         var list = new List<SessionRecord>();
