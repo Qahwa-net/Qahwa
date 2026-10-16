@@ -28,6 +28,15 @@ public static class ServerScriptEndpoints
             return Results.Ok(new { data = new { changes = outcome.Changes, log = outcome.Log, reads = outcome.Reads } });
         });
 
+        // The scripts of a DocType, for the form that is about to open (the same permission as opening the DocType).
+        app.MapGet("/api/client-scripts/{doctype}", async (string doctype, HttpContext http, IUserContextResolver users, ClientScriptService scripts, CancellationToken ct) =>
+        {
+            var user = await users.ResolveAsync(http, ct);
+            if (!user.IsAuthenticated)
+                throw new UnauthenticatedException();
+            return Results.Ok(new { data = (await scripts.ForAsync(doctype, user, ct)).Select(s => new { name = s.Name, title = s.Title, source = s.Source }) });
+        });
+
         return app;
     }
 

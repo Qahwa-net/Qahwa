@@ -1,0 +1,16 @@
+{
+  "name": "Client Script",
+  "module": "Core",
+  "autoname": "CS-.#####",
+  "titleField": "title",
+  "trackChanges": false,
+  "fields": [
+    { "name": "title", "type": "Data", "label": "Title", "required": true, "inListView": true },
+    { "name": "active", "type": "Check", "label": "Active", "default": "1", "inListView": true },
+    { "name": "reference_doctype", "type": "Link", "options": "DocType", "label": "DocType", "required": true, "indexed": true, "inListView": true },
+    { "name": "script", "type": "Code", "label": "Script (JavaScript, runs in the browser in a sandbox)", "required": true }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "write": true, "create": true, "delete": true }
+  ]
+}

@@ -1,0 +1,18 @@
+# ADR-057: Client Scripts
+
+**Status:** accepted (L11, part 3)
+
+## Context
+Server Scripts (ADR-053) run on the server; some behaviour belongs in the form itself: show a hint, hide or require a field depending on another, fill a value when another changes, add a button, stop a save with a clear message. Frappe runs such scripts inside the page, which gives an administrator's script (or a compromised administrator account) everything the page can do, including using the signed-in person's session against the API.
+
+## Decision
+- **Client Script DocType** (System Managers only): title, active, DocType, script. The source is parsed when saved (same checker as Server Scripts, 20,000 characters at most). `GET /api/client-scripts/{doctype}` gives the active scripts (at most ten, oldest first) to people who may read that DocType; anyone else gets 401/403/404 and learns nothing.
+- **The scripts run in a sandbox, not in the page.** A Web Worker (`/client-script-worker.js`) has no DOM, no cookies and no page. Before any script is run the worker removes `fetch`, `XMLHttpRequest`, `WebSocket`, `EventSource`, `importScripts`, storage, other workers, `URL`, `Blob`, `location`, `navigator` and `postMessage` (from the global and its prototypes), and the file is served with its own content-security policy: `default-src 'none'; script-src 'self' 'unsafe-eval'; connect-src 'none'`. `'unsafe-eval'` is allowed there, and only there, because scripts are compiled from text; `connect-src 'none'` means that even a way around the removals cannot reach the network. Every other path keeps the strict policy of the application. A browser test confirmed that `fetch`, `XMLHttpRequest`, `importScripts`, `postMessage`, `location`, `localStorage`, `document` and `window` are all undefined, also when reached through `Function(...)` or indirect `eval`.
+- **A small API**: `qahwa.ui.form.on('DocType', { onload(frm), refresh(frm), validate(frm), <fieldname>(frm) })`. `frm.doc` is a copy (typed values; no passwords, files or tables), and a script asks the form to act with `frm.set_value`, `frm.set_df_property(field, 'hidden' | 'read_only' | 'reqd', flag)` (and `toggle_display`, `toggle_reqd`, `toggle_enable`), `frm.set_intro`, `frm.add_custom_button`, `frm.msgprint` and `frm.throw` (refuses a save in `validate`). The worker returns a list of operations; **the page checks each one again** (only these operations, only fields the DocType has, no passwords, tables, files or layout fields, plain values of limited size, at most 100 operations and 300 characters of text) before doing anything.
+- **Failures never freeze the form.** The page waits one second for each answer; a script that loops is ended with its worker, a message says so, and client scripts stay off for that form while everything else keeps working. A script's own error becomes a note on the form. A value set by a script does not start that field's event (no loops), and events are handled one at a time in order.
+- **The server stays in charge.** Client scripts are conveniences: every value is still validated and permission-checked by the server on save, and the rules that must hold belong in Validate Server Scripts, formulas or rules. A person with developer tools can skip a client script; they cannot skip the server.
+
+## Consequences
+- Not yet: list-view events, calling the server from a client script (a fetch of a linked document), changing a field's label or options, custom buttons on lists, per-user script enabling.
+- Form `refresh` runs when the form opens and after each save; `validate` runs before each save (also Ctrl+S) and its refusal is shown as the banner.
+- Scripts cannot use `async`/`await` against the server; they are synchronous and short by design.

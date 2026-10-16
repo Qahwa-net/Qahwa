@@ -161,6 +161,12 @@ public sealed partial class DocumentService(
             return [];
         }
 
+        if (meta.Name == ClientScriptService.DocTypeName)
+        {
+            ClientScriptService.Check(values, errors);
+            return [];
+        }
+
         if (serverScripts is null)
             return [];
         if (meta.Name == ServerScriptEngine.DocTypeName)

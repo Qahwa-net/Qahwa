@@ -28,8 +28,11 @@ app.Use(async (context, next) =>
     headers.XContentTypeOptions = "nosniff";
     headers.XFrameOptions = "DENY";
     headers.Append("Referrer-Policy", "same-origin");
-    headers.Append("Content-Security-Policy",
-        "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'");
+    // The client-script sandbox is a worker that must be allowed to build functions from text, so it gets a policy of its own: nothing
+    // else (no network of any kind, no frames, no styles) is allowed to it, and it has no page to attack.
+    headers.Append("Content-Security-Policy", context.Request.Path.Equals("/client-script-worker.js", StringComparison.Ordinal)
+        ? "default-src 'none'; script-src 'self' 'unsafe-eval'; connect-src 'none'"
+        : "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'self'");
     if (context.Request.Path.StartsWithSegments("/api"))
         headers.CacheControl = "no-store"; // API responses can contain private data
 

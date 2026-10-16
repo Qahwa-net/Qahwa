@@ -27,9 +27,14 @@ import {
   applyLogic, documentContext, expressionDefaults, fetchTargets, fieldState, rowContext, rowExpressionDefaults,
   type FieldState, type Session,
 } from '../lib/logic.ts'
+import { scriptDoc } from '../lib/clientScripts.ts'
+import { useClientScripts } from '../lib/useClientScripts.ts'
 import { emptyRow, rowsChanged, rowsFromDoc, rowsToPayload, tableFieldsOf, type TableRow } from '../lib/tables.ts'
 
 type Values = Record<string, InputValue>
+
+/** A client script refused the save (its message is shown as it is). */
+class ScriptRefusal extends Error {}
 type Tables = Record<string, TableRow[]>
 
 function initialValues(meta: DocTypeMeta, doc: Doc | null): Values {
@@ -141,7 +146,20 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
 
   const view = useMemo(() => applyLogic(meta, childMetas, values, tables, session), [meta, childMetas, values, tables, session])
   const docContext = documentContext(meta, childMetas, view.values, view.tables, session)
-  const stateOf = (field: DocField): FieldState => (hasLogic(field) ? fieldState(field, docContext) : staticState(field))
+  const latestValues = useRef(view.values)
+  latestValues.current = view.values
+  const scripts = useClientScripts({
+    meta,
+    getDoc: () => scriptDoc(meta, latestValues.current),
+    values: view.values,
+    applyValue: (field, value) => setValues((v) => ({ ...v, [field.name]: toInput(field, value) })),
+    version: doc ? String(doc.modified ?? '') : null,
+  })
+  const stateOf = (field: DocField): FieldState => {
+    const base = hasLogic(field) ? fieldState(field, docContext) : staticState(field)
+    const o = scripts.overrides[field.name]
+    return o ? { ...base, active: o.hidden ? false : base.active, required: o.reqd ?? base.required, readOnly: o.read_only ?? base.readOnly } : base
+  }
 
   const changedNames = Object.keys(view.values).filter((key) => view.values[key] !== original[key] && canWriteField(meta.fields.find((f) => f.name === key)!))
   const changedTables = tableDefs.filter(({ field }) => canWriteField(field) && rowsChanged(originalTables[field.name] ?? [], view.tables[field.name] ?? []))
@@ -202,6 +220,8 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
 
   const save = useMutation({
     mutationFn: async () => {
+      const refusal = await scripts.beforeSave()
+      if (refusal) throw new ScriptRefusal(refusal)
       const send = (names: string[]) =>
         Object.fromEntries(names
           .filter((n) => canWriteField(meta.fields.find((f) => f.name === n)!))
@@ -230,6 +250,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
       if (isNew) navigate(`${base}/${encodeURIComponent(saved.name)}`, { replace: true })
     },
     onError: (error) => {
+      if (error instanceof ScriptRefusal) return setBanner({ text: error.message, conflict: false })
       if (!(error instanceof ApiError)) return setBanner({ text: 'Could not save. Please try again.', conflict: false })
 
       const byField = Object.fromEntries(error.details.filter((d) => d.field).map((d) => [d.field, d.message]))
@@ -371,6 +392,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
           {!isNew && !flow && docstatus === 1 && perms.cancel && (
             <IconButton icon="ban" label={dirty ? 'Save your changes before cancelling' : 'Cancel document'} tone="danger" disabled={dirty || transition.isPending} onClick={() => setConfirm('cancel')} />
           )}
+          {scripts.buttons.map((b) => <button key={b.id} type="button" className="btn" onClick={() => scripts.runButton(b.id)}>{b.label}</button>)}
           {editable && docstatus !== 2 && (
             <button className="btn primary save-btn" disabled={!dirty || save.isPending} onClick={() => save.mutate()}>
               <Icon name="save" /> <span className="btn-label">{save.isPending ? 'Saving…' : 'Save'}</span>
@@ -409,6 +431,8 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
             else transition.mutate(kind)
           }} />
       )}
+      {scripts.intro && <div className="banner info" role="status">{scripts.intro}</div>}
+      {scripts.notice && <div className="banner info" role="status">{scripts.notice} <button type="button" className="btn small" onClick={scripts.dismissNotice}>OK</button></div>}
       {docstatus === 2 && <div className="banner info" role="status">This document is cancelled and cannot be changed.</div>}
       {docstatus === 1 && editable && <div className="banner info" role="status">This document is submitted. Only some fields can still be changed.</div>}
       {!editable && (

@@ -48,6 +48,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 44. [Signing in with your company directory password](44-company-directory.md)
 45. [Running several sites in one server](45-several-sites.md)
 46. [Light and dark themes, and your organisation's look](46-themes-and-brand.md)
+47. [Client Scripts](47-client-scripts.md)
 
 **Words used**
 

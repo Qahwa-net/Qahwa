@@ -1,3 +1,4 @@
+import type { ScriptSource } from '../lib/clientScripts.ts'
 import type { SsoProviderInfo } from '../lib/sso.ts'
 import type { DisplaySettings } from '../lib/display.ts'
 import type {
@@ -105,6 +106,9 @@ export const api = {
       return json!.data!
     },
   },
+
+  clientScripts: async (doctype: string): Promise<ScriptSource[]> =>
+    (await request<{ data: { name: string; title: string; source: string }[] }>('GET', `/api/client-scripts/${encodeURIComponent(doctype)}`)).data,
 
   brand: async (): Promise<unknown> => (await request<{ data: unknown }>('GET', '/api/brand')).data,
 
