@@ -153,3 +153,7 @@ Core DocType `CoreDocTypes/document_action.json`; `DocumentActions.cs`: `Documen
 ## Error log ([ADR-036](../../adr/036-error-log.md))
 
 Core DocType `CoreDocTypes/error_log.json`; `ErrorLog.cs`: `ErrorLogService.RecordAsync(source, method, path, user, exception)` (never throws, rate limited with `HitCounter`, path stripped of query). `UseQahwaErrors` calls it for every 500; `SchedulerService` calls it with source "Scheduler". Call it from your own background code the same way. Tests: `ErrorLogApiTests` (a TestServer host with a throwing endpoint).
+
+## OpenAPI ([ADR-037](../../adr/037-openapi.md))
+
+`Qahwa.Api/OpenApi.cs`: `OpenApiBuilder.Build(views, version)` is a pure function of the `MetaView`s a person may see (so permissions are already applied); `OpenApiEndpoints.cs`: `GET /api/openapi.json`. To describe a new resource endpoint add it to `Build`; keep it driven by `MetaView.Permissions`. Tests: `OpenApiTests`.

@@ -678,7 +678,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Filter operators: `=`, `!=`, `<`, `>`, `<=`, `>=`, `like`, `in`, `is set` | | ✅ | done |
 | Filter operators: `not like`, `not in`, `between`, timespans, dynamic values (`__user`) | | ⬜ | L7 |
 | `/api/method` (whitelisted server functions), `get_count`, `get_value`, `set_value`, `get_list`, `rename_doc` | | ⬜ | L7 |
-| API versioning, OpenAPI documentation | | ⬜ | L12 |
+| API versioning, OpenAPI documentation | done: OpenAPI 3 per caller; not yet URL versioning | 🟡 | L12 |
 | Webhooks, incoming API via server script | outgoing webhooks done (L10); incoming API via scripts not yet (L11) | 🔽 | L10, L11 |
 | Realtime updates (socket events, document updates), SignalR | | ⬜ | L8 |
 | Payment gateways (Stripe, PayPal, Razorpay), SMS gateways, Google Calendar/Contacts/Drive, Dropbox, S3 backups, Slack, push notifications | | 🔽 | L12 |

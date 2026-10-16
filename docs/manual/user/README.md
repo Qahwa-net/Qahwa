@@ -28,6 +28,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 24. [Web forms](24-web-forms.md)
 25. [Document actions (automation)](25-document-actions.md)
 26. [Error log](26-error-log.md)
+27. [API description (OpenAPI)](27-api-description.md)
 
 **Words used**
 

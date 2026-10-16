@@ -108,6 +108,7 @@ public static class QahwaEndpoints
         app.MapQahwaBundle();
         app.MapQahwaTranslations();
         app.MapQahwaWebForms();
+        app.MapQahwaOpenApi();
         return app;
     }
 
