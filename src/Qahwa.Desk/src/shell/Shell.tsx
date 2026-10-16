@@ -63,6 +63,7 @@ export function Shell() {
               <li><NavLink to="/permissions">Role Permissions</NavLink></li>
               <li><NavLink to="/workflows">Workflow Builder</NavLink></li>
               <li><NavLink to="/webhooks">Webhooks</NavLink></li>
+              <li><NavLink to="/bundle">Export &amp; Import</NavLink></li>
               <li><NavLink to="/workspaces">Workspaces</NavLink></li>
               <li><NavLink to="/print-formats">Print Formats</NavLink></li>
               <li><NavLink to="/notification-rules">Notification Rules</NavLink></li>

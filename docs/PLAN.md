@@ -695,7 +695,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Backups (download, scheduled, restore) | | ⬜ | L12 |
 | Error Log, Scheduled Job Log, Recorder (query profiler), System Console | | ⬜ | L12 |
 | System Settings (time zone, formats, session expiry, security) | | ⬜ | L10 |
-| Fixtures (export UI-made customisations as files) | | ⬜ | L12 |
+| Fixtures (export UI-made customisations as files) | done: **bundle** export/import of DocTypes, customizations, workflows and rules with preview; not yet print formats/dashboards, patches, CLI | ✅ (v1) | L12 |
 
 ### A9. Platform and developer experience
 

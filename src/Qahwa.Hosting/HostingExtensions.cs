@@ -130,6 +130,7 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<ISchemaManager, SchemaManager>();
         services.TryAddSingleton<IDocTypeStore, DocTypeStore>();
         services.TryAddSingleton<DocTypeDesigner>();
+        services.TryAddSingleton<BundleService>();
         services.TryAddSingleton<CustomDocTypeLoader>();
         services.TryAddSingleton<QahwaMigrator>();
         return services;

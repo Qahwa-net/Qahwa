@@ -133,3 +133,7 @@ Incoming mail, HTML mail, Slack and SMS channels (L8), reports and dashboards. T
 ## Board and calendar views ([ADR-031](../../adr/031-board-and-calendar-views.md))
 
 Desk only. `pages/BoardView.tsx` and `pages/CalendarView.tsx`, routes `app/:doctype/board` and `app/:doctype/calendar` in `App.tsx`, toolbar links in `ListView.tsx`. Pure helpers: `lib/board.ts` (`columnsOf`, `groupCards`, `withMoved`, `boardFields`) and `lib/calendar.ts` (`monthGrid`, `monthRange`, `eventsByDay`). A move is an ordinary `api.update` with an optimistic cache change and rollback. Tests: `lib/views.test.ts`.
+
+## App bundles ([ADR-032](../../adr/032-app-bundles.md))
+
+`Bundle.cs`: `BundleKind`, `AppBundle`, `BundleService` (`ExportAsync`, `ImportAsync(bundle, dryRun, user)`, static `ToJson` / `FromJson`). Import calls `DocTypeDesigner`, `CustomizationManager`, `WorkflowManager`, `AssignmentRuleManager` and `NotificationRuleManager` so all their validation and permission checks apply; each item succeeds or fails alone. To carry a new kind of definition: add a `BundleKind`, an export block and a case in `ApplyAsync`. `BundleEndpoints.cs`: `GET /api/bundle/export?name=&kinds=`, `POST /api/bundle/import?dryRun=` (JSON body, 5 MB). Desk: `pages/Bundle.tsx`, `lib/bundle.ts`. Tests: `BundleTests`, `BundleApiTests`, `PostgresBundleTests`.

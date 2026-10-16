@@ -134,6 +134,7 @@ public sealed class TestEngine
             Clock);
         Webhooks = new WebhookService(WebhookCatalog, Registry, Repository, Documents, WebhookSender, History);
         WebhookManager = new WebhookManager(Registry, WebhookStore, WebhookCatalog, Permissions, Clock, allowInsecure: false);
+        Bundle = new BundleService(Registry, Designer, Customization, Workflows, AssignmentRuleManager, NotificationRuleManager, Permissions, Clock);
         Files = new FileService(Registry, Repository, Documents, Permissions, Notifications, FileStorage, History);
         ApiKeys = new ApiKeyService(Registry, Repository, Auth, Permissions, History);
     }
@@ -171,6 +172,7 @@ public sealed class TestEngine
     public FakeWebhookSender WebhookSender { get; }
     public WebhookService Webhooks { get; }
     public WebhookManager WebhookManager { get; }
+    public BundleService Bundle { get; }
     public InMemoryFileStorage FileStorage { get; }
     public FileService Files { get; }
     public EmailService Email { get; }

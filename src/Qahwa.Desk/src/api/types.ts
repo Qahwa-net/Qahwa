@@ -776,3 +776,20 @@ export interface AttachedFile {
   uploadedByName?: string | null
   created: string
 }
+
+export type BundleKind = 'DocType' | 'Customization' | 'Workflow' | 'AssignmentRules' | 'NotificationRules'
+
+export interface BundleItemResult {
+  kind: BundleKind
+  docType: string
+  action: string
+  ok: boolean
+  message: string
+}
+
+export interface BundleReport {
+  dryRun: boolean
+  applied: number
+  failed: number
+  items: BundleItemResult[]
+}
