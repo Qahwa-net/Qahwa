@@ -31,6 +31,7 @@ public interface IUserContextResolver
 internal sealed class CookieUserContextResolver(
     AuthService auth,
     ApiKeyService apiKeys,
+    SessionService sessions,
     IMemoryCache cache,
     IOptions<AuthOptions> options) : IUserContextResolver
 {
@@ -71,9 +72,27 @@ internal sealed class CookieUserContextResolver(
             return UserContext.Anonymous;
 
         var session = await GetSessionAsync(email, ct);
-        return session is not null && session.PasswordVersion.ToString(System.Globalization.CultureInfo.InvariantCulture) == version
-            ? session.User
-            : UserContext.Anonymous;
+        if (session is null || session.PasswordVersion.ToString(System.Globalization.CultureInfo.InvariantCulture) != version)
+            return UserContext.Anonymous;
+
+        // The cookie only counts while its session is alive on the server (not signed out elsewhere, revoked or past its limit).
+        var sid = principal.FindFirstValue(AuthClaims.SessionId);
+        return await IsLiveAsync(sid, email, ct) ? session.User : UserContext.Anonymous;
+    }
+
+    private async Task<bool> IsLiveAsync(string? sid, string email, CancellationToken ct)
+    {
+        if (string.IsNullOrEmpty(sid))
+            return false;
+        var seconds = options.Value.SessionCacheSeconds;
+        if (seconds <= 0)
+            return await sessions.IsValidAsync(sid, email, ct);
+
+        return await cache.GetOrCreateAsync(AuthClaims.LiveKey(sid), entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(seconds);
+            return sessions.IsValidAsync(sid, email, CancellationToken.None);
+        });
     }
 
     private async Task<SessionInfo?> GetSessionAsync(string email, CancellationToken ct)
@@ -93,6 +112,8 @@ internal sealed class CookieUserContextResolver(
 internal static class AuthClaims
 {
     public const string PasswordVersion = "qahwa:pwv";
+    public const string SessionId = "qahwa:sid";
+    public static string LiveKey(string sid) => $"qahwa:live:{sid}";
     public const string LoginRateLimit = "qahwa-login";
 
     public static string SessionKey(string email) => $"qahwa:session:{email}";

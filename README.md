@@ -36,6 +36,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **Error log**: unexpected errors (requests and the scheduler) recorded for System Managers, without bodies or query strings and with a rate limit ([ADR-036](docs/adr/036-error-log.md))
 - **OpenAPI**: `/api/openapi.json` describes the REST API for exactly what the caller may use, generated from the live DocTypes ([ADR-037](docs/adr/037-openapi.md))
 - **Two-factor sign-in**: authenticator-app codes with recovery codes, replay protection, shared lockout, encrypted secrets ([ADR-039](docs/adr/039-two-factor-sign-in.md))
+- **Sessions**: every sign-in is recorded; see where you are signed in, end any of them, absolute 14-day limit ([ADR-040](docs/adr/040-sessions.md))
 - **Webhooks**: signed JSON posts to other systems when documents are created, changed, submitted, cancelled or deleted, queued with retries and guarded against requests to internal networks ([ADR-029](docs/adr/029-webhooks.md))
 - **API keys**: Bearer tokens that act as a person within their permissions, shown once and stored hashed, with read-only and expiry options ([ADR-028](docs/adr/028-api-keys.md))
 - **Data import**: CSV files become documents through the normal insert or update rules, with a preview, row-by-row results and an update mode ([ADR-027](docs/adr/027-data-import.md))

@@ -53,6 +53,9 @@ public interface ISqlDialect
     /// <summary>Table holding two-factor secrets and recovery codes (see <c>ITotpStore</c>).</summary>
     string CreateTotpTableSql { get; }
 
+    /// <summary>Table holding sign-in sessions (see <c>ISessionStore</c>).</summary>
+    string CreateSessionTableSql { get; }
+
     /// <summary>Increments the counter named by parameter 0 and returns the new value.</summary>
     string NextSeriesSql { get; }
 

@@ -115,6 +115,18 @@ public sealed class PostgresDialect : ISqlDialect
         "\"recovery\" text NOT NULL DEFAULT '[]', " +
         "\"user_created\" timestamp with time zone NOT NULL)";
 
+    public string CreateSessionTableSql =>
+        "CREATE TABLE IF NOT EXISTS \"__sessions\" (" +
+        "\"id\" varchar(64) NOT NULL PRIMARY KEY, " +
+        "\"user_name\" varchar(140) NOT NULL, " +
+        "\"created\" timestamp with time zone NOT NULL, " +
+        "\"last_seen\" timestamp with time zone NOT NULL, " +
+        "\"expires\" timestamp with time zone NOT NULL, " +
+        "\"address\" varchar(64), " +
+        "\"agent\" varchar(200), " +
+        "\"revoked\" boolean NOT NULL DEFAULT false); " +
+        "CREATE INDEX IF NOT EXISTS \"__sessions_user\" ON \"__sessions\" (\"user_name\")";
+
     public string LikeOperator => "ILIKE";
 
     public string ListSeriesSql => "SELECT \"name\", \"current\" FROM \"tabSeries\" ORDER BY \"name\"";

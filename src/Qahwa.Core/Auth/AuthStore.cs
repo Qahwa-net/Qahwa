@@ -16,6 +16,9 @@ public sealed class AuthOptions
 
     public int SessionHours { get; set; } = 8;
 
+    /// <summary>A session ends this many days after signing in, however active it is.</summary>
+    public int AbsoluteSessionDays { get; set; } = 14;
+
     /// <summary>
     /// How long a user's enabled flag, roles and password version are cached per user.
     /// A role change or disabled account takes at most this long to apply to open sessions. 0 disables the cache.

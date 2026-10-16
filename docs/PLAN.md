@@ -628,7 +628,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | API keys / secrets, token auth | done: per-person Bearer keys, hashed, read-only and expiry; not yet scopes, rate limits, OAuth | ✅ (v1) | L10 |
 | OAuth 2 provider, social login (Google, GitHub, Microsoft, Keycloak), OpenID Connect | | ⬜ | L10 |
 | LDAP, SAML single sign-on | | ⬜ | L12 |
-| Session management (list/revoke, expiry), login as user (impersonation) | | ⬜ | L10 |
+| Session management (list/revoke, expiry), login as user (impersonation) | done: list, revoke, admin sign-out-everywhere, absolute limit (ADR-040); impersonation deliberately not built | ✅ (v1) | L10 |
 | IP restrictions, system settings (security) | | ⬜ | L10 |
 | Encrypted fields (Password type) | | ⬜ | L3 |
 | CSRF, security headers | | ✅ | done |

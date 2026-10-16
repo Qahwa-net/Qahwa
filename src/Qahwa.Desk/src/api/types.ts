@@ -830,3 +830,12 @@ export interface TwoFactorSetup {
   secret: string
   uri: string
 }
+
+export interface SignIn {
+  id: string
+  created: string
+  last_seen: string
+  address: string | null
+  agent: string | null
+  current: boolean
+}

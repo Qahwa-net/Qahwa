@@ -643,3 +643,6 @@ kbd { font: .75rem ui-monospace, Consolas, monospace; padding: .05rem .35rem; bo
 .error-text { color: var(--danger, #d92d20); }
 
 .qr { display: block; background: #fff; padding: .5rem; border-radius: 8px; margin-block: .5rem; }
+
+.session-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding-block: .5rem; border-block-end: 1px solid var(--border); }
+.plain { list-style: none; margin: 0 0 .75rem; padding: 0; }
