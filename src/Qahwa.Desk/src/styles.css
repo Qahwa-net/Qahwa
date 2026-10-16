@@ -662,3 +662,6 @@ kbd { font: .75rem ui-monospace, Consolas, monospace; padding: .05rem .35rem; bo
 .geo-input input { inline-size: 9rem; }
 .signature canvas { background: #fff; border: 1px solid var(--border, #ccc); border-radius: 8px; inline-size: min(100%, 400px); block-size: auto; aspect-ratio: 400 / 150; cursor: crosshair; }
 .signature img { background: #fff; border: 1px solid var(--border, #ccc); border-radius: 8px; display: block; margin-block-end: .3rem; }
+
+.attach-input { display: grid; gap: .4rem; justify-items: start; }
+.attach-preview { max-inline-size: 16rem; max-block-size: 12rem; border-radius: 8px; border: 1px solid var(--border, #ccc); object-fit: contain; background: #fff; }

@@ -211,3 +211,7 @@ Tests: `PatchTests`, `PostgresPatchTests`.
 ## More field types ([ADR-047](../../adr/047-more-field-types.md))
 
 `FieldType` (Qahwa.Abstractions) gained `Rating`, `Duration`, `Color`, `Barcode`, `Geolocation`, `Signature`. Validation is in `FieldValueConverter.Convert` (the only place values from clients become stored values); column types in `PostgresDialect.ColumnType`; `FieldTypes.IsShortText` includes Color and Barcode; numeric sets in `DocumentService.Special`, `Dashboards`, `Reports` include Rating and Duration; printing in `PrintTemplate.Show`; `FieldTypeCatalog` makes them available in the Designer. Desk: `controls/SpecialInputs.tsx`, `lib/fieldtypes.ts` (duration parsing, place helpers), cases in `FieldInput` and `formatCell`. To add another type touch all of these places. Tests: `NewFieldTypeTests`, `PostgresFieldTypeTests`, `lib/fieldtypes.test.ts`.
+
+## Attachment and image fields ([ADR-048](../../adr/048-attach-and-image-fields.md))
+
+Validation in `DocumentService.ValidateAsync` calls `FileService.CheckFieldFileAsync`; `FileService.DeleteAsync` empties fields naming the removed file (`ClearFieldsNamingAsync`); `DocTypeLoader.CheckField` refuses them in child tables. Desk: `AttachInput` in `controls/SpecialInputs.tsx`, which reads the document from `DocContext` (provided by `FormView`) and uploads with `api.files.upload`. Tests: `AttachFieldTests`.

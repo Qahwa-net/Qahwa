@@ -1,4 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { ApiError, api } from '../api/client.ts'
+import { fileProblem } from '../lib/files.ts'
+import { useDocScope } from './DocContext.tsx'
 import { MAX_STARS, formatDuration, isHexColor, isSignature, mapUrl, parseDuration, parsePlace, placeText, starsLabel } from '../lib/fieldtypes.ts'
 
 interface Common {
@@ -142,6 +146,60 @@ export function SignatureInput({ value, onChange, readOnly, id, ariaLabel }: Com
         : <canvas ref={canvas} width={WIDTH} height={HEIGHT} aria-label={ariaLabel ?? 'Signature box'} role="img" style={{ touchAction: 'none' }}
             onPointerDown={start} onPointerMove={move} onPointerUp={end} onPointerCancel={end} />}
       {!readOnly && <button type="button" className="btn small" onClick={clear}>{signed ? 'Sign again' : 'Clear'}</button>}
+    </div>
+  )
+}
+
+/**
+ * A file field. The file is uploaded to the saved document (the same place as the side panel) and the field keeps its id, so a new
+ * document must be saved first. A picture is shown on the form; any other file is a download link.
+ */
+export function AttachInput({ value, onChange, readOnly, id, ariaLabel, image }: Common & { image: boolean }) {
+  const scope = useDocScope()
+  const queryClient = useQueryClient()
+  const fileId = typeof value === 'string' && value !== '' ? value : null
+  const files = useQuery({
+    queryKey: ['files', scope?.doctype, scope?.name],
+    queryFn: () => api.files.list(scope!.doctype, scope!.name!),
+    enabled: Boolean(scope?.name) && fileId !== null,
+    retry: false,
+  })
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const chosen = files.data?.find((f) => f.id === fileId)
+
+  if (!scope?.name) return <small className="muted">Save the document first, then attach the file.</small>
+
+  const choose = async (file: File | undefined) => {
+    if (!file) return
+    const problem = fileProblem(file)
+    if (problem) { setError(problem); return }
+    if (image && !file.type.startsWith('image/')) { setError('Choose a picture (PNG, JPEG, GIF or WebP).'); return }
+    setBusy(true)
+    setError(null)
+    try {
+      const uploaded = await api.files.upload(scope.doctype, scope.name!, file)
+      onChange(uploaded.id)
+      await queryClient.invalidateQueries({ queryKey: ['files', scope.doctype, scope.name] })
+    } catch (e) {
+      setError(e instanceof ApiError ? (e.details[0]?.message ?? e.message) : 'Could not upload the file.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div id={id} className="attach-input" role="group" aria-label={ariaLabel}>
+      {fileId && chosen?.image && <img src={api.files.url(fileId)} alt={chosen.fileName} className="attach-preview" />}
+      {fileId && <a href={api.files.url(fileId)} download>{chosen?.fileName ?? 'Download the file'}</a>}
+      {!readOnly && (
+        <>
+          <input type="file" aria-label={fileId ? 'Replace the file' : 'Choose a file'} accept={image ? 'image/png,image/jpeg,image/gif,image/webp' : undefined} disabled={busy} onChange={(e) => { void choose(e.target.files?.[0]); e.target.value = '' }} />
+          {fileId && <button type="button" className="btn small" onClick={() => onChange('')}>Remove from this field</button>}
+        </>
+      )}
+      {busy && <small className="muted" role="status">Uploading…</small>}
+      {error && <small className="error-text" role="alert">{error}</small>}
     </div>
   )
 }

@@ -5,7 +5,7 @@ import { useT } from '../i18n.tsx'
 import { isEditable, labelOf, selectOptions } from '../lib/fields.ts'
 import type { FieldState } from '../lib/logic.ts'
 import { LinkSelect } from './LinkSelect.tsx'
-import { ColorInput, DurationInput, GeolocationInput, RatingInput, SignatureInput } from './SpecialInputs.tsx'
+import { AttachInput, ColorInput, DurationInput, GeolocationInput, RatingInput, SignatureInput } from './SpecialInputs.tsx'
 
 export type InputValue = string | boolean
 
@@ -63,6 +63,7 @@ export function FieldInput(props: InputProps) {
     case 'Link':
     case 'DynamicLink':
       return <LinkInput {...props} />
+    case 'Attach': case 'AttachImage': return <AttachInput id={id} ariaLabel={ariaLabel} value={value} readOnly={readOnly} invalid={invalid} image={field.type === 'AttachImage'} onChange={onChange} />
     case 'Rating': return <RatingInput id={id} ariaLabel={ariaLabel} value={value} readOnly={readOnly} invalid={invalid} onChange={onChange} />
     case 'Duration': return <DurationInput id={id} ariaLabel={ariaLabel} value={value} readOnly={readOnly} invalid={invalid} onChange={onChange} />
     case 'Color': return <ColorInput id={id} ariaLabel={ariaLabel} value={value} readOnly={readOnly} invalid={invalid} onChange={onChange} />

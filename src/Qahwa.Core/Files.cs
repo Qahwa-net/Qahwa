@@ -192,6 +192,39 @@ public sealed class FileService(
             Convert.ToInt64(row["file_size"] ?? 0L, CultureInfo.InvariantCulture), IsInlineImage(type));
     }
 
+    /// <summary>
+    /// Whether a file may be named in an Attach or Image field of one document: it must exist, be attached to that very document (so a field
+    /// can never point at someone else's file) and, for an Image field, be a real picture. Returns what is wrong, or null.
+    /// </summary>
+    public async Task<string?> CheckFieldFileAsync(string fileId, string doctype, string? name, bool requireImage, CancellationToken ct = default)
+    {
+        if (string.IsNullOrEmpty(name))
+            return "Save the document first, then attach the file.";
+        var row = fileId.Length > FieldTypes.ShortTextLength ? null : await repository.GetAsync(Meta, fileId, ct);
+        if (row is null)
+            return "That file does not exist. Upload it to this document first.";
+        if (!string.Equals(row["reference_doctype"] as string, doctype, StringComparison.Ordinal) || !string.Equals(row["reference_name"] as string, name, StringComparison.Ordinal))
+            return "That file is attached to another document.";
+        return requireImage && !IsInlineImage(row["content_type"] as string ?? string.Empty) ? "This field needs a picture (PNG, JPEG, GIF or WebP)." : null;
+    }
+
+    /// <summary>A file is removed: any Attach or Image field of its document that named it is emptied, so nothing points at a file that is gone.</summary>
+    private async Task ClearFieldsNamingAsync(string fileId, string doctype, string name, CancellationToken ct)
+    {
+        if (!registry.TryGet(doctype, out var meta))
+            return;
+        var fields = meta.Fields.Where(f => f.Type is FieldType.Attach or FieldType.AttachImage).Select(f => f.Name).ToList();
+        if (fields.Count == 0 || await repository.GetAsync(meta, name, ct) is not { } doc)
+            return;
+
+        var changes = fields.Where(f => string.Equals(doc.GetValueOrDefault(f) as string, fileId, StringComparison.Ordinal)).ToDictionary(f => f, _ => (object?)null);
+        if (changes.Count == 0)
+            return;
+        var stored = (DateTime)doc["modified"]!;
+        changes["modified"] = history.Now() > stored ? history.Now() : stored.AddTicks(10);
+        await repository.UpdateAsync(meta, name, changes, null, null, ct);
+    }
+
     /// <summary>Removes a file: by whoever uploaded it or can change the document, or a System Manager.</summary>
     public async Task DeleteAsync(string id, IUserContext user, CancellationToken ct = default)
     {
@@ -215,6 +248,7 @@ public sealed class FileService(
 
         await repository.DeleteAsync(Meta, id, null, ct);
         await storage.DeleteAsync((string)row["storage_key"]!, ct);
+        await ClearFieldsNamingAsync(id, doctype, name, ct);
         await NoteAsync(doctype, name, $"Removed {row["file_name"]}", user.User, ct);
     }
 

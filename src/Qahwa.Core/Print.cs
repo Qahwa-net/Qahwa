@@ -197,6 +197,8 @@ public static partial class PrintTemplate
                     return Duration(Convert.ToInt64(value, CultureInfo.InvariantCulture));
                 case FieldType.Signature:
                     return "(signed)"; // the picture itself is never put on a printout
+                case FieldType.Attach or FieldType.AttachImage:
+                    return value is string { Length: > 0 } ? "(attached)" : string.Empty; // a file id means nothing on paper
                 case FieldType.Geolocation when value is string place:
                     try
                     {

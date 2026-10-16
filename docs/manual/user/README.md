@@ -39,6 +39,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 35. [Reports](35-reports.md)
 36. [Countries, currencies and other lists](36-master-data.md)
 37. [Stars, durations, colours, places and signatures](37-more-field-types.md)
+38. [Attachment and image fields](38-attachment-and-image-fields.md)
 
 **Words used**
 

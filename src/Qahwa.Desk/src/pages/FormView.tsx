@@ -21,6 +21,7 @@ import type { Doc, DocField, DocTypeMeta, Permissions } from '../api/types.ts'
 import { useAuth } from '../auth.tsx'
 import { FieldControl, type InputValue } from '../controls/FieldControl.tsx'
 import { TableControl } from '../controls/TableControl.tsx'
+import { DocContext } from '../controls/DocContext.tsx'
 import { fromInput, hasColumn, isEditable, toInput } from '../lib/fields.ts'
 import {
   applyLogic, documentContext, expressionDefaults, fetchTargets, fieldState, rowContext, rowExpressionDefaults,
@@ -428,6 +429,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
 
       <div className={doc ? 'doc-layout' : undefined}>
       <div className="doc-main">
+      <DocContext.Provider value={{ doctype: meta.name, name: doc?.name ?? null }}>
       <form className="form-stack" onSubmit={(e) => { e.preventDefault(); if (dirty && editable) save.mutate() }}>
         {isNew && meta.autoname === 'prompt' && (
           <section className="card form-section">
@@ -481,6 +483,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc }: {
         {!hasFields && <p className="muted full">This DocType has no editable fields.</p>}
         <button type="submit" hidden />
       </form>
+      </DocContext.Provider>
 
       {doc && <ActivityPanel meta={meta} childMetas={childMetas} name={doc.name} />}
       </div>

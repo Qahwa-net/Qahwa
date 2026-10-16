@@ -25,6 +25,7 @@ public static partial class OpenApiBuilder
             FieldType.Duration => new Dictionary<string, object?> { ["type"] = "integer", ["minimum"] = 0, ["description"] = "Seconds." },
             FieldType.Color => new Dictionary<string, object?> { ["type"] = "string", ["pattern"] = "^#[0-9a-fA-F]{6}$" },
             FieldType.Geolocation => new Dictionary<string, object?> { ["type"] = "string", ["description"] = "JSON text: {\"lat\": 24.7136, \"lng\": 46.6753}." },
+            FieldType.Attach or FieldType.AttachImage => new Dictionary<string, object?> { ["type"] = "string", ["description"] = "The id of a file attached to this document (upload it with /api/files/for/{doctype}/{name} first)." },
             FieldType.Signature => new Dictionary<string, object?> { ["type"] = "string", ["description"] = "A PNG picture as a data: address." },
             FieldType.Float or FieldType.Decimal or FieldType.Currency or FieldType.Percent => new Dictionary<string, object?> { ["type"] = "number" },
             FieldType.Check => new Dictionary<string, object?> { ["type"] = "boolean" },

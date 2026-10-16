@@ -941,7 +941,16 @@ public sealed partial class DocumentService(
             if (field.Type == FieldType.Select && !field.SelectOptions().Contains(value as string, StringComparer.Ordinal))
                 errors.Add(new FieldError(path, $"Must be one of: {string.Join(", ", field.SelectOptions())}."));
 
-            if (field.Type == FieldType.Link && field.Options == DocTypeTarget && value is string named)
+            if (field.Type is FieldType.Attach or FieldType.AttachImage && value is string fileId)
+            {
+                // Files are attached to a saved document first; the field then names one of them.
+                var problem = pathPrefix.Length > 0 ? "Attachments cannot be inside a table."
+                    : files is null ? null
+                    : await files.Value.CheckFieldFileAsync(fileId, meta.Name, document.GetValueOrDefault("name") as string, field.Type == FieldType.AttachImage, ct);
+                if (problem is not null)
+                    errors.Add(new FieldError(path, problem));
+            }
+            else if (field.Type == FieldType.Link && field.Options == DocTypeTarget && value is string named)
             {
                 if (!registry.TryGet(named, out var known) || known.IsChildTable)
                     errors.Add(new FieldError(path, $"DocType '{named}' does not exist."));

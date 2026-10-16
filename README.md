@@ -44,6 +44,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **Report Builder**: saved, shareable list and summary reports (several numbers per group) that always run with the viewer's own permissions, with CSV download ([ADR-045](docs/adr/045-report-builder.md))
 - **Master data**: countries, currencies, languages, salutations and genders seeded by a patch; the automatic `All` role for what every signed-in person may read ([ADR-046](docs/adr/046-master-data.md))
 - **More field types**: rating, duration, colour, barcode, place and signature, validated on the server and usable in the Designer ([ADR-047](docs/adr/047-more-field-types.md))
+- **Attachment and image fields**: a form field that names a file attached to the same document, validated on save, with picture preview ([ADR-048](docs/adr/048-attach-and-image-fields.md))
 - **Webhooks**: signed JSON posts to other systems when documents are created, changed, submitted, cancelled or deleted, queued with retries and guarded against requests to internal networks ([ADR-029](docs/adr/029-webhooks.md))
 - **API keys**: Bearer tokens that act as a person within their permissions, shown once and stored hashed, with read-only and expiry options ([ADR-028](docs/adr/028-api-keys.md))
 - **Data import**: CSV files become documents through the normal insert or update rules, with a preview, row-by-row results and an update mode ([ADR-027](docs/adr/027-data-import.md))

@@ -9,8 +9,7 @@ export const isLayout = (type: FieldType) => type === 'SectionBreak' || type ===
 export const hasColumn = (type: FieldType) => !isLayout(type) && type !== 'Table'
 
 /** Types the Desk can edit today. Attachments, passwords and child tables arrive in later phases. */
-export const isEditable = (type: FieldType) =>
-  hasColumn(type) && type !== 'Password' && type !== 'Attach' && type !== 'AttachImage'
+export const isEditable = (type: FieldType) => hasColumn(type) && type !== 'Password'
 
 export type Kind = 'text' | 'number' | 'date' | 'datetime' | 'time' | 'check' | 'select' | 'link'
 
@@ -103,6 +102,7 @@ export function formatCell(field: DocField, value: unknown): string {
     case 'Check': return value ? '✓' : ''
     case 'Currency': case 'Decimal': case 'Float': case 'Percent':
       return typeof value === 'number' ? value.toLocaleString(undefined, { maximumFractionDigits: 9 }) : String(value)
+    case 'Attach': case 'AttachImage': return '(file)'
     case 'Rating': return starsLabel(value)
     case 'Duration': return formatDuration(Number(value))
     case 'Geolocation': return placeLabel(value)
