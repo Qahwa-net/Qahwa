@@ -6,7 +6,7 @@ using Qahwa.Core;
 /// code that is safe to run on several servers at once, so no leader election is needed. Turn it off with
 /// <c>Qahwa:Scheduler:Enabled = false</c>; change the pace with <c>Qahwa:Scheduler:IntervalSeconds</c> (10 to 3600, default 300).
 /// </summary>
-public sealed class SchedulerService(AutoRepeatService autoRepeat, NotificationRuleEngine notificationRules, EmailService email, WebhookService webhooks, ErrorLogService errorLog, IConfiguration configuration, ILogger<SchedulerService> logger) : BackgroundService
+public sealed class SchedulerService(AutoRepeatService autoRepeat, NotificationRuleEngine notificationRules, EmailService email, WebhookService webhooks, ErrorLogService errorLog, BackupService backup, BackupOptions backupOptions, IConfiguration configuration, ILogger<SchedulerService> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -19,6 +19,7 @@ public sealed class SchedulerService(AutoRepeatService autoRepeat, NotificationR
         var interval = TimeSpan.FromSeconds(Math.Clamp(configuration.GetValue("Qahwa:Scheduler:IntervalSeconds", 300), 10, 3600));
         using var timer = new PeriodicTimer(interval);
         var lastRules = DateTime.MinValue;
+        var lastBackup = DateTime.MinValue;
         do
         {
             try
@@ -55,6 +56,23 @@ public sealed class SchedulerService(AutoRepeatService autoRepeat, NotificationR
             {
                 logger.LogError(ex, "The scheduler could not deliver webhooks.");
                 await errorLog.RecordAsync("Scheduler", null, "The scheduler could not deliver webhooks.", null, ex);
+            }
+
+            // A backup file once a day into the configured folder (the first server to create today's file does the work).
+            if (!string.IsNullOrWhiteSpace(backupOptions.Path) && DateTime.UtcNow - lastBackup >= TimeSpan.FromHours(1))
+            {
+                lastBackup = DateTime.UtcNow;
+                try
+                {
+                    var written = await backup.RunScheduledAsync(backupOptions.Path, backupOptions.Keep, new UserContext("system@qahwa", [UserContext.AdministratorRole]), stoppingToken);
+                    if (written is not null)
+                        logger.LogInformation("Backup written to {Path}.", written);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    logger.LogError(ex, "The scheduler could not make a backup.");
+                    await errorLog.RecordAsync("Scheduler", null, "The scheduler could not make a backup.", null, ex);
+                }
             }
 
             // Rules counted in days from a date: once an hour is plenty, and each person is told once per day whatever happens.

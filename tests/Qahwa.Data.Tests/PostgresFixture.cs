@@ -122,6 +122,7 @@ public sealed class PgStack : IAsyncDisposable
         Webhooks = new WebhookService(WebhookCatalog, Registry, Repository, Documents, WebhookSender, History);
         WebhookManager = new WebhookManager(Registry, WebhookStore, WebhookCatalog, permissions, Clock, allowInsecure: false);
         Bundle = new BundleService(Registry, Designer, Customization, Workflows, AssignmentRuleManager, NotificationRuleManager, permissions, Clock);
+        Backup = new BackupService(Registry, Repository, Bundle, permissions, Clock);
         DocumentActions = new DocumentActionEngine(Registry, Repository, Documents, Clock);
         Files = new FileService(Registry, Repository, Documents, permissions, Notifications, FileStorage, History);
         ApiKeys = new ApiKeyService(Registry, Repository, Auth, permissions, History);
@@ -176,6 +177,7 @@ public sealed class PgStack : IAsyncDisposable
     public SessionStore SessionStore { get; }
     public DocumentActionEngine DocumentActions { get; }
     public BundleService Bundle { get; }
+    public BackupService Backup { get; }
     public AuthStore AuthStore { get; }
     public AuthOptions AuthOptions { get; }
     public AuthService Auth { get; }

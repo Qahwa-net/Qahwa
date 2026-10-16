@@ -839,3 +839,18 @@ export interface SignIn {
   agent: string | null
   current: boolean
 }
+
+export interface RestoreTableReport {
+  docType: string
+  inserted: number
+  existing: number
+  failed: number
+  firstProblem: string | null
+}
+
+export interface RestoreReport {
+  dryRun: boolean
+  definitions: BundleItemResult[]
+  tables: RestoreTableReport[]
+  seriesRaised: number
+}

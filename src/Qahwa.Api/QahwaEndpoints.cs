@@ -110,6 +110,7 @@ public static class QahwaEndpoints
         app.MapQahwaWebForms();
         app.MapQahwaOpenApi();
         app.MapQahwaSettings();
+        app.MapQahwaBackup();
         return app;
     }
 

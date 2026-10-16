@@ -146,6 +146,7 @@ public sealed class TestEngine
         Webhooks = new WebhookService(WebhookCatalog, Registry, Repository, Documents, WebhookSender, History);
         WebhookManager = new WebhookManager(Registry, WebhookStore, WebhookCatalog, Permissions, Clock, allowInsecure: false);
         Bundle = new BundleService(Registry, Designer, Customization, Workflows, AssignmentRuleManager, NotificationRuleManager, Permissions, Clock);
+        Backup = new BackupService(Registry, Repository, Bundle, Permissions, Clock);
         Files = new FileService(Registry, Repository, Documents, Permissions, Notifications, FileStorage, History);
         ApiKeys = new ApiKeyService(Registry, Repository, Auth, Permissions, History);
     }
@@ -177,6 +178,7 @@ public sealed class TestEngine
     public PrintService Print { get; }
     public WorkspaceService Workspaces { get; }
     public TranslationService Translations { get; }
+    public BackupService Backup { get; }
     public List<IPatch> Patches { get; }
     public PatchRunner PatchRunner { get; }
     public ErrorLogService ErrorLog { get; }

@@ -195,3 +195,7 @@ public sealed class FillCustomerGroup : IPatch
 ```
 
 Tests: `PatchTests`, `PostgresPatchTests`.
+
+## Backups ([ADR-044](../../adr/044-backups.md))
+
+`Backup.cs`: `BackupService` (`WriteAsync`, `RestoreAsync(stream, dryRun, user, ct, maxBytes)`, `RunScheduledAsync`), `BackupOptions`, `BackupService.Skipped` (DocTypes never backed up). `BackupEndpoints.cs`: `GET /api/backup/download` (temp file, then sent), `POST /api/backup/restore?dryRun=` (`application/zip`). `SchedulerService` writes the daily file when `Qahwa:Backup:Path` is set. A zip cannot be written to the response stream (ASP.NET Core forbids synchronous writes), hence the temporary file. Desk: `pages/BackupPage.tsx`, `lib/backup.ts`. Configuration: `Qahwa:Backup:Path`, `Keep`, `MaxRestoreMegabytes`. Tests: `BackupTests`, `BackupApiTests`, `PostgresBackupTests`.

@@ -3,6 +3,7 @@ import { AuthProvider, useAuth } from './auth.tsx'
 import { Shell } from './shell/Shell.tsx'
 import { AccountPage } from './pages/AccountPage.tsx'
 import { CustomizeFormPage } from './pages/CustomizeForm.tsx'
+import { BackupPage } from './pages/BackupPage.tsx'
 import { BundlePage } from './pages/Bundle.tsx'
 import { WebhooksPage } from './pages/Webhooks.tsx'
 import { WorkspacesPage } from './pages/Workspaces.tsx'
@@ -56,6 +57,7 @@ export function App() {
           <Route path="customize/:name" element={<CustomizeFormPage />} />
           <Route path="webhooks" element={<WebhooksPage />} />
           <Route path="bundle" element={<BundlePage />} />
+          <Route path="backup" element={<BackupPage />} />
           <Route path="webhooks/:name" element={<WebhooksPage />} />
           <Route path="workspaces" element={<WorkspacesPage />} />
           <Route path="print-formats" element={<PrintFormatsPage />} />
