@@ -16,6 +16,9 @@ public static class FieldValueConverter
     private const int MaxDurationSeconds = 315_360_000; // ten years
     public const int MaxSignatureCharacters = 150_000;
 
+    /// <summary>The longest secret a Password field holds (before it is encrypted).</summary>
+    public const int MaxPasswordCharacters = 1000;
+
     public static object? Unwrap(object? raw)
     {
         if (raw is not JsonElement e)
@@ -129,7 +132,12 @@ public static class FieldValueConverter
                     _ => throw new FormatException("Value must be a time."),
                 };
             case FieldType.Password:
-                throw new FormatException("Password fields are not supported yet.");
+            {
+                var secret = raw as string ?? throw new FormatException("Value must be text.");
+                if (secret.Length > MaxPasswordCharacters)
+                    throw new FormatException($"Value must be at most {MaxPasswordCharacters} characters.");
+                return secret;
+            }
             case FieldType.Table or FieldType.SectionBreak or FieldType.ColumnBreak or FieldType.TabBreak:
                 throw new FormatException($"{type} fields do not hold a value.");
         }

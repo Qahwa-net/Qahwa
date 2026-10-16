@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Text.Json;
 using Qahwa.Abstractions;
+using Qahwa.Core.Auth;
 using Qahwa.Core.Expressions;
 
 namespace Qahwa.Core;
@@ -27,7 +28,8 @@ public sealed partial class DocumentService(
     Lazy<FileService>? files = null,
     Lazy<DocumentActionEngine>? documentActions = null,
     Lazy<ServerScriptEngine>? serverScripts = null,
-    Lazy<AppHookRunner>? appHooks = null)
+    Lazy<AppHookRunner>? appHooks = null,
+    ISecretProtector? secrets = null)
 {
     private readonly DocumentLogic _logic = new(registry, repository, permissions, clock);
 
@@ -146,6 +148,7 @@ public sealed partial class DocumentService(
             .ToList();
         if (history?.Version(meta, name, "Insert", null, user.User, now) is { } created)
             children.Add(created);
+        ProtectPasswords(meta, values);
         await repository.InsertAsync(meta, values, children, ct);
         await AfterSaveAsync(meta, name, values.Keys.ToHashSet(StringComparer.Ordinal), isNew: true, user, ct);
         return await LoadForAsync(meta, name, user, ct)
@@ -490,6 +493,7 @@ public sealed partial class DocumentService(
                 children.Add(logged);
         }
 
+        ProtectPasswords(meta, changes);
         if (!await repository.UpdateAsync(meta, name, changes, stored, children, ct))
             throw new ConflictException($"{meta.Name} '{name}' was changed or deleted by someone else. Reload and try again.");
 
@@ -662,6 +666,7 @@ public sealed partial class DocumentService(
     /// <summary>Removes the fields the user may not read. They are absent, not empty, so their existence is not revealed.</summary>
     private static Dictionary<string, object?> Strip(DocTypeMeta meta, Dictionary<string, object?> doc, FieldAccess access)
     {
+        MaskPasswords(meta, doc);
         if (access.IsUnrestricted)
             return doc;
 
@@ -744,7 +749,7 @@ public sealed partial class DocumentService(
         var errors = new List<FieldError>();
 
         // Fields above the user's permission level cannot be shown, filtered on or sorted by: any of those would reveal them.
-        var hidden = meta.Fields.Where(f => !access.CanRead(f)).Select(f => f.Name).ToHashSet(StringComparer.Ordinal);
+        var hidden = meta.Fields.Where(f => !access.CanRead(f) || f.Type == FieldType.Password).Select(f => f.Name).ToHashSet(StringComparer.Ordinal);
 
         List<string>? fields = null;
         if (request.Fields is { Count: > 0 })
@@ -892,6 +897,10 @@ public sealed partial class DocumentService(
 
             if (field.Type == FieldType.Table)
                 continue; // child rows are read separately by ReadTables
+
+            // The form shows a set password as the mask; sending the mask back means "leave it as it is".
+            if (field.Type == FieldType.Password && FieldValueConverter.Unwrap(raw) as string == PasswordMask)
+                continue;
 
             // A field above the person's permission level cannot be filled in; empty values (an echo) are harmless.
             if (access is not null && !access.CanWrite(field))

@@ -549,7 +549,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Field types: Attach, Attach Image, Signature, Barcode, Geolocation, Icon, Color, Rating, Duration, Image | done: Signature, Barcode, Geolocation, Color, Rating, Duration, Icon (ADR-047), Attach and Image (ADR-048) | ✅ (v1) | L10 |
 | Field types: Table | child rows inside a document | ✅ | L2 |
 | Field types: Dynamic Link, Table MultiSelect | Dynamic Link done (ADR-038); Table MultiSelect not yet | 🟡 | L2 |
-| Field types: Password (encrypted), Phone with country | | ⬜ | L3 |
+| Field types: Password (encrypted), Phone with country | Password done (ADR-066); Phone with country not yet | 🟡 | L3 |
 | Layout fields: Section Break, Column Break, Tab Break | | 🟡 | L1 (section/tab), L3 |
 | Field properties: label, required, unique, default, options, in list view, lowercase | | ✅ | done |
 | Field properties: description, hidden, read only | UI hints (not enforced by the API) | ✅ | L1 |
@@ -630,7 +630,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | LDAP, SAML single sign-on | done: LDAP / Active Directory sign-in (ADR-054) and SAML 2.0 sign-in (ADR-058), both tested against stand-in providers | ✅ (v1) | L12 |
 | Session management (list/revoke, expiry), login as user (impersonation) | done: list, revoke, admin sign-out-everywhere, absolute limit (ADR-040); impersonation deliberately not built | ✅ (v1) | L10 |
 | IP restrictions, system settings (security) | done: IP allow-list in configuration, System Settings (display) (ADR-042); not per-role IP rules | ✅ (v1) | L10 |
-| Encrypted fields (Password type) | | ⬜ | L3 |
+| Encrypted fields (Password type) | done: encrypted at rest, masked on read, never listed (ADR-066) | ✅ | L3 |
 | CSRF, security headers | | ✅ | done |
 
 ### A5. Desk UI

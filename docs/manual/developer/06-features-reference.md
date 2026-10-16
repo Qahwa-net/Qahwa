@@ -279,3 +279,7 @@ See [Writing an app](08-writing-an-app.md). Code: `Apps.cs` (`IQahwaApp`, `IAppB
 ## Excel ([ADR-064](../../adr/064-excel-import-and-export.md))
 
 `Xlsx.cs` (`XlsxWriter.Write`, `XlsxReader.Read`/`ToCsv`; every limit is a public constant). Endpoints: `format=xlsx` on `SpecialEndpoints` export, `/api/reports/{id}/xlsx`, `ImportRequest.Xlsx` (base64) in `ImportEndpoints.cs`. Desk: `lib/importFile.ts` (`isSpreadsheet`, `toBase64`, `ImportSource`), `pages/ImportDialog.tsx`, Export Excel links in `ListView.tsx` and `Reports.tsx`. Tests: `XlsxTests` (round trips, other programs' files, zip bombs, DTDs, path tricks), `ExcelApiTests`, `lib/importFile.test.ts`.
+
+## Password fields ([ADR-066](../../adr/066-password-fields.md))
+
+`DocumentService.Passwords.cs`: `ProtectPasswords` (encrypts with `ISecretProtector` just before insert/update; empty clears), `MaskPasswords` (called from `Strip`, so every API read shows `PasswordMask` = `********`), `GetPasswordAsync` (server-side only; needs write right plus field read/write; not exposed over REST). `Coerce` ignores the mask sent back; `Normalize` treats Password columns like fields above the permission level (no listing, filtering, sorting). `FieldValueConverter` accepts text up to `MaxPasswordCharacters` (1000); `DocTypeLoader` refuses Password in child tables; Custom Fields still cannot be Password. `DocumentService` takes an optional `ISecretProtector` (registered by the API; the test engine uses `FakeSecretProtector`). Desk: `FieldControl` renders `type="password"` with `autoComplete="new-password"`.

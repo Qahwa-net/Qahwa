@@ -268,6 +268,8 @@ public static partial class DocTypeLoader
     {
         if (meta.IsChildTable && (meta.IsSingle || meta.IsTree || meta.AllowRename))
             add("isChildTable", "A child table cannot be single, a tree, or renamable.");
+        if (meta.IsChildTable && meta.Fields.Any(f => f.Type == FieldType.Password))
+            add("fields", "A child table cannot have a Password field; keep the secret on the parent document.");
         if (meta.IsSingle && meta.IsTree)
             add("isSingle", "A DocType cannot be both single and a tree.");
         if (meta.IsSingle && meta.AllowRename)

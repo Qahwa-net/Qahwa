@@ -139,6 +139,33 @@ public sealed class SpecialApiTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task A_password_field_is_never_returned_over_the_api()
+    {
+        await CreateDocTypeAsync(new
+        {
+            name = "Vault Entry",
+            autoname = "field:title",
+            fields = new object[] { new { name = "title", type = "Data", required = true }, new { name = "secret", type = "Password" } },
+            permissions = new[] { new { role = "Sales Manager", read = true, write = true, create = true } },
+        });
+        var manager = _factory.ClientFor("m@example.com", "Sales Manager");
+
+        var created = await manager.PostAsJsonAsync("/api/resource/Vault Entry", new { title = "main", secret = "hunter2" });
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        Assert.DoesNotContain("hunter2", await created.Content.ReadAsStringAsync());
+        var read = await manager.GetAsync("/api/resource/Vault Entry/main");
+        var text = await read.Content.ReadAsStringAsync();
+        Assert.DoesNotContain("hunter2", text);
+        Assert.Equal("********", (await JsonOf(read)).GetProperty("data").GetProperty("secret").GetString());
+
+        var listed = await manager.GetAsync("/api/resource/Vault Entry?fields=[\"name\",\"secret\"]");
+        Assert.Equal(HttpStatusCode.BadRequest, listed.StatusCode);
+        var plain = await (await manager.GetAsync("/api/resource/Vault Entry")).Content.ReadAsStringAsync();
+        Assert.DoesNotContain("hunter2", plain);
+        Assert.DoesNotContain("fake:", plain);
+    }
+
+    [Fact]
     public async Task Bulk_rename_over_the_api_reports_each_document()
     {
         await CreateDocTypeAsync(new

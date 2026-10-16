@@ -8,8 +8,8 @@ export const isLayout = (type: FieldType) => type === 'SectionBreak' || type ===
 /** Stored as a column on the document's own table (and therefore listable and filterable). */
 export const hasColumn = (type: FieldType) => !isLayout(type) && type !== 'Table'
 
-/** Types the Desk can edit today. Attachments, passwords and child tables arrive in later phases. */
-export const isEditable = (type: FieldType) => hasColumn(type) && type !== 'Password'
+/** Types the Desk can edit today. Child tables are edited by their own grid. */
+export const isEditable = (type: FieldType) => hasColumn(type)
 
 export type Kind = 'text' | 'number' | 'date' | 'datetime' | 'time' | 'check' | 'select' | 'link'
 

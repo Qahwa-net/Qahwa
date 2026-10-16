@@ -64,7 +64,7 @@ public static class FieldTypeCatalog
         new(FieldType.DynamicLink, "Dynamic Link", "Advanced", "A link whose target DocType is chosen per document", OptionsKind.None, false, Later),
         new(FieldType.Attach, "Attachment", "Advanced", "An uploaded file (attach it after the document is saved)", OptionsKind.None, true),
         new(FieldType.AttachImage, "Image", "Advanced", "An uploaded picture, shown on the form", OptionsKind.None, true),
-        new(FieldType.Password, "Password", "Advanced", "A secret stored encrypted", OptionsKind.None, false, Later),
+        new(FieldType.Password, "Password", "Advanced", "A secret stored encrypted and never shown again", OptionsKind.None, true),
         new(FieldType.ColumnBreak, "Column", "Layout", "Splits a section into columns", OptionsKind.None, false, Later),
     ];
 

@@ -70,6 +70,8 @@ export function FieldInput(props: InputProps) {
     case 'Color': return <ColorInput id={id} ariaLabel={ariaLabel} value={value} readOnly={readOnly} invalid={invalid} onChange={onChange} />
     case 'Geolocation': return <GeolocationInput id={id} ariaLabel={ariaLabel} value={value} readOnly={readOnly} invalid={invalid} onChange={onChange} />
     case 'Signature': return <SignatureInput id={id} ariaLabel={ariaLabel} value={value} readOnly={readOnly} invalid={invalid} onChange={onChange} />
+    case 'Password':
+      return <input {...common} type="password" maxLength={1000} autoComplete="new-password" value={text} onChange={(e) => onChange(e.target.value)} />
     case 'Barcode':
       return <input {...common} className="mono" maxLength={140} inputMode="text" autoComplete="off" value={text} onChange={(e) => onChange(e.target.value)} />
     case 'Text':

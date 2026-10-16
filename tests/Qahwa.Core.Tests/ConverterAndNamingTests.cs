@@ -60,8 +60,12 @@ public class ConverterAndNamingTests
     }
 
     [Fact]
-    public void Password_fields_are_refused_until_encryption_exists() =>
-        Assert.Throws<FormatException>(() => FieldValueConverter.ToStorage(FieldType.Password, "secret"));
+    public void Password_fields_take_text_up_to_a_limit()
+    {
+        Assert.Equal("secret", FieldValueConverter.ToStorage(FieldType.Password, "secret"));
+        Assert.Throws<FormatException>(() => FieldValueConverter.ToStorage(FieldType.Password, new string('a', FieldValueConverter.MaxPasswordCharacters + 1)));
+        Assert.Throws<FormatException>(() => FieldValueConverter.ToStorage(FieldType.Password, 12));
+    }
 
     [Fact]
     public void FromStorage_converts_database_types_to_api_friendly_types()
