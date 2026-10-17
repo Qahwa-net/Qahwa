@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { ordered, useDeskSettings } from '../lib/desk.ts'
+import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import { api } from '../api/client.ts'
@@ -9,13 +10,19 @@ import { DashboardTiles } from './Dashboards.tsx'
 /** The workspaces made for this person, as tabs on the home page. Nothing is shown when there are none. */
 export function WorkspaceHome() {
   const list = useQuery({ queryKey: ['workspaces', 'mine'], queryFn: api.workspaces.mine, retry: false })
+  const desk = useDeskSettings()
+  const preferred = desk.data?.layout.defaultWorkspace
+  useEffect(() => setPicked(null), [preferred])
   const [picked, setPicked] = useState<string | null>(null)
   const workspaces = list.data ?? []
-  if (workspaces.length === 0) return null
-  const current = workspaces.find((w) => w.id === picked) ?? workspaces[0]!
+  const shortcuts = ordered((desk.data?.links ?? []).filter(l => desk.data?.layout.homeShortcuts.includes(l.id)), desk.data?.layout.homeShortcuts ?? [], l => l.id)
+  const current = workspaces.find((w) => w.id === picked) ?? workspaces.find(w => w.id === preferred) ?? workspaces[0]
+  if (!current && shortcuts.length === 0) return null
 
   return (
     <section className="workspace" aria-label="Workspaces">
+      {shortcuts.length > 0 && <><h2>My shortcuts</h2><ul className="tiles workspace-links">{shortcuts.map(link => <li key={link.id}><Link className="card tile" to={link.path}><strong>{link.label}</strong><span className="muted">{link.group}</span></Link></li>)}</ul></>}
+      {current && <>
       {workspaces.length > 1 && (
         <div className="tabs" role="tablist" aria-label="Workspaces">
           {workspaces.map((w) => (
@@ -25,6 +32,7 @@ export function WorkspaceHome() {
       )}
       {workspaces.length === 1 && <h2>{current.title}</h2>}
       {current.blocks.map((block, i) => <Block key={i} block={block} />)}
+      </>}
     </section>
   )
 }

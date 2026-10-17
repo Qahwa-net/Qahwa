@@ -363,3 +363,7 @@ Core DocTypes `contact.json`, `address.json`, `dynamic_link.json` (module "Conta
 ## Phone country picker ([ADR-087](../../adr/087-phone-country-picker.md))
 
 `Country.dial_code` (`country.json`), `MasterData/countries.json` (`dialCode`), `MasterDataPatch`, `CountryDialCodePatch`. Desk: `lib/phone.ts` (`dialCountries`, `splitPhone` longest-prefix, `joinPhone`), `controls/PhoneInput.tsx`, the `Phone` case in `FieldControl`. Tests: `MasterDataTests`, `phone.test.ts`.
+
+## Script reports ([ADR-088](../../adr/088-script-reports.md))
+
+`ScriptReports.cs`: `ScriptReportService` (`List`, `RunAsync` with limits, role check, filter whitelist, Error Log on failure, Access Log line), `IAppBuilder.ScriptReport`, `ScriptReportContext/Data/Options`. Endpoints in `MethodEndpoints.cs`. Desk: `pages/ScriptReports.tsx`. Tests: `ScriptReportTests`, `Reports_written_by_apps_are_listed_and_run_for_the_people_who_may`.

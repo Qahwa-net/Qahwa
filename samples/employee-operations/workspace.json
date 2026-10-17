@@ -1,0 +1,39 @@
+{
+  "title": "Employee Dashboard",
+  "sequence": 0,
+  "roles": [
+    "Employee",
+    "Operations Manager",
+    "System Manager"
+  ],
+  "blocks": [
+    {
+      "type": "Heading",
+      "text": "Employee Operations"
+    },
+    {
+      "type": "Shortcuts",
+      "items": [
+        {
+          "label": "Suppliers",
+          "kind": "DocType",
+          "target": "Supplier"
+        },
+        {
+          "label": "Products",
+          "kind": "DocType",
+          "target": "Product"
+        },
+        {
+          "label": "Orders",
+          "kind": "DocType",
+          "target": "Purchase Order"
+        }
+      ]
+    },
+    {
+      "type": "Dashboard",
+      "dashboardId": "__DASHBOARD_ID__"
+    }
+  ]
+}

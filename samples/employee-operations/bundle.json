@@ -1,0 +1,836 @@
+{
+  "format": "qahwa-bundle",
+  "version": 1,
+  "name": "Employee Operations",
+  "exportedAt": "2026-10-17T12:22:24.694Z",
+  "items": [
+    {
+      "kind": "DocType",
+      "doctype": "Purchase Order Item",
+      "definition": {
+        "name": "Purchase Order Item",
+        "module": "Employee Operations",
+        "isChildTable": true,
+        "fields": [
+          {
+            "name": "product",
+            "type": "Link",
+            "label": "product",
+            "options": "Product",
+            "required": true,
+            "inListView": true
+          },
+          {
+            "name": "description",
+            "type": "Data",
+            "label": "description",
+            "fetchFrom": "product.product_name"
+          },
+          {
+            "name": "quantity",
+            "type": "Decimal",
+            "label": "quantity",
+            "required": true,
+            "default": "1",
+            "inListView": true
+          },
+          {
+            "name": "unit_price",
+            "type": "Currency",
+            "label": "unit price",
+            "required": true,
+            "fetchFrom": "product.unit_price",
+            "fetchIfEmpty": true,
+            "inListView": true
+          },
+          {
+            "name": "amount",
+            "type": "Currency",
+            "label": "amount",
+            "formula": "round(quantity * unit_price, 2)",
+            "inListView": true
+          }
+        ],
+        "permissions": [],
+        "validations": [
+          {
+            "expression": "quantity > 0",
+            "message": "Quantity must be positive"
+          },
+          {
+            "expression": "unit_price >= 0",
+            "message": "Price cannot be negative"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "DocType",
+      "doctype": "Supplier",
+      "definition": {
+        "name": "Supplier",
+        "module": "Employee Operations",
+        "autoname": "SUP-.#####",
+        "permissions": [
+          {
+            "role": "Employee",
+            "read": true,
+            "write": true,
+            "create": true,
+            "delete": false,
+            "report": true,
+            "export": true,
+            "submit": false,
+            "cancel": false
+          },
+          {
+            "role": "Operations Manager",
+            "read": true,
+            "write": true,
+            "create": true,
+            "delete": true,
+            "report": true,
+            "export": true,
+            "submit": true,
+            "cancel": true
+          },
+          {
+            "role": "System Manager",
+            "read": true,
+            "write": true,
+            "create": true,
+            "delete": true,
+            "report": true,
+            "export": true,
+            "submit": true,
+            "cancel": true
+          }
+        ],
+        "statusField": "workflow_state",
+        "fields": [
+          {
+            "name": "supplier_name",
+            "type": "Data",
+            "label": "supplier name",
+            "required": true,
+            "inListView": true
+          },
+          {
+            "name": "workflow_state",
+            "type": "Select",
+            "label": "workflow state",
+            "options": "Draft\nPending Approval\nActive\nSuspended",
+            "default": "Draft",
+            "readOnly": true,
+            "inListView": true
+          },
+          {
+            "name": "contact_person",
+            "type": "Data",
+            "label": "contact person"
+          },
+          {
+            "name": "email",
+            "type": "Email",
+            "label": "email"
+          },
+          {
+            "name": "phone",
+            "type": "Phone",
+            "label": "phone"
+          },
+          {
+            "name": "tax_id",
+            "type": "Data",
+            "label": "tax id"
+          },
+          {
+            "name": "address",
+            "type": "Text",
+            "label": "address"
+          },
+          {
+            "name": "payment_terms_days",
+            "type": "Int",
+            "label": "payment terms days",
+            "default": "30"
+          },
+          {
+            "name": "notes",
+            "type": "Text",
+            "label": "notes"
+          }
+        ],
+        "indicators": [
+          {
+            "value": "Draft",
+            "color": "gray"
+          },
+          {
+            "value": "Pending Approval",
+            "color": "orange"
+          },
+          {
+            "value": "Active",
+            "color": "green"
+          },
+          {
+            "value": "Suspended",
+            "color": "red"
+          }
+        ],
+        "titleField": "supplier_name",
+        "validations": [
+          {
+            "expression": "payment_terms_days >= 0",
+            "message": "Payment terms cannot be negative"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "DocType",
+      "doctype": "Product",
+      "definition": {
+        "name": "Product",
+        "module": "Employee Operations",
+        "autoname": "PRD-.#####",
+        "permissions": [
+          {
+            "role": "Employee",
+            "read": true,
+            "write": true,
+            "create": true,
+            "delete": false,
+            "report": true,
+            "export": true,
+            "submit": false,
+            "cancel": false
+          },
+          {
+            "role": "Operations Manager",
+            "read": true,
+            "write": true,
+            "create": true,
+            "delete": true,
+            "report": true,
+            "export": true,
+            "submit": true,
+            "cancel": true
+          },
+          {
+            "role": "System Manager",
+            "read": true,
+            "write": true,
+            "create": true,
+            "delete": true,
+            "report": true,
+            "export": true,
+            "submit": true,
+            "cancel": true
+          }
+        ],
+        "statusField": "workflow_state",
+        "fields": [
+          {
+            "name": "product_name",
+            "type": "Data",
+            "label": "product name",
+            "required": true,
+            "inListView": true
+          },
+          {
+            "name": "sku",
+            "type": "Data",
+            "label": "sku",
+            "required": true,
+            "unique": true,
+            "inListView": true
+          },
+          {
+            "name": "workflow_state",
+            "type": "Select",
+            "label": "workflow state",
+            "options": "Draft\nPending Approval\nActive\nDiscontinued",
+            "default": "Draft",
+            "readOnly": true,
+            "inListView": true
+          },
+          {
+            "name": "supplier",
+            "type": "Link",
+            "label": "supplier",
+            "options": "Supplier"
+          },
+          {
+            "name": "unit",
+            "type": "Select",
+            "label": "unit",
+            "options": "Unit\nBox\nKg\nLiter\nHour",
+            "default": "Unit"
+          },
+          {
+            "name": "unit_price",
+            "type": "Currency",
+            "label": "unit price",
+            "required": true,
+            "default": "0",
+            "inListView": true
+          },
+          {
+            "name": "description",
+            "type": "Text",
+            "label": "description"
+          }
+        ],
+        "indicators": [
+          {
+            "value": "Draft",
+            "color": "gray"
+          },
+          {
+            "value": "Pending Approval",
+            "color": "orange"
+          },
+          {
+            "value": "Active",
+            "color": "green"
+          },
+          {
+            "value": "Discontinued",
+            "color": "red"
+          }
+        ],
+        "titleField": "product_name",
+        "validations": [
+          {
+            "expression": "unit_price >= 0",
+            "message": "Price cannot be negative"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "DocType",
+      "doctype": "Purchase Order",
+      "definition": {
+        "name": "Purchase Order",
+        "module": "Employee Operations",
+        "autoname": "PO-.#####",
+        "permissions": [
+          {
+            "role": "Employee",
+            "read": true,
+            "write": true,
+            "create": true,
+            "delete": false,
+            "report": true,
+            "export": true,
+            "submit": false,
+            "cancel": false
+          },
+          {
+            "role": "Operations Manager",
+            "read": true,
+            "write": true,
+            "create": true,
+            "delete": true,
+            "report": true,
+            "export": true,
+            "submit": true,
+            "cancel": true
+          },
+          {
+            "role": "System Manager",
+            "read": true,
+            "write": true,
+            "create": true,
+            "delete": true,
+            "report": true,
+            "export": true,
+            "submit": true,
+            "cancel": true
+          }
+        ],
+        "statusField": "workflow_state",
+        "fields": [
+          {
+            "name": "order_title",
+            "type": "Data",
+            "label": "order title",
+            "required": true,
+            "inListView": true
+          },
+          {
+            "name": "workflow_state",
+            "type": "Select",
+            "label": "workflow state",
+            "options": "Draft\nPending Approval\nApproved\nOrdered\nReceived\nCancelled",
+            "default": "Draft",
+            "readOnly": true,
+            "inListView": true
+          },
+          {
+            "name": "supplier",
+            "type": "Link",
+            "label": "supplier",
+            "options": "Supplier",
+            "required": true,
+            "inListView": true
+          },
+          {
+            "name": "requested_by",
+            "type": "Link",
+            "label": "requested by",
+            "options": "User",
+            "default": "=user()"
+          },
+          {
+            "name": "order_date",
+            "type": "Date",
+            "label": "order date",
+            "default": "=today()",
+            "required": true,
+            "inListView": true
+          },
+          {
+            "name": "required_date",
+            "type": "Date",
+            "label": "required date"
+          },
+          {
+            "name": "currency",
+            "type": "Select",
+            "label": "currency",
+            "options": "SAR\nUSD\nEUR\nAED",
+            "default": "SAR",
+            "required": true
+          },
+          {
+            "name": "items",
+            "type": "Table",
+            "label": "items",
+            "options": "Purchase Order Item",
+            "required": true
+          },
+          {
+            "name": "subtotal",
+            "type": "Currency",
+            "label": "subtotal",
+            "formula": "sum(items, 'amount')"
+          },
+          {
+            "name": "tax_percent",
+            "type": "Percent",
+            "label": "tax percent",
+            "default": "15"
+          },
+          {
+            "name": "tax_amount",
+            "type": "Currency",
+            "label": "tax amount",
+            "formula": "round(subtotal * tax_percent / 100, 2)"
+          },
+          {
+            "name": "grand_total",
+            "type": "Currency",
+            "label": "grand total",
+            "formula": "round(subtotal + tax_amount, 2)",
+            "inListView": true
+          },
+          {
+            "name": "notes",
+            "type": "Text",
+            "label": "notes"
+          }
+        ],
+        "indicators": [
+          {
+            "value": "Draft",
+            "color": "gray"
+          },
+          {
+            "value": "Pending Approval",
+            "color": "orange"
+          },
+          {
+            "value": "Approved",
+            "color": "green"
+          },
+          {
+            "value": "Ordered",
+            "color": "red"
+          },
+          {
+            "value": "Received",
+            "color": "gray"
+          },
+          {
+            "value": "Cancelled",
+            "color": "orange"
+          }
+        ],
+        "titleField": "order_title",
+        "isSubmittable": true,
+        "validations": [
+          {
+            "expression": "count(items) > 0",
+            "message": "Add at least one product"
+          },
+          {
+            "expression": "tax_percent >= 0 && tax_percent <= 100",
+            "message": "Tax must be between 0 and 100"
+          },
+          {
+            "expression": "empty(required_date) || required_date >= order_date",
+            "message": "Required date cannot precede order date"
+          }
+        ]
+      }
+    },
+    {
+      "kind": "Workflow",
+      "doctype": "Supplier",
+      "definition": {
+        "docType": "Supplier",
+        "stateField": "workflow_state",
+        "active": true,
+        "states": [
+          {
+            "name": "Draft",
+            "color": "gray",
+            "docStatus": 0,
+            "editRoles": [
+              "Employee",
+              "Operations Manager",
+              "System Manager"
+            ]
+          },
+          {
+            "name": "Pending Approval",
+            "color": "orange",
+            "docStatus": 0,
+            "editRoles": [
+              "Operations Manager",
+              "System Manager"
+            ]
+          },
+          {
+            "name": "Active",
+            "color": "green",
+            "docStatus": 0,
+            "editRoles": [
+              "Operations Manager",
+              "System Manager"
+            ]
+          },
+          {
+            "name": "Suspended",
+            "color": "red",
+            "docStatus": 0,
+            "editRoles": [
+              "Operations Manager",
+              "System Manager"
+            ]
+          }
+        ],
+        "transitions": [
+          {
+            "from": "Draft",
+            "action": "Request Approval",
+            "to": "Pending Approval",
+            "roles": [
+              "Employee",
+              "Operations Manager",
+              "System Manager"
+            ],
+            "allowSelfApproval": true
+          },
+          {
+            "from": "Pending Approval",
+            "action": "Approve",
+            "to": "Active",
+            "roles": [
+              "Operations Manager",
+              "System Manager"
+            ],
+            "allowSelfApproval": true
+          },
+          {
+            "from": "Pending Approval",
+            "action": "Revise",
+            "to": "Draft",
+            "roles": [
+              "Employee",
+              "Operations Manager",
+              "System Manager"
+            ],
+            "allowSelfApproval": true
+          },
+          {
+            "from": "Active",
+            "action": "Suspend",
+            "to": "Suspended",
+            "roles": [
+              "Operations Manager",
+              "System Manager"
+            ],
+            "allowSelfApproval": true
+          },
+          {
+            "from": "Suspended",
+            "action": "Reactivate",
+            "to": "Active",
+            "roles": [
+              "Operations Manager",
+              "System Manager"
+            ],
+            "allowSelfApproval": true
+          }
+        ]
+      }
+    },
+    {
+      "kind": "Workflow",
+      "doctype": "Product",
+      "definition": {
+        "docType": "Product",
+        "stateField": "workflow_state",
+        "active": true,
+        "states": [
+          {
+            "name": "Draft",
+            "color": "gray",
+            "docStatus": 0,
+            "editRoles": [
+              "Employee",
+              "Operations Manager",
+              "System Manager"
+            ]
+          },
+          {
+            "name": "Pending Approval",
+            "color": "orange",
+            "docStatus": 0,
+            "editRoles": [
+              "Operations Manager",
+              "System Manager"
+            ]
+          },
+          {
+            "name": "Active",
+            "color": "green",
+            "docStatus": 0,
+            "editRoles": [
+              "Operations Manager",
+              "System Manager"
+            ]
+          },
+          {
+            "name": "Discontinued",
+            "color": "red",
+            "docStatus": 0,
+            "editRoles": [
+              "Operations Manager",
+              "System Manager"
+            ]
+          }
+        ],
+        "transitions": [
+          {
+            "from": "Draft",
+            "action": "Request Approval",
+            "to": "Pending Approval",
+            "roles": [
+              "Employee",
+              "Operations Manager",
+              "System Manager"
+            ],
+            "allowSelfApproval": true
+          },
+          {
+            "from": "Pending Approval",
+            "action": "Approve",
+            "to": "Active",
+            "roles": [
+              "Operations Manager",
+              "System Manager"
+            ],
+            "allowSelfApproval": true
+          },
+          {
+            "from": "Pending Approval",
+            "action": "Revise",
+            "to": "Draft",
+            "roles": [
+              "Employee",
+              "Operations Manager",
+              "System Manager"
+            ],
+            "allowSelfApproval": true
+          },
+          {
+            "from": "Active",
+            "action": "Discontinue",
+            "to": "Discontinued",
+            "roles": [
+              "Operations Manager",
+              "System Manager"
+            ],
+            "allowSelfApproval": true
+          },
+          {
+            "from": "Discontinued",
+            "action": "Reactivate",
+            "to": "Active",
+            "roles": [
+              "Operations Manager",
+              "System Manager"
+            ],
+            "allowSelfApproval": true
+          }
+        ]
+      }
+    },
+    {
+      "kind": "Workflow",
+      "doctype": "Purchase Order",
+      "definition": {
+        "docType": "Purchase Order",
+        "stateField": "workflow_state",
+        "active": true,
+        "states": [
+          {
+            "name": "Draft",
+            "color": "gray",
+            "docStatus": 0,
+            "editRoles": [
+              "Employee",
+              "Operations Manager",
+              "System Manager"
+            ]
+          },
+          {
+            "name": "Pending Approval",
+            "color": "orange",
+            "docStatus": 0,
+            "editRoles": [
+              "Operations Manager",
+              "System Manager"
+            ]
+          },
+          {
+            "name": "Approved",
+            "color": "green",
+            "docStatus": 1,
+            "editRoles": [
+              "Operations Manager",
+              "System Manager"
+            ]
+          },
+          {
+            "name": "Ordered",
+            "color": "red",
+            "docStatus": 1,
+            "editRoles": [
+              "Operations Manager",
+              "System Manager"
+            ]
+          },
+          {
+            "name": "Received",
+            "color": "gray",
+            "docStatus": 1,
+            "editRoles": [
+              "Operations Manager",
+              "System Manager"
+            ]
+          },
+          {
+            "name": "Cancelled",
+            "color": "orange",
+            "docStatus": 2,
+            "editRoles": [
+              "Operations Manager",
+              "System Manager"
+            ]
+          }
+        ],
+        "transitions": [
+          {
+            "from": "Draft",
+            "action": "Request Approval",
+            "to": "Pending Approval",
+            "roles": [
+              "Employee",
+              "Operations Manager",
+              "System Manager"
+            ],
+            "allowSelfApproval": true
+          },
+          {
+            "from": "Pending Approval",
+            "action": "Approve",
+            "to": "Approved",
+            "roles": [
+              "Operations Manager",
+              "System Manager"
+            ],
+            "allowSelfApproval": true
+          },
+          {
+            "from": "Pending Approval",
+            "action": "Revise",
+            "to": "Draft",
+            "roles": [
+              "Employee",
+              "Operations Manager",
+              "System Manager"
+            ],
+            "allowSelfApproval": true
+          },
+          {
+            "from": "Approved",
+            "action": "Place Order",
+            "to": "Ordered",
+            "roles": [
+              "Operations Manager",
+              "System Manager"
+            ],
+            "allowSelfApproval": true
+          },
+          {
+            "from": "Ordered",
+            "action": "Receive",
+            "to": "Received",
+            "roles": [
+              "Operations Manager",
+              "System Manager"
+            ],
+            "allowSelfApproval": true
+          },
+          {
+            "from": "Approved",
+            "action": "Cancel",
+            "to": "Cancelled",
+            "roles": [
+              "Operations Manager",
+              "System Manager"
+            ],
+            "allowSelfApproval": true
+          },
+          {
+            "from": "Ordered",
+            "action": "Cancel",
+            "to": "Cancelled",
+            "roles": [
+              "Operations Manager",
+              "System Manager"
+            ],
+            "allowSelfApproval": true
+          }
+        ]
+      }
+    }
+  ]
+}

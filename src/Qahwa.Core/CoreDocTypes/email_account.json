@@ -1,0 +1,18 @@
+{
+  "name": "Email Account", "module": "Core", "isSingle": true, "trackChanges": true,
+  "fields": [
+    { "name": "enabled", "type": "Check", "label": "Enable outgoing email", "default": "0" },
+    { "name": "email_address", "type": "Email", "label": "Sender email address", "mandatoryDependsOn": "enabled == true" },
+    { "name": "smtp_server", "type": "Data", "label": "SMTP server", "mandatoryDependsOn": "enabled == true", "description": "For example smtp.office365.com or smtp.gmail.com" },
+    { "name": "smtp_port", "type": "Int", "label": "SMTP port", "default": "587" },
+    { "name": "use_tls", "type": "Check", "label": "Use STARTTLS", "default": "1", "description": "Use port 587 for STARTTLS. Implicit TLS on port 465 is not supported." },
+    { "name": "smtp_username", "type": "Data", "label": "SMTP username", "description": "Usually your full email address. Leave empty for an unauthenticated relay." },
+    { "name": "smtp_password", "type": "Password", "label": "SMTP password or app password", "description": "Encrypted on the server. Existing passwords are masked." },
+    { "name": "site_url", "type": "Url", "label": "Public site URL", "description": "Used for password-reset links. For example https://desk.example.com" }
+  ],
+  "permissions": [ { "role": "System Manager", "read": true, "write": true, "create": true } ],
+  "validations": [
+    { "expression": "smtp_port >= 1 && smtp_port <= 65535", "message": "SMTP port must be between 1 and 65535.", "field": "smtp_port" },
+    { "expression": "!enabled || empty(smtp_username) || !empty(smtp_password)", "message": "Enter a password when SMTP authentication is used.", "field": "smtp_password" }
+  ]
+}

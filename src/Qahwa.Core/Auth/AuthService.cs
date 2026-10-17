@@ -160,6 +160,20 @@ public sealed class AuthService(
         await store.SetPasswordAsync(key, hasher.HashPassword(key, newPassword), (DateTime)user["creation"]!, Now(), ct);
     }
 
+    /// <summary>Identity bound into reset tokens, including enabled users who have not set a password yet.</summary>
+    public async Task<(string FullName, long Created)?> ResetIdentityAsync(string email, CancellationToken ct = default)
+    {
+        var user = await GetUserAsync(email, ct);
+        return user?.GetValueOrDefault("enabled") is true
+            ? ((string)user["full_name"]!, ((DateTime)user["creation"]!).Ticks) : null;
+    }
+
+    public async Task<bool> IsAdministratorUserAsync(string email, CancellationToken ct = default) =>
+        await repository.CountAsync(registry.Get(HasRoleDocType), new ListQuery
+        {
+            Filters = [new("user", FilterOp.Eq, email), new("role", FilterOp.Eq, UserContext.AdministratorRole)],
+        }, ct) > 0;
+
     public async Task ChangePasswordAsync(string email, string oldPassword, string newPassword, CancellationToken ct = default)
     {
         var key = Normalize(email) ?? throw new UnauthenticatedException();

@@ -1,0 +1,62 @@
+{
+  "title": "Employee Operations",
+  "isPublic": true,
+  "items": [
+    {
+      "type": "Number",
+      "title": "Active Suppliers",
+      "docType": "Supplier",
+      "filters": [
+        {
+          "field": "workflow_state",
+          "op": "=",
+          "value": "Active"
+        }
+      ]
+    },
+    {
+      "type": "Number",
+      "title": "Active Products",
+      "docType": "Product",
+      "filters": [
+        {
+          "field": "workflow_state",
+          "op": "=",
+          "value": "Active"
+        }
+      ]
+    },
+    {
+      "type": "Number",
+      "title": "Awaiting Approval",
+      "docType": "Purchase Order",
+      "filters": [
+        {
+          "field": "workflow_state",
+          "op": "=",
+          "value": "Pending Approval"
+        }
+      ]
+    },
+    {
+      "type": "Chart",
+      "title": "Orders by Status",
+      "docType": "Purchase Order",
+      "groupBy": "workflow_state"
+    },
+    {
+      "type": "List",
+      "title": "Recent Orders",
+      "docType": "Purchase Order",
+      "columns": [
+        "order_title",
+        "supplier",
+        "workflow_state",
+        "grand_total",
+        "currency"
+      ],
+      "orderBy": "modified",
+      "limit": 8
+    }
+  ]
+}

@@ -27,6 +27,23 @@ public static class MethodEndpoints
             return Results.Ok(new { data = new { apps = await boot.CollectAsync(await users.ResolveAsync(http, ct), ct) } });
         });
 
+        // Reports written in code by installed apps (ADR-088).
+        app.MapGet("/api/script-reports", async (HttpContext http, IUserContextResolver users, ScriptReportService reports, CancellationToken ct) =>
+            Results.Ok(new { data = reports.List(await users.ResolveAsync(http, ct)) }));
+
+        app.MapPost("/api/script-reports/{id}/run", async (string id, HttpContext http, IUserContextResolver users, ScriptReportService reports, CancellationToken ct) =>
+        {
+            var user = await users.ResolveAsync(http, ct);
+            Dictionary<string, string>? filters = null;
+            using (var doc = await ReadBodyAsync(http, ct))
+            {
+                if (doc.RootElement.ValueKind == JsonValueKind.Object && doc.RootElement.TryGetProperty("filters", out var f) && f.ValueKind == JsonValueKind.Object)
+                    filters = f.EnumerateObject().Where(p => p.Value.ValueKind == JsonValueKind.String).Take(20).ToDictionary(p => p.Name, p => p.Value.GetString()!, StringComparer.Ordinal);
+            }
+
+            return Results.Ok(new { data = await reports.RunAsync(id, filters, user, ct) });
+        });
+
         group.MapPost("/{name}", async (string name, HttpContext http, IUserContextResolver users, MethodService methods, CancellationToken ct) =>
         {
             var user = await users.ResolveAsync(http, ct);

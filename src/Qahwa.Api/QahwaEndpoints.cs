@@ -102,6 +102,7 @@ public static class QahwaEndpoints
         });
 
         app.MapQahwaAuth();
+        app.MapUserSecurity();
         app.MapQahwaDesigner();
         app.MapQahwaPermissions();
         app.MapQahwaSharing();
@@ -110,6 +111,7 @@ public static class QahwaEndpoints
         app.MapQahwaActivity();
         app.MapQahwaCollaboration();
         app.MapQahwaLists();
+        app.MapQahwaDesk();
         app.MapQahwaWorkflows();
         app.MapQahwaAssignmentRules();
         app.MapQahwaAutoRepeat();

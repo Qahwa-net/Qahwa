@@ -7,6 +7,7 @@ import { BulkBar, type BulkReport } from '../controls/BulkBar.tsx'
 import { useListScripts } from '../lib/useListScripts.ts'
 import { ColumnsPanel } from '../controls/ColumnsPanel.tsx'
 import { FilterBar } from '../controls/FilterBar.tsx'
+import { Icon, IconButton } from '../controls/Icon.tsx'
 import { GroupBySidebar } from '../controls/GroupBySidebar.tsx'
 import { RowStatus } from '../controls/StatusPill.tsx'
 import { SavedFilters } from '../controls/SavedFilters.tsx'
@@ -170,20 +171,20 @@ export function ListView() {
       <div className="page-head">
         <h1>{doctype}</h1>
         <span className="spacer" />
-        <button className="btn" aria-expanded={groupOpen} onClick={() => setGroupOpen(!groupOpen)}>Group by</button>
-        <button className="btn" aria-expanded={columnsOpen} onClick={() => setColumnsOpen(!columnsOpen)}>Columns</button>
-        {meta.isTree && <Link className="btn" to={`${base}/tree`}>Tree view</Link>}
-        {meta.fields.some((f) => f.type === "Select" && f.options && !f.hidden) && !meta.isSingle && <Link className="btn" to={`${base}/board`}>Board</Link>}
-        {meta.fields.some((f) => (f.type === "Date" || f.type === "Datetime") && !f.hidden) && !meta.isSingle && <Link className="btn" to={`${base}/calendar`}>Calendar</Link>}
-        {meta.fields.filter((f) => (f.type === "Date" || f.type === "Datetime") && !f.hidden).length >= 2 && !meta.isSingle && <Link className="btn" to={`${base}/timeline`}>Timeline</Link>}
-        {meta.fields.some((f) => f.type === "AttachImage" && !f.hidden) && !meta.isSingle && <Link className="btn" to={`${base}/gallery`}>Gallery</Link>}
-        {meta.fields.some((f) => f.type === "Geolocation" && !f.hidden) && !meta.isSingle && <Link className="btn" to={`${base}/map`}>Map</Link>}
-        {listScripts.buttons.map((b) => <button key={b.id} className="btn" onClick={() => listScripts.runButton(b.id)}>{b.label}</button>)}
-        {perms?.report && <button className="btn" aria-expanded={reporting} onClick={() => setReporting(!reporting)}>Report</button>}
-        {perms?.export && <a className="btn" href={api.exportUrl(doctype, effectiveFilters)} download>Export CSV</a>}
-        {perms?.export && <a className="btn" href={api.exportUrl(doctype, effectiveFilters, 'xlsx')} download>Export Excel</a>}
-        {perms?.create && perms?.import !== false && !meta.isSingle && <button className="btn" onClick={() => setImporting(true)}>Import</button>}
-        {perms?.create && <Link className="btn primary" to={`${base}/new`}>+ New {doctype}</Link>}
+        <IconButton icon="group" label="Group by" aria-expanded={groupOpen} pressed={groupOpen} onClick={() => setGroupOpen(!groupOpen)} />
+        <IconButton icon="columns" label="Columns" aria-expanded={columnsOpen} pressed={columnsOpen} onClick={() => setColumnsOpen(!columnsOpen)} />
+        {meta.isTree && <Link className="icon-btn" aria-label="Tree view" data-tip="Tree view" to={`${base}/tree`}><Icon name="tree" /></Link>}
+        {meta.fields.some((f) => f.type === "Select" && f.options && !f.hidden) && !meta.isSingle && <Link className="icon-btn" aria-label="Board" data-tip="Board" to={`${base}/board`}><Icon name="board" /></Link>}
+        {meta.fields.some((f) => (f.type === "Date" || f.type === "Datetime") && !f.hidden) && !meta.isSingle && <Link className="icon-btn" aria-label="Calendar" data-tip="Calendar" to={`${base}/calendar`}><Icon name="calendar" /></Link>}
+        {meta.fields.filter((f) => (f.type === "Date" || f.type === "Datetime") && !f.hidden).length >= 2 && !meta.isSingle && <Link className="icon-btn" aria-label="Timeline" data-tip="Timeline" to={`${base}/timeline`}><Icon name="timeline" /></Link>}
+        {meta.fields.some((f) => f.type === "AttachImage" && !f.hidden) && !meta.isSingle && <Link className="icon-btn" aria-label="Gallery" data-tip="Gallery" to={`${base}/gallery`}><Icon name="gallery" /></Link>}
+        {meta.fields.some((f) => f.type === "Geolocation" && !f.hidden) && !meta.isSingle && <Link className="icon-btn" aria-label="Map" data-tip="Map" to={`${base}/map`}><Icon name="map" /></Link>}
+        {listScripts.buttons.map((b) => <IconButton key={b.id} icon="play" label={b.label} onClick={() => listScripts.runButton(b.id)} />)}
+        {perms?.report && <IconButton icon="chart" label="Report" aria-expanded={reporting} pressed={reporting} onClick={() => setReporting(!reporting)} />}
+        {perms?.export && <a className="icon-btn" aria-label="Export CSV" data-tip="Export CSV" href={api.exportUrl(doctype, effectiveFilters)} download><Icon name="fileCsv" /></a>}
+        {perms?.export && <a className="icon-btn" aria-label="Export Excel" data-tip="Export Excel" href={api.exportUrl(doctype, effectiveFilters, 'xlsx')} download><Icon name="fileExcel" /></a>}
+        {perms?.create && perms?.import !== false && !meta.isSingle && <IconButton icon="upload" label="Import" onClick={() => setImporting(true)} />}
+        {perms?.create && <Link className="icon-btn primary" aria-label={`New ${doctype}`} data-tip={`New ${doctype}`} to={`${base}/new`}><Icon name="plus" /></Link>}
       </div>
 
       {importing && <ImportDialog doctype={doctype} canUpdate={Boolean(perms?.write)} onClose={() => setImporting(false)} />}

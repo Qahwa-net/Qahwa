@@ -97,14 +97,14 @@ public sealed class PasswordResetService(
         if (key is null || !EmailService.ValidAddress(key) || !hits.TryHit($"reset:{key}", LinksPerHour, TimeSpan.FromHours(1)))
             return null;
 
-        var session = await auth.LoadSessionAsync(key, ct);
+        var identity = await auth.ResetIdentityAsync(key, ct);
         var credential = await store.GetAsync(key, ct);
-        if (session is null || credential is null)
+        if (identity is null)
             return null;
 
-        var token = protector.Protect($"reset|{key}|{(Now() + Lifetime).Ticks.ToString(CultureInfo.InvariantCulture)}|{credential.PasswordChanged.Ticks.ToString(CultureInfo.InvariantCulture)}");
+        var token = protector.Protect($"reset|{key}|{(Now() + Lifetime).Ticks.ToString(CultureInfo.InvariantCulture)}|{(credential?.PasswordChanged.Ticks ?? 0).ToString(CultureInfo.InvariantCulture)}|{identity.Value.Created.ToString(CultureInfo.InvariantCulture)}");
         var link = $"{baseUrl.TrimEnd('/')}/reset-password?token={Uri.EscapeDataString(token)}";
-        var body = $"Hello {session.FullName},\n\nSomeone asked to reset the password of your account. To choose a new one, open this link within an hour:\n\n{link}\n\n" +
+        var body = $"Hello {identity.Value.FullName},\n\nSomeone asked to reset the password of your account. To choose a new one, open this link within an hour:\n\n{link}\n\n" +
                    "If you did not ask for this, ignore this message: your password has not changed.\n";
         return new ResetMail(key, "Reset your password", body, link);
     }
@@ -163,14 +163,16 @@ public sealed class PasswordResetService(
         if (string.IsNullOrEmpty(token) || token.Length > 2000)
             return null;
         var parts = protector.Unprotect(token)?.Split('|');
-        if (parts is not { Length: 4 } || parts[0] != "reset"
+        if (parts is not { Length: 5 } || parts[0] != "reset"
             || !long.TryParse(parts[2], NumberStyles.None, CultureInfo.InvariantCulture, out var expires) || !long.TryParse(parts[3], NumberStyles.None, CultureInfo.InvariantCulture, out var changed))
             return null;
         if (expires <= Now().Ticks)
             return null;
 
         var credential = await store.GetAsync(parts[1], ct);
-        return credential is not null && credential.PasswordChanged.Ticks == changed && await auth.LoadSessionAsync(parts[1], ct) is not null ? parts[1] : null;
+        var identity = await auth.ResetIdentityAsync(parts[1], ct);
+        return identity is not null && long.TryParse(parts[4], NumberStyles.None, CultureInfo.InvariantCulture, out var created)
+            && identity.Value.Created == created && (credential?.PasswordChanged.Ticks ?? 0) == changed ? parts[1] : null;
     }
 
     /// <summary>Sets the new password (checked against the password rules), ends every session of the person, and makes the link useless.</summary>

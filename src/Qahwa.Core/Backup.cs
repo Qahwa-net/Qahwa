@@ -43,7 +43,7 @@ public sealed class BackupService(IMetaRegistry registry, IDocumentRepository re
     private const int MaxLineBytes = 1024 * 1024;
 
     /// <summary>Queues and logs that are not worth keeping and may contain things that should not travel.</summary>
-    public static readonly IReadOnlySet<string> Skipped = new HashSet<string>(StringComparer.Ordinal) { "Email Queue", "Webhook Delivery", "Error Log", "Patch Log" };
+    public static readonly IReadOnlySet<string> Skipped = new HashSet<string>(StringComparer.Ordinal) { "Email Account", "Email Queue", "Webhook Delivery", "Error Log", "Patch Log" };
 
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { WriteIndented = false };
 

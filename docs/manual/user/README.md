@@ -69,6 +69,9 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 65. [Access Log](65-access-log.md)
 66. [Import, share, print and email rights](66-extra-rights.md)
 67. [Scripts for the list view](67-list-scripts.md)
+68. [Script reports](68-script-reports.md)
+69. [User passwords and outgoing email](69-user-passwords-and-email-account.md)
+70. [Customize your Desk](70-customize-your-desk.md)
 
 **Words used**
 

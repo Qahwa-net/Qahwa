@@ -145,6 +145,12 @@ public interface IAppBuilder
     /// </summary>
     IAppBuilder Boot(BootHook hook);
 
+    /// <summary>
+    /// A report written in code (ADR-088), listed with the others and run through `GET/POST /api/script-reports`. It reads documents
+    /// through the person's own permissions. The name is lower case letters, digits and underscores; the report's id is "app.name".
+    /// </summary>
+    IAppBuilder ScriptReport(string name, string title, ScriptReportHandler handler, ScriptReportOptions? options = null);
+
     /// <summary>A server function people (or other systems) may call at <c>POST /api/method/&lt;app&gt;.&lt;name&gt;</c>.</summary>
     IAppBuilder Method(string name, MethodHandler handler, MethodOptions? options = null);
 
@@ -206,6 +212,7 @@ public sealed partial class AppCatalog
 
     private readonly List<RegisteredHook> _hooks = [];
     private readonly List<RegisteredBoot> _boots = [];
+    private readonly List<RegisteredScriptReport> _scriptReports = [];
     private readonly List<RegisteredPermissionCheck> _permissionChecks = [];
     private readonly List<RegisteredPermissionQuery> _permissionQueries = [];
     private readonly Dictionary<string, RegisteredMethod> _methods = new(StringComparer.Ordinal);
@@ -241,6 +248,8 @@ public sealed partial class AppCatalog
     internal IReadOnlyList<RegisteredPermissionQuery> PermissionQueriesFor(string doctype) => _permissionQueries.Where(c => c.DocType == doctype).ToList();
 
     internal IReadOnlyList<RegisteredBoot> Boots => _boots;
+
+    internal IReadOnlyList<RegisteredScriptReport> ScriptReports => _scriptReports;
 
     internal IReadOnlyList<RegisteredJob> Jobs => _jobs;
 
@@ -300,6 +309,16 @@ public sealed partial class AppCatalog
             if (string.IsNullOrWhiteSpace(doctype))
                 throw new InvalidOperationException($"The app '{app}' has a hook without a DocType.");
             catalog._hooks.Add(new RegisteredHook(app, doctype, @event, hook ?? throw new ArgumentNullException(nameof(hook))));
+            return this;
+        }
+
+        public IAppBuilder ScriptReport(string name, string title, ScriptReportHandler handler, ScriptReportOptions? options = null)
+        {
+            if (!ShortName().IsMatch(name) || string.IsNullOrWhiteSpace(title) || title.Length > 140)
+                throw new InvalidOperationException($"The report '{name}' of the app '{app}' needs a lower-case name and a title of up to 140 characters.");
+            if (catalog._scriptReports.Any(r => r.App == app && r.Name == name))
+                throw new InvalidOperationException($"The report '{app}.{name}' is registered twice.");
+            catalog._scriptReports.Add(new RegisteredScriptReport(app, name, title.Trim(), handler ?? throw new ArgumentNullException(nameof(handler)), options ?? new ScriptReportOptions()));
             return this;
         }
 

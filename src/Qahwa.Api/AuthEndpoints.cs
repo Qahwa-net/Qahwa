@@ -98,9 +98,9 @@ public static class AuthEndpoints
         }).RequireRateLimiting(AuthClaims.LoginRateLimit);
 
         // "Forgot password": the answer is the same whether or not the address has an account.
-        auth.MapPost("/forgot", async (ForgotPasswordRequest body, HttpContext http, PasswordResetService reset, IOptions<AuthOptions> options, IHostEnvironment env, ILoggerFactory logs, ErrorLogService errorLog, CancellationToken ct) =>
+        auth.MapPost("/forgot", async (ForgotPasswordRequest body, HttpContext http, PasswordResetService reset, EmailAccountService accounts, IOptions<AuthOptions> options, IHostEnvironment env, ILoggerFactory logs, ErrorLogService errorLog, CancellationToken ct) =>
         {
-            var baseUrl = options.Value.PublicUrl ?? (env.IsDevelopment() ? $"{http.Request.Scheme}://{http.Request.Host}" : null);
+            var baseUrl = options.Value.PublicUrl ?? await accounts.PublicUrlAsync(ct) ?? (env.IsDevelopment() ? $"{http.Request.Scheme}://{http.Request.Host}" : null);
             if (baseUrl is null)
                 logs.CreateLogger("Qahwa.Auth").LogWarning("A password reset was asked for but Qahwa:Auth:PublicUrl is not set, so no link was sent.");
             else if (await reset.PrepareAsync(body.Email, baseUrl, ct) is { } mail)
@@ -116,9 +116,9 @@ public static class AuthEndpoints
         // Self sign-up: off unless switched on. The answer never says whether the address already has an account.
         auth.MapGet("/signup", (SignUpService signUp) => Results.Ok(new { data = new { enabled = signUp.Enabled } }));
 
-        auth.MapPost("/signup", async (SignUpRequest body, HttpContext http, SignUpService signUp, IOptions<AuthOptions> options, IHostEnvironment env, ILoggerFactory logs, ErrorLogService errorLog, CancellationToken ct) =>
+        auth.MapPost("/signup", async (SignUpRequest body, HttpContext http, SignUpService signUp, EmailAccountService accounts, IOptions<AuthOptions> options, IHostEnvironment env, ILoggerFactory logs, ErrorLogService errorLog, CancellationToken ct) =>
         {
-            var baseUrl = options.Value.PublicUrl ?? (env.IsDevelopment() ? $"{http.Request.Scheme}://{http.Request.Host}" : null);
+            var baseUrl = options.Value.PublicUrl ?? await accounts.PublicUrlAsync(ct) ?? (env.IsDevelopment() ? $"{http.Request.Scheme}://{http.Request.Host}" : null);
             if (baseUrl is null)
                 logs.CreateLogger("Qahwa.Auth").LogWarning("A sign-up was made but Qahwa:Auth:PublicUrl is not set, so no link was sent.");
             else if (await signUp.PrepareAsync(body.Email, body.FullName, baseUrl, http.Connection.RemoteIpAddress?.ToString() ?? "unknown", ct) is { } mail)
@@ -137,9 +137,13 @@ public static class AuthEndpoints
             return Results.Ok(new { message = "ok" });
         }).RequireRateLimiting(AuthClaims.LoginRateLimit);
 
-        auth.MapPost("/reset-password", async (ResetPasswordRequest body, PasswordResetService reset, CancellationToken ct) =>
+        auth.MapPost("/reset-password", async (ResetPasswordRequest body, PasswordResetService reset, SessionService sessions, IMemoryCache cache, CancellationToken ct) =>
         {
+            var email = await reset.RedeemAsync(body.Token, ct);
+            var live = email is null ? [] : await sessions.ListAsync(email, ct);
             await reset.ResetAsync(body.Token, body.NewPassword, ct);
+            if (email is not null) cache.Remove(AuthClaims.SessionKey(email));
+            foreach (var session in live) cache.Remove(AuthClaims.LiveKey(session.Id));
             return Results.Ok(new { message = "ok" });
         }).RequireRateLimiting(AuthClaims.LoginRateLimit);
 

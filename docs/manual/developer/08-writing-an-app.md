@@ -76,6 +76,19 @@ app.HasPermission("Ticket", ctx => (string?)ctx.Doc.GetValueOrDefault("region") 
 
 Override `Dependencies` with the names of the apps yours needs: `public IReadOnlyList<string> Dependencies => ["billing"];`. They are installed first; a missing app or a circle stops the server at start-up with the names involved.
 
+## Script reports ([ADR-088](../../adr/088-script-reports.md))
+
+```csharp
+app.ScriptReport("top_customers", "Top customers", async ctx =>
+{
+    var rows = (await ctx.Documents.ListAsync("Sales Order", new ListRequest { Fields = ["customer", "total"], Limit = 1000 }, ctx.User)).Data;
+    var totals = rows.GroupBy(r => (string)r["customer"]!).Select(g => (IReadOnlyDictionary<string, object?>)new Dictionary<string, object?> { ["customer"] = g.Key, ["total"] = g.Sum(r => Convert.ToDecimal(r["total"])) });
+    return new ScriptReportData([new("customer", "Customer"), new("total", "Total", "Currency")], totals.ToList());
+}, new ScriptReportOptions { Roles = ["Accounts Manager"], Filters = ["region"] });
+```
+
+Read documents through `ctx.Documents` as `ctx.User` so the report shows only what the person may see. Limits: 5,000 rows, 50 columns, 1,000 characters per cell. An exception is logged and the person sees a plain message.
+
 ## Boot hooks ([ADR-084](../../adr/084-boot-hooks.md))
 
 ```csharp

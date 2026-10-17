@@ -14,6 +14,7 @@ import { DashboardsPage } from './pages/Dashboards.tsx'
 import { NotificationRulesPage } from './pages/NotificationRules.tsx'
 import { AutoRepeatPage } from './pages/AutoRepeatPage.tsx'
 import { EmailedReportsPage } from './pages/EmailedReports.tsx'
+import { ScriptReportsPage } from './pages/ScriptReports.tsx'
 import { AssignmentRulesPage } from './pages/AssignmentRules.tsx'
 import { WorkflowBuilderPage } from './pages/WorkflowBuilder.tsx'
 import { DesignerEditor } from './pages/DesignerEditor.tsx'
@@ -67,6 +68,7 @@ export function App() {
           <Route path="backup" element={<BackupPage />} />
           <Route path="brand" element={<BrandPage />} />
           <Route path="reports" element={<ReportsPage />} />
+          <Route path="script-reports" element={<ScriptReportsPage />} />
           <Route path="reports/new" element={<ReportEditorPage />} />
           <Route path="reports/:id" element={<ReportViewPage />} />
           <Route path="reports/:id/edit" element={<ReportEditorPage />} />

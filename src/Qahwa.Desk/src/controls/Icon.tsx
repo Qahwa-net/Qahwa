@@ -1,6 +1,17 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 
 const PATHS = {
+  arrowUp: <path d="M12 20V4m-6 6 6-6 6 6" />,
+  arrowDown: <path d="M12 4v16m-6-6 6 6 6-6" />,
+  columns: <><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M9 4v16M15 4v16" /></>,
+  group: <><path d="M4 4h16M4 10h6M4 16h6M14 10h6M14 16h6M4 22h6M14 22h6" /></>,
+  tree: <><rect x="9" y="2" width="6" height="5" rx="1" /><path d="M12 7v5M5 16v-4h14v4" /><rect x="2" y="16" width="6" height="5" rx="1" /><rect x="16" y="16" width="6" height="5" rx="1" /></>,
+  board: <><rect x="3" y="3" width="18" height="18" rx="2" /><path d="M9 3v18M15 3v18M5 7h2M11 7h2M17 7h2M5 11h2M11 11h2" /></>,
+  timeline: <><path d="M4 3v18M4 6h12M4 12h16M4 18h9" /><circle cx="16" cy="6" r="1" /><circle cx="20" cy="12" r="1" /><circle cx="13" cy="18" r="1" /></>,
+  gallery: <><rect x="3" y="3" width="18" height="18" rx="2" /><circle cx="8" cy="8" r="1.5" /><path d="m3 17 5-5 4 4 4-7 5 8" /></>,
+  map: <><path d="m3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15" /></>,
+  fileCsv: <><path d="M14 2H5v20h14V7zM14 2v5h5M7 11h3M7 15h3M7 19h3M14 11v8M12 15h4" /></>,
+  fileExcel: <><path d="M14 2H5v20h14V7zM14 2v5h5M8 11l8 8M16 11l-8 8" /></>,
   share: <><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7" /><path d="m16 6-4-4-4 4" /><path d="M12 2v13" /></>,
   userPlus: <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M19 8v6M22 11h-6" /></>,
   pencil: <><path d="M12 20h9" /><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" /></>,

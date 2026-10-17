@@ -1,3 +1,4 @@
+import type { DeskLayout, DeskRoleLayout, DeskState } from '../lib/desk.ts'
 import type { ScriptSource } from '../lib/clientScripts.ts'
 import type { EmailedReport, EmailedReportRequest } from '../lib/emailedReports.ts'
 import type { SearchResponse } from '../lib/search.ts'
@@ -6,7 +7,7 @@ import type { SsoProviderInfo } from '../lib/sso.ts'
 import type { DisplaySettings } from '../lib/display.ts'
 import type {
   DesignerDetail, DocPerm, DesignerItem, DesignerPreview, Doc, DocTypeDefinition, FieldError, FieldTypeInfo,
-  ListResponse, ReportDetail, ReportInfo, ReportRun, RestoreReport, SignIn, ExpiredPasswordChallenge, TwoFactorChallenge, TwoFactorSetup, TwoFactorStatus, PublicForm, BundleReport, TranslationCatalog, AttachedFile, WebhookItem, WebhookSet, WebhookView, ApiKeyCreated, ApiKeyInfo, ImportPreview, ImportResult, WorkspaceBlock, WorkspaceDetail, WorkspaceInfo, WorkspaceView, LetterHeadDetail, PrintChoices, PrintFormatDetail, PrintFormatInfo, DashboardDetail, DashboardInfo, DashboardItem, DashboardResult, EmailPreview, EmailTemplateInfo, NotificationRuleItem, NotificationRuleSet, NotificationRuleView, AutoRepeatInfo, AutoRepeatRequest, AssignmentRuleItem, AssignmentRuleSet, AssignmentRuleView, PendingAction, WorkflowDefinition, WorkflowItem, WorkflowStatus, WorkflowView, MetaResponse, MetaSummary, PermissionItem, ActivityItem, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, EmailDigest, Viewer, FollowState, LikeState, TagCount, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
+  ListResponse, ReportDetail, ReportInfo, ReportRun, RestoreReport, SignIn, ExpiredPasswordChallenge, TwoFactorChallenge, TwoFactorSetup, TwoFactorStatus, PublicForm, BundleReport, TranslationCatalog, AttachedFile, WebhookItem, WebhookSet, WebhookView, ApiKeyCreated, ApiKeyInfo, ImportPreview, ImportResult, WorkspaceBlock, WorkspaceDetail, WorkspaceInfo, WorkspaceView, LetterHeadDetail, PrintChoices, PrintFormatDetail, PrintFormatInfo, DashboardDetail, DashboardInfo, DashboardItem, DashboardResult, EmailPreview, EmailTemplateInfo, NotificationRuleItem, NotificationRuleSet, NotificationRuleView, AutoRepeatInfo, AutoRepeatRequest, AssignmentRuleItem, AssignmentRuleSet, AssignmentRuleView, PendingAction, WorkflowDefinition, WorkflowItem, WorkflowStatus, WorkflowView, MetaResponse, MetaSummary, PermissionItem, ActivityItem, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, EmailDigest, ScriptReportInfo, ScriptReportResult, Viewer, FollowState, LikeState, TagCount, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
 } from './types.ts'
 import type { Filter } from '../lib/filters.ts'
 import { toApiFilters } from '../lib/filters.ts'
@@ -67,6 +68,19 @@ export interface ListParams {
 }
 
 export const api = {
+  desk: {
+    get: async (): Promise<DeskState> => (await request<{ data: DeskState }>('GET', '/api/desk-settings')).data,
+    save: async (layout: DeskLayout, modified: string | null): Promise<DeskState> => (await request<{ data: DeskState }>('PUT', '/api/desk-settings', { layout, modified })).data,
+    reset: async (): Promise<DeskState> => (await request<{ data: DeskState }>('DELETE', '/api/desk-settings')).data,
+    role: async (role: string): Promise<DeskRoleLayout> => (await request<{ data: DeskRoleLayout }>('GET', '/api/desk-settings/roles/' + encodeURIComponent(role))).data,
+    saveRole: async (role: string, layout: DeskLayout, modified: string | null): Promise<DeskRoleLayout> => (await request<{ data: DeskRoleLayout }>('PUT', '/api/desk-settings/roles/' + encodeURIComponent(role), { layout, modified })).data,
+    resetRole: (role: string) => request('DELETE', '/api/desk-settings/roles/' + encodeURIComponent(role)),
+  },
+  userSecurity: {
+    setPassword: (email: string, newPassword: string) => request<{ message: string }>('POST', `/api/users/${encodeURIComponent(email)}/password`, { newPassword }),
+    sendReset: (email: string) => request<{ message: string }>('POST', `/api/users/${encodeURIComponent(email)}/reset-password`, {}),
+    testEmail: (to: string) => request<{ message: string }>('POST', '/api/email/test', { to }),
+  },
   /** Returns null when nobody is signed in. */
   async me(): Promise<SessionUser | null> {
     try {
@@ -478,6 +492,12 @@ export const api = {
     save: async (name: string, rules: NotificationRuleSet, modified: string | null | undefined) =>
       (await request<{ data: NotificationRuleView }>('PUT', `/api/notification-rules/doctypes/${encodeURIComponent(name)}`, { rules, modified })).data,
     remove: async (name: string) => { await request<unknown>('DELETE', `/api/notification-rules/doctypes/${encodeURIComponent(name)}`) },
+  },
+
+  scriptReports: {
+    list: async () => (await request<{ data: ScriptReportInfo[] }>('GET', '/api/script-reports')).data,
+    run: async (id: string, filters: Record<string, string>) =>
+      (await request<{ data: ScriptReportResult }>('POST', `/api/script-reports/${encodeURIComponent(id)}/run`, { filters })).data,
   },
 
   boot: async () => (await request<{ data: { apps: Record<string, unknown> } }>('GET', '/api/boot')).data.apps,

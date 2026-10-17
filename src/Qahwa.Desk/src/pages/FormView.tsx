@@ -1,3 +1,4 @@
+import { UserPasswordActions, TestEmailAction } from './UserPasswordActions.tsx'
 import { WorkflowBar } from './WorkflowBar.tsx'
 import { DocRail } from './DocRail.tsx'
 import { buildLayout } from '../lib/layout.ts'
@@ -412,6 +413,8 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
           {!isNew && dirty && <span className="badge unsaved">Not saved</span>}
         </div>
         <div className="doc-actions">
+          {!isNew && doc && user?.roles.some(r => r === 'Administrator' || r === 'System Manager') && meta.name === 'User' && <UserPasswordActions key={doc.name} email={doc.name} />}
+          {!isNew && user?.roles.some(r => r === 'Administrator' || r === 'System Manager') && meta.name === 'Email Account' && <TestEmailAction disabled={dirty} />}
           {!isNew && doc && meta.module !== 'Core' && !meta.isSingle && <LikeButton doctype={meta.name} name={doc.name} />}
           {!isNew && doc && <FollowButton doctype={meta.name} name={doc.name} />}
           {!isNew && !meta.isSingle && perms.create && doc && <IconButton icon="copy" label="Duplicate" onClick={() => navigate(`${base}/new?copy=${encodeURIComponent(doc.name)}`)} />}

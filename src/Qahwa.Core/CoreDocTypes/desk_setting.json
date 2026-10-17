@@ -1,0 +1,9 @@
+{
+  "name": "Desk Setting", "module": "Core", "trackChanges": false,
+  "fields": [
+    { "name": "scope", "type": "Select", "options": "user\nrole", "required": true },
+    { "name": "target", "type": "Data", "required": true, "indexed": true },
+    { "name": "layout", "type": "LongText", "label": "Layout" }
+  ],
+  "permissions": []
+}

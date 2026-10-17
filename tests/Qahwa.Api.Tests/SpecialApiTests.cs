@@ -309,6 +309,27 @@ public sealed class SpecialApiTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Reports_written_by_apps_are_listed_and_run_for_the_people_who_may()
+    {
+        var ann = _factory.ClientFor("ann@example.com", "Sales Manager");
+
+        var list = (await JsonOf(await ann.GetAsync("/api/script-reports"))).GetProperty("data");
+        Assert.Equal(["testapp.echo"], list.EnumerateArray().Select(r => r.GetProperty("id").GetString()));
+
+        var run = await ann.PostAsJsonAsync("/api/script-reports/testapp.echo/run", new { filters = new { region = "north", evil = "x" } });
+        Assert.Equal(HttpStatusCode.OK, run.StatusCode);
+        var row = (await JsonOf(run)).GetProperty("data").GetProperty("rows")[0];
+        Assert.Equal("ann@example.com", row.GetProperty("who").GetString());
+        Assert.Equal("north", row.GetProperty("region").GetString());
+
+        Assert.Equal(HttpStatusCode.NotFound, (await ann.PostAsJsonAsync("/api/script-reports/testapp.admins/run", new { })).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await ann.PostAsJsonAsync("/api/script-reports/testapp.nope/run", new { })).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateClient().GetAsync("/api/script-reports")).StatusCode);
+        var boss = _factory.ClientFor("boss@example.com", "System Manager");
+        Assert.Equal(2, (await JsonOf(await boss.GetAsync("/api/script-reports"))).GetProperty("data").GetArrayLength());
+    }
+
+    [Fact]
     public async Task Bulk_rename_over_the_api_reports_each_document()
     {
         await CreateDocTypeAsync(new

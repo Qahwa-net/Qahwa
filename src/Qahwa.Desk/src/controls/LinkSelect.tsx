@@ -1,4 +1,5 @@
-import { useEffect, useId, useRef, useState } from 'react'
+import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
+import { createPortal } from 'react-dom'
 import { useQuery } from '@tanstack/react-query'
 import type { LinkOption } from '../api/types.ts'
 
@@ -35,6 +36,36 @@ export function LinkSelect({ value, onChange, search, resolve, cacheKey, readOnl
   const [debounced, setDebounced] = useState('')
   const [active, setActive] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
+  const [menuStyle, setMenuStyle] = useState<CSSProperties>({})
+
+  // Place choices outside scrolling tables so the menu cannot be clipped by a cell.
+  useLayoutEffect(() => {
+    if (!open || readOnly) return
+    const position = () => {
+      const rect = inputRef.current?.getBoundingClientRect()
+      if (!rect) return
+      const below = window.innerHeight - rect.bottom - 12
+      const above = rect.top - 12
+      const upwards = below < 180 && above > below
+      const width = Math.min(Math.max(rect.width, 240), window.innerWidth - 16)
+      const rtl = getComputedStyle(inputRef.current!).direction === 'rtl'
+      setMenuStyle({
+        position: 'fixed', insetInline: 'auto', margin: 0, width,
+        left: Math.max(8, Math.min(rtl ? rect.right - width : rect.left, window.innerWidth - width - 8)),
+        top: upwards ? undefined : rect.bottom + 4,
+        bottom: upwards ? window.innerHeight - rect.top + 4 : undefined,
+        maxHeight: Math.max(0, Math.min(256, upwards ? above : below)),
+        direction: rtl ? 'rtl' : 'ltr',
+      })
+    }
+    position()
+    window.addEventListener('resize', position)
+    window.addEventListener('scroll', position, true)
+    return () => {
+      window.removeEventListener('resize', position)
+      window.removeEventListener('scroll', position, true)
+    }
+  }, [open, readOnly])
 
   useEffect(() => {
     const timer = setTimeout(() => setDebounced(typed ? text : ''), DELAY)
@@ -118,8 +149,8 @@ export function LinkSelect({ value, onChange, search, resolve, cacheKey, readOnl
         <button type="button" className="link-clear" aria-label="Clear" tabIndex={-1}
           onMouseDown={(e) => { e.preventDefault(); onChange('') ; inputRef.current?.focus() }}>✕</button>
       )}
-      {open && (
-        <ul id={listId} role="listbox" className="link-options">
+      {open && createPortal(
+        <ul id={listId} role="listbox" className="link-options link-options-floating" style={menuStyle}>
           {choices.isPending && <li className="link-note" role="status">Searching…</li>}
           {choices.isSuccess && options.length === 0 && <li className="link-note" role="status">Nothing found</li>}
           {options.map((option, index) => (
@@ -132,7 +163,7 @@ export function LinkSelect({ value, onChange, search, resolve, cacheKey, readOnl
               {option.description && <small className="muted">{option.description}</small>}
             </li>
           ))}
-        </ul>
+        </ul>, document.body,
       )}
     </div>
   )

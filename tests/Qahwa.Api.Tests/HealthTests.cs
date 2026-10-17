@@ -48,6 +48,10 @@ public sealed class FactoryTestApp : IQahwaApp
         app.Method("hello", ctx => Task.FromResult<object?>(new { greeting = "Hello " + (ctx.Text("who") ?? "world"), user = ctx.User.User }), new MethodOptions { AllowGet = true });
         app.Method("secret", _ => Task.FromResult<object?>("classified"), new MethodOptions { Roles = ["System Manager"] });
         app.Boot(ctx => Task.FromResult<object?>(new { hello = ctx.User.User }));
+        app.ScriptReport("echo", "Echo", ctx => Task.FromResult(new ScriptReportData(
+            [new ScriptReportColumn("who", "Who"), new ScriptReportColumn("region", "Region")],
+            [new Dictionary<string, object?> { ["who"] = ctx.User.User, ["region"] = ctx.Filters.GetValueOrDefault("region") }])), new ScriptReportOptions { Filters = ["region"] });
+        app.ScriptReport("admins", "Admins only", _ => Task.FromResult(new ScriptReportData([new ScriptReportColumn("x", "X")], [])), new ScriptReportOptions { Roles = ["System Manager"] });
     }
 }
 

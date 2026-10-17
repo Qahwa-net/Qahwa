@@ -129,9 +129,11 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<EmailDigestService>();
         services.TryAddSingleton<JobLogService>();
         services.TryAddSingleton<BootService>();
+        services.TryAddSingleton<ScriptReportService>();
         services.TryAddSingleton<ViewLogService>();
         services.TryAddSingleton<AccessLogService>();
         services.TryAddSingleton<ListSettingsService>();
+        services.TryAddSingleton<DeskSettingsService>();
         services.TryAddSingleton<BulkService>();
         services.TryAddSingleton<ActivityService>();
         services.TryAddSingleton<NamingSeriesManager>();
@@ -150,6 +152,8 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<LdapService>();
         services.TryAddSingleton<SamlService>();
         services.TryAddSingleton<PasswordResetService>();
+        services.TryAddSingleton<EmailSettings>();
+        services.TryAddSingleton<EmailAccountService>();
         services.TryAddSingleton<SignUpService>();
         services.TryAddSingleton<SystemSettingsService>();
         services.TryAddSingleton<PatchRunner>();

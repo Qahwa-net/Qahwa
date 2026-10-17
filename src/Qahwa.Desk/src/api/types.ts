@@ -306,6 +306,21 @@ export interface Viewer {
   lastViewed: string
 }
 
+export interface ScriptReportInfo {
+  id: string
+  title: string
+  app: string
+  filters: string[]
+}
+
+export interface ScriptReportResult {
+  id: string
+  title: string
+  columns: { key: string; label: string; type: string }[]
+  rows: Record<string, unknown>[]
+  truncated: boolean
+}
+
 export interface LikeState {
   liked: boolean
   count: number

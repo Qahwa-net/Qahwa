@@ -51,10 +51,7 @@ public static class QahwaSiteServices
 
         var email = config.GetSection("Qahwa:Email").Get<EmailSettings>() ?? new EmailSettings();
         services.AddSingleton(email);
-        if (string.IsNullOrWhiteSpace(email.Host))
-            services.AddSingleton<IEmailSender, LogEmailSender>();
-        else
-            services.AddSingleton<IEmailSender, SmtpEmailSender>();
+        services.AddSingleton<IEmailSender, SmtpEmailSender>();
         services.AddSingleton(config.GetSection("Qahwa:Webhooks").Get<WebhookOptions>() ?? new WebhookOptions());
         services.AddSingleton<IWebhookSender, WebhookSender>();
         var files = config.GetSection("Qahwa:Files").Get<AttachmentOptions>() ?? new AttachmentOptions();
