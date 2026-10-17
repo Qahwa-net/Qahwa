@@ -7,5 +7,5 @@ export default defineConfig({
   plugins: [react()],
   server: { proxy: { '/api': 'http://localhost:5101' } },
   build: { outDir: '../Qahwa.Server/wwwroot', emptyOutDir: true },
-  test: { environment: 'node', include: ['src/**/*.test.ts'] },
+  test: { environment: 'node', include: ['src/**/*.test.{ts,tsx}'] },
 })

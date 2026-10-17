@@ -1,6 +1,9 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 
 const PATHS = {
+  filePdf: <><path d="M14 2H5v20h14V7zM14 2v5h5M8 12h8M8 16h6" /></>,
+  minus: <path d="M5 12h14" />,
+  arrowRight: <path d="m12 5 7 7-7 7M5 12h14" />,
   arrowUp: <path d="M12 20V4m-6 6 6-6 6 6" />,
   arrowDown: <path d="M12 4v16m-6-6 6 6 6-6" />,
   columns: <><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M9 4v16M15 4v16" /></>,

@@ -14,7 +14,7 @@ export function Modal({ title, subtitle, onClose, children, footer, size = 'md',
   onClose: () => void
   children: ReactNode
   footer?: ReactNode
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'sm' | 'md' | 'lg' | 'xl'
   /** False while something is being saved, so the dialog cannot be dismissed half-way. */
   dismissible?: boolean
 }) {

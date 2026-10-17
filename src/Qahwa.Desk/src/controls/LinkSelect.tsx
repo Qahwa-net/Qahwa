@@ -2,6 +2,7 @@ import { useEffect, useId, useLayoutEffect, useRef, useState, type CSSProperties
 import { createPortal } from 'react-dom'
 import { useQuery } from '@tanstack/react-query'
 import type { LinkOption } from '../api/types.ts'
+import { Icon } from './Icon.tsx'
 
 interface Props {
   /** The stored value (a document name, or an email for users). */
@@ -20,6 +21,8 @@ interface Props {
   placeholder?: string
   /** A label already known for the current value (for example right after choosing it). */
   knownLabel?: string
+  localOptions?: LinkOption[]
+  onCreate?: (text: string) => void
 }
 
 const DELAY = 200
@@ -28,7 +31,7 @@ const DELAY = 200
  * A search-as-you-type select for documents: type a name or ID, pick from the list with the mouse or the arrow keys.
  * Choices show the friendly name with the ID as a smaller hint, and the chosen value is shown by its friendly name.
  */
-export function LinkSelect({ value, onChange, search, resolve, cacheKey, readOnly, invalid, id, ariaLabel, placeholder, knownLabel }: Props) {
+export function LinkSelect({ value, onChange, search, resolve, cacheKey, readOnly, invalid, id, ariaLabel, placeholder, knownLabel, localOptions, onCreate }: Props) {
   const listId = useId()
   const [open, setOpen] = useState(false)
   const [text, setText] = useState('')
@@ -75,11 +78,14 @@ export function LinkSelect({ value, onChange, search, resolve, cacheKey, readOnl
   const choices = useQuery({
     queryKey: [...cacheKey, 'search', debounced],
     queryFn: () => search(debounced),
-    enabled: open && !readOnly,
+    enabled: open && !readOnly && !localOptions,
     retry: false, // a person who cannot read the target simply gets no choices
     staleTime: 15_000,
   })
-  const options = choices.data ?? []
+  const options = localOptions ? localOptions.filter(o => !typed || o.label.toLocaleLowerCase().includes(text.toLocaleLowerCase())) : choices.data ?? []
+  const canCreate = Boolean(onCreate && !localOptions && choices.isSuccess && !choices.isFetching && debounced === (typed ? text : '') && !options.some(o => o.label.toLocaleLowerCase() === text.trim().toLocaleLowerCase() || o.value === text.trim()))
+  const optionCount = options.length + (canCreate ? 1 : 0)
+  function create() { setOpen(false); onCreate?.(typed ? text.trim() : '') }
 
   const title = useQuery({
     queryKey: [...cacheKey, 'title', value],
@@ -90,7 +96,9 @@ export function LinkSelect({ value, onChange, search, resolve, cacheKey, readOnl
   })
   const label = knownLabel ?? title.data?.label ?? value
 
-  useEffect(() => setActive(0), [debounced, open])
+  useEffect(() => {
+    if (open) document.getElementById(`${listId}-${active}`)?.scrollIntoView?.({ block: 'nearest' })
+  }, [active, open, listId])
 
   function pick(option: LinkOption) {
     onChange(option.value, option)
@@ -112,7 +120,7 @@ export function LinkSelect({ value, onChange, search, resolve, cacheKey, readOnl
     if (e.key === 'ArrowDown') {
       e.preventDefault()
       if (!open) setOpen(true)
-      else setActive((a) => Math.min(a + 1, Math.max(options.length - 1, 0)))
+      else setActive((a) => Math.min(a + 1, Math.max(optionCount - 1, 0)))
     } else if (e.key === 'ArrowUp') {
       e.preventDefault()
       setActive((a) => Math.max(a - 1, 0))
@@ -120,6 +128,7 @@ export function LinkSelect({ value, onChange, search, resolve, cacheKey, readOnl
       e.preventDefault() // do not submit the form
       const option = options[active]
       if (option) pick(option)
+      else if (canCreate) create()
     } else if (e.key === 'Escape' && open) {
       e.preventDefault()
       setOpen(false)
@@ -133,26 +142,28 @@ export function LinkSelect({ value, onChange, search, resolve, cacheKey, readOnl
   }
 
   return (
-    <div className="link-select">
+    <div className={`link-select${localOptions ? ' search-select' : ''}`}>
       <input
         id={id} ref={inputRef} type="text" role="combobox" autoComplete="off" spellCheck={false}
         aria-expanded={open} aria-controls={listId} aria-autocomplete="list" aria-label={ariaLabel} aria-invalid={invalid}
-        aria-activedescendant={open && options[active] ? `${listId}-${active}` : undefined}
+        aria-activedescendant={open && (options[active] || canCreate && active === options.length) ? `${listId}-${active}` : undefined}
         placeholder={value ? undefined : placeholder ?? 'Search…'}
-        value={typed ? text : open ? '' : label}
-        onFocus={() => setOpen(true)}
+        value={typed ? text : label}
+        onFocus={(e) => { setActive(0); setOpen(true); e.currentTarget.select() }}
         onBlur={finish}
-        onChange={(e) => { setText(e.target.value); setTyped(true); setOpen(true) }}
+        onChange={(e) => { setActive(0); setText(e.target.value); setTyped(true); setOpen(true) }}
         onKeyDown={onKeyDown}
       />
+      {localOptions && <span className="select-chevron"><Icon name="chevronDown" size={14} /></span>}
       {value && (
         <button type="button" className="link-clear" aria-label="Clear" tabIndex={-1}
-          onMouseDown={(e) => { e.preventDefault(); onChange('') ; inputRef.current?.focus() }}>✕</button>
+          onMouseDown={(e) => { e.preventDefault(); setTyped(false); setText(''); onChange(''); setOpen(true); inputRef.current?.focus() }}>✕</button>
       )}
       {open && createPortal(
         <ul id={listId} role="listbox" className="link-options link-options-floating" style={menuStyle}>
-          {choices.isPending && <li className="link-note" role="status">Searching…</li>}
-          {choices.isSuccess && options.length === 0 && <li className="link-note" role="status">Nothing found</li>}
+          {!localOptions && choices.isFetching && <li className="link-note" role="status">Searching…</li>}
+          {!localOptions && choices.isError && <li className="link-note" role="alert">Could not load options.</li>}
+          {(localOptions || choices.isSuccess) && options.length === 0 && <li className="link-note" role="status">Nothing found</li>}
           {options.map((option, index) => (
             <li key={option.value} id={`${listId}-${index}`} role="option" aria-selected={index === active}
               className={index === active ? 'active' : undefined}
@@ -163,6 +174,7 @@ export function LinkSelect({ value, onChange, search, resolve, cacheKey, readOnl
               {option.description && <small className="muted">{option.description}</small>}
             </li>
           ))}
+          {canCreate && <li id={`${listId}-${options.length}`} role="option" aria-selected={active === options.length} className={`link-create${active === options.length ? ' active' : ''}`} onMouseEnter={() => setActive(options.length)} onMouseDown={e => { e.preventDefault(); create() }}>+ Create new{typed && text.trim() ? ` “${text.trim()}”` : ' document'}</li>}
         </ul>, document.body,
       )}
     </div>

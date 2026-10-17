@@ -20,3 +20,10 @@ export function fileProblem(file: { name: string; size: number }, max = MAX_FILE
   if (file.size > max) return `${file.name} is larger than ${Math.round(max / (1024 * 1024))} MB.`
   return null
 }
+
+/** Only raster images and PDFs have an in-app viewer. PDF parsing still validates the bytes. */
+export function filePreviewKind(file: { image: boolean; contentType: string; fileName: string }): 'image' | 'pdf' | null {
+  if (file.image) return 'image'
+  if (file.contentType === 'application/pdf' || /\.pdf$/i.test(file.fileName)) return 'pdf'
+  return null
+}

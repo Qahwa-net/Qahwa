@@ -1,3 +1,4 @@
+import { SearchSelect } from './SearchSelect.tsx'
 import { useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client.ts'
@@ -28,15 +29,13 @@ export function PhoneInput({ id, ariaLabel, value, readOnly, invalid, onChange }
   return (
     <span className="phone-input">
       {countries.length > 0 && (
-        <select aria-label="Country code" value={country?.name ?? ''} disabled={readOnly}
-          onChange={(e) => {
-            const next = countries.find((c) => c.name === e.target.value) ?? null
+        <SearchSelect label="Country code" value={country?.name ?? ''} readOnly={readOnly} placeholder="No code"
+          options={countries.map(c => ({ value: c.name, label: c.name + ' (+' + c.dial + ')' }))}
+          onChange={value => {
+            const next = countries.find(c => c.name === value) ?? null
             setPicked(next)
             onChange(joinPhone(next, parsed.rest))
-          }}>
-          <option value="">No code</option>
-          {countries.map((c) => <option key={c.name} value={c.name}>{c.name} (+{c.dial})</option>)}
-        </select>
+          }} />
       )}
       <input id={id} type="tel" inputMode="tel" autoComplete="tel-national" maxLength={25} aria-label={ariaLabel} aria-invalid={invalid} readOnly={readOnly}
         value={parsed.rest} onChange={(e) => onChange(joinPhone(country, e.target.value))} />

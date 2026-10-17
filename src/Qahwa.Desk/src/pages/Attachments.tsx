@@ -1,9 +1,11 @@
+import { FilePreview } from '../controls/FilePreview.tsx'
+import type { AttachedFile } from '../api/types.ts'
 import { useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError, api } from '../api/client.ts'
 import { Icon, IconButton } from '../controls/Icon.tsx'
 import { useToast } from '../controls/Toast.tsx'
-import { fileProblem, formatSize } from '../lib/files.ts'
+import { fileProblem, formatSize, filePreviewKind } from '../lib/files.ts'
 
 /** Files attached to a document: add by choosing or dropping files, open or download, remove. */
 export function Attachments({ doctype, name, canUpload }: { doctype: string; name: string; canUpload: boolean }) {
@@ -13,6 +15,7 @@ export function Attachments({ doctype, name, canUpload }: { doctype: string; nam
   const list = useQuery({ queryKey: key, queryFn: () => api.files.list(doctype, name), retry: false })
   const [error, setError] = useState<string | null>(null)
   const [over, setOver] = useState(false)
+  const [viewing, setViewing] = useState<AttachedFile | null>(null)
   const input = useRef<HTMLInputElement>(null)
 
   const upload = useMutation({
@@ -43,6 +46,7 @@ export function Attachments({ doctype, name, canUpload }: { doctype: string; nam
 
   return (
     <section className="rail-card attachments" aria-label="Attachments">
+      {viewing && <FilePreview file={viewing} onClose={() => setViewing(null)} />}
       <header>
         <h3>Attachments</h3>
         {canUpload && <IconButton icon="plus" label="Attach files" disabled={upload.isPending} onClick={() => input.current?.click()} />}
@@ -52,10 +56,10 @@ export function Attachments({ doctype, name, canUpload }: { doctype: string; nam
         {files.map((f) => (
           <li key={f.id}>
             {f.image
-              ? <a href={api.files.url(f.id)} target="_blank" rel="noopener noreferrer" className="thumb"><img src={api.files.url(f.id)} alt="" loading="lazy" /></a>
-              : <span className="thumb file-icon" aria-hidden="true"><Icon name="download" /></span>}
+              ? <button type="button" className="thumb" aria-label={`Preview ${f.fileName}`} onClick={() => setViewing(f)}><img src={api.files.url(f.id)} alt="" loading="lazy" /></button>
+              : filePreviewKind(f) === 'pdf' ? <button type="button" className="thumb file-icon" aria-label={`Preview ${f.fileName}`} onClick={() => setViewing(f)}><Icon name="filePdf" /></button> : <span className="thumb file-icon" aria-hidden="true"><Icon name="download" /></span>}
             <span className="person-text">
-              <a href={api.files.url(f.id)} {...(f.image ? { target: '_blank', rel: 'noopener noreferrer' } : { download: f.fileName })}>{f.fileName}</a>
+              <>{filePreviewKind(f) ? <button type="button" className="attachment-open" onClick={() => setViewing(f)}>{f.fileName}</button> : <a href={api.files.url(f.id)} download={f.fileName}>{f.fileName}</a>}</>
               <small className="muted">{formatSize(f.size)} · {f.uploadedByName || f.uploadedBy}</small>
             </span>
             {canUpload && <IconButton icon="trash" label={`Remove ${f.fileName}`} tone="danger" disabled={remove.isPending} onClick={() => remove.mutate(f.id)} />}

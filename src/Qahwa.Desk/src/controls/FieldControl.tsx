@@ -1,4 +1,8 @@
-import { useId } from 'react'
+import { useContext, useId, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { QuickCreate } from './QuickCreate.tsx'
+import { InQuickCreate } from './QuickCreateContext.ts'
+import { SearchSelect } from './SearchSelect.tsx'
 import { api } from '../api/client.ts'
 import type { DocField } from '../api/types.ts'
 import { useT } from '../i18n.tsx'
@@ -28,19 +32,24 @@ interface InputProps {
 function LinkInput({ field, value, onChange, readOnly, id, invalid, ariaLabel, siblings }: InputProps) {
   // A Dynamic Link names the field that holds its DocType; a Link names the DocType itself.
   const target = field.type === 'DynamicLink' ? String(siblings?.[field.options ?? ''] ?? '') : (field.options ?? '')
+  const inQuickCreate = useContext(InQuickCreate)
+  const [creating, setCreating] = useState<string | null>(null)
+  const targetMeta = useQuery({ queryKey: ['meta', target], queryFn: () => api.meta(target), enabled: Boolean(target) && !readOnly && !inQuickCreate, retry: false })
   if (!target) {
     return <input id={id} type="text" value="" disabled placeholder="Choose the DocType first" aria-invalid={invalid} aria-label={ariaLabel} readOnly />
   }
 
   return (
-    <LinkSelect
+    <><LinkSelect
       id={id} ariaLabel={ariaLabel} invalid={invalid} readOnly={readOnly} value={String(value)}
       key={target}
       cacheKey={['link', target]}
       search={(text) => api.linkSearch(target, text)}
       resolve={async (name) => (await api.linkTitles(target, [name]))[name]}
       onChange={(next) => onChange(next)}
+      onCreate={!readOnly && !inQuickCreate && targetMeta.data?.permissions.create && !targetMeta.data.data.isSingle ? text => setCreating(text) : undefined}
     />
+    {creating !== null && <QuickCreate doctype={target} initialText={creating} onClose={() => setCreating(null)} onCreated={doc => { onChange(doc.name); setCreating(null) }} />}</>
   )
 }
 
@@ -56,11 +65,7 @@ export function FieldInput(props: InputProps) {
         onChange={(e) => onChange(e.target.checked)} />
     case 'Select':
       return (
-        <select id={id} aria-label={ariaLabel} value={text} disabled={readOnly} aria-invalid={invalid}
-          onChange={(e) => onChange(e.target.value)}>
-          <option value="">{field.required ? 'Select…' : ''}</option>
-          {selectOptions(field).map((o) => <option key={o} value={o}>{o}</option>)}
-        </select>
+        <SearchSelect id={id} label={ariaLabel} value={text} readOnly={readOnly} invalid={invalid} options={selectOptions(field).map(o => ({ value: o, label: o }))} onChange={onChange} />
       )
     case 'Link':
     case 'DynamicLink':

@@ -12,7 +12,7 @@ You need permission to **change** the document to add or remove files. Anyone wh
 
 ## Opening and downloading
 
-Click a file's name: pictures open in a new tab, everything else downloads. Documents (PDF, Word and so on) are always downloaded, never opened inside the application, for your safety.
+Click an image or PDF filename to open the in-app viewer. PDFs have page navigation and zoom controls; images fit inside the preview dialog. Close the viewer to return to the document. These actions do not start a download. Other formats, such as Word documents and spreadsheets, still offer a download. File access always follows the parent document's permissions.
 
 ## Removing a file
 

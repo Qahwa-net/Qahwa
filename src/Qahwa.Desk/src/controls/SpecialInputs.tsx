@@ -1,3 +1,5 @@
+import { FilePreview } from './FilePreview.tsx'
+import { filePreviewKind } from '../lib/files.ts'
 import { useEffect, useRef, useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError, api } from '../api/client.ts'
@@ -166,7 +168,7 @@ export function SignatureInput({ value, onChange, readOnly, id, ariaLabel }: Com
 
 /**
  * A file field. The file is uploaded to the saved document (the same place as the side panel) and the field keeps its id, so a new
- * document must be saved first. A picture is shown on the form; any other file is a download link.
+ * document must be saved first. Pictures and PDFs open in the attachment viewer; other file types offer a download.
  */
 export function AttachInput({ value, onChange, readOnly, id, ariaLabel, image }: Common & { image: boolean }) {
   const scope = useDocScope()
@@ -181,6 +183,7 @@ export function AttachInput({ value, onChange, readOnly, id, ariaLabel, image }:
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const chosen = files.data?.find((f) => f.id === fileId)
+  const [viewing, setViewing] = useState(false)
 
   if (!scope?.name) return <small className="muted">Save the document first, then attach the file.</small>
 
@@ -205,7 +208,8 @@ export function AttachInput({ value, onChange, readOnly, id, ariaLabel, image }:
   return (
     <div id={id} className="attach-input" role="group" aria-label={ariaLabel}>
       {fileId && chosen?.image && <img src={api.files.url(fileId)} alt={chosen.fileName} className="attach-preview" />}
-      {fileId && <a href={api.files.url(fileId)} download>{chosen?.fileName ?? 'Download the file'}</a>}
+      {viewing && chosen && <FilePreview file={chosen} onClose={() => setViewing(false)} />}
+      {fileId && (chosen && filePreviewKind(chosen) ? <button type="button" className="attachment-open" onClick={() => setViewing(true)}>{chosen.fileName}</button> : <a href={api.files.url(fileId)} download>{chosen?.fileName ?? 'Download the file'}</a>)}
       {!readOnly && (
         <>
           <input type="file" aria-label={fileId ? 'Replace the file' : 'Choose a file'} accept={image ? 'image/png,image/jpeg,image/gif,image/webp' : undefined} disabled={busy} onChange={(e) => { void choose(e.target.files?.[0]); e.target.value = '' }} />
