@@ -321,6 +321,13 @@ export interface ScriptReportResult {
   truncated: boolean
 }
 
+export interface AppInfo {
+  name: string
+  title: string
+  version: string
+  installed: boolean
+}
+
 export interface LikeState {
   liked: boolean
   count: number

@@ -241,23 +241,39 @@ public sealed partial class AppCatalog
 
     public IReadOnlyList<IQahwaApp> Apps => _apps;
 
-    internal IReadOnlyList<RegisteredHook> HooksFor(string doctype, DocEvent @event) => _hooks.Where(h => h.DocType == doctype && h.Event == @event).ToList();
+    /// <summary>The apps switched off on this site (uninstalled): their hooks, methods, jobs, reports, boot data and permission rules do nothing. Replaced as a whole, so readers never see it half-changed.</summary>
+    private volatile IReadOnlySet<string> _disabled = new HashSet<string>(StringComparer.Ordinal);
 
-    internal IReadOnlyList<RegisteredPermissionCheck> PermissionChecksFor(string doctype) => _permissionChecks.Where(c => c.DocType == doctype).ToList();
+    public IReadOnlySet<string> Disabled => _disabled;
 
-    internal IReadOnlyList<RegisteredPermissionQuery> PermissionQueriesFor(string doctype) => _permissionQueries.Where(c => c.DocType == doctype).ToList();
+    /// <summary>Sets which apps are switched off. Returns true when that changed anything.</summary>
+    public bool SetDisabled(IEnumerable<string> names)
+    {
+        var next = new HashSet<string>(names.Where(n => _apps.Any(a => a.Name == n)), StringComparer.Ordinal);
+        var changed = !next.SetEquals(_disabled);
+        _disabled = next;
+        return changed;
+    }
 
-    internal IReadOnlyList<RegisteredBoot> Boots => _boots;
+    public bool IsActive(string app) => !_disabled.Contains(app);
 
-    internal IReadOnlyList<RegisteredScriptReport> ScriptReports => _scriptReports;
+    internal IReadOnlyList<RegisteredHook> HooksFor(string doctype, DocEvent @event) => _hooks.Where(h => h.DocType == doctype && h.Event == @event && IsActive(h.App)).ToList();
 
-    internal IReadOnlyList<RegisteredJob> Jobs => _jobs;
+    internal IReadOnlyList<RegisteredPermissionCheck> PermissionChecksFor(string doctype) => _permissionChecks.Where(c => c.DocType == doctype && IsActive(c.App)).ToList();
+
+    internal IReadOnlyList<RegisteredPermissionQuery> PermissionQueriesFor(string doctype) => _permissionQueries.Where(c => c.DocType == doctype && IsActive(c.App)).ToList();
+
+    internal IReadOnlyList<RegisteredBoot> Boots => _boots.Where(b => IsActive(b.App)).ToList();
+
+    internal IReadOnlyList<RegisteredScriptReport> ScriptReports => _scriptReports.Where(r => IsActive(r.App)).ToList();
+
+    internal IReadOnlyList<RegisteredJob> Jobs => _jobs.Where(j => IsActive(j.App)).ToList();
 
     internal IReadOnlyList<RegisteredFixture> Fixtures => _fixtures;
 
-    internal IReadOnlyDictionary<string, RegisteredMethod> Methods => _methods;
+    internal IReadOnlyDictionary<string, RegisteredMethod> Methods => _methods.Where(m => IsActive(m.Value.App)).ToDictionary(m => m.Key, m => m.Value, StringComparer.Ordinal);
 
-    internal IEnumerable<string> HookedDocTypes => _hooks.Select(h => h.DocType).Distinct(StringComparer.Ordinal);
+    internal IEnumerable<string> HookedDocTypes => _hooks.Where(h => IsActive(h.App)).Select(h => h.DocType).Distinct(StringComparer.Ordinal);
 
     /// <summary>The apps with the ones they depend on first (ties in the order they were added). Throws for a missing dependency or a cycle.</summary>
     public IReadOnlyList<IQahwaApp> InstallOrder()
@@ -641,10 +657,75 @@ public sealed class AppInstaller(AppCatalog catalog, IMetaRegistry registry, IDo
 
     private DateTime Now() { var utc = clock.GetUtcNow().UtcDateTime; return new DateTime(utc.Ticks - utc.Ticks % 10, DateTimeKind.Utc); }
 
+    public const string UninstalledStatus = "Uninstalled";
+
     public async Task<IReadOnlyList<InstalledApp>> ListAsync(CancellationToken ct = default)
     {
-        var rows = await repository.ListAsync(registry.Get(DocTypeName), new ListQuery { Fields = ["name", "title", "version"], OrderBy = "name", Descending = false, Limit = 1000 }, ct);
-        return rows.Select(r => new InstalledApp((string)r["name"]!, r["title"] as string ?? (string)r["name"]!, r["version"] as string ?? string.Empty, true)).ToList();
+        var rows = await repository.ListAsync(registry.Get(DocTypeName), new ListQuery { Fields = ["name", "title", "version", "status"], OrderBy = "name", Descending = false, Limit = 1000 }, ct);
+        return rows.Select(r => new InstalledApp((string)r["name"]!, r["title"] as string ?? (string)r["name"]!, r["version"] as string ?? string.Empty, r.GetValueOrDefault("status") as string != UninstalledStatus)).ToList();
+    }
+
+    /// <summary>
+    /// Switches off the apps this site has uninstalled (read from the Installed App rows) and returns whether that changed anything. Called at
+    /// start-up and by the scheduler, so a change made by another server or by the command line takes effect within a few minutes.
+    /// </summary>
+    public async Task<bool> RefreshAsync(CancellationToken ct = default)
+    {
+        var off = (await ListAsync(ct)).Where(a => !a.Installed).Select(a => a.Name).ToHashSet(StringComparer.Ordinal);
+        // An app whose dependency is off cannot work, so it is off too (however many steps away).
+        bool grew;
+        do
+        {
+            grew = false;
+            foreach (var app in catalog.Apps.Where(a => !off.Contains(a.Name) && a.Dependencies.Any(off.Contains)))
+                grew |= off.Add(app.Name);
+        }
+        while (grew);
+        return catalog.SetDisabled(off);
+    }
+
+    private IQahwaApp Registered(string name) =>
+        catalog.Apps.FirstOrDefault(a => string.Equals(a.Name, name, StringComparison.Ordinal)) ?? throw new NotFoundException($"There is no app called '{name}'.");
+
+    /// <summary>
+    /// Switches an app off on this site. Its data and DocTypes stay (nothing is deleted); its hooks, methods, jobs, reports, boot data and
+    /// permission rules stop. Refused while another installed app needs it.
+    /// </summary>
+    public async Task UninstallAsync(string name, CancellationToken ct = default)
+    {
+        var app = Registered(name);
+        var installed = (await ListAsync(ct)).Where(a => a.Installed).Select(a => a.Name).ToHashSet(StringComparer.Ordinal);
+        if (!installed.Contains(app.Name))
+            return;
+        var needs = catalog.Apps.Where(a => a.Name != app.Name && installed.Contains(a.Name) && a.Dependencies.Contains(app.Name)).Select(a => a.Name).Order(StringComparer.Ordinal).ToList();
+        if (needs.Count > 0)
+            throw new DocumentValidationException($"'{app.Name}' is needed by {string.Join(", ", needs)}. Uninstall those first.");
+        await documents.UpdateAsync(DocTypeName, app.Name, new Dictionary<string, object?> { ["status"] = UninstalledStatus }, System, ct);
+        await RefreshAsync(ct);
+    }
+
+    /// <summary>Switches an app back on (making its fixtures if it was never installed here). Its dependencies must be installed.</summary>
+    public async Task InstallAsync(string name, CancellationToken ct = default)
+    {
+        var app = Registered(name);
+        var installed = (await ListAsync(ct)).Where(a => a.Installed).Select(a => a.Name).ToHashSet(StringComparer.Ordinal);
+        var missing = app.Dependencies.Where(d => !installed.Contains(d)).Order(StringComparer.Ordinal).ToList();
+        if (missing.Count > 0)
+            throw new DocumentValidationException($"'{app.Name}' needs {string.Join(", ", missing)}. Install those first.");
+        var meta = registry.Get(DocTypeName);
+        var existing = await repository.GetAsync(meta, app.Name, ct);
+        if (existing is null)
+            await RecordNewAsync(app, ct);
+        else if (existing.GetValueOrDefault("status") as string == UninstalledStatus)
+            await documents.UpdateAsync(DocTypeName, app.Name, new Dictionary<string, object?> { ["status"] = "Installed" }, System, ct);
+        await RefreshAsync(ct);
+    }
+
+    private async Task RecordNewAsync(IQahwaApp app, CancellationToken ct)
+    {
+        foreach (var fixture in catalog.Fixtures.Where(f => f.App == app.Name))
+            await MakeFixtureAsync(fixture, ct);
+        await documents.InsertAsync(DocTypeName, new Dictionary<string, object?> { ["name"] = app.Name, ["app_name"] = app.Name, ["title"] = app.Title, ["version"] = app.Version, ["status"] = "Installed", ["installed_on"] = Now() }, System, ct);
     }
 
     /// <summary>Makes sure each registered app is recorded for this site (first time: fixtures are made too) and that its version is current.</summary>
@@ -657,15 +738,15 @@ public sealed class AppInstaller(AppCatalog catalog, IMetaRegistry registry, IDo
             var existing = await repository.GetAsync(meta, app.Name, ct);
             if (existing is null)
             {
-                foreach (var fixture in catalog.Fixtures.Where(f => f.App == app.Name))
-                    await MakeFixtureAsync(fixture, ct);
-                await documents.InsertAsync(DocTypeName, new Dictionary<string, object?> { ["name"] = app.Name, ["app_name"] = app.Name, ["title"] = app.Title, ["version"] = app.Version, ["installed_on"] = Now() }, System, ct);
+                await RecordNewAsync(app, ct);
             }
             else if (existing["version"] as string != app.Version || existing["title"] as string != app.Title)
             {
                 await documents.UpdateAsync(DocTypeName, app.Name, new Dictionary<string, object?> { ["version"] = app.Version, ["title"] = app.Title }, System, ct);
             }
         }
+
+        await RefreshAsync(ct); // an app uninstalled on this site stays off
     }
 
     private async Task MakeFixtureAsync(RegisteredFixture fixture, CancellationToken ct)

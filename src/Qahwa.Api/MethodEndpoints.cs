@@ -20,6 +20,22 @@ public static class MethodEndpoints
             return Results.Ok(new { data = new { methods = methods.Names.Order(StringComparer.Ordinal), apps = await installer.ListAsync(ct) } });
         });
 
+        // Switch an app on or off for this site (System Managers). Data and DocTypes stay; hooks, methods, jobs and reports stop.
+        app.MapPost("/api/apps/{name}/{action:regex(^(install|uninstall)$)}", async (string name, string action, HttpContext http, IUserContextResolver users, AppInstaller installer, AccessLogService audit, CancellationToken ct) =>
+        {
+            var user = await users.ResolveAsync(http, ct);
+            if (!user.IsAuthenticated)
+                throw new UnauthenticatedException();
+            if (!UserSecurityEndpoints.CanManage(user))
+                throw new PermissionDeniedException("Only a System Manager can install or uninstall apps.");
+            if (action == "install")
+                await installer.InstallAsync(name, ct);
+            else
+                await installer.UninstallAsync(name, ct);
+            await audit.RecordAsync(action == "install" ? "Install App" : "Uninstall App", "App", name, 1, user, ct);
+            return Results.Ok(new { data = await installer.ListAsync(ct) });
+        });
+
         // What installed apps hand the Desk at start-up (one object per app that has a boot hook).
         app.MapGet("/api/boot", async (HttpContext http, IUserContextResolver users, BootService boot, CancellationToken ct) =>
         {

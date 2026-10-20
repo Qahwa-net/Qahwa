@@ -74,6 +74,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 70. [Customize your Desk](70-customize-your-desk.md)
 71. [Searchable fields and attachment preview](71-searchable-fields-and-preview.md)
 72. [Writing Document Actions with help](72-document-action-help.md)
+73. [Installing and uninstalling apps](73-installing-and-uninstalling-apps.md)
 
 **Words used**
 

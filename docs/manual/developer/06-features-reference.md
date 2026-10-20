@@ -387,3 +387,7 @@ Desk: `controls/SearchSelect.tsx`, `LinkSelect.tsx` ("Create new"), `QuickCreate
 ## Samples
 
 `samples/employee-operations/` is a worked example built only through the REST API on a running site (DocTypes with workflows, a dashboard and a workspace). `README.md` there says how to install and verify it; it stores no credentials (`QAHWA_API_TOKEN` is read from the environment). It is a sample, not part of the framework or its tests.
+
+## App uninstall and CLI ([ADR-093](../../adr/093-app-uninstall-and-cli.md))
+
+`Apps.cs`: `AppCatalog.SetDisabled/IsActive/Disabled` (all accessors filter by the disabled set), `AppInstaller.InstallAsync/UninstallAsync/RefreshAsync/ListAsync` (status on `Installed App`; dependents closed over `Dependencies`), `POST /api/apps/{name}/install|uninstall` in `MethodEndpoints.cs`, the scheduler's `installed apps` step. CLI: `AppsAsync` in `src/Qahwa.Cli/Program.cs` (`list-apps`, `install-app`, `uninstall-app`; edits the record only). Desk: `pages/AppsPage.tsx`. Tests: `AppUninstallTests`, `A_system_manager_can_switch_an_app_off_and_on_for_the_site`.

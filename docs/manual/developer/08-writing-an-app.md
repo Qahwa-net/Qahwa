@@ -72,6 +72,10 @@ app.HasPermission("Ticket", ctx => (string?)ctx.Doc.GetValueOrDefault("region") 
 - They can **only take access away**; they run after roles, User Permissions and shares. A check that throws refuses, a query that throws (or names a bad column) lists nothing, and both are logged.
 - They do not apply to Administrators or to the framework's own DocTypes, and a registration for a DocType that does not exist stops the server at start-up.
 
+## Uninstall ([ADR-093](../../adr/093-app-uninstall-and-cli.md))
+
+A site can switch your app off (Tools → Apps, `POST /api/apps/{name}/uninstall`, or `qahwa uninstall-app`). Your hooks, methods, jobs, script reports, boot hook and permission rules then do nothing on that site, while its DocTypes and documents stay. Do not assume your code runs on every site; do not delete data on uninstall.
+
 ## Depending on other apps ([ADR-085](../../adr/085-app-dependencies.md))
 
 Override `Dependencies` with the names of the apps yours needs: `public IReadOnlyList<string> Dependencies => ["billing"];`. They are installed first; a missing app or a circle stops the server at start-up with the names involved.

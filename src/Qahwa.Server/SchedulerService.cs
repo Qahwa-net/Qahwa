@@ -10,7 +10,7 @@ using Qahwa.Core;
 public sealed class SchedulerService(
     AutoRepeatService autoRepeat, NotificationRuleEngine notificationRules, EmailService email, WebhookService webhooks, ErrorLogService errorLog,
     BackupService backup, BackupOptions backupOptions, AppJobRunner appJobs, DeletedDocumentService deletedDocuments, AccessLogService accessLog, AutoEmailReportService emailedReports,
-    EmailDigestService digests, JobLogService jobLog, IConfiguration configuration, ILogger<SchedulerService> logger) : BackgroundService
+    EmailDigestService digests, AppInstaller installer, JobLogService jobLog, IConfiguration configuration, ILogger<SchedulerService> logger) : BackgroundService
 {
     /// <summary>
     /// Runs one step. It returns what to say about the run, or null when there was nothing to do (nothing is logged then). A step that
@@ -51,6 +51,9 @@ public sealed class SchedulerService(
         var lastPurge = DateTime.MinValue;
         do
         {
+            // Apps uninstalled on this site (by another server or the command line) are switched off here too.
+            await StepAsync("installed apps", async () => await installer.RefreshAsync(stoppingToken) ? "The set of installed apps changed." : null, stoppingToken);
+
             await StepAsync("auto repeat", async () =>
             {
                 var run = await autoRepeat.RunDueAsync(stoppingToken);

@@ -12,6 +12,9 @@ const string usage = """
     qahwa new-site     <name> --sites <dir> --host <host> [--host <host> ...] --admin-connection <cs>
                        [--provider postgres|sqlserver] [--connection-env <VARIABLE>] [--doctypes <dir> ...] [--email <email> [--full-name <name>] [--password-stdin]]
     qahwa list-sites   --sites <dir>
+    qahwa list-apps    (--connection <cs> | --site <name> --sites <dir>)
+    qahwa install-app  <app> (--connection <cs> | --site <name> --sites <dir>)
+    qahwa uninstall-app <app> (--connection <cs> | --site <name> --sites <dir>)
 
     migrate       Creates or updates database tables for the framework and every DocType found in the directories.
                   --plan   print the SQL that would run without executing it
@@ -23,6 +26,10 @@ const string usage = """
                   --connection-env the file holds only the name of an environment variable for the connection string,
                   which you must set when the server runs. Run the server with Qahwa:Sites:Path set to <sites>.
     list-sites    Shows the sites found in the directory.
+    list-apps     Shows the apps the server has recorded for the site and whether each is installed or uninstalled.
+    install-app   Switches an app back on for the site. The app must have been recorded by a server start.
+    uninstall-app Switches an app off for the site (its hooks, methods, jobs and reports stop; its data and DocTypes stay).
+                  A running server notices within a few minutes; apps that need this one are switched off too.
 
     --connection (or QAHWA_CONNECTION) names the database directly; --site names a site made by new-site.
     --provider chooses the database product: postgres (the default) or sqlserver (also QAHWA_PROVIDER). For an existing site
@@ -36,7 +43,7 @@ if (args.Length == 0 || args[0] is "-h" or "--help")
 }
 
 var command = args[0];
-if (command is not ("migrate" or "create-admin" or "new-site" or "list-sites"))
+if (command is not ("migrate" or "create-admin" or "new-site" or "list-sites" or "list-apps" or "install-app" or "uninstall-app"))
 {
     Console.Error.WriteLine($"Unknown command '{command}'.\n\n{usage}");
     return 1;
@@ -46,7 +53,7 @@ var connection = Environment.GetEnvironmentVariable("QAHWA_CONNECTION");
 var doctypePaths = new List<string>();
 var hosts = new List<string>();
 var product = (Environment.GetEnvironmentVariable("QAHWA_PROVIDER") ?? "postgres").ToLowerInvariant();
-string? email = null, fullName = null, site = null, sitesDir = null, adminConnection = null, connectionEnv = null, siteName = null;
+string? email = null, fullName = null, site = null, sitesDir = null, adminConnection = null, connectionEnv = null, siteName = null, appName = null;
 var planOnly = false;
 var passwordFromStdin = false;
 
@@ -56,7 +63,7 @@ for (var i = 1; i < args.Length; i++)
     var hasValue = i + 1 < args.Length;
     switch (arg)
     {
-        case "--connection" when hasValue && command is "migrate" or "create-admin":
+        case "--connection" when hasValue && command is "migrate" or "create-admin" or "list-apps" or "install-app" or "uninstall-app":
             connection = args[++i];
             break;
         case "--doctypes" when hasValue && command != "list-sites":
@@ -74,7 +81,7 @@ for (var i = 1; i < args.Length; i++)
         case "--plan" when command == "migrate":
             planOnly = true;
             break;
-        case "--site" when hasValue && command is "migrate" or "create-admin":
+        case "--site" when hasValue && command is "migrate" or "create-admin" or "list-apps" or "install-app" or "uninstall-app":
             site = args[++i];
             break;
         case "--provider" when hasValue && command is "migrate" or "create-admin" or "new-site":
@@ -96,6 +103,12 @@ for (var i = 1; i < args.Length; i++)
             if (command == "new-site" && siteName is null && !arg.StartsWith('-'))
             {
                 siteName = arg;
+                break;
+            }
+
+            if (command is "install-app" or "uninstall-app" && appName is null && !arg.StartsWith('-'))
+            {
+                appName = arg;
                 break;
             }
 
@@ -140,9 +153,16 @@ try
         Console.WriteLine("Note: no --doctypes given; only the built-in framework DocTypes will be migrated.");
     if (command == "create-admin" && string.IsNullOrWhiteSpace(email))
         return Fail("--email is required.");
+    if (command is "install-app" or "uninstall-app" && string.IsNullOrWhiteSpace(appName))
+        return Fail("The name of the app is required.");
 
     await using var provider = Build(connection);
-    return command == "migrate" ? await MigrateAsync(provider) : await CreateAdminAsync(provider);
+    return command switch
+    {
+        "migrate" => await MigrateAsync(provider),
+        "list-apps" or "install-app" or "uninstall-app" => await AppsAsync(provider),
+        _ => await CreateAdminAsync(provider),
+    };
 }
 catch (SiteConfigException e)
 {
@@ -187,6 +207,41 @@ async Task<int> MigrateAsync(ServiceProvider provider)
             Console.WriteLine($"  WARNING: {warning}");
     }
 
+    return 0;
+}
+
+async Task<int> AppsAsync(ServiceProvider provider)
+{
+    var registry = provider.GetRequiredService<Qahwa.Core.IMetaRegistry>();
+    var repository = provider.GetRequiredService<Qahwa.Core.IDocumentRepository>();
+    if (!registry.TryGet("Installed App", out var meta))
+        return Fail("The framework DocTypes are not loaded.");
+    var rows = await repository.ListAsync(meta, new Qahwa.Core.ListQuery { Fields = ["name", "version", "status"], OrderBy = "name", Descending = false, Limit = 1000 });
+    string StatusOf(Dictionary<string, object?> row) => row.GetValueOrDefault("status") as string == "Uninstalled" ? "uninstalled" : "installed";
+
+    if (command == "list-apps")
+    {
+        foreach (var row in rows)
+            Console.WriteLine($"{row["name"]} {row.GetValueOrDefault("version")}: {StatusOf(row)}");
+        Console.WriteLine(rows.Count == 0 ? "No apps are recorded. Start the server once so it records the apps it has." : $"{rows.Count} app(s).");
+        return 0;
+    }
+
+    var found = rows.FirstOrDefault(r => string.Equals(r["name"] as string, appName, StringComparison.Ordinal));
+    if (found is null)
+        return Fail($"The app '{appName}' is not recorded for this site. Start the server once so it records its apps.");
+    var target = command == "install-app" ? "Installed" : "Uninstalled";
+    if (StatusOf(found) == target.ToLowerInvariant())
+    {
+        Console.WriteLine($"'{appName}' is already {target.ToLowerInvariant()}.");
+        return 0;
+    }
+
+    var stored = (DateTime)(await repository.GetAsync(meta, appName!))!["modified"]!;
+    var now = DateTime.UtcNow > stored ? DateTime.UtcNow : stored.AddTicks(10);
+    if (!await repository.UpdateAsync(meta, appName!, new Dictionary<string, object?> { ["status"] = target, ["modified"] = now, ["modified_by"] = "Administrator" }, stored))
+        return Fail("The record was changed at the same time. Try again.");
+    Console.WriteLine($"'{appName}' is now {target.ToLowerInvariant()}. A running server applies this within a few minutes.");
     return 0;
 }
 

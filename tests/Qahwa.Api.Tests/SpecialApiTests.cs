@@ -330,6 +330,28 @@ public sealed class SpecialApiTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task A_system_manager_can_switch_an_app_off_and_on_for_the_site()
+    {
+        var ann = _factory.ClientFor("ann@example.com", "Sales Manager");
+        var boss = _factory.ClientFor("boss@example.com", "System Manager");
+        Assert.Equal(HttpStatusCode.OK, (await ann.GetAsync("/api/method/testapp.hello")).StatusCode);
+
+        Assert.Equal(HttpStatusCode.Forbidden, (await ann.PostAsync("/api/apps/testapp/uninstall", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateClient().PostAsync("/api/apps/testapp/uninstall", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await boss.PostAsync("/api/apps/ghost/uninstall", null)).StatusCode);
+        var off = await boss.PostAsync("/api/apps/testapp/uninstall", null);
+        Assert.Equal(HttpStatusCode.OK, off.StatusCode);
+        Assert.False((await JsonOf(off)).GetProperty("data").EnumerateArray().Single(a => a.GetProperty("name").GetString() == "testapp").GetProperty("installed").GetBoolean());
+
+        Assert.Equal(HttpStatusCode.NotFound, (await ann.GetAsync("/api/method/testapp.hello")).StatusCode);
+        Assert.Empty((await JsonOf(await ann.GetAsync("/api/script-reports"))).GetProperty("data").EnumerateArray());
+        Assert.False((await JsonOf(await ann.GetAsync("/api/boot"))).GetProperty("data").GetProperty("apps").TryGetProperty("testapp", out _));
+
+        Assert.Equal(HttpStatusCode.OK, (await boss.PostAsync("/api/apps/testapp/install", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await ann.GetAsync("/api/method/testapp.hello")).StatusCode);
+    }
+
+    [Fact]
     public async Task Bulk_rename_over_the_api_reports_each_document()
     {
         await CreateDocTypeAsync(new
