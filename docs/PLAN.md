@@ -557,7 +557,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Field properties: `depends_on`, `mandatory_depends_on`, `read_only_depends_on` | conditional logic by expression (read-only is a UI hint) | ✅ | L4 |
 | Field properties: `fetch_from`, `fetch_if_empty` | copy a value from a linked document, only what the user may read | ✅ | L4 |
 | Calculated fields (formula), expression defaults | recalculated on every save and live in the form | ✅ | L4 |
-| Field properties: in standard filter, in preview, in global search, bold, no copy, allow on submit, set only once, non negative, collapsible, translatable, search index, precision, length, ignore user permissions, permission level | permission level, set only once, non-negative and maximum length enforced on the server (ADR-101); no copy, bold, in standard filter and precision also done; in preview and translatable not built | 🟡 | L3 |
+| Field properties: in standard filter, in preview, in global search, bold, no copy, allow on submit, set only once, non negative, collapsible, translatable, search index, precision, length, ignore user permissions, permission level | permission level, set only once, non-negative and maximum length enforced on the server (ADR-101); no copy, bold, in standard filter and precision also done; in preview and translatable are deliberately not built (ADR-107) | ✅ | L3 |
 | Child tables (Table field, parent/child) | created in the designer, saved atomically with the parent | ✅ | L2 |
 | Single DocTypes (settings stored as one document) | done (ADR-011) | ✅ (v1) | L6 |
 | Tree DocTypes (nested set, parent/child hierarchy) | done: parent/child with tree views (ADR-011) | ✅ (v1) | L6 |
@@ -652,7 +652,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Report view (editable columns, group by, totals, export) | Report Builder with group by, totals and CSV export (ADR-045); each person chooses and orders the list columns (saved per person); export to CSV and Excel | ✅ | L9 |
 | Kanban, Calendar, Gantt, Map, Image, Tree, Dashboard views | done: Tree, Dashboard, Board, Calendar, **Gantt** (timeline), **Map** (plain grid) and **Image** (gallery) (ADR-031, ADR-049) | ✅ (v1) | L12 |
 | Workspaces (shortcuts, charts, number cards, onboarding) and **Workspace Builder** | done: headings, shortcut rows, embedded dashboards, role-based; not yet onboarding | ✅ (v1) | L9 |
-| Awesomebar (global search, create, commands), global search index | done: Ctrl+K search box with pages, DocTypes, "new …" and permission-checked document search by name, title and each DocType's search fields (ADR-061, ADR-105); no database full-text index (it would differ for PostgreSQL and SQL Server and needs a real database to verify) | 🟡 | L9 |
+| Awesomebar (global search, create, commands), global search index | done: Ctrl+K search box with pages, DocTypes, "new …" and permission-checked document search by name, title and each DocType's search fields (ADR-061, ADR-105); no database full-text index, deliberately (ADR-107) | ✅ | L9 |
 | Notification bell, toasts, dialogs | done (ADR-015) | ✅ (v1) | L8 |
 | Themes (light, dark, automatic), RTL layout | RTL done (logical CSS, dir follows the language); light, dark and automatic themes with organisation brand default done | ✅ | L12 |
 | Translations (Translation DocType, language switch) | done: Translation DocType, catalog API, language switch, built-in Arabic chrome; not yet every message, plurals, per-user language | ✅ (v1) | L12 |
@@ -709,7 +709,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Multi-tenancy (sites, per-site config, database per site) | done: Host-header sites, a container and database per site, per-site config files, `qahwa new-site` (ADR-055); not live add/remove, no site manager UI | ✅ (v1) | L12 |
 | Developer mode (UI-made DocTypes written to the app's files) | done (ADR-062) | ✅ (v1) | L12 |
 | Caching, boot info, performance | boot info in one call (`BootService`); DocType definitions held in memory and refreshed when they change; script and action lists cached for 15 seconds on each server; API responses are never cached (they hold private data, `Cache-Control: no-store`) | ✅ | L12 |
-| Test framework (unit, integration, UI) | unit and integration done: xUnit with in-memory stores (Core, Api through a full test server), tests against real PostgreSQL and SQL Server (Data, need a database), vitest for the Desk, shared expression vectors checked by both C# and TypeScript; browser end-to-end tests not built | 🟡 | ongoing |
+| Test framework (unit, integration, UI) | unit and integration done: xUnit with in-memory stores (Core, Api through a full test server), tests against real PostgreSQL and SQL Server (Data, need a database), vitest for the Desk, shared expression vectors checked by both C# and TypeScript; browser end-to-end tests deliberately not built (ADR-107) | ✅ | ongoing |
 
 ### A10. Standard documents shipped with the framework
 
