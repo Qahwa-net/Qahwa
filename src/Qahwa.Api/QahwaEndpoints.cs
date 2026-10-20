@@ -93,6 +93,11 @@ public static class QahwaEndpoints
             DocumentService docs, IUserContextResolver users, CancellationToken ct) =>
                 Results.Ok(new { data = await docs.CancelAsync(doctype, name, await users.ResolveAsync(http, ct), (await ReadTransitionAsync(http, ct))?.Modified, ct) }));
 
+        resource.MapPost("/{name}/amend", async (
+            string doctype, string name, HttpContext http,
+            DocumentService docs, IUserContextResolver users, CancellationToken ct) =>
+                Results.Ok(new { data = await docs.AmendAsync(doctype, name, await users.ResolveAsync(http, ct), ct) }));
+
         resource.MapDelete("/{name}", async (
             string doctype, string name, HttpContext http,
             DocumentService docs, IUserContextResolver users, CancellationToken ct) =>

@@ -88,7 +88,7 @@ public sealed partial class DocumentService(
         permissions.Evaluate(meta, user, PermAction.Export) != AccessLevel.None,
         permissions.Evaluate(meta, user, PermAction.Report) != AccessLevel.None,
         permissions.Allows(meta, user, PermFlag.Import), permissions.Allows(meta, user, PermFlag.Share),
-        permissions.Allows(meta, user, PermFlag.Print), permissions.Allows(meta, user, PermFlag.Email));
+        permissions.Allows(meta, user, PermFlag.Print), permissions.Allows(meta, user, PermFlag.Email), permissions.Allows(meta, user, PermFlag.Amend));
 
     public async Task<Dictionary<string, object?>> InsertAsync(
         string doctype,
@@ -938,6 +938,10 @@ public sealed partial class DocumentService(
 
             if (field.Type == FieldType.Table)
                 continue; // child rows are read separately by ReadTables
+
+            // The link to an amended document is only ever set by Amend, never by what a client sends.
+            if (key == AmendedFromField)
+                continue;
 
             // The form shows a set password as the mask; sending the mask back means "leave it as it is".
             if (field.Type == FieldType.Password && FieldValueConverter.Unwrap(raw) as string == PasswordMask)

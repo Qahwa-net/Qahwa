@@ -83,6 +83,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 79. [Columns on forms](79-form-columns.md)
 80. [Field rules](80-field-rules.md)
 81. [Headings and notes on forms](81-heading-and-html-fields.md)
+82. [Amending a cancelled document](82-amending-documents.md)
 
 **Words used**
 

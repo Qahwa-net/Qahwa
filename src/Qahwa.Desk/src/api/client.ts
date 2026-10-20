@@ -259,6 +259,10 @@ export const api = {
     return (await request<{ data: Doc }>('POST', `${resource(doctype, name)}/cancel`, { modified })).data
   },
 
+  async amend(doctype: string, name: string): Promise<Doc> {
+    return (await request<{ data: Doc }>('POST', `${resource(doctype, name)}/amend`)).data
+  },
+
   share: {
     users: async (doctype: string, name: string, text: string) =>
       (await request<{ data: LinkOption[] }>('GET', `/api/share/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}/users?${new URLSearchParams({ q: text })}`)).data,

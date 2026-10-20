@@ -39,6 +39,7 @@ public enum PermFlag
     Share,
     Print,
     Email,
+    Amend,
 }
 
 public enum AccessLevel
@@ -51,7 +52,7 @@ public enum AccessLevel
     All,
 }
 
-public sealed record EffectivePermissions(bool Read, bool Write, bool Create, bool Delete, bool Submit = false, bool Cancel = false, bool Export = false, bool Report = false, bool Import = true, bool Share = true, bool Print = true, bool Email = true);
+public sealed record EffectivePermissions(bool Read, bool Write, bool Create, bool Delete, bool Submit = false, bool Cancel = false, bool Export = false, bool Report = false, bool Import = true, bool Share = true, bool Print = true, bool Email = true, bool Amend = true);
 
 /// <summary>A DocType as one person may see it (see <see cref="DocumentService.GetMetaView"/>).</summary>
 public sealed record MetaView(
@@ -168,7 +169,7 @@ public sealed class PermissionService(IPermissionOverrides? overrides = null)
         if (IsAdministrator(user))
             return true;
         var mine = RulesFor(meta).Where(r => r.PermLevel == 0 && user.Roles.Contains(r.Role, StringComparer.Ordinal)).ToList();
-        return mine.Count == 0 || mine.Any(r => flag switch { PermFlag.Import => r.Import, PermFlag.Share => r.Share, PermFlag.Print => r.Print, _ => r.Email });
+        return mine.Count == 0 || mine.Any(r => flag switch { PermFlag.Import => r.Import, PermFlag.Share => r.Share, PermFlag.Print => r.Print, PermFlag.Amend => r.Amend, _ => r.Email });
     }
 
     public void Require(DocTypeMeta meta, IUserContext user, PermFlag flag)

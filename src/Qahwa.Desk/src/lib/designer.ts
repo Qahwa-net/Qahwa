@@ -204,7 +204,7 @@ export function fromDetail(detail: DesignerDetail): Draft {
       maxLength: f.maxLength ?? null,
       multiSelect: f.multiSelect ?? false,
     })),
-    permissions: (def.permissions ?? []).map((p) => ({ ...p, ifOwner: p.ifOwner ?? false, permLevel: p.permLevel ?? 0, submit: p.submit ?? false, cancel: p.cancel ?? false, export: p.export ?? false, report: p.report ?? false, import: p.import ?? true, share: p.share ?? true, print: p.print ?? true, email: p.email ?? true })),
+    permissions: (def.permissions ?? []).map((p) => ({ ...p, ifOwner: p.ifOwner ?? false, permLevel: p.permLevel ?? 0, submit: p.submit ?? false, cancel: p.cancel ?? false, export: p.export ?? false, report: p.report ?? false, import: p.import ?? true, share: p.share ?? true, print: p.print ?? true, email: p.email ?? true, amend: p.amend ?? true })),
     validations: (def.validations ?? []).map((r) => ({ expression: r.expression, message: r.message, field: r.field ?? null })),
     modified: detail.modified ?? null,
     documentCount: detail.documentCount ?? null,

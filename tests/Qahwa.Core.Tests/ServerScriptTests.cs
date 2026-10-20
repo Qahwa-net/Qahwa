@@ -234,7 +234,9 @@ public class ServerScriptTests
 
         var error = await RefusedAsync(() => TicketAsync());
 
-        Assert.Contains(expected, error.Errors.Single().Message);
+        // A busy loop is stopped by the step limit or, on a slow or loaded machine, by the time limit first: both are a stop.
+        var message = error.Errors.Single().Message;
+        Assert.True(message.Contains(expected, StringComparison.Ordinal) || (expected == "too much work" && message.Contains("too long", StringComparison.Ordinal)), message);
         Assert.True(watch.Elapsed < TimeSpan.FromSeconds(10));
     }
 

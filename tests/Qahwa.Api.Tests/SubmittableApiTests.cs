@@ -49,6 +49,13 @@ public sealed class SubmittableApiTests : IAsyncDisposable
         var cancelled = await manager.PostAsJsonAsync($"/api/resource/Voucher/{id}/cancel", new { });
         Assert.Equal(2, (await JsonOf(cancelled)).GetProperty("data").GetProperty("docstatus").GetInt32());
 
+        var amended = await manager.PostAsync($"/api/resource/Voucher/{id}/amend", null);
+        Assert.Equal(HttpStatusCode.OK, amended.StatusCode);
+        var amendedData = (await JsonOf(amended)).GetProperty("data");
+        Assert.Equal(id, amendedData.GetProperty("amended_from").GetString());
+        Assert.Equal(0, amendedData.GetProperty("docstatus").GetInt32());
+        Assert.Equal(HttpStatusCode.Conflict, (await manager.PostAsync($"/api/resource/Voucher/{id}/amend", null)).StatusCode);
+
         var nobody = _factory.ClientFor("n@example.com", "Nobody");
         Assert.Equal(HttpStatusCode.Forbidden, (await nobody.PostAsync($"/api/resource/Voucher/{id}/submit", null)).StatusCode);
     }

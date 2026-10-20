@@ -290,6 +290,16 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
     },
   })
 
+  const amend = useMutation({
+    mutationFn: () => api.amend(meta.name, doc!.name),
+    onSuccess: async (created) => {
+      toast('Amended: a new draft was made')
+      await queryClient.invalidateQueries({ queryKey: ['list', meta.name] })
+      navigate(`${base}/${encodeURIComponent(created.name)}`)
+    },
+    onError: (error) => setBanner({ text: error instanceof ApiError ? error.message : 'Could not amend this document.', conflict: false }),
+  })
+
   const transition = useMutation({
     mutationFn: (kind: 'submit' | 'cancel') => (kind === 'submit' ? api.submit : api.cancel)(meta.name, doc!.name, doc!.modified),
     onSuccess: async (saved, kind) => {
@@ -479,7 +489,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
       )}
       {scripts.intro && <div className="banner info" role="status">{scripts.intro}</div>}
       {scripts.notice && <div className="banner info" role="status">{scripts.notice} <button type="button" className="btn small" onClick={scripts.dismissNotice}>OK</button></div>}
-      {docstatus === 2 && <div className="banner info" role="status">This document is cancelled and cannot be changed.</div>}
+      {docstatus === 2 && <div className="banner info" role="status">This document is cancelled and cannot be changed.{meta.isSubmittable && perms.create && perms.amend !== false && <> <button type="button" className="btn small" disabled={amend.isPending} onClick={() => amend.mutate()}>Amend</button></>}</div>}
       {docstatus === 1 && editable && <div className="banner info" role="status">This document is submitted. Only some fields can still be changed.</div>}
       {!editable && (
         <div className="banner info" role="status">

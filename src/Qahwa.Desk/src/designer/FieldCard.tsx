@@ -300,9 +300,9 @@ export function PermissionsEditor({ permissions, roles, disabled, errors, onChan
   submittable?: boolean
 }) {
   const flags = (submittable
-    ? ['read', 'write', 'create', 'delete', 'submit', 'cancel', 'export', 'report', 'import', 'share', 'print', 'email', 'ifOwner']
-    : ['read', 'write', 'create', 'delete', 'export', 'report', 'import', 'share', 'print', 'email', 'ifOwner']) as ('read' | 'write' | 'create' | 'delete' | 'submit' | 'cancel' | 'export' | 'report' | 'import' | 'share' | 'print' | 'email' | 'ifOwner')[]
-  const labels = { read: 'Read', write: 'Write', create: 'Create', delete: 'Delete', submit: 'Submit', cancel: 'Cancel', export: 'Export', report: 'Report', import: 'Import', share: 'Share', print: 'Print', email: 'Email', ifOwner: 'Own only' } as const
+    ? ['read', 'write', 'create', 'delete', 'submit', 'cancel', 'export', 'report', 'import', 'share', 'print', 'email', 'amend', 'ifOwner']
+    : ['read', 'write', 'create', 'delete', 'export', 'report', 'import', 'share', 'print', 'email', 'ifOwner']) as ('read' | 'write' | 'create' | 'delete' | 'submit' | 'cancel' | 'export' | 'report' | 'import' | 'share' | 'print' | 'email' | 'amend' | 'ifOwner')[]
+  const labels = { read: 'Read', write: 'Write', create: 'Create', delete: 'Delete', submit: 'Submit', cancel: 'Cancel', export: 'Export', report: 'Report', import: 'Import', share: 'Share', print: 'Print', email: 'Email', amend: 'Amend', ifOwner: 'Own only' } as const
 
   const update = (index: number, patch: Partial<DocPerm>) =>
     onChange(permissions.map((p, i) => (i === index ? { ...p, ...patch } : p)))

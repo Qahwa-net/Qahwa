@@ -617,7 +617,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 |---|---|---|---|
 | Roles, role permissions (read, write, create, delete) | | ✅ | done |
 | Permissions: if owner | | ✅ | done |
-| Permissions: submit, cancel, amend, report, export, import, share, print, email, select | submit, cancel, report, export, import, share, print, email done (ADR-082); amend and select not yet | 🟡 | L5 |
+| Permissions: submit, cancel, amend, report, export, import, share, print, email, select | submit, cancel, report, export, import, share, print, email done (ADR-082); amend done (ADR-103); "select" is covered by read access | ✅ | L5 |
 | Permission levels (field-level access) | server-enforced, set per field and per rule | ✅ | L5 |
 | **Role Permission Manager** UI, Custom DocPerm | customise, reset to default, apply at once | ✅ | L5 |
 | User Permissions (restrict by Link value, apply to all or some DocTypes) | `User Permission` DocType, enforced on the server | ✅ | L5 |

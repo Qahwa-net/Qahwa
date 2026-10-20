@@ -60,7 +60,7 @@ public static partial class DocTypeLoader
         if (meta is null)
             throw new DocTypeValidationException("DocType JSON is empty.");
 
-        meta = WithTreeFields(meta);
+        meta = WithAmendedField(WithTreeFields(meta));
         meta = meta with { Fields = [.. meta.Fields.Select(f => f.Type == FieldType.Html ? f with { Options = HtmlSanitizer.Clean(f.Options) } : f)] };
         Validate(meta);
         return meta;
@@ -292,6 +292,14 @@ public static partial class DocTypeLoader
     }
 
     /// <summary>A tree DocType always has its parent and group fields; add them when the definition does not list them yet.</summary>
+    /// <summary>A submittable DocType keeps the link to the cancelled document it amends.</summary>
+    public static DocTypeMeta WithAmendedField(DocTypeMeta meta)
+    {
+        if (!meta.IsSubmittable || meta.IsChildTable || meta.Fields.Any(f => f.Name == DocTypeMetaExtensions.AmendedFromField))
+            return meta;
+        return meta with { Fields = [.. meta.Fields, new DocFieldMeta { Name = DocTypeMetaExtensions.AmendedFromField, Type = FieldType.Link, Label = "Amended From", Options = meta.Name, ReadOnly = true }] };
+    }
+
     public static DocTypeMeta WithTreeFields(DocTypeMeta meta)
     {
         if (!meta.IsTree || meta.IsChildTable)

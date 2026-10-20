@@ -427,3 +427,7 @@ Desk: `controls/SearchSelect.tsx`, `LinkSelect.tsx` ("Create new"), `QuickCreate
 ## Heading and HTML fields ([ADR-102](../../adr/102-heading-and-html-fields.md))
 
 `FieldType.Heading/Html` are layout types (`FieldTypes.IsLayout`); `DocTypeLoader.Parse` cleans an Html field's `options` with `HtmlSanitizer.Clean`; Desk `FieldControl.tsx` draws them. Tests: `StaticFieldTests`.
+
+## Amend ([ADR-103](../../adr/103-amend.md))
+
+`DocumentService.Amend.cs` `AmendAsync`; `DocTypeLoader.WithAmendedField` adds `amended_from`; `PermFlag.Amend` / `DocPermMeta.Amend` / `EffectivePermissions.Amend`; endpoint `POST /api/resource/{doctype}/{name}/amend`; Desk button in `FormView.tsx`. Tests: `AmendTests`, `SubmittableApiTests`.

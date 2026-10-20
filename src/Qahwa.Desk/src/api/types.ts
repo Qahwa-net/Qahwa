@@ -68,6 +68,7 @@ export interface DocPerm {
   share?: boolean
   print?: boolean
   email?: boolean
+  amend?: boolean
 }
 
 export interface DocTypeMeta {
@@ -174,6 +175,7 @@ export interface Permissions {
   share?: boolean
   print?: boolean
   email?: boolean
+  amend?: boolean
 }
 
 export interface MetaResponse {

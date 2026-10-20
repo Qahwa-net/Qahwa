@@ -163,6 +163,7 @@ public sealed record DocPermMeta
     public bool Share { get; init; } = true;
     public bool Print { get; init; } = true;
     public bool Email { get; init; } = true;
+    public bool Amend { get; init; } = true;
 
     /// <summary>Restrict this rule to documents the user owns.</summary>
     public bool IfOwner { get; init; }
@@ -186,6 +187,7 @@ public static class DocTypeMetaExtensions
 
     /// <summary>The Link field of a tree DocType that points at its own parent node.</summary>
     public const string TreeParentField = "parent_node";
+    public const string AmendedFromField = "amended_from";
 
     /// <summary>The Check field of a tree DocType: only group nodes can have children.</summary>
     public const string TreeGroupField = "is_group";
