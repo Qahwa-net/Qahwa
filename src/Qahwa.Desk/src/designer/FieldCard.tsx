@@ -193,6 +193,13 @@ export function FieldCard({
                   <label><input type="checkbox" checked={field.lowercase} onChange={(e) => onChange({ lowercase: e.target.checked })} /> Lower case</label>
                 )}
                 {!isTable && (
+                  <label><input type="checkbox" checked={Boolean(field.noCopy)} onChange={(e) => onChange({ noCopy: e.target.checked })} /> Do not copy when duplicating</label>
+                )}
+                <label><input type="checkbox" checked={Boolean(field.bold)} onChange={(e) => onChange({ bold: e.target.checked })} /> Bold label</label>
+                {['Select', 'Link', 'Check', 'Data', 'Email', 'Phone', 'Int', 'Rating'].includes(field.type) && !inChildTable && (
+                  <label><input type="checkbox" checked={Boolean(field.inStandardFilter)} onChange={(e) => onChange({ inStandardFilter: e.target.checked })} /> Offer as a list filter</label>
+                )}
+                {!isTable && (
                   <label><input type="checkbox" checked={Boolean(field.setOnce)} onChange={(e) => onChange({ setOnce: e.target.checked })} /> Set only once</label>
                 )}
                 {['Int', 'Float', 'Decimal', 'Currency', 'Percent'].includes(field.type) && (

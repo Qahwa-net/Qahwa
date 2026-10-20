@@ -40,6 +40,9 @@ export interface DocField {
   /** Submittable DocTypes: may still be changed after the document is submitted. */
   allowOnSubmit?: boolean
   setOnce?: boolean
+  noCopy?: boolean
+  bold?: boolean
+  inStandardFilter?: boolean
   nonNegative?: boolean
   maxLength?: number | null
   /** Table fields only: shown as a list of chips to pick from (the child table has one Link field). */

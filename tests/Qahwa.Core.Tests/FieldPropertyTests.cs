@@ -54,6 +54,7 @@ public class FieldPropertyTests
     [InlineData("""{ "name": "X2", "fields": [ { "name": "a", "type": "Int", "maxLength": 5 } ] }""")]
     [InlineData("""{ "name": "X3", "fields": [ { "name": "a", "type": "Data", "maxLength": 0 } ] }""")]
     [InlineData("""{ "name": "X4", "fields": [ { "name": "a", "type": "Data", "maxLength": 20000 } ] }""")]
+    [InlineData("""{ "name": "X6", "fields": [ { "name": "a", "type": "Text", "inStandardFilter": true } ] }""")]
     [InlineData("""{ "name": "X5", "fields": [ { "name": "a", "type": "SectionBreak", "setOnce": true } ] }""")]
     public void Meaningless_combinations_are_rejected_when_a_DocType_is_defined(string json) =>
         Assert.Throws<DocTypeValidationException>(() => DocTypeLoader.Parse(json));

@@ -17,7 +17,7 @@ public class AmendTests
             """));
         _engine.Registry.Add(DocTypeLoader.Parse("""
             { "name": "Bill", "isSubmittable": true,
-              "fields": [ { "name": "customer", "type": "Data", "required": true }, { "name": "lines", "type": "Table", "options": "Bill Line" } ],
+              "fields": [ { "name": "customer", "type": "Data", "required": true }, { "name": "ref_note", "type": "Data", "noCopy": true }, { "name": "lines", "type": "Table", "options": "Bill Line" } ],
               "permissions": [
                 { "role": "Clerk", "read": true, "write": true, "create": true },
                 { "role": "Approver", "read": true, "write": true, "submit": true, "cancel": true },
@@ -45,6 +45,18 @@ public class AmendTests
         Assert.Equal("Acme", read["customer"]);
         Assert.Equal(old, read["amended_from"]);
         Assert.Single((IEnumerable<object?>)read["lines"]!);
+    }
+
+    [Fact]
+    public async Task A_no_copy_field_starts_empty_in_the_amended_document()
+    {
+        var draft = await _engine.Documents.InsertAsync("Bill", Values(("customer", "Acme"), ("ref_note", "secret ref")), Clerk);
+        var name = (string)draft["name"]!;
+        await _engine.Documents.SubmitAsync("Bill", name, Approver);
+        await _engine.Documents.CancelAsync("Bill", name, Approver);
+        var amended = await _engine.Documents.AmendAsync("Bill", name, Clerk);
+        Assert.Equal("Acme", (await _engine.Documents.GetAsync("Bill", (string)amended["name"]!, Clerk))["customer"]);
+        Assert.Null((await _engine.Documents.GetAsync("Bill", (string)amended["name"]!, Clerk)).GetValueOrDefault("ref_note"));
     }
 
     [Fact]

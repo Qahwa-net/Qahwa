@@ -10,7 +10,7 @@ const NEVER = new Set(['Password', 'SectionBreak', 'ColumnBreak', 'TabBreak', 'H
 export function copyOf(meta: DocTypeMeta, children: Record<string, DocTypeMeta>, doc: Doc): Doc {
   const copy: Doc = { name: '' } as Doc
   for (const field of meta.fields) {
-    if (SYSTEM.has(field.name) || NEVER.has(field.type) || field.unique) continue
+    if (SYSTEM.has(field.name) || NEVER.has(field.type) || field.unique || field.noCopy) continue
     const value = doc[field.name]
     if (field.type === 'Table') {
       const child = field.options ? children[field.options] : undefined
@@ -20,7 +20,7 @@ export function copyOf(meta: DocTypeMeta, children: Record<string, DocTypeMeta>,
         for (const [key, v] of Object.entries(row as Record<string, unknown>)) {
           if (SYSTEM.has(key) || key.startsWith('parent')) continue
           const column = child?.fields.find((f) => f.name === key)
-          if (column && (column.unique || NEVER.has(column.type))) continue
+          if (column && (column.unique || column.noCopy || NEVER.has(column.type))) continue
           fresh[key] = v
         }
         return fresh

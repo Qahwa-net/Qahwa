@@ -242,7 +242,7 @@ export function ListView() {
       <div className={groupOpen ? 'list-layout' : undefined}>
       {groupOpen && (
         <GroupBySidebar doctype={doctype} filters={effectiveFilters} applied={filters}
-          fields={[...meta.fields.filter((f) => ['Select', 'Link', 'Check'].includes(f.type) && f.type !== undefined), ...STANDARD_FIELDS.filter((f) => f.name === 'owner' || (f.name === 'docstatus' && meta.isSubmittable))]}
+          fields={[...meta.fields.filter((f) => ['Select', 'Link', 'Check'].includes(f.type) || f.inStandardFilter), ...STANDARD_FIELDS.filter((f) => f.name === 'owner' || (f.name === 'docstatus' && meta.isSubmittable))]}
           onChange={(next) => update({ f: encodeFilters(next) })} />
       )}
       <div className="list-main">

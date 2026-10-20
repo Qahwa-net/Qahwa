@@ -50,5 +50,5 @@ public sealed partial class DocumentService
     }
 
     private static bool IsCopied(DocFieldMeta f) =>
-        !FieldTypes.IsLayout(f.Type) && f.Type != FieldType.Password && f.Formula is null && !f.Unique && f.Name != AmendedFromField;
+        !FieldTypes.IsLayout(f.Type) && f.Type != FieldType.Password && f.Formula is null && !f.Unique && !f.NoCopy && f.Name != AmendedFromField;
 }

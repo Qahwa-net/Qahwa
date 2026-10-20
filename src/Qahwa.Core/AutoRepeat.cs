@@ -376,5 +376,5 @@ public sealed class AutoRepeatService(
 
     private static bool CopyableField(DocFieldMeta f) =>
         // Unique values (a reference number) would clash with the original, so they are left for the new document to get its own.
-        f.Type is not (FieldType.SectionBreak or FieldType.ColumnBreak or FieldType.TabBreak or FieldType.Heading or FieldType.Html or FieldType.Password) && f.Formula is null && !f.Unique;
+        f.Type is not (FieldType.SectionBreak or FieldType.ColumnBreak or FieldType.TabBreak or FieldType.Heading or FieldType.Html or FieldType.Password) && f.Formula is null && !f.Unique && !f.NoCopy;
 }

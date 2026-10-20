@@ -166,7 +166,7 @@ export function FieldControl(props: Props) {
 
   return (
     <div className={`field${isCheck ? ' check' : ''}${wide ? ' full' : ''}${field.hidden || conditional ? ' dimmed' : ''}`}>
-      <label htmlFor={id}>
+      <label htmlFor={id} style={field.bold ? { fontWeight: 700 } : undefined}>
         {label}{required && <span className="req" aria-label="required"> *</span>}
         {field.hidden && <span className="badge"> hidden</span>}
         {conditional && <span className="badge" title={field.dependsOn ?? undefined}> only when its condition holds</span>}

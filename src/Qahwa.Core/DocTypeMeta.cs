@@ -128,6 +128,15 @@ public sealed record DocFieldMeta
     /// <summary>Submittable DocTypes: the field may still be changed after the document is submitted.</summary>
     public bool AllowOnSubmit { get; init; }
 
+    /// <summary>The value is not copied when a document is duplicated, amended or repeated.</summary>
+    public bool NoCopy { get; init; }
+
+    /// <summary>The label is shown in bold on the form.</summary>
+    public bool Bold { get; init; }
+
+    /// <summary>The field is offered in the list's filter sidebar (Select, Link, Check, Data, Email, Phone, Int and Rating fields).</summary>
+    public bool InStandardFilter { get; init; }
+
     /// <summary>Once the field has a value it cannot be changed (it can still be filled in the first time).</summary>
     public bool SetOnce { get; init; }
 
