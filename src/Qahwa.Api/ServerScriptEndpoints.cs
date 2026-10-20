@@ -28,6 +28,26 @@ public static class ServerScriptEndpoints
             return Results.Ok(new { data = new { changes = outcome.Changes, log = outcome.Log, reads = outcome.Reads } });
         });
 
+        // API scripts (ADR-108): a signed-in caller runs one by name. The body is a JSON object handed to the script as doc; the answer is what it set in result.
+        app.MapPost("/api/script-method/{method}", async (string method, HttpContext http, IUserContextResolver users, ServerScriptEngine scripts, CancellationToken ct) =>
+        {
+            var user = await users.ResolveAsync(http, ct);
+            if (!user.IsAuthenticated)
+                throw new UnauthenticatedException();
+            Dictionary<string, JsonElement>? body = null;
+            if (http.Request.ContentLength is > 0)
+            {
+                if (http.Request.ContentLength > 100_000)
+                    throw new DocumentValidationException([new FieldError(string.Empty, "The request is too large.")]);
+                try { body = await http.Request.ReadFromJsonAsync<Dictionary<string, JsonElement>>(ct); }
+                catch (JsonException) { throw new DocumentValidationException([new FieldError(string.Empty, "Send a JSON object.")]); }
+            }
+
+            var parameters = (body ?? []).ToDictionary(kv => kv.Key, kv => Plain(kv.Value), StringComparer.Ordinal);
+            var json = await scripts.CallMethodAsync(method, parameters, user, ct);
+            return Results.Content("{\"data\":" + json + "}", "application/json");
+        });
+
         // The scripts of a DocType, for the form that is about to open (the same permission as opening the DocType).
         app.MapGet("/api/client-scripts/{doctype}", async (string doctype, HttpContext http, IUserContextResolver users, ClientScriptService scripts, CancellationToken ct) =>
         {

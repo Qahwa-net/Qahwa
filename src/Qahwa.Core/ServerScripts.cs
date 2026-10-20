@@ -201,6 +201,8 @@ public sealed class ScriptSandbox(DocumentService documents, TimeProvider clock)
         engine.SetValue("old", input.Old is null ? JsValue.Null : parser.Parse(Plain(input.Meta, input.Old)));
         engine.SetValue("isNew", input.IsNew);
         engine.SetValue("event", input.Event);
+        if (input.Event == ServerScriptEngine.ApiEvent)
+            engine.SetValue("result", JsValue.Undefined); // an API script answers by assigning to result (scripts run in strict mode, so it must exist)
         engine.SetValue("user", parser.Parse(JsonSerializer.Serialize(new { name = input.User.User, roles = input.User.Roles })));
 
         try
@@ -234,6 +236,15 @@ public sealed class ScriptSandbox(DocumentService documents, TimeProvider clock)
         catch (Acornima.ParseErrorException e)
         {
             throw Fail("The script has a mistake: " + Short(e.Message));
+        }
+
+        if (input.Event == ServerScriptEngine.ApiEvent)
+        {
+            var returned = engine.Evaluate("JSON.stringify(typeof result === 'undefined' ? null : result)");
+            var json = returned.IsString() ? returned.AsString() : "null";
+            if (json.Length > MaxResultBytes)
+                throw Fail("The script returned too much data.");
+            return new ScriptOutcome(new Dictionary<string, object?> { ["result"] = json }, log, reads, writes);
         }
 
         var finalDoc = engine.Evaluate("JSON.stringify(doc)");
@@ -302,8 +313,11 @@ public sealed class ServerScriptEngine(IMetaRegistry registry, IDocumentReposito
     public const string BeforeDeleteEvent = "Before Delete";
     public const string AfterSubmitEvent = "After Submit";
     public const string AfterCancelEvent = "After Cancel";
+    public const string ApiEvent = "API";
 
     public static readonly IReadOnlyList<string> Events = [ValidateEvent, BeforeSubmitEvent, BeforeCancelEvent, BeforeDeleteEvent, AfterSaveEvent, AfterSubmitEvent, AfterCancelEvent];
+
+    public static bool IsMethodName(string? name) => name is { Length: > 0 and <= 60 } && name[0] is >= 'a' and <= 'z' && name.All(c => c is (>= 'a' and <= 'z') or (>= '0' and <= '9') or '_');
 
     /// <summary>Before events run before the change is stored (they can refuse it); only Validate and Before Submit may also change the document.</summary>
     public static bool MayChange(string kind) => kind is ValidateEvent or BeforeSubmitEvent;
@@ -353,6 +367,14 @@ public sealed class ServerScriptEngine(IMetaRegistry registry, IDocumentReposito
     {
         if (script.GetValueOrDefault("script") is string source && ScriptSandbox.SyntaxProblem(source) is { } problem)
             errors.Add(new FieldError("script", problem));
+        var kind = script.GetValueOrDefault("event") as string;
+        if (kind == ApiEvent)
+        {
+            if (!IsMethodName(script.GetValueOrDefault("method_name") as string))
+                errors.Add(new FieldError("method_name", "Use lower-case letters, digits and underscores, starting with a letter (up to 60)."));
+        }
+        else if (script.GetValueOrDefault("reference_doctype") is not string { Length: > 0 })
+            errors.Add(new FieldError("reference_doctype", "Choose the DocType this script belongs to."));
     }
 
     /// <summary>
@@ -433,6 +455,36 @@ public sealed class ServerScriptEngine(IMetaRegistry registry, IDocumentReposito
         {
             Running.Value = false;
         }
+    }
+
+    /// <summary>
+    /// Runs an API script (ADR-108) for a signed-in caller. The request values arrive as <c>doc</c>; whatever the script assigns to
+    /// <c>result</c> is returned as JSON. It may read and write through <c>qahwa</c> exactly as the caller could, and nothing more.
+    /// </summary>
+    public async Task<string> CallMethodAsync(string method, IReadOnlyDictionary<string, object?> parameters, IUserContext user, CancellationToken ct)
+    {
+        if (!user.IsAuthenticated)
+            throw new UnauthenticatedException();
+        var script = (await ScriptsAsync(string.Empty, ApiEvent, ct)).FirstOrDefault(s => s.GetValueOrDefault("method_name") as string == method)
+            ?? throw new NotFoundException($"There is no API script '{method}'.");
+        if (script.GetValueOrDefault("allowed_role") is string role && role.Length > 0 && !user.Roles.Contains(role, StringComparer.Ordinal) && !user.Roles.Contains(UserContext.AdministratorRole, StringComparer.Ordinal))
+            throw new PermissionDeniedException("You are not allowed to use this API script.");
+        if (Running.Value)
+            throw new DocumentValidationException([new FieldError(string.Empty, "An API script cannot be started from another script.")]);
+
+        ScriptOutcome outcome;
+        try
+        {
+            outcome = await sandbox.RunAsync((string)script["script"]!, new ScriptInput(registry.Get(DocTypeName), ApiEvent, IsNew: false, parameters, null, user, AllowWrites: true), ct);
+        }
+        catch (DocumentValidationException e) when (e.Errors.Any(x => x.Field.Length == 0))
+        {
+            await RecordAsync(script, e, ct);
+            throw;
+        }
+
+        await RecordAsync(script, null, ct);
+        return outcome.Changes.GetValueOrDefault("result") as string ?? "null";
     }
 
     /// <summary>Tries a script on a sample document without saving anything and without being allowed to write.</summary>

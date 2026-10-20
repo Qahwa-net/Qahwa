@@ -443,3 +443,7 @@ Desk: `controls/SearchSelect.tsx`, `LinkSelect.tsx` ("Create new"), `QuickCreate
 ## Number format ([ADR-106](../../adr/106-number-format.md))
 
 `system_settings.json` `number_format`; `SystemSettingsService`/`DisplaySettings.NumberFormat`; Desk `formatNumber` in `lib/display.ts`, used by `formatCell`. Tests: `SystemSettingsTests`, `display.test.ts`.
+
+## API scripts ([ADR-108](../../adr/108-api-scripts.md))
+
+`ServerScriptEngine.CallMethodAsync`, `ScriptSandbox.Execute` (API mode returns `result` as JSON), `ServerScriptEngine.CheckScript` (method name), `server_script.json` (`method_name`, `allowed_role`, event `API`); endpoint `POST /api/script-method/{method}` in `ServerScriptEndpoints.cs`. Tests: `ApiScriptTests`, `ApiScriptApiTests`.

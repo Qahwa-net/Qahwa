@@ -7,8 +7,10 @@
   "fields": [
     { "name": "title", "type": "Data", "label": "Title", "required": true, "inListView": true },
     { "name": "active", "type": "Check", "label": "Active", "default": "1", "inListView": true },
-    { "name": "reference_doctype", "type": "Link", "options": "DocType", "label": "DocType", "required": true, "indexed": true, "inListView": true },
-    { "name": "event", "type": "Select", "label": "When", "options": "Validate\nBefore Submit\nBefore Cancel\nBefore Delete\nAfter Save\nAfter Submit\nAfter Cancel", "default": "Validate", "required": true, "inListView": true },
+    { "name": "reference_doctype", "type": "Link", "options": "DocType", "label": "DocType", "indexed": true, "inListView": true, "description": "Not used by an API script." },
+    { "name": "event", "type": "Select", "label": "When", "options": "Validate\nBefore Submit\nBefore Cancel\nBefore Delete\nAfter Save\nAfter Submit\nAfter Cancel\nAPI", "default": "Validate", "required": true, "inListView": true },
+    { "name": "method_name", "type": "Data", "label": "API method name", "indexed": true, "description": "For an API script: letters, digits and underscores. People call it at /api/script-method/<name>." },
+    { "name": "allowed_role", "type": "Link", "options": "Role", "label": "Who may call it (API script)", "description": "Empty means any signed-in person. Whatever the script reads or writes is still checked against the caller's own permissions." },
     { "name": "script", "type": "Code", "label": "Script (JavaScript)", "required": true },
     { "name": "run_count", "type": "Int", "label": "Times run", "readOnly": true },
     { "name": "last_error", "type": "Text", "label": "Last problem", "readOnly": true }

@@ -48,6 +48,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **Gallery, map and timeline views**: pictures as tiles, places on a plain grid (no outside map service), documents as bars between two dates ([ADR-049](docs/adr/049-gallery-map-and-timeline-views.md))
 - **Light, dark and automatic themes and a brand**: per-person theme, organisation name, logo, colours and default theme, all checked as plain data, readable colours guaranteed ([ADR-056](docs/adr/056-brand-and-theme.md))
 - **App dependencies**: apps name the apps they need; installed in order, bad graphs stop start-up ([ADR-085](docs/adr/085-app-dependencies.md))
+- **API scripts**: a sandboxed Server Script answers `/api/script-method/<name>` as the caller ([ADR-108](docs/adr/108-api-scripts.md))
 - **Deliberate limits**: what Qahwa leaves out on purpose and why ([ADR-107](docs/adr/107-deliberate-limits.md))
 - **Number format**: site-wide thousands and decimal marks ([ADR-106](docs/adr/106-number-format.md))
 - **Document options**: default sort, allow duplicate and file limit per DocType ([ADR-105](docs/adr/105-document-options.md))
