@@ -654,7 +654,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Workspaces (shortcuts, charts, number cards, onboarding) and **Workspace Builder** | done: headings, shortcut rows, embedded dashboards, role-based; not yet onboarding | ✅ (v1) | L9 |
 | Awesomebar (global search, create, commands), global search index | done: Ctrl+K search box with pages, DocTypes, "new …" and permission-checked document search (ADR-061); no full-text index | 🟡 | L9 |
 | Notification bell, toasts, dialogs | done (ADR-015) | ✅ (v1) | L8 |
-| Themes (light, dark, automatic), RTL layout | RTL done (logical CSS, dir follows the language); themes not yet | 🟡 | L12 |
+| Themes (light, dark, automatic), RTL layout | RTL done (logical CSS, dir follows the language); light, dark and automatic themes with organisation brand default done | ✅ | L12 |
 | Translations (Translation DocType, language switch) | done: Translation DocType, catalog API, language switch, built-in Arabic chrome; not yet every message, plurals, per-user language | ✅ (v1) | L12 |
 | User settings: language, time zone, date/number/currency formats | language and time zone/date formats done (ADR-033, ADR-042); light/dark/auto theme per person and organisation brand done (ADR-056) | 🟡 | L7 |
 | Page Builder / Custom HTML Block | | 🔽 | L11 |
