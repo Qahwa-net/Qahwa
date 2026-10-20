@@ -10,4 +10,5 @@ Three options on a DocType's definition (set in the designer's DocType page):
 
 A child table cannot set a sort or a file limit (it has neither a list nor files).
 
+- `defaultView` (list, tree, board, calendar, gallery, map or timeline; tree needs a tree DocType and gallery an Image field): the first time a person opens the DocType in a browser session they land on that view; the list icon always returns to the list. It is a convenience stored per session in the browser, not a restriction. `imageField` names the Image field the gallery shows by default.
 - `searchFields` (up to five different text fields, checked when the DocType is defined): choosing a document in a Link field also searches these fields, besides the name and title. Only fields the person may read are searched (a field hidden from them by permission level cannot be used to probe for its values).

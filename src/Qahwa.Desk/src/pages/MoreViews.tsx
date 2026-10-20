@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { api } from '../api/client.ts'
@@ -48,14 +48,16 @@ const dateFields = (fields: DocField[]) => fields.filter((f) => (f.type === 'Dat
 /** A wall of pictures: one tile for each document, from one of its Image fields. */
 export function GalleryView() {
   const [params, setParams] = useSearchParams()
+  const preferred = useRef<string | undefined>(undefined)
   const picker = useMemo(() => (fields: DocField[]) => {
     const by = pictureFields(fields)
-    const chosen = by.find((f) => f.name === params.get('by')) ?? by[0]
+    const chosen = by.find((f) => f.name === params.get('by')) ?? by.find((f) => f.name === preferred.current) ?? by[0]
     return chosen ? [chosen.name] : []
   }, [params])
   const { doctype, meta, perms, metaQuery, list, titleOf, base } = useDocs(picker)
   const fields = pictureFields(meta?.fields ?? [])
-  const by = fields.find((f) => f.name === params.get('by')) ?? fields[0]
+  preferred.current = meta?.imageField ?? undefined
+  const by = fields.find((f) => f.name === params.get('by')) ?? fields.find((f) => f.name === meta?.imageField) ?? fields[0]
   const rows = (list.data?.data ?? []) as Record<string, unknown>[]
   const withPictures = rows.filter((r) => typeof r[by?.name ?? ''] === 'string' && r[by!.name] !== '')
 

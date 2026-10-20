@@ -88,6 +88,8 @@ export interface DocTypeMeta {
   sortField?: string | null
   sortDescending?: boolean
   searchFields?: string[]
+  imageField?: string | null
+  defaultView?: string | null
   /** False hides Duplicate. */
   allowCopy?: boolean
   maxAttachments?: number | null
@@ -117,6 +119,8 @@ export interface DocTypeDefinition {
   allowCopy?: boolean
   maxAttachments?: number | null
   searchFields?: string[]
+  imageField?: string | null
+  defaultView?: string | null
   trackChanges?: boolean
   trackViews?: boolean
   statusField?: string

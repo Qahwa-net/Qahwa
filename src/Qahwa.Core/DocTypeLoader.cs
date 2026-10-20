@@ -265,6 +265,8 @@ public static partial class DocTypeLoader
         }
     }
 
+    public static readonly IReadOnlySet<string> DefaultViews = new HashSet<string>(["list", "tree", "board", "calendar", "gallery", "map", "timeline"], StringComparer.Ordinal);
+
     private static void CheckSpecial(DocTypeMeta meta, Action<string, string> add)
     {
         if (meta.SortField is { } sort && sort is not ("name" or "modified" or "creation") && !meta.Fields.Any(f => f.Name == sort && FieldTypes.HasColumn(f.Type)))
@@ -272,9 +274,13 @@ public static partial class DocTypeLoader
         if (meta.SearchFields.Count > 5 || meta.SearchFields.Distinct(StringComparer.Ordinal).Count() != meta.SearchFields.Count
             || meta.SearchFields.Any(n => meta.Fields.FirstOrDefault(f => f.Name == n) is not { } f || !FieldTypes.IsTextual(f.Type) || f.Type is FieldType.Password or FieldType.Json or FieldType.Attach or FieldType.AttachImage))
             add("searchFields", "Choose up to five different text fields of this DocType to search.");
+        if (meta.ImageField is { } image && meta.Fields.FirstOrDefault(f => f.Name == image) is not { Type: FieldType.AttachImage })
+            add("imageField", "Choose one of this DocType's Image fields.");
+        if (meta.DefaultView is { } view && (!DefaultViews.Contains(view) || (view == "tree" && !meta.IsTree) || (view == "gallery" && !meta.Fields.Any(f => f.Type == FieldType.AttachImage))))
+            add("defaultView", "Choose list, or a view this DocType can show (tree needs a tree DocType, gallery needs an Image field).");
         if (meta.MaxAttachments is { } max && (max < 1 || max > 50))
             add("maxAttachments", "The most files per document is between 1 and 50.");
-        if (meta.IsChildTable && (meta.SortField is not null || meta.MaxAttachments is not null))
+        if (meta.IsChildTable && (meta.SortField is not null || meta.MaxAttachments is not null || meta.ImageField is not null || meta.DefaultView is not null))
             add("isChildTable", "A child table has no list and no files of its own.");
         if (meta.IsChildTable && (meta.IsSingle || meta.IsTree || meta.AllowRename))
             add("isChildTable", "A child table cannot be single, a tree, or renamable.");

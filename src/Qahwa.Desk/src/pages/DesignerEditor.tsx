@@ -312,6 +312,27 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
                   ))}
                   {errors.searchFields && <small className="error-text" role="alert">{errors.searchFields}</small>}
                 </fieldset>}
+                {!draft.isSingle && !draft.isChildTable && <label className="field">
+                  <span>Open on this view the first time (in a session)</span>
+                  <select value={draft.defaultView} disabled={disabled} onChange={(e) => patch({ defaultView: e.target.value })}>
+                    <option value="">List</option>
+                    {draft.isTree && <option value="tree">Tree</option>}
+                    <option value="board">Board</option>
+                    <option value="calendar">Calendar</option>
+                    {draft.fields.some((f) => f.type === 'AttachImage') && <option value="gallery">Gallery</option>}
+                    <option value="map">Map</option>
+                    <option value="timeline">Timeline</option>
+                  </select>
+                  {errors.defaultView && <small className="error-text" role="alert">{errors.defaultView}</small>}
+                </label>}
+                {!draft.isChildTable && draft.fields.some((f) => f.name && f.type === 'AttachImage') && <label className="field">
+                  <span>Picture shown in the gallery</span>
+                  <select value={draft.imageField} disabled={disabled} onChange={(e) => patch({ imageField: e.target.value })}>
+                    <option value="">The first image field</option>
+                    {draft.fields.filter((f) => f.name && f.type === 'AttachImage').map((f) => <option key={f.key} value={f.name}>{f.label || f.name}</option>)}
+                  </select>
+                  {errors.imageField && <small className="error-text" role="alert">{errors.imageField}</small>}
+                </label>}
                 <label className="field">
                   <span>Most files per document (empty for the limit of 50)</span>
                   <input type="number" min={1} max={50} value={draft.maxAttachments ?? ''} disabled={disabled}

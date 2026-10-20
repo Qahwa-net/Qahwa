@@ -72,4 +72,24 @@ public class DocumentOptionTests
     [InlineData("""{ "name": "S5", "searchFields": [ "a", "b", "c", "d", "e", "f" ], "fields": [ { "name": "a", "type": "Data" }, { "name": "b", "type": "Data" }, { "name": "c", "type": "Data" }, { "name": "d", "type": "Data" }, { "name": "e", "type": "Data" }, { "name": "f", "type": "Data" } ] }""")]
     public void Bad_search_fields_are_refused(string json) =>
         Assert.Throws<DocTypeValidationException>(() => DocTypeLoader.Parse(json));
+
+    [Fact]
+    public void A_default_view_and_an_image_field_are_kept_when_they_make_sense()
+    {
+        var meta = DocTypeLoader.Parse("""
+            { "name": "V1", "isTree": true, "defaultView": "gallery", "imageField": "pic", "fields": [ { "name": "pic", "type": "AttachImage" } ] }
+            """);
+        Assert.Equal("gallery", meta.DefaultView);
+        Assert.Equal("pic", meta.ImageField);
+        Assert.Equal("tree", DocTypeLoader.Parse("""{ "name": "V2", "isTree": true, "defaultView": "tree", "fields": [ { "name": "a", "type": "Data" } ] }""").DefaultView);
+    }
+
+    [Theory]
+    [InlineData("""{ "name": "W1", "defaultView": "tree", "fields": [ { "name": "a", "type": "Data" } ] }""")]
+    [InlineData("""{ "name": "W2", "defaultView": "gallery", "fields": [ { "name": "a", "type": "Data" } ] }""")]
+    [InlineData("""{ "name": "W3", "defaultView": "javascript:alert(1)", "fields": [ { "name": "a", "type": "Data" } ] }""")]
+    [InlineData("""{ "name": "W4", "imageField": "a", "fields": [ { "name": "a", "type": "Data" } ] }""")]
+    [InlineData("""{ "name": "W5", "isChildTable": true, "defaultView": "board", "fields": [ { "name": "a", "type": "Data" } ] }""")]
+    public void Bad_views_and_image_fields_are_refused(string json) =>
+        Assert.Throws<DocTypeValidationException>(() => DocTypeLoader.Parse(json));
 }

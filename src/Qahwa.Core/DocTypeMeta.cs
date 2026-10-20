@@ -42,6 +42,12 @@ public sealed record DocTypeMeta
     /// <summary>Text fields (up to 5) that picking a document in a Link field also searches, besides the name and the title.</summary>
     public IReadOnlyList<string> SearchFields { get; init; } = [];
 
+    /// <summary>The image field (of type Image) the gallery shows by default.</summary>
+    public string? ImageField { get; init; }
+
+    /// <summary>The view a person lands on the first time they open this DocType in a session: list (the default), tree, board, calendar, gallery, map or timeline.</summary>
+    public string? DefaultView { get; init; }
+
     /// <summary>False hides "Duplicate" for this DocType (people can still create documents).</summary>
     public bool AllowCopy { get; init; } = true;
 

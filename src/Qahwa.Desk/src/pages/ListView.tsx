@@ -33,6 +33,19 @@ export function ListView() {
   const meta = metaQuery.data?.data
   const perms = metaQuery.data?.permissions
   // My own way of seeing this list (columns, page size, sort) and the filters I can pick from.
+  // The first time a DocType is opened in a session it can land on its default view (ADR-111); the list icon always comes back here.
+  const defaultView = meta?.defaultView
+  useEffect(() => {
+    if (!defaultView || defaultView === 'list') return
+    const flag = `qahwa-default-view:${doctype}`
+    try {
+      if (window.sessionStorage.getItem(flag)) return
+      window.sessionStorage.setItem(flag, '1')
+    } catch {
+      return
+    }
+    navigate(`/app/${encodeURIComponent(doctype)}/${defaultView}`, { replace: true })
+  }, [defaultView, doctype, navigate])
   const viewState = useQuery({ queryKey: ['list-settings', doctype], queryFn: () => api.listSettings.get(doctype), retry: false })
   const settings = viewState.data?.settings ?? null
   const pageSize = settings?.pageSize ?? PAGE_SIZE

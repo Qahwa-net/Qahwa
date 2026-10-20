@@ -27,6 +27,8 @@ export interface Draft {
   allowCopy: boolean
   maxAttachments: number | null
   searchFields: string[]
+  imageField: string
+  defaultView: string
   /** Keep the updates log (who changed what, when). On unless the DocType opts out. */
   trackChanges: boolean
   trackViews: boolean
@@ -128,6 +130,8 @@ export function emptyDraft(): Draft {
     allowCopy: true,
     maxAttachments: null,
     searchFields: [],
+    imageField: '',
+    defaultView: '',
     trackChanges: true,
     trackViews: false,
     statusField: '',
@@ -186,6 +190,8 @@ export function fromDetail(detail: DesignerDetail): Draft {
     allowCopy: def.allowCopy ?? true,
     maxAttachments: def.maxAttachments ?? null,
     searchFields: def.searchFields ?? [],
+    imageField: def.imageField ?? '',
+    defaultView: def.defaultView ?? '',
     trackChanges: def.trackChanges ?? true,
     trackViews: def.trackViews ?? false,
     statusField: def.statusField ?? '',
@@ -246,6 +252,8 @@ export function toDefinition(draft: Draft): DocTypeDefinition {
     allowCopy: draft.allowCopy ? undefined : false,
     maxAttachments: (!draft.isChildTable && draft.maxAttachments) || undefined,
     searchFields: !draft.isChildTable && draft.searchFields.length > 0 ? draft.searchFields : undefined,
+    imageField: (!draft.isChildTable && draft.imageField) || undefined,
+    defaultView: !draft.isChildTable && !draft.isSingle && draft.defaultView && draft.defaultView !== 'list' ? draft.defaultView : undefined,
     // The log is on by default; only an opt-out is written.
     trackChanges: draft.trackChanges ? undefined : false,
     trackViews: draft.trackViews || undefined,
