@@ -433,7 +433,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
           {!isNew && user?.roles.some(r => r === 'Administrator' || r === 'System Manager') && meta.name === 'Email Account' && <TestIncomingEmailAction disabled={dirty} />}
           {!isNew && doc && meta.module !== 'Core' && !meta.isSingle && <LikeButton doctype={meta.name} name={doc.name} />}
           {!isNew && doc && <FollowButton doctype={meta.name} name={doc.name} />}
-          {!isNew && !meta.isSingle && perms.create && doc && <IconButton icon="copy" label="Duplicate" onClick={() => navigate(`${base}/new?copy=${encodeURIComponent(doc.name)}`)} />}
+          {!isNew && !meta.isSingle && meta.allowCopy !== false && perms.create && doc && <IconButton icon="copy" label="Duplicate" onClick={() => navigate(`${base}/new?copy=${encodeURIComponent(doc.name)}`)} />}
           {!isNew && !meta.isSingle && perms.write && docstatus !== 2 && <IconButton icon="userPlus" label="Assign" onClick={() => setAssigning(true)} />}
           {!isNew && !meta.isSingle && perms.write && perms.share !== false && docstatus !== 2 && <IconButton icon="share" label="Share" onClick={() => setSharing(true)} />}
           {!isNew && perms.read && perms.print !== false && <IconButton icon="printer" label="Print" onClick={() => setPrinting(true)} />}

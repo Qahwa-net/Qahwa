@@ -286,6 +286,27 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
                   Keep a view log (who opened each document, shown to people who may change it)
                 </label>}
                 {!draft.isSingle && <StatusSettings draft={draft} disabled={disabled} patch={patch} />}
+                {!draft.isSingle && <label className="field">
+                  <span>Sort the list by (until a person chooses otherwise)</span>
+                  <select value={draft.sortField} disabled={disabled} onChange={(e) => patch({ sortField: e.target.value })}>
+                    <option value="">Last modified</option>
+                    <option value="creation">Created</option>
+                    <option value="name">Name</option>
+                    {draft.fields.filter((f) => f.name && !isLayoutType(f.type) && f.type !== 'Table').map((f) => <option key={f.key} value={f.name}>{f.label || f.name}</option>)}
+                  </select>
+                  <label className="check-line"><input type="checkbox" checked={draft.sortDescending} disabled={disabled} onChange={(e) => patch({ sortDescending: e.target.checked })} /> Highest or newest first</label>
+                  {errors.sortField && <small className="error-text" role="alert">{errors.sortField}</small>}
+                </label>}
+                {!draft.isSingle && <label className="check-line">
+                  <input type="checkbox" checked={draft.allowCopy} disabled={disabled} onChange={(e) => patch({ allowCopy: e.target.checked })} />
+                  People can duplicate a document
+                </label>}
+                <label className="field">
+                  <span>Most files per document (empty for the limit of 50)</span>
+                  <input type="number" min={1} max={50} value={draft.maxAttachments ?? ''} disabled={disabled}
+                    onChange={(e) => patch({ maxAttachments: e.target.value === '' ? null : Number(e.target.value) })} />
+                  {errors.maxAttachments && <small className="error-text" role="alert">{errors.maxAttachments}</small>}
+                </label>
                 {!draft.isSingle && <label className="check-line">
                   <input type="checkbox" checked={draft.allowRename} disabled={disabled}
                     onChange={(e) => patch({ allowRename: e.target.checked })} />

@@ -32,6 +32,18 @@ public sealed record DocTypeMeta
 
     /// <summary>Documents may be renamed, or merged into another, by people who can write them.</summary>
     public bool AllowRename { get; init; }
+
+    /// <summary>How the list is sorted until the person chooses otherwise: "name", "modified", "creation" or one of the DocType's fields. Empty means last modified first.</summary>
+    public string? SortField { get; init; }
+
+    /// <summary>True (the default) sorts the default sort from highest to lowest.</summary>
+    public bool SortDescending { get; init; } = true;
+
+    /// <summary>False hides "Duplicate" for this DocType (people can still create documents).</summary>
+    public bool AllowCopy { get; init; } = true;
+
+    /// <summary>The most files one document may have (1 to 50); empty means the system limit of 50.</summary>
+    public int? MaxAttachments { get; init; }
     /// <summary>Keep an updates log (a Version row per change, in the same transaction). On unless a DocType opts out.</summary>
     public bool TrackChanges { get; init; } = true;
 

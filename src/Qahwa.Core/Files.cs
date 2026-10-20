@@ -134,8 +134,9 @@ public sealed class FileService(
         {
             Filters = [new("reference_doctype", FilterOp.Eq, doctype), new("reference_name", FilterOp.Eq, name)],
         }, ct);
-        if (existing >= MaxPerDocument)
-            throw Invalid("file", $"A document can have at most {MaxPerDocument} files.");
+        var limit = Math.Min(MaxPerDocument, registry.Get(doctype).MaxAttachments ?? MaxPerDocument);
+        if (existing >= limit)
+            throw Invalid("file", $"A document can have at most {limit} files.");
 
         var head = new byte[16];
         var counted = new CountingStream(content, MaxBytes, head);

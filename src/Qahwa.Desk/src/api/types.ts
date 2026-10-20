@@ -84,6 +84,12 @@ export interface DocTypeMeta {
   isTree?: boolean
   /** Documents may be renamed or merged. */
   allowRename?: boolean
+  /** How the list is sorted by default (name, modified, creation or a field); newest or highest first unless false. */
+  sortField?: string | null
+  sortDescending?: boolean
+  /** False hides Duplicate. */
+  allowCopy?: boolean
+  maxAttachments?: number | null
   /** The field shown as a coloured status in lists, and the colour of each of its values. */
   statusField?: string | null
   indicators?: Indicator[]
@@ -105,6 +111,10 @@ export interface DocTypeDefinition {
   isSingle?: boolean
   isTree?: boolean
   allowRename?: boolean
+  sortField?: string | null
+  sortDescending?: boolean
+  allowCopy?: boolean
+  maxAttachments?: number | null
   trackChanges?: boolean
   trackViews?: boolean
   statusField?: string

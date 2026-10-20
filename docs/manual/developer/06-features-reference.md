@@ -435,3 +435,7 @@ Desk: `controls/SearchSelect.tsx`, `LinkSelect.tsx` ("Create new"), `QuickCreate
 ## CLI backup and restore ([ADR-104](../../adr/104-cli-backup-restore.md))
 
 `src/Qahwa.Cli/Program.cs`: `BackupAsync`, `RestoreAsync` call `BackupService.WriteAsync/RestoreAsync` as an Administrator. No automated test (needs a database); argument errors and the usage text were checked by hand.
+
+## Document options ([ADR-105](../../adr/105-document-options.md))
+
+`DocTypeMeta.SortField/SortDescending/AllowCopy/MaxAttachments`; checks in `DocTypeLoader.CheckSpecial`; `FileService.UploadAsync` limit; Desk `DesignerEditor.tsx`, `ListView.tsx`, `FormView.tsx`. Tests: `DocumentOptionTests`.

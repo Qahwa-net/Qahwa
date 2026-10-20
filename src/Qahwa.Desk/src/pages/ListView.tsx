@@ -62,9 +62,10 @@ export function ListView() {
   const q = params.get('q') ?? ''
   const page = Math.max(1, Number(params.get('page')) || 1)
   const sortable = new Set(['name', 'modified', ...(titleField ? [titleField] : []), ...columns.map((c) => c.name)])
-  const defaultSort = settings?.sortField && sortable.has(settings.sortField) ? settings.sortField : 'modified'
+  const typeSort = meta?.sortField && sortable.has(meta?.sortField) ? meta?.sortField : 'modified'
+  const defaultSort = settings?.sortField && sortable.has(settings.sortField) ? settings.sortField : typeSort
   const sort = sortable.has(params.get('sort') ?? '') ? params.get('sort')! : defaultSort
-  const descending = params.has('dir') ? params.get('dir') !== 'asc' : (settings?.sortDescending ?? true)
+  const descending = params.has('dir') ? params.get('dir') !== 'asc' : (settings?.sortDescending ?? meta?.sortDescending ?? true)
 
   function update(changes: Record<string, string | null>, resetPage = true) {
     const next = new URLSearchParams(params)

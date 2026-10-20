@@ -22,6 +22,10 @@ export interface Draft {
   /** Documents form a tree. Chosen when the DocType is created. */
   isTree: boolean
   allowRename: boolean
+  sortField: string
+  sortDescending: boolean
+  allowCopy: boolean
+  maxAttachments: number | null
   /** Keep the updates log (who changed what, when). On unless the DocType opts out. */
   trackChanges: boolean
   trackViews: boolean
@@ -118,6 +122,10 @@ export function emptyDraft(): Draft {
     isSingle: false,
     isTree: false,
     allowRename: false,
+    sortField: '',
+    sortDescending: true,
+    allowCopy: true,
+    maxAttachments: null,
     trackChanges: true,
     trackViews: false,
     statusField: '',
@@ -171,6 +179,10 @@ export function fromDetail(detail: DesignerDetail): Draft {
     isSingle: def.isSingle ?? false,
     isTree: def.isTree ?? false,
     allowRename: def.allowRename ?? false,
+    sortField: def.sortField ?? '',
+    sortDescending: def.sortDescending ?? true,
+    allowCopy: def.allowCopy ?? true,
+    maxAttachments: def.maxAttachments ?? null,
     trackChanges: def.trackChanges ?? true,
     trackViews: def.trackViews ?? false,
     statusField: def.statusField ?? '',
@@ -226,6 +238,10 @@ export function toDefinition(draft: Draft): DocTypeDefinition {
     isSingle: (!draft.isChildTable && draft.isSingle) || undefined,
     isTree: (!draft.isChildTable && draft.isTree) || undefined,
     allowRename: (!draft.isChildTable && !draft.isSingle && draft.allowRename) || undefined,
+    sortField: (!draft.isChildTable && !draft.isSingle && draft.sortField) || undefined,
+    sortDescending: draft.sortDescending ? undefined : false,
+    allowCopy: draft.allowCopy ? undefined : false,
+    maxAttachments: (!draft.isChildTable && draft.maxAttachments) || undefined,
     // The log is on by default; only an opt-out is written.
     trackChanges: draft.trackChanges ? undefined : false,
     trackViews: draft.trackViews || undefined,

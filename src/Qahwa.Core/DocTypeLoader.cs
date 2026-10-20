@@ -267,6 +267,12 @@ public static partial class DocTypeLoader
 
     private static void CheckSpecial(DocTypeMeta meta, Action<string, string> add)
     {
+        if (meta.SortField is { } sort && sort is not ("name" or "modified" or "creation") && !meta.Fields.Any(f => f.Name == sort && FieldTypes.HasColumn(f.Type)))
+            add("sortField", "Sort by name, modified, creation or one of the DocType's fields.");
+        if (meta.MaxAttachments is { } max && (max < 1 || max > 50))
+            add("maxAttachments", "The most files per document is between 1 and 50.");
+        if (meta.IsChildTable && (meta.SortField is not null || meta.MaxAttachments is not null))
+            add("isChildTable", "A child table has no list and no files of its own.");
         if (meta.IsChildTable && (meta.IsSingle || meta.IsTree || meta.AllowRename))
             add("isChildTable", "A child table cannot be single, a tree, or renamable.");
         if (meta.IsChildTable && meta.Fields.Any(f => f.Type == FieldType.Password))
