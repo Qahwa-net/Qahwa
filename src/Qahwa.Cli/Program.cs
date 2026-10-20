@@ -15,6 +15,8 @@ const string usage = """
     qahwa list-apps    (--connection <cs> | --site <name> --sites <dir>)
     qahwa install-app  <app> (--connection <cs> | --site <name> --sites <dir>)
     qahwa uninstall-app <app> (--connection <cs> | --site <name> --sites <dir>)
+    qahwa backup       (--connection <cs> | --site <name> --sites <dir>) --out <file.zip> [--doctypes <dir> ...]
+    qahwa restore      <file.zip> (--connection <cs> | --site <name> --sites <dir>) [--dry-run] [--doctypes <dir> ...]
 
     migrate       Creates or updates database tables for the framework and every DocType found in the directories.
                   --plan   print the SQL that would run without executing it
@@ -31,6 +33,10 @@ const string usage = """
     uninstall-app Switches an app off for the site (its hooks, methods, jobs and reports stop; its data and DocTypes stay).
                   A running server notices within a few minutes; apps that need this one are switched off too.
 
+    backup        Writes the documents and definitions of the site to a zip (never passwords, sessions or secrets). The file must not exist yet.
+    restore       Adds what is in a backup zip to the site: rows that already exist are left alone. --dry-run only reports what would be added.
+                  Both need the same --doctypes the server uses, so the app DocTypes are known.
+
     --connection (or QAHWA_CONNECTION) names the database directly; --site names a site made by new-site.
     --provider chooses the database product: postgres (the default) or sqlserver (also QAHWA_PROVIDER). For an existing site
     it is read from the site's file.
@@ -43,7 +49,7 @@ if (args.Length == 0 || args[0] is "-h" or "--help")
 }
 
 var command = args[0];
-if (command is not ("migrate" or "create-admin" or "new-site" or "list-sites" or "list-apps" or "install-app" or "uninstall-app"))
+if (command is not ("migrate" or "create-admin" or "new-site" or "list-sites" or "list-apps" or "install-app" or "uninstall-app" or "backup" or "restore"))
 {
     Console.Error.WriteLine($"Unknown command '{command}'.\n\n{usage}");
     return 1;
@@ -55,6 +61,8 @@ var hosts = new List<string>();
 var product = (Environment.GetEnvironmentVariable("QAHWA_PROVIDER") ?? "postgres").ToLowerInvariant();
 string? email = null, fullName = null, site = null, sitesDir = null, adminConnection = null, connectionEnv = null, siteName = null, appName = null;
 var planOnly = false;
+var dryRun = false;
+string? outFile = null, restoreFile = null;
 var passwordFromStdin = false;
 
 for (var i = 1; i < args.Length; i++)
@@ -63,7 +71,7 @@ for (var i = 1; i < args.Length; i++)
     var hasValue = i + 1 < args.Length;
     switch (arg)
     {
-        case "--connection" when hasValue && command is "migrate" or "create-admin" or "list-apps" or "install-app" or "uninstall-app":
+        case "--connection" when hasValue && command is "migrate" or "create-admin" or "list-apps" or "install-app" or "uninstall-app" or "backup" or "restore" or "backup" or "restore":
             connection = args[++i];
             break;
         case "--doctypes" when hasValue && command != "list-sites":
@@ -78,10 +86,16 @@ for (var i = 1; i < args.Length; i++)
         case "--password-stdin" when command is "create-admin" or "new-site":
             passwordFromStdin = true;
             break;
+        case "--out" when hasValue && command == "backup":
+            outFile = args[++i];
+            break;
+        case "--dry-run" when command == "restore":
+            dryRun = true;
+            break;
         case "--plan" when command == "migrate":
             planOnly = true;
             break;
-        case "--site" when hasValue && command is "migrate" or "create-admin" or "list-apps" or "install-app" or "uninstall-app":
+        case "--site" when hasValue && command is "migrate" or "create-admin" or "list-apps" or "install-app" or "uninstall-app" or "backup" or "restore" or "backup" or "restore":
             site = args[++i];
             break;
         case "--provider" when hasValue && command is "migrate" or "create-admin" or "new-site":
@@ -103,6 +117,12 @@ for (var i = 1; i < args.Length; i++)
             if (command == "new-site" && siteName is null && !arg.StartsWith('-'))
             {
                 siteName = arg;
+                break;
+            }
+
+            if (command == "restore" && restoreFile is null && !arg.StartsWith('-'))
+            {
+                restoreFile = arg;
                 break;
             }
 
@@ -155,12 +175,18 @@ try
         return Fail("--email is required.");
     if (command is "install-app" or "uninstall-app" && string.IsNullOrWhiteSpace(appName))
         return Fail("The name of the app is required.");
+    if (command == "backup" && string.IsNullOrWhiteSpace(outFile))
+        return Fail("--out is required.");
+    if (command == "restore" && string.IsNullOrWhiteSpace(restoreFile))
+        return Fail("The backup file is required.");
 
     await using var provider = Build(connection);
     return command switch
     {
         "migrate" => await MigrateAsync(provider),
         "list-apps" or "install-app" or "uninstall-app" => await AppsAsync(provider),
+        "backup" => await BackupAsync(provider),
+        "restore" => await RestoreAsync(provider),
         _ => await CreateAdminAsync(provider),
     };
 }
@@ -242,6 +268,42 @@ async Task<int> AppsAsync(ServiceProvider provider)
     if (!await repository.UpdateAsync(meta, appName!, new Dictionary<string, object?> { ["status"] = target, ["modified"] = now, ["modified_by"] = "Administrator" }, stored))
         return Fail("The record was changed at the same time. Try again.");
     Console.WriteLine($"'{appName}' is now {target.ToLowerInvariant()}. A running server applies this within a few minutes.");
+    return 0;
+}
+
+async Task<int> BackupAsync(ServiceProvider provider)
+{
+    var path = Path.GetFullPath(outFile!);
+    var admin = new Qahwa.Core.UserContext(Qahwa.Core.UserContext.AdministratorRole, [Qahwa.Core.UserContext.AdministratorRole]);
+    try
+    {
+        // CreateNew: an existing file is never overwritten.
+        await using (var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            await provider.GetRequiredService<Qahwa.Core.BackupService>().WriteAsync(stream, admin);
+    }
+    catch
+    {
+        if (File.Exists(path) && new FileInfo(path).Length == 0)
+            File.Delete(path);
+        throw;
+    }
+
+    Console.WriteLine($"Backup written to {path} ({new FileInfo(path).Length} bytes). It holds business data: keep it private.");
+    return 0;
+}
+
+async Task<int> RestoreAsync(ServiceProvider provider)
+{
+    var path = Path.GetFullPath(restoreFile!);
+    if (!File.Exists(path))
+        return Fail($"There is no file {path}.");
+    var admin = new Qahwa.Core.UserContext(Qahwa.Core.UserContext.AdministratorRole, [Qahwa.Core.UserContext.AdministratorRole]);
+    await using var stream = File.OpenRead(path);
+    var report = await provider.GetRequiredService<Qahwa.Core.BackupService>().RestoreAsync(stream, dryRun, admin);
+    Console.WriteLine(report.DryRun ? "Dry run: nothing was changed." : "Restored.");
+    foreach (var table in report.Tables)
+        Console.WriteLine($"  {table}");
+    Console.WriteLine($"Definitions: {report.Definitions.Count}; counters raised: {report.SeriesRaised}.");
     return 0;
 }
 

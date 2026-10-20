@@ -431,3 +431,7 @@ Desk: `controls/SearchSelect.tsx`, `LinkSelect.tsx` ("Create new"), `QuickCreate
 ## Amend ([ADR-103](../../adr/103-amend.md))
 
 `DocumentService.Amend.cs` `AmendAsync`; `DocTypeLoader.WithAmendedField` adds `amended_from`; `PermFlag.Amend` / `DocPermMeta.Amend` / `EffectivePermissions.Amend`; endpoint `POST /api/resource/{doctype}/{name}/amend`; Desk button in `FormView.tsx`. Tests: `AmendTests`, `SubmittableApiTests`.
+
+## CLI backup and restore ([ADR-104](../../adr/104-cli-backup-restore.md))
+
+`src/Qahwa.Cli/Program.cs`: `BackupAsync`, `RestoreAsync` call `BackupService.WriteAsync/RestoreAsync` as an Administrator. No automated test (needs a database); argument errors and the usage text were checked by hand.

@@ -84,6 +84,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 80. [Field rules](80-field-rules.md)
 81. [Headings and notes on forms](81-heading-and-html-fields.md)
 82. [Amending a cancelled document](82-amending-documents.md)
+83. [Backup and restore from the command line](83-backup-from-the-command-line.md)
 
 **Words used**
 
