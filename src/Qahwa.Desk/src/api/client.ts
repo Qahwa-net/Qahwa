@@ -7,7 +7,7 @@ import type { SsoProviderInfo } from '../lib/sso.ts'
 import type { DisplaySettings } from '../lib/display.ts'
 import type {
   DesignerDetail, DocPerm, DesignerItem, DesignerPreview, Doc, DocTypeDefinition, FieldError, FieldTypeInfo,
-  ListResponse, ReportDetail, ReportInfo, ReportRun, RestoreReport, SignIn, ExpiredPasswordChallenge, TwoFactorChallenge, TwoFactorSetup, TwoFactorStatus, PublicForm, BundleReport, TranslationCatalog, AttachedFile, WebhookItem, WebhookSet, WebhookView, ApiKeyCreated, ApiKeyInfo, ImportPreview, ImportResult, WorkspaceBlock, WorkspaceDetail, WorkspaceInfo, WorkspaceView, LetterHeadDetail, PrintChoices, PrintFormatDetail, PrintFormatInfo, DashboardDetail, DashboardInfo, DashboardItem, DashboardResult, EmailPreview, EmailTemplateInfo, NotificationRuleItem, NotificationRuleSet, NotificationRuleView, AutoRepeatInfo, AutoRepeatRequest, AssignmentRuleItem, AssignmentRuleSet, AssignmentRuleView, PendingAction, WorkflowDefinition, WorkflowItem, WorkflowStatus, WorkflowView, MetaResponse, MetaSummary, PermissionItem, ActivityItem, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, AppInfo, EmailDigest, ScriptReportInfo, ScriptReportResult, Viewer, FollowState, LikeState, TagCount, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
+  ListResponse, ReportDetail, ReportInfo, ReportRun, RestoreReport, SignIn, ExpiredPasswordChallenge, TwoFactorChallenge, TwoFactorSetup, TwoFactorStatus, PublicForm, BundleReport, TranslationCatalog, AttachedFile, WebhookItem, WebhookSet, WebhookView, ApiKeyCreated, ApiKeyInfo, ImportPreview, ImportResult, WorkspaceBlock, WorkspaceDetail, WorkspaceInfo, WorkspaceView, LetterHeadDetail, PrintChoices, PrintFormatDetail, PrintFormatInfo, DashboardDetail, DashboardInfo, DashboardItem, DashboardResult, EmailPreview, EmailTemplateInfo, NotificationRuleItem, NotificationRuleSet, NotificationRuleView, AutoRepeatInfo, AutoRepeatRequest, AssignmentRuleItem, AssignmentRuleSet, AssignmentRuleView, PendingAction, WorkflowDefinition, WorkflowItem, WorkflowStatus, WorkflowView, MetaResponse, MetaSummary, PermissionItem, ActivityItem, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, AppInfo, OAuthAuthorizeParams, OAuthConsent, OAuthClientInfo, OAuthConnected, EmailDigest, ScriptReportInfo, ScriptReportResult, Viewer, FollowState, LikeState, TagCount, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
 } from './types.ts'
 import type { Filter } from '../lib/filters.ts'
 import { toApiFilters } from '../lib/filters.ts'
@@ -498,6 +498,19 @@ export const api = {
     list: async () => (await request<{ data: ScriptReportInfo[] }>('GET', '/api/script-reports')).data,
     run: async (id: string, filters: Record<string, string>) =>
       (await request<{ data: ScriptReportResult }>('POST', `/api/script-reports/${encodeURIComponent(id)}/run`, { filters })).data,
+  },
+
+  oauth: {
+    consent: async (p: OAuthAuthorizeParams) =>
+      (await request<{ data: OAuthConsent }>('GET', `/api/oauth/authorize?client_id=${encodeURIComponent(p.clientId)}&redirect_uri=${encodeURIComponent(p.redirectUri)}&scope=${encodeURIComponent(p.scope)}&state=${encodeURIComponent(p.state)}&code_challenge=${encodeURIComponent(p.codeChallenge)}&code_challenge_method=${encodeURIComponent(p.codeChallengeMethod)}`)).data,
+    decide: async (p: OAuthAuthorizeParams, approve: boolean) =>
+      (await request<{ data: { redirect: string } }>('POST', '/api/oauth/authorize', { ...p, approve })).data.redirect,
+    clients: async () => (await request<{ data: OAuthClientInfo[] }>('GET', '/api/oauth/clients')).data,
+    createClient: async (body: { name: string; redirectUris: string; scopes: string[]; public: boolean }) =>
+      (await request<{ data: { info: OAuthClientInfo; clientSecret: string | null } }>('POST', '/api/oauth/clients', body)).data,
+    deleteClient: async (id: string) => { await request<unknown>('DELETE', `/api/oauth/clients/${encodeURIComponent(id)}`) },
+    connected: async () => (await request<{ data: OAuthConnected[] }>('GET', '/api/oauth/connected')).data,
+    disconnect: async (clientId: string) => { await request<unknown>('DELETE', `/api/oauth/connected/${encodeURIComponent(clientId)}`) },
   },
 
   apps: {

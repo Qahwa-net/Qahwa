@@ -122,6 +122,7 @@ export function Shell() {
               <li><NavLink to="/webhooks">{t('Webhooks')}</NavLink></li>
               <li><NavLink to="/emailed-reports">{t('Emailed Reports')}</NavLink></li>
               <li><NavLink to="/apps">{t('Apps')}</NavLink></li>
+              <li><NavLink to="/oauth-clients">{t('OAuth Applications')}</NavLink></li>
               <li><NavLink to="/app/Scheduled%20Job%20Log">{t('Scheduled Job Log')}</NavLink></li>
               <li><NavLink to="/app/Error%20Log">{t('Error Log')}</NavLink></li>
               <li><NavLink to="/app/Deleted%20Document">{t('Deleted Documents')}</NavLink></li>

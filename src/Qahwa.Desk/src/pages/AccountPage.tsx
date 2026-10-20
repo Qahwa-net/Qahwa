@@ -4,6 +4,7 @@ import { useAuth } from '../auth.tsx'
 import { isThemePref } from '../lib/theme.ts'
 import { useTheme } from '../theme.tsx'
 import { ApiKeysSection } from './ApiKeysSection.tsx'
+import { ConnectedAppsSection } from './ConnectedAppsSection.tsx'
 import { EmailDigestSection } from './EmailDigestSection.tsx'
 import { SessionsSection } from './SessionsSection.tsx'
 import { TwoFactorSection } from './TwoFactorSection.tsx'
@@ -76,6 +77,7 @@ export function AccountPage() {
       </form>
 
       <EmailDigestSection />
+      <ConnectedAppsSection />
       <SessionsSection />
       <TwoFactorSection />
       <ApiKeysSection />

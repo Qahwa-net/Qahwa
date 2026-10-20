@@ -1,0 +1,17 @@
+{
+  "name": "OAuth Client",
+  "module": "Core",
+  "trackChanges": false,
+  "fields": [
+    { "name": "client_id", "type": "Data", "label": "Client ID", "required": true, "unique": true, "indexed": true, "inListView": true },
+    { "name": "client_name", "type": "Data", "label": "Application", "required": true, "inListView": true },
+    { "name": "redirect_uris", "type": "Text", "label": "Redirect addresses" },
+    { "name": "scopes", "type": "Data", "label": "Permissions it may ask for" },
+    { "name": "is_public", "type": "Check", "label": "Public client (no secret)" },
+    { "name": "secret_hash", "type": "Data", "label": "Secret hash", "permLevel": 9 },
+    { "name": "enabled", "type": "Check", "label": "Enabled", "default": "1", "inListView": true }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true }
+  ]
+}

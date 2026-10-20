@@ -75,6 +75,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 71. [Searchable fields and attachment preview](71-searchable-fields-and-preview.md)
 72. [Writing Document Actions with help](72-document-action-help.md)
 73. [Installing and uninstalling apps](73-installing-and-uninstalling-apps.md)
+74. [Letting other applications use your account (OAuth)](74-oauth-applications.md)
 
 **Words used**
 

@@ -183,6 +183,7 @@ public sealed class TestEngine
         Backup = new BackupService(Registry, Repository, Bundle, Permissions, Clock);
         Files = new FileService(Registry, Repository, Documents, Permissions, Notifications, FileStorage, History);
         ApiKeys = new ApiKeyService(Registry, Repository, Auth, Permissions, History);
+        OAuth = new OAuthService(Registry, Repository, Auth, Permissions, History, new HitCounter(Clock));
     }
 
     public MetaRegistry Registry { get; }
@@ -245,6 +246,7 @@ public sealed class TestEngine
     public WebFormService WebForms { get; }
     public DataImportService DataImport { get; }
     public ApiKeyService ApiKeys { get; }
+    public OAuthService OAuth { get; }
     public WebhookCatalog WebhookCatalog { get; }
     public InMemoryWebhookStore WebhookStore { get; }
     public FakeWebhookSender WebhookSender { get; }

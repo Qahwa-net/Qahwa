@@ -1,0 +1,20 @@
+{
+  "name": "OAuth Token",
+  "module": "Core",
+  "trackChanges": false,
+  "fields": [
+    { "name": "kind", "type": "Select", "options": "code\naccess\nrefresh", "label": "Kind", "required": true, "indexed": true },
+    { "name": "token_hash", "type": "Data", "label": "Token hash", "required": true, "indexed": true, "permLevel": 9 },
+    { "name": "client_id", "type": "Data", "label": "Client", "indexed": true, "inListView": true },
+    { "name": "user", "type": "Data", "label": "User", "indexed": true, "inListView": true },
+    { "name": "scope", "type": "Data", "label": "Permissions" },
+    { "name": "expires_at", "type": "Datetime", "label": "Expires", "indexed": true },
+    { "name": "redirect_uri", "type": "Data", "label": "Redirect address" },
+    { "name": "code_challenge", "type": "Data", "label": "PKCE challenge", "permLevel": 9 },
+    { "name": "family", "type": "Data", "label": "Approval", "indexed": true },
+    { "name": "used", "type": "Check", "label": "Used" }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "delete": true }
+  ]
+}

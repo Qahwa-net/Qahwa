@@ -31,6 +31,7 @@ public interface IUserContextResolver
 internal sealed class CookieUserContextResolver(
     AuthService auth,
     ApiKeyService apiKeys,
+    OAuthService oauth,
     SessionService sessions,
     IMemoryCache cache,
     IOptions<AuthOptions> options) : IUserContextResolver
@@ -60,6 +61,19 @@ internal sealed class CookieUserContextResolver(
                 throw new PermissionDeniedException("This API key is read-only.");
             context.Items[ViaApiKey] = true;
             return identity.User;
+        }
+
+        // A program acting for a person who approved it (OAuth): "Authorization: Bearer qo_...". It may use the API only with the api permissions,
+        // is read-only without api:write, and is never a signed-in session (so it cannot manage keys, backups or other applications).
+        if (context.Request.Headers.Authorization.ToString() is { } bearer && bearer.StartsWith("Bearer " + OAuthService.AccessPrefix, StringComparison.Ordinal))
+        {
+            var grant = await oauth.AuthenticateAsync(bearer["Bearer ".Length..].Trim(), ct);
+            if (grant is null || !grant.CanUseApi)
+                return UserContext.Anonymous;
+            if (!grant.CanWrite && !HttpMethods.IsGet(context.Request.Method) && !HttpMethods.IsHead(context.Request.Method) && !HttpMethods.IsOptions(context.Request.Method))
+                throw new PermissionDeniedException("This access token may only read.");
+            context.Items[ViaApiKey] = true;
+            return grant.User;
         }
 
         var principal = context.User;

@@ -10,7 +10,7 @@ using Qahwa.Core;
 public sealed class SchedulerService(
     AutoRepeatService autoRepeat, NotificationRuleEngine notificationRules, EmailService email, WebhookService webhooks, ErrorLogService errorLog,
     BackupService backup, BackupOptions backupOptions, AppJobRunner appJobs, DeletedDocumentService deletedDocuments, AccessLogService accessLog, AutoEmailReportService emailedReports,
-    EmailDigestService digests, AppInstaller installer, JobLogService jobLog, IConfiguration configuration, ILogger<SchedulerService> logger) : BackgroundService
+    EmailDigestService digests, AppInstaller installer, OAuthService oauth, JobLogService jobLog, IConfiguration configuration, ILogger<SchedulerService> logger) : BackgroundService
 {
     /// <summary>
     /// Runs one step. It returns what to say about the run, or null when there was nothing to do (nothing is logged then). A step that
@@ -107,6 +107,7 @@ public sealed class SchedulerService(
                     await jobLog.PurgeAsync(TimeSpan.FromDays(logDays), stoppingToken);
                     var accessDays = Math.Clamp(configuration.GetValue("Qahwa:AccessLog:RetentionDays", AccessLogService.DefaultRetentionDays), 1, 3650);
                     await accessLog.PurgeAsync(TimeSpan.FromDays(accessDays), stoppingToken);
+                    await oauth.PurgeAsync(stoppingToken);
                     return copies > 0 ? $"Removed {copies} old copy(ies) of deleted documents." : null;
                 }, stoppingToken);
             }

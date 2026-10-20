@@ -328,6 +328,39 @@ export interface AppInfo {
   installed: boolean
 }
 
+export interface OAuthAuthorizeParams {
+  clientId: string
+  redirectUri: string
+  scope: string
+  state: string
+  codeChallenge: string
+  codeChallengeMethod: string
+}
+
+export interface OAuthConsent {
+  clientName: string
+  redirectHost: string
+  scopes: { name: string; description: string }[]
+}
+
+export interface OAuthClientInfo {
+  id: string
+  clientId: string
+  name: string
+  redirectUris: string[]
+  scopes: string[]
+  public: boolean
+  enabled: boolean
+  created: string
+}
+
+export interface OAuthConnected {
+  clientId: string
+  name: string
+  scope: string
+  since: string
+}
+
 export interface LikeState {
   liked: boolean
   count: number
