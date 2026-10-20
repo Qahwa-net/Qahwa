@@ -43,15 +43,16 @@ public static class ListEndpoints
         });
 
         app.MapPost("/api/resource/{doctype}/bulk", async (
-            string doctype, BulkRequest body, HttpContext http, IUserContextResolver users, BulkService service, CancellationToken ct) =>
+            string doctype, BulkRequest body, HttpContext http, IUserContextResolver users, BulkService service, LabelService labels, CancellationToken ct) =>
         {
             var user = await users.ResolveAsync(http, ct);
             var results = body.Action switch
             {
                 "update" => await service.UpdateAsync(doctype, body.Names, body.Field, body.Value is { } v ? v : null, user, ct),
                 "delete" => await service.DeleteAsync(doctype, body.Names, user, ct),
+                "tag" => await service.TagAsync(labels, doctype, body.Names, body.Value is { ValueKind: JsonValueKind.String } t ? t.GetString() : null, user, ct),
                 "rename" => await service.RenameAsync(doctype, body.Renames, body.Merge, user, ct),
-                _ => throw new DocumentValidationException([new FieldError("action", "Use \"update\", \"rename\" or \"delete\".")]),
+                _ => throw new DocumentValidationException([new FieldError("action", "Use \"update\", \"tag\", \"rename\" or \"delete\".")]),
             };
             return Results.Ok(new { data = results, succeeded = results.Count(r => r.Ok), failed = results.Count(r => !r.Ok) });
         });

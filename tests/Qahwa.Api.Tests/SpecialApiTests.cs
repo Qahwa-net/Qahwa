@@ -195,6 +195,27 @@ public sealed class SpecialApiTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Selected_documents_can_be_tagged_in_one_call()
+    {
+        await CreateDocTypeAsync(new
+        {
+            name = "Pinboard",
+            autoname = "field:title",
+            fields = new object[] { new { name = "title", type = "Data", required = true } },
+            permissions = new object[] { new { role = "Sales Manager", read = true, write = true, create = true }, new { role = "Sales User", read = true } },
+        });
+        var manager = _factory.ClientFor("m@example.com", "Sales Manager");
+        await manager.PostAsJsonAsync("/api/resource/Pinboard", new { title = "p1" });
+        await manager.PostAsJsonAsync("/api/resource/Pinboard", new { title = "p2" });
+        var done = await JsonOf(await manager.PostAsJsonAsync("/api/resource/Pinboard/bulk", new { action = "tag", names = new[] { "p1", "p2" }, value = "Review" }));
+        Assert.Equal(2, done.GetProperty("succeeded").GetInt32());
+        var tagged = await JsonOf(await manager.GetAsync("/api/resource/Pinboard?filters=[[\"_tag\",\"=\",\"review\"]]"));
+        Assert.Equal(2, tagged.GetProperty("data").GetArrayLength());
+        Assert.Equal(HttpStatusCode.BadRequest, (await manager.PostAsJsonAsync("/api/resource/Pinboard/bulk", new { action = "tag", names = new[] { "p1" }, value = " " })).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateClient().PostAsJsonAsync("/api/resource/Pinboard/bulk", new { action = "tag", names = new[] { "p1" }, value = "x" })).StatusCode);
+    }
+
+    [Fact]
     public async Task Tags_and_likes_work_over_the_api_and_filter_lists()
     {
         await CreateDocTypeAsync(new

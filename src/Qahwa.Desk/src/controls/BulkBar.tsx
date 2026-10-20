@@ -31,6 +31,8 @@ export function BulkBar({ doctype, names, fields, canWrite, canDelete, canRename
   const [value, setValue] = useState<InputValue>('')
   const [error, setError] = useState<string | null>(null)
   const [renaming, setRenaming] = useState(false)
+  const [tagging, setTagging] = useState(false)
+  const [tag, setTag] = useState('')
   const [find, setFind] = useState('')
   const [replaceWith, setReplaceWith] = useState('')
   const plan = renamePairs(names, find, replaceWith)
@@ -59,7 +61,12 @@ export function BulkBar({ doctype, names, fields, canWrite, canDelete, canRename
     onSuccess: finish,
     onError: fail,
   })
-  const busy = update.isPending || remove.isPending || rename.isPending
+  const addTag = useMutation({
+    mutationFn: () => api.bulk(doctype, { action: 'tag', names, value: tag }),
+    onSuccess: async (result) => { await finish(result); setTagging(false); setTag('') },
+    onError: fail,
+  })
+  const busy = update.isPending || remove.isPending || rename.isPending || addTag.isPending
 
   return (
     <div className="bulk-bar" role="region" aria-label="Actions for the selected documents">
@@ -75,6 +82,13 @@ export function BulkBar({ doctype, names, fields, canWrite, canDelete, canRename
             onClick={() => { if (window.confirm(`Set "${target?.label || field}" on ${names.length} document(s)?`)) update.mutate() }}>Apply</button>
         </>
       )}
+      {canWrite && (tagging ? (
+        <span className="bulk-rename">
+          <input aria-label="Tag to add" placeholder="Tag" maxLength={40} value={tag} onChange={(e) => setTag(e.target.value)} />
+          <button className="btn small" disabled={busy || tag.trim() === ''} onClick={() => addTag.mutate()}>Add tag</button>
+          <button className="btn small" onClick={() => setTagging(false)}>Cancel</button>
+        </span>
+      ) : <button className="btn small" disabled={busy} onClick={() => setTagging(true)}>Tag…</button>)}
       {canRename && (renaming ? (
         <span className="bulk-rename">
           <input aria-label="Text to find" placeholder="Find" value={find} onChange={(e) => setFind(e.target.value)} />

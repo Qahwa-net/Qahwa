@@ -48,6 +48,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **Gallery, map and timeline views**: pictures as tiles, places on a plain grid (no outside map service), documents as bars between two dates ([ADR-049](docs/adr/049-gallery-map-and-timeline-views.md))
 - **Light, dark and automatic themes and a brand**: per-person theme, organisation name, logo, colours and default theme, all checked as plain data, readable colours guaranteed ([ADR-056](docs/adr/056-brand-and-theme.md))
 - **App dependencies**: apps name the apps they need; installed in order, bad graphs stop start-up ([ADR-085](docs/adr/085-app-dependencies.md))
+- **Bulk tagging**: tag many selected documents at once ([ADR-098](docs/adr/098-bulk-tag.md))
 - **API versioning**: `/api/v1/…` is a stable address for integrations ([ADR-097](docs/adr/097-api-versioning.md))
 - **User types**: a Website User only ever has the Website User role ([ADR-096](docs/adr/096-user-types.md))
 - **Incoming mail**: a mailbox is read over IMAP (TLS only, read-only) and each new message becomes a Communication ([ADR-095](docs/adr/095-incoming-mail.md))

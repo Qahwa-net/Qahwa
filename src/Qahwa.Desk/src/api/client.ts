@@ -295,7 +295,7 @@ export const api = {
   },
 
   /** Change one field on, or delete, several documents; each is reported on its own. */
-  async bulk(doctype: string, body: { action: 'update' | 'delete' | 'rename'; names: string[]; field?: string; value?: unknown; renames?: { from: string; to: string }[]; merge?: boolean }) {
+  async bulk(doctype: string, body: { action: 'update' | 'delete' | 'rename' | 'tag'; names: string[]; field?: string; value?: unknown; renames?: { from: string; to: string }[]; merge?: boolean }) {
     return request<{ data: BulkResult[]; succeeded: number; failed: number }>('POST', `${resource(doctype)}/bulk`, body)
   },
 

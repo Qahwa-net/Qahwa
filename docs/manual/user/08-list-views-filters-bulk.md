@@ -50,3 +50,6 @@ Changing the page, the filters or the sort clears the selection.
 
 ## Exporting
 **Export CSV** and **Export Excel** (above the list) download the documents your filters show, if you have the Export right. The Excel file keeps numbers, dates and yes/no values as such. Reports have **Download CSV** and **Download Excel** too.
+
+## Tag many at once
+Tick the documents, choose **Tag…**, type the tag and press **Add tag**. Each document is tagged on its own, and any that cannot be tagged are listed.

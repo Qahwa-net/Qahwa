@@ -407,3 +407,7 @@ Desk: `controls/SearchSelect.tsx`, `LinkSelect.tsx` ("Create new"), `QuickCreate
 ## API versioning ([ADR-097](../../adr/097-api-versioning.md))
 
 `ApiInfrastructure.cs` `UseQahwaApiVersion` rewrites `/api/v1/…` to `/api/…` before routing (`Program.cs` calls it, then `UseRouting()` explicitly) and sets `X-Qahwa-Api-Version`. Tests: `ApiVersionTests`.
+
+## Bulk tagging ([ADR-098](../../adr/098-bulk-tag.md))
+
+`Bulk.cs` `BulkService.TagAsync`; `ListEndpoints.cs` bulk `action: "tag"`; Desk `BulkBar.tsx`. Tests: `Bulk_tagging_tags_what_can_be_read_and_reports_the_rest`, `Selected_documents_can_be_tagged_in_one_call`.

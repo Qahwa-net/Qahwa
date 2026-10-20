@@ -113,4 +113,17 @@ public class BulkRenameTests
         var tooLong = await _bulk.RenameAsync("Folder", [new("x'); DROP TABLE tabFolder; --", new string('n', 200))], false, Ann);
         Assert.False(tooLong[0].Ok);
     }
+
+    [Fact]
+    public async Task Bulk_tagging_tags_what_can_be_read_and_reports_the_rest()
+    {
+        await FolderAsync("a");
+        await FolderAsync("b");
+        var results = await _bulk.TagAsync(_engine.Labels, "Folder", ["a", "b", "missing"], "  Urgent ", Ann);
+        Assert.Equal([true, true, false], results.Select(r => r.Ok));
+        Assert.Equal(["urgent"], await _engine.Labels.TagsAsync("Folder", "a", Ann));
+        await Assert.ThrowsAsync<DocumentValidationException>(() => _bulk.TagAsync(_engine.Labels, "Folder", ["a"], "   ", Ann));
+        await Assert.ThrowsAsync<DocumentValidationException>(() => _bulk.TagAsync(_engine.Labels, "Folder", [], "x", Ann));
+        await Assert.ThrowsAsync<UnauthenticatedException>(() => _bulk.TagAsync(_engine.Labels, "Folder", ["a"], "x", UserContext.Anonymous));
+    }
 }

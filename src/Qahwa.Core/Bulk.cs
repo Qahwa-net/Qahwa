@@ -62,6 +62,19 @@ public sealed class BulkService(IMetaRegistry registry, DocumentService document
         return results;
     }
 
+    /// <summary>Adds one tag to each chosen document (the same rules as tagging one: read access, the tag limits, and the right to write).</summary>
+    public async Task<IReadOnlyList<BulkResult>> TagAsync(
+        LabelService labels, string doctype, IReadOnlyList<string>? names, string? tag, IUserContext user, CancellationToken ct = default)
+    {
+        registry.Get(doctype);
+        if (!user.IsAuthenticated)
+            throw new UnauthenticatedException();
+        var clean = CheckNames(names);
+        if (string.IsNullOrEmpty(LabelService.NormalizeTag(tag)))
+            throw new DocumentValidationException([new FieldError("value", "Enter a tag.")]);
+        return await RunAsync(clean, async name => await labels.AddTagAsync(doctype, name, tag, user, ct));
+    }
+
     /// <summary>Sets one field to one value on each chosen document.</summary>
     public async Task<IReadOnlyList<BulkResult>> UpdateAsync(
         string doctype, IReadOnlyList<string>? names, string? field, object? value, IUserContext user, CancellationToken ct = default)

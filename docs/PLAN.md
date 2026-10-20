@@ -642,7 +642,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | List view: search, filters, sort, paging | | ✅ | done |
 | List view: saved filters, user settings (columns, sort), list view settings | done (ADR-016) | ✅ (v1) | L7 |
 | List view: sidebar group-by counts, row indicators/status colors, tags, assigned, like, comment count | group-by counts, status indicators and comment counts done (ADR-017); tag and like filters (ADR-068) | ✅ | L7 |
-| List view: bulk actions (edit, delete, assign, tag, export, print) | done: edit, delete, assign (ADR-016) | 🟡 | L7 |
+| List view: bulk actions (edit, delete, assign, tag, export, print) | done: edit, delete, rename, assign (ADR-016), tag (ADR-098); export uses the list filters (CSV, Excel) and printing is per document | ✅ | L7 |
 | Form view: field controls per type, validation, conflict warning, delete | | ✅ | done |
 | Form view: tabs/sections/columns layout, collapsible sections | | 🟡 | L1, L3 |
 | Form view: child table grid (editable, reorder, row form) | | ✅ | L2 |
