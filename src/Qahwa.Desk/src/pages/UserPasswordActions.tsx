@@ -40,6 +40,17 @@ export function UserPasswordActions({ email }: { email: string }) {
   </>
 }
 
+export function TestIncomingEmailAction({ disabled }: { disabled: boolean }) {
+  const [busy, setBusy] = useState(false)
+  const toast = useToast()
+  return <IconButton icon="inbox" label={disabled ? 'Save Email Account before testing' : 'Test incoming mail'} disabled={disabled || busy} onClick={async () => {
+    setBusy(true)
+    try { toast((await api.userSecurity.testIncomingEmail()).message) }
+    catch (err) { toast(err instanceof ApiError ? err.message : 'Could not read the mailbox.') }
+    finally { setBusy(false) }
+  }} />
+}
+
 export function TestEmailAction({ disabled }: { disabled: boolean }) {
   const [open, setOpen] = useState(false)
   const [to, setTo] = useState('')

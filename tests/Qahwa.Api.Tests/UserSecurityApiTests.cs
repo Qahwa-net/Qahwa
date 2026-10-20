@@ -71,6 +71,28 @@ public sealed class UserSecurityApiTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task Incoming_mail_test_is_for_managers_needs_settings_and_hides_failures()
+    {
+        var employee = factory.ClientFor(Email, "Employee");
+        Assert.Equal(HttpStatusCode.Forbidden, (await employee.PostAsJsonAsync("/api/email/test-incoming", new { })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await Admin.PostAsJsonAsync("/api/email/test-incoming", new { })).StatusCode);
+
+        var saved = await Admin.PutAsJsonAsync("/api/resource/Email%20Account/Email%20Account", new
+        {
+            imap_enabled = true, imap_server = "imap.example.com", imap_port = 993, imap_username = "desk@example.com", imap_password = "imap-secret-77",
+        });
+        Assert.Equal(HttpStatusCode.OK, saved.StatusCode);
+        Assert.DoesNotContain("imap-secret-77", await Admin.GetStringAsync("/api/resource/Email%20Account/Email%20Account"));
+        Assert.Equal(HttpStatusCode.OK, (await Admin.PostAsJsonAsync("/api/email/test-incoming", new { })).StatusCode);
+        Assert.Equal("imap-secret-77", factory.Mailbox.LastSettings!.Password);
+
+        factory.Mailbox.Broken = true;
+        var failed = await Admin.PostAsJsonAsync("/api/email/test-incoming", new { });
+        Assert.Equal(HttpStatusCode.BadRequest, failed.StatusCode);
+        Assert.DoesNotContain("server down", await failed.Content.ReadAsStringAsync());
+    }
+
+    [Fact]
     public async Task Reset_email_uses_saved_site_url_and_can_initialize_a_new_user_once()
     {
         await ConfigureEmailAsync();

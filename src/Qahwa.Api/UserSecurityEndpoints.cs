@@ -76,6 +76,14 @@ public static class UserSecurityEndpoints
             catch { throw new DocumentValidationException("SMTP delivery failed. Check the server, port, STARTTLS setting and credentials."); }
             return Results.Ok(new { message = "Test email sent." });
         });
+        app.MapPost("/api/email/test-incoming", async (HttpContext http, IUserContextResolver users, IncomingMailService incoming, CancellationToken ct) =>
+        {
+            Require(await users.ResolveAsync(http, ct));
+            try { return Results.Ok(new { message = $"Connected. The folder holds {await incoming.TestAsync(ct)} message(s)." }); }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested) { throw; }
+            catch (DocumentValidationException) { throw; }
+            catch { throw new DocumentValidationException("Could not read the mailbox. Check the server, port, security setting, folder name and credentials."); }
+        });
         return app;
     }
 }

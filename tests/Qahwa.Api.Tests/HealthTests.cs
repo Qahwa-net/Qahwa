@@ -66,6 +66,7 @@ public sealed class QahwaFactory(
 {
     /// <summary>Every email the server tried to send.</summary>
     public FakeEmailSender Mail { get; } = new();
+    public FakeMailbox Mailbox { get; } = new();
 
     /// <summary>The PDF maker the server uses in tests: it keeps the pages it was asked to print.</summary>
     public FakePdfRenderer Pdf { get; } = new();
@@ -161,6 +162,8 @@ public sealed class QahwaFactory(
             services.AddSingleton<IPdfRenderer>(Pdf);
             services.RemoveAll<IEmailSender>();
             services.AddSingleton<IEmailSender>(mail);
+            services.RemoveAll<IMailboxClient>();
+            services.AddSingleton<IMailboxClient>(Mailbox);
             services.RemoveAll<ISessionStore>();
             services.AddSingleton<ISessionStore>(new InMemorySessionStore());
             services.RemoveAll<ITotpStore>();

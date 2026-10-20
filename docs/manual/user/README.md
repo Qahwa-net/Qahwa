@@ -76,6 +76,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 72. [Writing Document Actions with help](72-document-action-help.md)
 73. [Installing and uninstalling apps](73-installing-and-uninstalling-apps.md)
 74. [Letting other applications use your account (OAuth)](74-oauth-applications.md)
+75. [Receiving email in Qahwa](75-incoming-mail.md)
 
 **Words used**
 

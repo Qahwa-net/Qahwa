@@ -1,0 +1,22 @@
+{
+  "name": "Communication",
+  "module": "Core",
+  "autoname": "COM-.#######",
+  "trackChanges": false,
+  "titleField": "subject",
+  "fields": [
+    { "name": "communication_type", "type": "Select", "options": "Received", "default": "Received", "label": "Type", "readOnly": true, "inListView": true },
+    { "name": "sender", "type": "Email", "label": "From", "readOnly": true, "inListView": true, "indexed": true },
+    { "name": "sender_name", "type": "Data", "label": "Sender name", "readOnly": true },
+    { "name": "subject", "type": "Data", "label": "Subject", "readOnly": true, "inListView": true },
+    { "name": "received_at", "type": "Datetime", "label": "Received", "readOnly": true, "inListView": true, "indexed": true },
+    { "name": "content", "type": "LongText", "label": "Message (plain text)", "readOnly": true },
+    { "name": "message_id", "type": "Data", "label": "Message ID", "readOnly": true, "indexed": true },
+    { "name": "in_reply_to", "type": "Data", "label": "In reply to", "readOnly": true },
+    { "name": "reference_doctype", "type": "Link", "options": "DocType", "label": "About (DocType)" },
+    { "name": "reference_name", "type": "DynamicLink", "options": "reference_doctype", "label": "About (document)" }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "write": true, "delete": true, "export": true, "report": true }
+  ]
+}

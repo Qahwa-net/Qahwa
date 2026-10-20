@@ -80,6 +80,7 @@ export const api = {
     setPassword: (email: string, newPassword: string) => request<{ message: string }>('POST', `/api/users/${encodeURIComponent(email)}/password`, { newPassword }),
     sendReset: (email: string) => request<{ message: string }>('POST', `/api/users/${encodeURIComponent(email)}/reset-password`, {}),
     testEmail: (to: string) => request<{ message: string }>('POST', '/api/email/test', { to }),
+    testIncomingEmail: () => request<{ message: string }>('POST', '/api/email/test-incoming'),
   },
   /** Returns null when nobody is signed in. */
   async me(): Promise<SessionUser | null> {

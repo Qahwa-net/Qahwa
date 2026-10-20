@@ -10,7 +10,7 @@ using Qahwa.Core;
 public sealed class SchedulerService(
     AutoRepeatService autoRepeat, NotificationRuleEngine notificationRules, EmailService email, WebhookService webhooks, ErrorLogService errorLog,
     BackupService backup, BackupOptions backupOptions, AppJobRunner appJobs, DeletedDocumentService deletedDocuments, AccessLogService accessLog, AutoEmailReportService emailedReports,
-    EmailDigestService digests, AppInstaller installer, OAuthService oauth, JobLogService jobLog, IConfiguration configuration, ILogger<SchedulerService> logger) : BackgroundService
+    EmailDigestService digests, AppInstaller installer, OAuthService oauth, IncomingMailService incomingMail, JobLogService jobLog, IConfiguration configuration, ILogger<SchedulerService> logger) : BackgroundService
 {
     /// <summary>
     /// Runs one step. It returns what to say about the run, or null when there was nothing to do (nothing is logged then). A step that
@@ -70,6 +70,12 @@ public sealed class SchedulerService(
             {
                 var (sent, _) = await digests.RunDueAsync(stoppingToken);
                 return sent > 0 ? $"{sent} sent." : null;
+            }, stoppingToken);
+
+            await StepAsync("incoming mail", async () =>
+            {
+                var kept = await incomingMail.PollAsync(stoppingToken);
+                return kept > 0 ? $"{kept} message(s) kept." : null;
             }, stoppingToken);
 
             await StepAsync("email queue", async () =>

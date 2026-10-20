@@ -142,6 +142,9 @@ public sealed class TestEngine
         WebForms = new WebFormService(Registry, Repository, Documents, new HitCounter(Clock));
         Workspaces = new WorkspaceService(Registry, Repository, Dashboards, Permissions, History);
         EmailSender = new FakeEmailSender();
+        Mailbox = new FakeMailbox();
+        EmailAccounts = new EmailAccountService(Registry, Repository, new FakeSecretProtector(), new EmailSettings());
+        IncomingMail = new IncomingMailService(Registry, Repository, EmailAccounts, Mailbox, History);
         Email = new EmailService(Registry, Repository, Documents, Permissions, History, EmailSender);
         AutoEmailReports = new AutoEmailReportService(Registry, Repository, Reports, Email, Notifications, Permissions, History);
         EmailDigests = new EmailDigestService(Registry, Repository, Notifications, Assignments, Email, History);
@@ -225,6 +228,9 @@ public sealed class TestEngine
     public AppInstaller AppInstaller { get; }
     public AppJobRunner AppJobs { get; }
     public JobLogService JobLog { get; }
+    public FakeMailbox Mailbox { get; }
+    public EmailAccountService EmailAccounts { get; }
+    public IncomingMailService IncomingMail { get; }
     public ScriptReportService ScriptReports { get; }
     public BootService Boot { get; }
     public FakeSamlIdp SamlIdp { get; }

@@ -8,11 +8,22 @@
     { "name": "use_tls", "type": "Check", "label": "Use STARTTLS", "default": "1", "description": "Use port 587 for STARTTLS. Implicit TLS on port 465 is not supported." },
     { "name": "smtp_username", "type": "Data", "label": "SMTP username", "description": "Usually your full email address. Leave empty for an unauthenticated relay." },
     { "name": "smtp_password", "type": "Password", "label": "SMTP password or app password", "description": "Encrypted on the server. Existing passwords are masked." },
+    { "name": "imap_enabled", "type": "Check", "label": "Read incoming mail (IMAP)", "default": "0", "description": "New messages in the folder below become Communication documents. The mailbox is only read: nothing is deleted, moved or marked as read." },
+    { "name": "imap_server", "type": "Data", "label": "IMAP server", "mandatoryDependsOn": "imap_enabled == true", "description": "For example imap.gmail.com or outlook.office365.com" },
+    { "name": "imap_port", "type": "Int", "label": "IMAP port", "default": "993" },
+    { "name": "imap_starttls", "type": "Check", "label": "Use STARTTLS (port 143) instead of TLS from the start (port 993)", "default": "0", "description": "The connection is always encrypted; unencrypted IMAP is not supported." },
+    { "name": "imap_username", "type": "Data", "label": "IMAP username", "mandatoryDependsOn": "imap_enabled == true" },
+    { "name": "imap_password", "type": "Password", "label": "IMAP password or app password", "description": "Encrypted on the server. Existing passwords are masked." },
+    { "name": "imap_folder", "type": "Data", "label": "Folder to read", "default": "INBOX" },
+    { "name": "imap_last_uid", "type": "Int", "label": "Last message read", "readOnly": true, "hidden": true },
+    { "name": "imap_uid_validity", "type": "Data", "label": "Folder version", "readOnly": true, "hidden": true },
     { "name": "site_url", "type": "Url", "label": "Public site URL", "description": "Used for password-reset links. For example https://desk.example.com" }
   ],
   "permissions": [ { "role": "System Manager", "read": true, "write": true, "create": true } ],
   "validations": [
     { "expression": "smtp_port >= 1 && smtp_port <= 65535", "message": "SMTP port must be between 1 and 65535.", "field": "smtp_port" },
+    { "expression": "!imap_enabled || (imap_port >= 1 && imap_port <= 65535)", "message": "IMAP port must be between 1 and 65535.", "field": "imap_port" },
+    { "expression": "!imap_enabled || !empty(imap_password)", "message": "Enter the mailbox password.", "field": "imap_password" },
     { "expression": "!enabled || empty(smtp_username) || !empty(smtp_password)", "message": "Enter a password when SMTP authentication is used.", "field": "smtp_password" }
   ]
 }
