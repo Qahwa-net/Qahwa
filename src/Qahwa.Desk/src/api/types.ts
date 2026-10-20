@@ -2,7 +2,7 @@ export type FieldType =
   | 'Data' | 'Text' | 'LongText' | 'Int' | 'Float' | 'Decimal' | 'Currency' | 'Percent'
   | 'Check' | 'Select' | 'Date' | 'Datetime' | 'Time' | 'Link' | 'DynamicLink' | 'Table'
   | 'Attach' | 'AttachImage' | 'Json' | 'Password' | 'Email' | 'Phone' | 'Url' | 'Code'
-  | 'Markdown' | 'SectionBreak' | 'ColumnBreak' | 'TabBreak'
+  | 'Markdown' | 'SectionBreak' | 'ColumnBreak' | 'TabBreak' | 'Heading' | 'Html'
   | 'Icon' | 'Rating' | 'Duration' | 'Color' | 'Barcode' | 'Geolocation' | 'Signature' | 'SmallText' | 'Autocomplete' | 'TextEditor'
 
 export type IndicatorColor = 'gray' | 'blue' | 'green' | 'orange' | 'red' | 'purple'
@@ -132,7 +132,7 @@ export interface DesignerDetail {
   documentCount?: number | null
 }
 
-export type OptionsKind = 'None' | 'Choices' | 'DocType'
+export type OptionsKind = 'None' | 'Choices' | 'DocType' | 'Html'
 
 export interface FieldTypeInfo {
   type: FieldType

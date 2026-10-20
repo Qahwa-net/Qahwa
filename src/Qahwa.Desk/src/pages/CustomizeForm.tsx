@@ -10,7 +10,7 @@ import {
 } from '../lib/customize.ts'
 
 const SOURCE_LABEL = { Core: 'Framework', App: 'App', Custom: 'Custom' } as const
-const LAYOUT = new Set(['SectionBreak', 'ColumnBreak', 'TabBreak'])
+const LAYOUT = new Set(['SectionBreak', 'ColumnBreak', 'TabBreak', 'Heading', 'Html'])
 
 /** Customize Form: add fields to, and adjust, DocTypes that ship with the framework or an app, without editing their files. */
 export function CustomizeFormPage() {

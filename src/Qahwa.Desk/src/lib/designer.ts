@@ -69,7 +69,7 @@ export function uniqueName(base: string, taken: Iterable<string>): string {
 }
 
 export function newField(info: FieldTypeInfo, taken: string[]): DraftField {
-  const layout = info.type === 'SectionBreak' || info.type === 'TabBreak'
+  const layout = info.type === 'SectionBreak' || info.type === 'TabBreak' || info.type === 'Heading'
   const label = layout ? info.label : ''
   const base = layout ? slugify(`${info.label} break`) : slugify(info.label)
   return {
@@ -283,4 +283,4 @@ export const isTextType = (type: FieldType) =>
   ['Data', 'Text', 'SmallText', 'Autocomplete', 'LongText', 'Email', 'Phone', 'Url', 'Code', 'Markdown'].includes(type)
 
 /** Types that cannot sensibly be unique or hold a default (long text, layout). */
-export const isLayoutType = (type: FieldType) => type === 'SectionBreak' || type === 'TabBreak' || type === 'ColumnBreak'
+export const isLayoutType = (type: FieldType) => type === 'SectionBreak' || type === 'TabBreak' || type === 'ColumnBreak' || type === 'Heading' || type === 'Html'

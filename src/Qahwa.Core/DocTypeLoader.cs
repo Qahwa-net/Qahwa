@@ -61,6 +61,7 @@ public static partial class DocTypeLoader
             throw new DocTypeValidationException("DocType JSON is empty.");
 
         meta = WithTreeFields(meta);
+        meta = meta with { Fields = [.. meta.Fields.Select(f => f.Type == FieldType.Html ? f with { Options = HtmlSanitizer.Clean(f.Options) } : f)] };
         Validate(meta);
         return meta;
     }

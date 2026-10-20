@@ -41,6 +41,12 @@ public enum FieldType
     /// <summary>A colour as #rrggbb.</summary>
     Color,
 
+    /// <summary>A bold line of text on the form (its label). Holds no value.</summary>
+    Heading,
+
+    /// <summary>A block of fixed, cleaned HTML on the form (kept in the field's options). Holds no value.</summary>
+    Html,
+
     /// <summary>The text of a barcode or QR code (letters, digits and punctuation), up to 140 characters.</summary>
     Barcode,
 

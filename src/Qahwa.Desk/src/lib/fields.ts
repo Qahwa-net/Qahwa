@@ -4,7 +4,7 @@ import { formatDuration, placeLabel, starsLabel } from './fieldtypes.ts'
 import type { DocField, FieldType } from '../api/types.ts'
 import type { FilterOp } from './filters.ts'
 
-export const isLayout = (type: FieldType) => type === 'SectionBreak' || type === 'ColumnBreak' || type === 'TabBreak'
+export const isLayout = (type: FieldType) => type === 'SectionBreak' || type === 'ColumnBreak' || type === 'TabBreak' || type === 'Heading' || type === 'Html'
 
 /** Stored as a column on the document's own table (and therefore listable and filterable). */
 export const hasColumn = (type: FieldType) => !isLayout(type) && type !== 'Table'

@@ -49,7 +49,7 @@ function FetchFromEditor({ field, linkFields, disabled, error, onChange }: {
     retry: false,
   })
   const targetFields = [
-    ...(target.data?.definition.fields ?? []).filter((f) => f.type !== 'Table' && f.type !== 'SectionBreak' && f.type !== 'TabBreak' && f.type !== 'ColumnBreak'),
+    ...(target.data?.definition.fields ?? []).filter((f) => f.type !== 'Table' && !isLayoutType(f.type)),
   ]
 
   const set = (link: string, target: string) => onChange({ fetchFrom: link ? `${link}.${target}` : null, fetchIfEmpty: link ? field.fetchIfEmpty : false })
@@ -150,6 +150,14 @@ export function FieldCard({
               <span>Choices (one per line)</span>
               <textarea rows={4} disabled={disabled} value={(field.options ?? '').replace(/\r/g, '')}
                 onChange={(e) => onChange({ options: e.target.value })} />
+              <Err message={errors[`${path}.options`]} />
+            </label>
+          )}
+
+          {info?.options === 'Html' && (
+            <label className="field full">
+              <span>HTML (simple formatting and links only; anything else is removed)</span>
+              <textarea rows={5} disabled={disabled} value={field.options ?? ''} onChange={(e) => onChange({ options: e.target.value })} />
               <Err message={errors[`${path}.options`]} />
             </label>
           )}

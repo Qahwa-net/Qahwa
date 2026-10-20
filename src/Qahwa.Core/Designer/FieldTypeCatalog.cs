@@ -8,6 +8,7 @@ public enum OptionsKind
     None,
     Choices,
     DocType,
+    Html,
 }
 
 public sealed record FieldTypeInfo(
@@ -62,6 +63,9 @@ public static class FieldTypeCatalog
 
         new(FieldType.SectionBreak, "Section", "Layout", "A heading that starts a new section of the form", OptionsKind.None, true),
         new(FieldType.TabBreak, "Tab", "Layout", "A heading that starts a new tab of the form", OptionsKind.None, true),
+
+        new(FieldType.Heading, "Heading", "Layout", "A line of bold text between fields", OptionsKind.None, true),
+        new(FieldType.Html, "HTML", "Layout", "A block of fixed text with simple formatting and links", OptionsKind.Html, true),
 
         new(FieldType.Table, "Table", "Layout", "Rows of a child DocType, e.g. the items of an order", OptionsKind.DocType, true),
         new(FieldType.DynamicLink, "Dynamic Link", "Advanced", "A link whose target DocType is chosen per document", OptionsKind.None, false, Later),

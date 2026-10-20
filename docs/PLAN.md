@@ -546,7 +546,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | **DocType Designer UI** | build DocTypes in the Desk: fields, naming, title field, list columns, permissions, live preview, SQL preview | ✅ | L1 (v1) |
 | Standard vs custom DocTypes | app files are read-only, UI-created are editable | ✅ | L1 |
 | Field types: Data, Text, Long Text, Int, Float, Currency, Percent, Check, Select, Date, Datetime, Time, Link, Email, Phone, URL, Code, Markdown, JSON | | ✅ | done |
-| Field types: Small Text, Text Editor (rich text), HTML Editor, HTML, Heading, Button, Read Only, Autocomplete | Small Text, Text Editor (cleaned HTML) and Autocomplete done (ADR-069); HTML, Heading, Button not yet (Read Only is a field property) | 🟡 | L3 |
+| Field types: Small Text, Text Editor (rich text), HTML Editor, HTML, Heading, Button, Read Only, Autocomplete | Small Text, Text Editor (cleaned HTML) and Autocomplete done (ADR-069); Heading and HTML done (ADR-102); Button is made with Document Actions and client scripts (Read Only is a field property) | ✅ | L3 |
 | Field types: Attach, Attach Image, Signature, Barcode, Geolocation, Icon, Color, Rating, Duration, Image | done: Signature, Barcode, Geolocation, Color, Rating, Duration, Icon (ADR-047), Attach and Image (ADR-048) | ✅ (v1) | L10 |
 | Field types: Table | child rows inside a document | ✅ | L2 |
 | Field types: Dynamic Link, Table MultiSelect | Dynamic Link done (ADR-038); Table MultiSelect done as a flag on Table fields (ADR-078) | ✅ | L2 |

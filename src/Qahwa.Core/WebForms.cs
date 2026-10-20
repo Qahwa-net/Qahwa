@@ -67,7 +67,7 @@ public sealed partial class WebFormService(IMetaRegistry registry, IDocumentRepo
         FieldType.Check, FieldType.Select, FieldType.Rating, FieldType.Color, FieldType.Date, FieldType.Datetime, FieldType.Time, FieldType.Email, FieldType.Phone, FieldType.Url,
     ];
 
-    private static readonly HashSet<FieldType> Layout = [FieldType.SectionBreak, FieldType.ColumnBreak, FieldType.TabBreak];
+    private static readonly HashSet<FieldType> Layout = [FieldType.SectionBreak, FieldType.ColumnBreak, FieldType.TabBreak, FieldType.Heading, FieldType.Html];
 
     [GeneratedRegex("^[a-z0-9][a-z0-9-]{0,60}$")]
     private static partial Regex RoutePattern();

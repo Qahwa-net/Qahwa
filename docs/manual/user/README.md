@@ -82,6 +82,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 78. [Modules on the home page](78-modules.md)
 79. [Columns on forms](79-form-columns.md)
 80. [Field rules](80-field-rules.md)
+81. [Headings and notes on forms](81-heading-and-html-fields.md)
 
 **Words used**
 

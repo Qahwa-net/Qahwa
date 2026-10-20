@@ -140,7 +140,7 @@ public static class FieldValueConverter
                     throw new FormatException($"Value must be at most {MaxPasswordCharacters} characters.");
                 return secret;
             }
-            case FieldType.Table or FieldType.SectionBreak or FieldType.ColumnBreak or FieldType.TabBreak:
+            case FieldType.Table or FieldType.SectionBreak or FieldType.ColumnBreak or FieldType.TabBreak or FieldType.Heading or FieldType.Html:
                 throw new FormatException($"{type} fields do not hold a value.");
         }
 

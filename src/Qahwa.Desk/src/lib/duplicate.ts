@@ -1,7 +1,7 @@
 import type { Doc, DocTypeMeta } from '../api/types.ts'
 
 const SYSTEM = new Set(['name', 'creation', 'modified', 'modified_by', 'owner', 'docstatus', 'idx'])
-const NEVER = new Set(['Password', 'SectionBreak', 'ColumnBreak', 'TabBreak'])
+const NEVER = new Set(['Password', 'SectionBreak', 'ColumnBreak', 'TabBreak', 'Heading', 'Html'])
 
 /**
  * A new document made from an existing one: every field copied except those that must stay unique, passwords and the system

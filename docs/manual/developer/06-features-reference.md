@@ -423,3 +423,7 @@ Desk: `controls/SearchSelect.tsx`, `LinkSelect.tsx` ("Create new"), `QuickCreate
 ## Field rules ([ADR-101](../../adr/101-field-rules.md))
 
 `DocFieldMeta.SetOnce/NonNegative/MaxLength`; checks in `DocumentService.Coerce` (value rules) and the update path (set once); definition checks in `DocTypeLoader`; designer checkboxes in `FieldCard.tsx`. Tests: `FieldPropertyTests`.
+
+## Heading and HTML fields ([ADR-102](../../adr/102-heading-and-html-fields.md))
+
+`FieldType.Heading/Html` are layout types (`FieldTypes.IsLayout`); `DocTypeLoader.Parse` cleans an Html field's `options` with `HtmlSanitizer.Clean`; Desk `FieldControl.tsx` draws them. Tests: `StaticFieldTests`.

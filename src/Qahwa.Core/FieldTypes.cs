@@ -5,7 +5,7 @@ namespace Qahwa.Core;
 public static class FieldTypes
 {
     public static bool IsLayout(FieldType type) =>
-        type is FieldType.SectionBreak or FieldType.ColumnBreak or FieldType.TabBreak;
+        type is FieldType.SectionBreak or FieldType.ColumnBreak or FieldType.TabBreak or FieldType.Heading or FieldType.Html;
 
     /// <summary>True when the field is stored as a column on the document's own table.</summary>
     public static bool HasColumn(FieldType type) => !IsLayout(type) && type != FieldType.Table;

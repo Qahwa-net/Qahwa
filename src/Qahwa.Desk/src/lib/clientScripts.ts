@@ -35,7 +35,7 @@ export const SCRIPT_TIMEOUT_MS = 1000
 
 const PROPERTIES = ['hidden', 'read_only', 'reqd'] as const
 const COLORS = ['gray', 'blue', 'green', 'orange', 'red', 'purple'] as const
-const NOT_SETTABLE = new Set(['Table', 'Password', 'SectionBreak', 'ColumnBreak', 'TabBreak', 'Attach', 'AttachImage'])
+const NOT_SETTABLE = new Set(['Table', 'Password', 'SectionBreak', 'ColumnBreak', 'TabBreak', 'Heading', 'Html', 'Attach', 'AttachImage'])
 const NUMERIC = new Set(['Int', 'Float', 'Decimal', 'Currency', 'Percent', 'Rating', 'Duration'])
 const NULLABLE = new Set(['Date', 'Datetime', 'Time', 'Link'])
 

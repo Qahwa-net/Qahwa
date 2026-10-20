@@ -869,3 +869,6 @@ kbd { font: .75rem ui-monospace, Consolas, monospace; padding: .05rem .35rem; bo
 .action-field-chips { display: flex; flex-wrap: wrap; gap: 6px; padding-block: 8px; }
 .action-field-example { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; padding-block: 6px; border-bottom: 1px solid var(--border); }
 .action-field-example code { white-space: pre-wrap; overflow-wrap: anywhere; }
+.form-heading { margin: .25rem 0 0; font-size: 1.05rem; }
+.form-html { color: var(--muted, inherit); line-height: 1.5; }
+.form-html a { text-decoration: underline; }

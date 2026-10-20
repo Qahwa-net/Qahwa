@@ -9,7 +9,7 @@ import { TableControl } from '../controls/TableControl.tsx'
 import { FieldCard, PermissionsEditor } from '../designer/FieldCard.tsx'
 import { RulesEditor } from '../designer/RulesEditor.tsx'
 import {
-  emptyDraft, errorMap, fromDetail, moveItem, newField, toDefinition, type AutonameKind, type Draft, type DraftField,
+  emptyDraft, errorMap, fromDetail, isLayoutType, moveItem, newField, toDefinition, type AutonameKind, type Draft, type DraftField,
 } from '../lib/designer.ts'
 import { isEditable } from '../lib/fields.ts'
 import {
@@ -394,7 +394,7 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
               {draft.isChildTable && ' Rules here are checked for each row, and can read the document as parent.'}
             </p>
             <RulesEditor rules={draft.validations}
-              fieldNames={draft.fields.filter((f) => f.type !== 'SectionBreak' && f.type !== 'TabBreak' && f.type !== 'ColumnBreak').map((f) => f.name)}
+              fieldNames={draft.fields.filter((f) => !isLayoutType(f.type)).map((f) => f.name)}
               fieldLabels={Object.fromEntries(draft.fields.map((f) => [f.name, f.label ?? '']))} allowParent={draft.isChildTable}
               errors={errors} disabled={disabled} onChange={(validations) => patch({ validations })} />
           </section>

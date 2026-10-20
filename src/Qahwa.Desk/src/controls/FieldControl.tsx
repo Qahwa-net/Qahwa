@@ -12,6 +12,7 @@ import { LinkSelect } from './LinkSelect.tsx'
 import { AttachInput, ColorInput, DurationInput, GeolocationInput, IconInput, RatingInput, SignatureInput } from './SpecialInputs.tsx'
 import { PhoneInput } from './PhoneInput.tsx'
 import { RichTextInput } from './RichTextInput.tsx'
+import { sanitizeHtml } from '../lib/richText.ts'
 
 export type InputValue = string | boolean
 
@@ -145,6 +146,8 @@ export function FieldControl(props: Props) {
     return <h2 className="section-title full">{field.label ?? ''}</h2>
   }
   if (field.type === 'ColumnBreak') return null
+  if (field.type === 'Heading') return <p className="form-heading full"><strong>{t(labelOf(field))}</strong></p>
+  if (field.type === 'Html') return <div className="form-html full" dangerouslySetInnerHTML={{ __html: sanitizeHtml(field.options ?? '') }} />
 
   if (!isEditable(field.type)) {
     return (
