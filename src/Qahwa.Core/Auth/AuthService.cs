@@ -32,6 +32,7 @@ public sealed class AuthService(
     public const string UserDocType = "User";
     public const string RoleDocType = "Role";
     public const string HasRoleDocType = "Has Role";
+    public const string WebsiteUserRole = "Website User";
     public const int MaxPasswordLength = 128;
 
     private static readonly UserContext SystemContext = new("System", [UserContext.AdministratorRole]);
@@ -130,6 +131,9 @@ public sealed class AuthService(
         var credential = await store.GetAsync(key, ct);
         if (!IsActive(user, credential))
             return null;
+
+        if (string.Equals(user!.GetValueOrDefault("user_type") as string, "Website User", StringComparison.Ordinal))
+            return new SessionInfo(new UserContext(key, [WebsiteUserRole, UserContext.AllRole]), (string)user!["full_name"]!, credential!.PasswordChanged.Ticks);
 
         var roles = await repository.ListAsync(
             registry.Get(HasRoleDocType),

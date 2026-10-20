@@ -6,6 +6,7 @@
   "fields": [
     { "name": "email", "type": "Email", "label": "Email", "required": true, "inListView": true, "lowercase": true },
     { "name": "full_name", "type": "Data", "label": "Full Name", "required": true, "inListView": true },
+    { "name": "user_type", "type": "Select", "options": "System User\nWebsite User", "label": "User Type", "default": "System User", "description": "A Website User only ever has the Website User role, whatever roles are listed: for customers and visitors who sign in to portals, never for staff." },
     { "name": "enabled", "type": "Check", "label": "Enabled", "default": "1", "inListView": true },
     { "name": "role_profile", "type": "Link", "options": "Role Profile", "label": "Role Profile", "description": "Choosing a profile replaces this user's roles with the profile's roles." },
     { "name": "module_profile", "type": "Link", "options": "Module Profile", "label": "Module Profile", "description": "Hides the modules the profile blocks." }

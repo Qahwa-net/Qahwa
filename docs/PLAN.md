@@ -621,7 +621,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Permission levels (field-level access) | server-enforced, set per field and per rule | ✅ | L5 |
 | **Role Permission Manager** UI, Custom DocPerm | customise, reset to default, apply at once | ✅ | L5 |
 | User Permissions (restrict by Link value, apply to all or some DocTypes) | `User Permission` DocType, enforced on the server | ✅ | L5 |
-| Role Profile, Module Profile, User Types | profiles done; user types planned | 🟡 | L5 |
+| Role Profile, Module Profile, User Types | profiles done; user types (System User, Website User) done, ADR-096 | ✅ | L5 |
 | Permission query and `has_permission` hooks | done: app checks and list conditions that can only narrow access, fail closed (ADR-074) | ✅ | L11 |
 | Password hashing, lockout, rate limit, change password | | ✅ | done |
 | Password policy (strength, expiry), password reset by email, email verification, sign-up | done: strength rules, reset by email and expiry (ADR-041), self sign-up with email verification (ADR-052); System Managers can set a password or send a reset link, audited (ADR-090) | ✅ | L10 |

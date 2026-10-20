@@ -27,6 +27,21 @@ public class AuthServiceTests
         Assert.Equal(["All", "Sales Manager", "System Manager"], session.User.Roles.Order());
     }
 
+    [Fact]
+    public async Task A_website_user_never_gets_staff_roles()
+    {
+        await CreateAliceAsync("System Manager", "Sales Manager");
+        await _engine.Documents.UpdateAsync("User", Email, Values(("user_type", "Website User")), TestUsers.Admin);
+
+        var session = await _engine.Auth.LoginAsync(Email, Password);
+
+        Assert.NotNull(session);
+        Assert.Equal(["All", "Website User"], session.User.Roles.Order());
+
+        await _engine.Documents.UpdateAsync("User", Email, Values(("user_type", "System User")), TestUsers.Admin);
+        Assert.Contains("System Manager", (await _engine.Auth.LoadSessionAsync(Email))!.User.Roles);
+    }
+
     [Theory]
     [InlineData("alice@example.com", "wrong password here")]
     [InlineData("nobody@example.com", "correct horse battery staple")]

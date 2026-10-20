@@ -399,3 +399,7 @@ Desk: `controls/SearchSelect.tsx`, `LinkSelect.tsx` ("Create new"), `QuickCreate
 ## Incoming mail ([ADR-095](../../adr/095-incoming-mail.md))
 
 `IncomingMail.cs`: `IMailboxClient` (`FetchAsync`, `TestAsync`; real one `MailKitMailbox` in `Qahwa.Hosting`, read-only IMAP over TLS/STARTTLS), `IncomingMailService.PollAsync` (cursor + UIDVALIDITY, 50 per poll, sender check, Message-ID de-duplication, control-character and length limits) and `TestAsync`. `EmailAccountService.GetIncomingAsync/GetCursorAsync/SetCursorAsync`. Core DocType `communication.json`; `imap_*` fields in `email_account.json`. The scheduler's `incoming mail` step; `POST /api/email/test-incoming` (`UserSecurityEndpoints.cs`); Desk `TestIncomingEmailAction`. Tests: `IncomingMailTests` (with `FakeMailbox`), `Incoming_mail_test_is_for_managers_…`.
+
+## User types ([ADR-096](../../adr/096-user-types.md))
+
+`user.json` field `user_type`; `AuthService.LoadSessionAsync` returns only `Website User` + `All` for Website Users. Test: `A_website_user_never_gets_staff_roles`.
