@@ -6,6 +6,7 @@
   "fields": [
     { "name": "time_zone", "type": "Data", "label": "Time zone (for example Asia/Riyadh, Europe/London, UTC)", "default": "UTC" },
     { "name": "date_format", "type": "Select", "label": "Date format", "options": "yyyy-mm-dd\ndd/mm/yyyy\nmm/dd/yyyy", "default": "yyyy-mm-dd" },
+    { "name": "number_format", "type": "Select", "label": "Number format", "options": "1,234.56\n1.234,56\n1 234,56", "default": "1,234.56" },
     { "name": "first_day_of_week", "type": "Select", "label": "First day of the week", "options": "Monday\nSunday\nSaturday", "default": "Monday" },
     { "name": "default_language", "type": "Data", "label": "Default language code (for example en, ar)", "default": "en" }
   ],

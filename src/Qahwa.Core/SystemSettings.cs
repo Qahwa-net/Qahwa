@@ -4,7 +4,7 @@ using System.Net.Sockets;
 namespace Qahwa.Core;
 
 /// <summary>How dates and weeks look for everyone. Safe to show to any signed-in person.</summary>
-public sealed record DisplaySettings(string TimeZone, string DateFormat, string FirstDayOfWeek, string DefaultLanguage);
+public sealed record DisplaySettings(string TimeZone, string DateFormat, string FirstDayOfWeek, string DefaultLanguage, string NumberFormat = "1,234.56");
 
 /// <summary>
 /// The display part of System Settings (a single DocType edited by System Managers). Reading never fails: a value that is not valid
@@ -14,8 +14,9 @@ public sealed class SystemSettingsService(IMetaRegistry registry, IDocumentRepos
 {
     public const string DocTypeName = "System Settings";
     public static readonly string[] DateFormats = ["yyyy-mm-dd", "dd/mm/yyyy", "mm/dd/yyyy"];
+    public static readonly string[] NumberFormats = ["1,234.56", "1.234,56", "1 234,56"];
     public static readonly string[] Weeks = ["Monday", "Sunday", "Saturday"];
-    public static readonly DisplaySettings Defaults = new("UTC", "yyyy-mm-dd", "Monday", "en");
+    public static readonly DisplaySettings Defaults = new("UTC", "yyyy-mm-dd", "Monday", "en", "1,234.56");
 
     public async Task<DisplaySettings> GetAsync(CancellationToken ct = default)
     {
@@ -27,11 +28,13 @@ public sealed class SystemSettingsService(IMetaRegistry registry, IDocumentRepos
         var format = row.GetValueOrDefault("date_format") as string;
         var week = row.GetValueOrDefault("first_day_of_week") as string;
         var language = row.GetValueOrDefault("default_language") as string;
+        var numbers = row.GetValueOrDefault("number_format") as string;
         return new DisplaySettings(
             IsTimeZone(zone) ? zone! : Defaults.TimeZone,
             format is not null && DateFormats.Contains(format) ? format : Defaults.DateFormat,
             week is not null && Weeks.Contains(week) ? week : Defaults.FirstDayOfWeek,
-            TranslationService.IsLanguage(language) ? language! : Defaults.DefaultLanguage);
+            TranslationService.IsLanguage(language) ? language! : Defaults.DefaultLanguage,
+            numbers is not null && NumberFormats.Contains(numbers) ? numbers : Defaults.NumberFormat);
     }
 
     public static bool IsTimeZone(string? id)

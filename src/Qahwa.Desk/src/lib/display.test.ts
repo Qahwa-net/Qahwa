@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_DISPLAY, formatDate, formatDateTime, weekStartIndex } from './display.ts'
+import { DEFAULT_DISPLAY, formatDate, formatDateTime, formatNumber, weekStartIndex } from './display.ts'
 
 const settings = (over: Partial<typeof DEFAULT_DISPLAY>) => ({ ...DEFAULT_DISPLAY, ...over })
 
@@ -24,5 +24,19 @@ describe('display settings', () => {
     expect(weekStartIndex(settings({ firstDayOfWeek: 'Sunday' }))).toBe(0)
     expect(weekStartIndex(settings({ firstDayOfWeek: 'Saturday' }))).toBe(6)
     expect(weekStartIndex(settings({ firstDayOfWeek: 'Funday' }))).toBe(1)
+  })
+})
+
+describe('formatNumber', () => {
+  it('uses the chosen separators', () => {
+    expect(formatNumber(1234567.891, settings({ numberFormat: '1,234.56' }))).toBe('1,234,567.891')
+    expect(formatNumber(1234567.891, settings({ numberFormat: '1.234,56' }))).toBe('1.234.567,891')
+    expect(formatNumber(-1234.5, settings({ numberFormat: '1 234,56' }))).toBe('-1 234,5')
+    expect(formatNumber(12, settings({}))).toBe('12')
+    expect(formatNumber(0.000001, settings({ numberFormat: '1.234,56' }))).toBe('0,000001')
+  })
+  it('leaves what is not a number alone', () => {
+    expect(formatNumber('abc', settings({}))).toBe('abc')
+    expect(formatNumber(Number.NaN, settings({}))).toBe('NaN')
   })
 })

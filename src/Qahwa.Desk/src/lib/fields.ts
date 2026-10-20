@@ -1,4 +1,4 @@
-import { formatDate, formatDateTime } from './display.ts'
+import { formatDate, formatDateTime, formatNumber } from './display.ts'
 import { htmlToText } from './richText.ts'
 import { formatDuration, placeLabel, starsLabel } from './fieldtypes.ts'
 import type { DocField, FieldType } from '../api/types.ts'
@@ -104,7 +104,7 @@ export function formatCell(field: DocField, value: unknown): string {
   switch (field.type) {
     case 'Check': return value ? '✓' : ''
     case 'Currency': case 'Decimal': case 'Float': case 'Percent':
-      return typeof value === 'number' ? value.toLocaleString(undefined, { maximumFractionDigits: 9 }) : String(value)
+      return typeof value === 'number' ? formatNumber(value) : String(value)
     case 'Attach': case 'AttachImage': return '(file)'
     case 'Rating': return starsLabel(value)
     case 'Duration': return formatDuration(Number(value))

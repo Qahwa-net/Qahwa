@@ -3,9 +3,11 @@ export interface DisplaySettings {
   dateFormat: string
   firstDayOfWeek: string
   defaultLanguage: string
+  /** How numbers are grouped and where the decimal mark goes: "1,234.56", "1.234,56" or "1 234,56". */
+  numberFormat?: string
 }
 
-export const DEFAULT_DISPLAY: DisplaySettings = { timeZone: 'UTC', dateFormat: 'yyyy-mm-dd', firstDayOfWeek: 'Monday', defaultLanguage: 'en' }
+export const DEFAULT_DISPLAY: DisplaySettings = { timeZone: 'UTC', dateFormat: 'yyyy-mm-dd', firstDayOfWeek: 'Monday', defaultLanguage: 'en', numberFormat: '1,234.56' }
 
 let current: DisplaySettings = DEFAULT_DISPLAY
 
@@ -15,6 +17,15 @@ export function setDisplaySettings(settings: DisplaySettings): void {
 }
 
 export const getDisplaySettings = (): DisplaySettings => current
+
+/** A number written with the chosen separators (at most nine decimals). Anything that is not a finite number is shown as it is. */
+export function formatNumber(value: unknown, settings: DisplaySettings = current): string {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return String(value)
+  const [whole, fraction] = Math.abs(value).toLocaleString('en-US', { maximumFractionDigits: 9, useGrouping: false }).split('.')
+  const [group, mark] = settings.numberFormat === '1.234,56' ? ['.', ','] : settings.numberFormat === '1 234,56' ? [' ', ','] : [',', '.']
+  const grouped = whole!.replace(/\B(?=(\d{3})+(?!\d))/g, group)
+  return `${value < 0 ? '-' : ''}${grouped}${fraction ? mark + fraction : ''}`
+}
 
 /** 0 = Sunday, 1 = Monday, 6 = Saturday: the weekday a calendar week starts on. */
 export const weekStartIndex = (settings: DisplaySettings = current): number => (settings.firstDayOfWeek === 'Sunday' ? 0 : settings.firstDayOfWeek === 'Saturday' ? 6 : 1)

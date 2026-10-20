@@ -86,6 +86,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 82. [Amending a cancelled document](82-amending-documents.md)
 83. [Backup and restore from the command line](83-backup-from-the-command-line.md)
 84. [DocType options](84-document-options.md)
+85. [Number format](85-number-format.md)
 
 **Words used**
 

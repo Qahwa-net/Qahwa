@@ -22,9 +22,9 @@ public class SystemSettingsTests
     [Fact]
     public async Task Saved_settings_are_read_back()
     {
-        await SaveAsync(("time_zone", "Asia/Riyadh"), ("date_format", "dd/mm/yyyy"), ("first_day_of_week", "Saturday"), ("default_language", "ar"));
+        await SaveAsync(("time_zone", "Asia/Riyadh"), ("date_format", "dd/mm/yyyy"), ("first_day_of_week", "Saturday"), ("default_language", "ar"), ("number_format", "1.234,56"));
 
-        Assert.Equal(new DisplaySettings("Asia/Riyadh", "dd/mm/yyyy", "Saturday", "ar"), await Settings.GetAsync());
+        Assert.Equal(new DisplaySettings("Asia/Riyadh", "dd/mm/yyyy", "Saturday", "ar", "1.234,56"), await Settings.GetAsync());
     }
 
     [Fact]
@@ -36,6 +36,13 @@ public class SystemSettingsTests
 
         Assert.Equal("UTC", settings.TimeZone);
         Assert.Equal("en", settings.DefaultLanguage);
+    }
+
+    [Fact]
+    public async Task A_number_format_that_is_not_offered_is_refused()
+    {
+        await Assert.ThrowsAsync<DocumentValidationException>(() => SaveAsync(("number_format", "bad")));
+        Assert.Equal("1,234.56", (await Settings.GetAsync()).NumberFormat);
     }
 
     [Fact]

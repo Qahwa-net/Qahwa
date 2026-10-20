@@ -439,3 +439,7 @@ Desk: `controls/SearchSelect.tsx`, `LinkSelect.tsx` ("Create new"), `QuickCreate
 ## Document options ([ADR-105](../../adr/105-document-options.md))
 
 `DocTypeMeta.SortField/SortDescending/AllowCopy/MaxAttachments`; checks in `DocTypeLoader.CheckSpecial`; `FileService.UploadAsync` limit; Desk `DesignerEditor.tsx`, `ListView.tsx`, `FormView.tsx`. Tests: `DocumentOptionTests`.
+
+## Number format ([ADR-106](../../adr/106-number-format.md))
+
+`system_settings.json` `number_format`; `SystemSettingsService`/`DisplaySettings.NumberFormat`; Desk `formatNumber` in `lib/display.ts`, used by `formatCell`. Tests: `SystemSettingsTests`, `display.test.ts`.
