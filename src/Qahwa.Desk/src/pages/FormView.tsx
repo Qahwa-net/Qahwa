@@ -17,6 +17,7 @@ import { LikeButton } from './LikeButton.tsx'
 import { RenameDialog } from './RenamePanel.tsx'
 import { ShareDialog } from './SharePanel.tsx'
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { clearDraft, draftKey, loadDraft, saveDraft } from '../lib/draft.ts'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useMatch, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { ApiError, api } from '../api/client.ts'
@@ -178,6 +179,33 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
   const changedTables = tableDefs.filter(({ field }) => canWriteField(field) && rowsChanged(originalTables[field.name] ?? [], view.tables[field.name] ?? []))
   const dirty = isNew ? true : changedNames.length > 0 || changedTables.length > 0
 
+  // Unsaved typing is kept in this browser (ADR-109) and offered back after a reload or a lost tab.
+  const draftId = draftKey(meta.name, doc?.name ?? null)
+  const draftVersion = doc ? String(doc.modified ?? '') : ''
+  const secretFields = useMemo(() => new Set(meta.fields.filter((f) => f.type === 'Password').map((f) => f.name)), [meta])
+  const startValues = useRef(values)
+  const [restored, setRestored] = useState(false)
+  useEffect(() => {
+    if (!editable) return
+    const draft = loadDraft<Values, Tables>(window.localStorage, draftId, draftVersion, Date.now())
+    if (draft) {
+      setValues((v) => ({ ...v, ...draft.values }))
+      setTables(draft.tables ?? originalTables)
+      setRestored(true)
+    }
+    // Only when the form opens on a document: later edits are written by the effect below.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftId])
+  const hasEdits = isNew ? Object.keys(values).some((n) => values[n] !== startValues.current[n]) || changedTables.length > 0 : dirty
+  useEffect(() => {
+    if (!editable) return
+    const timer = window.setTimeout(() => {
+      if (hasEdits) saveDraft(window.localStorage, draftId, { values, tables, modified: draftVersion, at: Date.now() }, secretFields)
+      else clearDraft(window.localStorage, draftId)
+    }, 800)
+    return () => window.clearTimeout(timer)
+  }, [editable, hasEdits, values, tables, draftId, draftVersion, secretFields])
+
   // Someone else saved or deleted this document while it is open: show it, or warn when there are unsaved edits (never replace them).
   useLive((event) => {
     const action = liveAction(event, user?.user, dirty)
@@ -268,6 +296,8 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
     },
     onSuccess: async (saved) => {
       toast(isNew ? 'Created' : 'Saved')
+      clearDraft(window.localStorage, draftId)
+      setRestored(false)
       setFieldErrors({})
       setBanner(null)
       await queryClient.invalidateQueries({ queryKey: ['list', meta.name] })
@@ -489,6 +519,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
       )}
       {scripts.intro && <div className="banner info" role="status">{scripts.intro}</div>}
       {scripts.notice && <div className="banner info" role="status">{scripts.notice} <button type="button" className="btn small" onClick={scripts.dismissNotice}>OK</button></div>}
+      {restored && <div className="banner info" role="status">Your unsaved changes were restored. <button type="button" className="btn small" onClick={() => { clearDraft(window.localStorage, draftId); setValues(startValues.current); setTables(originalTables); setRestored(false) }}>Discard them</button></div>}
       {docstatus === 2 && <div className="banner info" role="status">This document is cancelled and cannot be changed.{meta.isSubmittable && perms.create && perms.amend !== false && <> <button type="button" className="btn small" disabled={amend.isPending} onClick={() => amend.mutate()}>Amend</button></>}</div>}
       {docstatus === 1 && editable && <div className="banner info" role="status">This document is submitted. Only some fields can still be changed.</div>}
       {!editable && (

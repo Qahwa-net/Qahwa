@@ -447,3 +447,7 @@ Desk: `controls/SearchSelect.tsx`, `LinkSelect.tsx` ("Create new"), `QuickCreate
 ## API scripts ([ADR-108](../../adr/108-api-scripts.md))
 
 `ServerScriptEngine.CallMethodAsync`, `ScriptSandbox.Execute` (API mode returns `result` as JSON), `ServerScriptEngine.CheckScript` (method name), `server_script.json` (`method_name`, `allowed_role`, event `API`); endpoint `POST /api/script-method/{method}` in `ServerScriptEndpoints.cs`. Tests: `ApiScriptTests`, `ApiScriptApiTests`.
+
+## Form drafts ([ADR-109](../../adr/109-form-drafts.md))
+
+Desk only: `lib/draft.ts` (`saveDraft`, `loadDraft`, `clearDraft`, `draftKey`) used by `FormView.tsx`. Test: `draft.test.ts` (the form wiring itself was not exercised in a browser).

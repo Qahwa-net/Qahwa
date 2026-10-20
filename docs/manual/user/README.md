@@ -88,6 +88,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 84. [DocType options](84-document-options.md)
 85. [Number format](85-number-format.md)
 86. [API scripts](86-api-scripts.md)
+87. [Unsaved changes are kept](87-unsaved-changes.md)
 
 **Words used**
 
