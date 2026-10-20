@@ -3,4 +3,5 @@
 In the DocType designer you can choose:
 - **Sort the list by**: how the list is ordered when someone opens it (a person's own saved sort still wins), and whether highest or newest comes first.
 - **People can duplicate a document**: switch off to hide the Duplicate button.
+- **Also search these text fields**: when someone picks a document of this type in a Link field, what they type is also matched against the fields you tick (up to five), for example a city or a phone number. People only match on fields they are allowed to see.
 - **Most files per document**: a number from 1 to 50. Uploading beyond it is refused.

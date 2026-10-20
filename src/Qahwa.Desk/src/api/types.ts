@@ -87,6 +87,7 @@ export interface DocTypeMeta {
   /** How the list is sorted by default (name, modified, creation or a field); newest or highest first unless false. */
   sortField?: string | null
   sortDescending?: boolean
+  searchFields?: string[]
   /** False hides Duplicate. */
   allowCopy?: boolean
   maxAttachments?: number | null
@@ -115,6 +116,7 @@ export interface DocTypeDefinition {
   sortDescending?: boolean
   allowCopy?: boolean
   maxAttachments?: number | null
+  searchFields?: string[]
   trackChanges?: boolean
   trackViews?: boolean
   statusField?: string

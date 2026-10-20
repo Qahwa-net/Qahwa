@@ -45,4 +45,31 @@ public class DocumentOptionTests
     [InlineData("""{ "name": "B6", "isChildTable": true, "maxAttachments": 3, "fields": [ { "name": "a", "type": "Data" } ] }""")]
     public void Bad_options_are_refused_when_a_DocType_is_defined(string json) =>
         Assert.Throws<DocTypeValidationException>(() => DocTypeLoader.Parse(json));
+
+    [Fact]
+    public async Task Choosing_a_document_also_searches_the_DocType_search_fields_the_person_can_read()
+    {
+        _engine.Registry.Add(DocTypeLoader.Parse("""
+            { "name": "Client", "titleField": "label", "searchFields": [ "city", "tax_id" ], "autoname": "hash", "fields": [
+                { "name": "label", "type": "Data" }, { "name": "city", "type": "Data" }, { "name": "tax_id", "type": "Data", "permLevel": 1 } ],
+              "permissions": [ { "role": "Clerk", "read": true, "write": true, "create": true }, { "role": "Boss", "read": true, "write": true, "create": true },
+                               { "role": "Boss", "read": true, "write": true, "permLevel": 1 } ] }
+            """));
+        var boss = new UserContext("boss@example.com", ["Boss"]);
+        await _engine.Documents.InsertAsync("Client", Values(("label", "Acme"), ("city", "Jeddah"), ("tax_id", "TX-9981")), boss);
+
+        Assert.Single(await _engine.Documents.SearchLinkAsync("Client", "Jedd", 10, Ann));
+        Assert.Single(await _engine.Documents.SearchLinkAsync("Client", "TX-99", 10, boss));
+        Assert.Empty(await _engine.Documents.SearchLinkAsync("Client", "TX-99", 10, Ann)); // a field Ann may not read is not searchable by her
+        Assert.Single(await _engine.Documents.SearchLinkAsync("Client", "Acme", 10, Ann));
+    }
+
+    [Theory]
+    [InlineData("""{ "name": "S1", "searchFields": [ "missing" ], "fields": [ { "name": "a", "type": "Data" } ] }""")]
+    [InlineData("""{ "name": "S2", "searchFields": [ "a" ], "fields": [ { "name": "a", "type": "Int" } ] }""")]
+    [InlineData("""{ "name": "S3", "searchFields": [ "a", "a" ], "fields": [ { "name": "a", "type": "Data" } ] }""")]
+    [InlineData("""{ "name": "S4", "searchFields": [ "p" ], "fields": [ { "name": "p", "type": "Password" } ] }""")]
+    [InlineData("""{ "name": "S5", "searchFields": [ "a", "b", "c", "d", "e", "f" ], "fields": [ { "name": "a", "type": "Data" }, { "name": "b", "type": "Data" }, { "name": "c", "type": "Data" }, { "name": "d", "type": "Data" }, { "name": "e", "type": "Data" }, { "name": "f", "type": "Data" } ] }""")]
+    public void Bad_search_fields_are_refused(string json) =>
+        Assert.Throws<DocTypeValidationException>(() => DocTypeLoader.Parse(json));
 }

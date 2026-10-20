@@ -269,6 +269,9 @@ public static partial class DocTypeLoader
     {
         if (meta.SortField is { } sort && sort is not ("name" or "modified" or "creation") && !meta.Fields.Any(f => f.Name == sort && FieldTypes.HasColumn(f.Type)))
             add("sortField", "Sort by name, modified, creation or one of the DocType's fields.");
+        if (meta.SearchFields.Count > 5 || meta.SearchFields.Distinct(StringComparer.Ordinal).Count() != meta.SearchFields.Count
+            || meta.SearchFields.Any(n => meta.Fields.FirstOrDefault(f => f.Name == n) is not { } f || !FieldTypes.IsTextual(f.Type) || f.Type is FieldType.Password or FieldType.Json or FieldType.Attach or FieldType.AttachImage))
+            add("searchFields", "Choose up to five different text fields of this DocType to search.");
         if (meta.MaxAttachments is { } max && (max < 1 || max > 50))
             add("maxAttachments", "The most files per document is between 1 and 50.");
         if (meta.IsChildTable && (meta.SortField is not null || meta.MaxAttachments is not null))

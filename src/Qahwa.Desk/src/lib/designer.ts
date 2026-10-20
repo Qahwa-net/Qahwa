@@ -26,6 +26,7 @@ export interface Draft {
   sortDescending: boolean
   allowCopy: boolean
   maxAttachments: number | null
+  searchFields: string[]
   /** Keep the updates log (who changed what, when). On unless the DocType opts out. */
   trackChanges: boolean
   trackViews: boolean
@@ -126,6 +127,7 @@ export function emptyDraft(): Draft {
     sortDescending: true,
     allowCopy: true,
     maxAttachments: null,
+    searchFields: [],
     trackChanges: true,
     trackViews: false,
     statusField: '',
@@ -183,6 +185,7 @@ export function fromDetail(detail: DesignerDetail): Draft {
     sortDescending: def.sortDescending ?? true,
     allowCopy: def.allowCopy ?? true,
     maxAttachments: def.maxAttachments ?? null,
+    searchFields: def.searchFields ?? [],
     trackChanges: def.trackChanges ?? true,
     trackViews: def.trackViews ?? false,
     statusField: def.statusField ?? '',
@@ -242,6 +245,7 @@ export function toDefinition(draft: Draft): DocTypeDefinition {
     sortDescending: draft.sortDescending ? undefined : false,
     allowCopy: draft.allowCopy ? undefined : false,
     maxAttachments: (!draft.isChildTable && draft.maxAttachments) || undefined,
+    searchFields: !draft.isChildTable && draft.searchFields.length > 0 ? draft.searchFields : undefined,
     // The log is on by default; only an opt-out is written.
     trackChanges: draft.trackChanges ? undefined : false,
     trackViews: draft.trackViews || undefined,

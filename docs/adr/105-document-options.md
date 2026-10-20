@@ -9,3 +9,5 @@ Three options on a DocType's definition (set in the designer's DocType page):
 - `maxAttachments` (1 to 50): the most files one document may have; the system limit of 50 still applies. Enforced on the server when a file is uploaded.
 
 A child table cannot set a sort or a file limit (it has neither a list nor files).
+
+- `searchFields` (up to five different text fields, checked when the DocType is defined): choosing a document in a Link field also searches these fields, besides the name and title. Only fields the person may read are searched (a field hidden from them by permission level cannot be used to probe for its values).

@@ -567,7 +567,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Naming: format with date/field parts (`INV-{YYYY}-.####`), expression, naming rules, series manager | done: series, date and field parts, prompt, expression, rule tables, series manager (ADR-011, ADR-063, ADR-073) | ✅ | L6 |
 | Rename document (updates links), merge documents | done: rename with link updates and merge (ADR-011) | ✅ (v1) | L6 |
 | Duplicate document, track changes (versions), track seen, track views | duplicate (ADR-063), track changes (ADR-014) and track views (ADR-080) done | ✅ | L7 |
-| Document options: title field, sort field/order, search fields, image field, quick entry, allow rename, allow import, allow copy, editable grid, max attachments, default view | title field, allow rename, allow import (permission flag), quick entry (ADR-091), default sort, allow copy and max attachments (ADR-105) done; search fields, image field, editable grid and default view not built | 🟡 | L1, L3 |
+| Document options: title field, sort field/order, search fields, image field, quick entry, allow rename, allow import, allow copy, editable grid, max attachments, default view | title field, allow rename, allow import (permission flag), quick entry (ADR-091), default sort, allow copy, max attachments and search fields (ADR-105) done; image field, editable grid and default view not built | 🟡 | L1, L3 |
 | Customize Form (adjust standard DocTypes) | done (ADR-013) | ✅ (v1) | L3 |
 | Custom Field, Property Setter | done: stored as data, survive upgrades (ADR-013) | ✅ (v1) | L3 |
 | DocType Layout (alternative form layouts per role) | | 🔽 | L3 |

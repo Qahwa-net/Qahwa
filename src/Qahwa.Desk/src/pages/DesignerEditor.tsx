@@ -9,7 +9,7 @@ import { TableControl } from '../controls/TableControl.tsx'
 import { FieldCard, PermissionsEditor } from '../designer/FieldCard.tsx'
 import { RulesEditor } from '../designer/RulesEditor.tsx'
 import {
-  emptyDraft, errorMap, fromDetail, isLayoutType, moveItem, newField, toDefinition, type AutonameKind, type Draft, type DraftField,
+  emptyDraft, errorMap, fromDetail, isLayoutType, isTextType, moveItem, newField, toDefinition, type AutonameKind, type Draft, type DraftField,
 } from '../lib/designer.ts'
 import { isEditable } from '../lib/fields.ts'
 import {
@@ -301,6 +301,17 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
                   <input type="checkbox" checked={draft.allowCopy} disabled={disabled} onChange={(e) => patch({ allowCopy: e.target.checked })} />
                   People can duplicate a document
                 </label>}
+                {!draft.isSingle && !draft.isChildTable && draft.fields.some((f) => f.name && isTextType(f.type)) && <fieldset className="field full flags" disabled={disabled}>
+                  <legend>Also search these text fields when choosing a document (up to 5)</legend>
+                  {draft.fields.filter((f) => f.name && isTextType(f.type)).map((f) => (
+                    <label key={f.key}>
+                      <input type="checkbox" checked={draft.searchFields.includes(f.name)}
+                        disabled={!draft.searchFields.includes(f.name) && draft.searchFields.length >= 5}
+                        onChange={(e) => patch({ searchFields: e.target.checked ? [...draft.searchFields, f.name] : draft.searchFields.filter((n) => n !== f.name) })} /> {f.label || f.name}
+                    </label>
+                  ))}
+                  {errors.searchFields && <small className="error-text" role="alert">{errors.searchFields}</small>}
+                </fieldset>}
                 <label className="field">
                   <span>Most files per document (empty for the limit of 50)</span>
                   <input type="number" min={1} max={50} value={draft.maxAttachments ?? ''} disabled={disabled}

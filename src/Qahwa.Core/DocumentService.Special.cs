@@ -221,6 +221,20 @@ public sealed partial class DocumentService
             }
         }
 
+        if (search.Length > 0)
+        {
+            // The DocType's own search fields too, but only those this person may read (a hidden field must not be searchable).
+            var access = permissions.FieldAccessFor(meta, user, user.User, creating: false);
+            foreach (var name in meta.SearchFields.Where(n => n != labelField && meta.Fields.FirstOrDefault(f => f.Name == n) is { } f && access.CanRead(f)))
+            {
+                foreach (var row in await Find(name))
+                {
+                    if (rows.All(r => !Equals(r["name"], row["name"])))
+                        rows.Add(row);
+                }
+            }
+        }
+
         return rows.Take(limit).Select(r => ToOption(r, labelField)).ToList();
     }
 

@@ -39,6 +39,9 @@ public sealed record DocTypeMeta
     /// <summary>True (the default) sorts the default sort from highest to lowest.</summary>
     public bool SortDescending { get; init; } = true;
 
+    /// <summary>Text fields (up to 5) that picking a document in a Link field also searches, besides the name and the title.</summary>
+    public IReadOnlyList<string> SearchFields { get; init; } = [];
+
     /// <summary>False hides "Duplicate" for this DocType (people can still create documents).</summary>
     public bool AllowCopy { get; init; } = true;
 
