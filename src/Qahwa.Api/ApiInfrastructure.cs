@@ -188,6 +188,23 @@ public static class ApiServiceCollectionExtensions
 
 public static class ApplicationBuilderExtensions
 {
+    public const string CurrentApiVersion = "1";
+
+    /// <summary>
+    /// URL versioning (ADR-097): <c>/api/v1/…</c> is the same API as <c>/api/…</c>. A future incompatible version gets its own number and the
+    /// old one keeps working. Every API response says which version answered. Must run before routing.
+    /// </summary>
+    public static IApplicationBuilder UseQahwaApiVersion(this IApplicationBuilder app) =>
+        app.Use(async (context, next) =>
+        {
+            var path = context.Request.Path;
+            if (path.StartsWithSegments("/api/v" + CurrentApiVersion, out var rest))
+                context.Request.Path = new PathString("/api").Add(rest);
+            if (context.Request.Path.StartsWithSegments("/api"))
+                context.Response.Headers["X-Qahwa-Api-Version"] = CurrentApiVersion;
+            await next(context);
+        });
+
     /// <summary>Error envelope, rate limiting and authentication, in the order they must run.</summary>
     public static IApplicationBuilder UseQahwa(this IApplicationBuilder app) =>
         app.UseQahwaErrors().UseQahwaNetworkRestriction().UseRateLimiter().UseAuthentication();

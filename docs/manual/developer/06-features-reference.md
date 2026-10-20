@@ -403,3 +403,7 @@ Desk: `controls/SearchSelect.tsx`, `LinkSelect.tsx` ("Create new"), `QuickCreate
 ## User types ([ADR-096](../../adr/096-user-types.md))
 
 `user.json` field `user_type`; `AuthService.LoadSessionAsync` returns only `Website User` + `All` for Website Users. Test: `A_website_user_never_gets_staff_roles`.
+
+## API versioning ([ADR-097](../../adr/097-api-versioning.md))
+
+`ApiInfrastructure.cs` `UseQahwaApiVersion` rewrites `/api/v1/…` to `/api/…` before routing (`Program.cs` calls it, then `UseRouting()` explicitly) and sets `X-Qahwa-Api-Version`. Tests: `ApiVersionTests`.

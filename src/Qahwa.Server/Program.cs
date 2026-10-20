@@ -46,6 +46,8 @@ app.Use(async (context, next) =>
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
+app.UseQahwaApiVersion();
+app.UseRouting(); // after the version rewrite, so /api/v1/… is routed as /api/…
 app.UseQahwaSites();
 app.UseQahwa();
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok", framework = "Qahwa" }));
