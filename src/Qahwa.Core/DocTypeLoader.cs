@@ -361,6 +361,12 @@ public static partial class DocTypeLoader
             add($"{path}.options", $"{field.Type} fields need a target DocType.");
         if (field.Type is FieldType.Attach or FieldType.AttachImage && inChildTable)
             add($"{path}.type", "Attachment fields cannot be inside a child table: attach the file to the document itself.");
+        if (field.NonNegative && field.Type is not (FieldType.Int or FieldType.Float or FieldType.Decimal or FieldType.Currency or FieldType.Percent))
+            add($"{path}.nonNegative", "Only number fields can be marked non-negative.");
+        if (field.MaxLength is { } maxLength && (!FieldTypes.IsTextual(field.Type) || field.Type == FieldType.Password || maxLength < 1 || maxLength > 10000))
+            add($"{path}.maxLength", "A maximum length (1 to 10000) only applies to text fields.");
+        if (field.SetOnce && (FieldTypes.IsLayout(field.Type) || field.Type == FieldType.Table))
+            add($"{path}.setOnce", "A layout or table field cannot be set once.");
         if (field.MultiSelect && field.Type != FieldType.Table)
             add($"{path}.multiSelect", "Only a Table field can be a multi-select.");
         if (field.Type == FieldType.DynamicLink && string.IsNullOrWhiteSpace(field.Options))

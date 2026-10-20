@@ -419,3 +419,7 @@ Desk: `controls/SearchSelect.tsx`, `LinkSelect.tsx` ("Create new"), `QuickCreate
 ## Form columns ([ADR-100](../../adr/100-form-columns.md))
 
 `lib/layout.ts` `buildLayout` fills `FormSection.columns` from Column Breaks (max 4); `FormView.tsx` draws `.form-columns`. Test: `layout.test.ts`.
+
+## Field rules ([ADR-101](../../adr/101-field-rules.md))
+
+`DocFieldMeta.SetOnce/NonNegative/MaxLength`; checks in `DocumentService.Coerce` (value rules) and the update path (set once); definition checks in `DocTypeLoader`; designer checkboxes in `FieldCard.tsx`. Tests: `FieldPropertyTests`.

@@ -184,6 +184,15 @@ export function FieldCard({
                 {isTextType(field.type) && (
                   <label><input type="checkbox" checked={field.lowercase} onChange={(e) => onChange({ lowercase: e.target.checked })} /> Lower case</label>
                 )}
+                {!isTable && (
+                  <label><input type="checkbox" checked={Boolean(field.setOnce)} onChange={(e) => onChange({ setOnce: e.target.checked })} /> Set only once</label>
+                )}
+                {['Int', 'Float', 'Decimal', 'Currency', 'Percent'].includes(field.type) && (
+                  <label><input type="checkbox" checked={Boolean(field.nonNegative)} onChange={(e) => onChange({ nonNegative: e.target.checked })} /> Not below zero</label>
+                )}
+                {isTextType(field.type) && field.type !== 'Password' && (
+                  <label>Longest text <input type="number" min={1} max={10000} aria-label="Longest text" value={field.maxLength ?? ''} onChange={(e) => onChange({ maxLength: e.target.value === '' ? null : Number(e.target.value) })} /></label>
+                )}
               </fieldset>
 
               {!isTable && <label className="field">

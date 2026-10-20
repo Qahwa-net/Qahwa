@@ -107,6 +107,15 @@ public sealed record DocFieldMeta
     /// <summary>Submittable DocTypes: the field may still be changed after the document is submitted.</summary>
     public bool AllowOnSubmit { get; init; }
 
+    /// <summary>Once the field has a value it cannot be changed (it can still be filled in the first time).</summary>
+    public bool SetOnce { get; init; }
+
+    /// <summary>A number field refuses values below zero.</summary>
+    public bool NonNegative { get; init; }
+
+    /// <summary>A text field refuses values longer than this many characters (1 to 10000).</summary>
+    public int? MaxLength { get; init; }
+
     /// <summary>
     /// Table fields only: the child DocType has just one Link field and the Desk shows the rows as a list of chips to pick from
     /// (several documents of one DocType, each at most once) instead of a grid.

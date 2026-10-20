@@ -390,6 +390,13 @@ public sealed partial class DocumentService(
             }
         }
 
+        // A "set once" field keeps the first value it was given.
+        foreach (var key in changes.Keys)
+        {
+            if (meta.Fields.FirstOrDefault(f => f.Name == key) is { SetOnce: true } && existing.GetValueOrDefault(key) is not (null or ""))
+                errors.Add(new FieldError(key, "This field can only be set once and cannot be changed."));
+        }
+
         // After submit only the fields marked "allow on submit" may change.
         if (transition is null && step is null && meta.IsSubmittable && status == 1)
         {
@@ -953,6 +960,18 @@ public sealed partial class DocumentService(
             try
             {
                 var value = FieldValueConverter.ToStorage(field.Type, raw);
+                if (field.NonNegative && value is sbyte or short or int or long or float or double or decimal && Convert.ToDecimal(value, System.Globalization.CultureInfo.InvariantCulture) < 0)
+                {
+                    errors.Add(new FieldError(pathPrefix + key, "This value cannot be negative."));
+                    continue;
+                }
+
+                if (field.MaxLength is { } max && value is string long_ && long_.Length > max)
+                {
+                    errors.Add(new FieldError(pathPrefix + key, $"Use at most {max} characters."));
+                    continue;
+                }
+
                 values[key] = field.Lowercase && value is string text ? text.ToLowerInvariant() : value;
             }
             catch (FormatException ex)
