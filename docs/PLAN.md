@@ -601,7 +601,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Workflow (states, transitions, roles, conditions) | visual **Workflow Builder**; done: states, transitions, roles, conditions, self-approval, edit-by-state, docstatus; not yet parallel approvals, escalation | ✅ (v1) | L8 |
 | Workflow Actions inbox, approve/reject by email link | inbox on the home page done; email links not yet | 🔽 | L8 |
 | Notification rules (on new, save, submit, value change, days before/after, custom condition) | done for the in-app channel; email, Slack and SMS channels not yet | ✅ (v1) | L8 |
-| Email Template, Email Account (SMTP out, IMAP/POP in), Email Queue, Email Domain | Email Template and Email Queue done; SMTP out is configured in settings (no Email Account DocType yet); incoming mail not yet | 🔽 | L8 |
+| Email Template, Email Account (SMTP out, IMAP/POP in), Email Queue, Email Domain | Email Template, Email Queue and a site Email Account for SMTP out (encrypted password, applies without restart, test email) done (ADR-090); incoming mail, OAuth SMTP and several accounts not yet | 🟡 | L8 |
 | Communication (email threads on documents), send email from a document | send from a document done; threads not yet | 🔽 | L8 |
 | Notification Log (bell icon), Email Digest | bell and log done (ADR-015); Email Digest done (ADR-072) | ✅ | L8 |
 | Scheduled Job Types (cron, hourly, daily, weekly, monthly), Scheduler UI and logs | background scheduler loop exists (auto repeat); job types, UI and logs not yet | 🔽 | L8 |
@@ -624,7 +624,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Role Profile, Module Profile, User Types | profiles done; user types planned | 🟡 | L5 |
 | Permission query and `has_permission` hooks | done: app checks and list conditions that can only narrow access, fail closed (ADR-074) | ✅ | L11 |
 | Password hashing, lockout, rate limit, change password | | ✅ | done |
-| Password policy (strength, expiry), password reset by email, email verification, sign-up | done: strength rules, reset by email and expiry (ADR-041), self sign-up with email verification (ADR-052); not email verification, sign-up | 🟡 | L10 |
+| Password policy (strength, expiry), password reset by email, email verification, sign-up | done: strength rules, reset by email and expiry (ADR-041), self sign-up with email verification (ADR-052); System Managers can set a password or send a reset link, audited (ADR-090) | ✅ | L10 |
 | Two-factor authentication (TOTP, email, SMS) | done: TOTP with recovery codes and admin reset (ADR-039); not email/SMS/passkeys | ✅ (v1) | L10 |
 | API keys / secrets, token auth | done: per-person Bearer keys, hashed, read-only and expiry; not yet scopes, rate limits, OAuth | ✅ (v1) | L10 |
 | OAuth 2 provider, social login (Google, GitHub, Microsoft, Keycloak), OpenID Connect | done: OpenID Connect sign-in (code + PKCE, state, nonce, full token checks, identity linking, domain allow-list, auto-create) with any provider; not an OAuth provider for other apps, no group/role mapping (ADR-051) | 🟡 | L10 |
@@ -648,7 +648,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Form view: child table grid (editable, reorder, row form) | | ✅ | L2 |
 | Form view: child table grid, upload/download rows as CSV | done in the browser: download and upload (adds rows), formula-safe, checked by the server on save (ADR-076) | ✅ | L10 |
 | Form view: sidebar (assign, attachments, tags, share, follow, like), timeline, form dashboard with linked documents | done (ADR-019, ADR-068) | ✅ | L7 |
-| Form: quick entry dialog, auto-save indicator, keyboard shortcuts, unsaved-changes warning | | 🟡 | L7 |
+| Form: quick entry dialog, auto-save indicator, keyboard shortcuts, unsaved-changes warning | quick entry: create a linked document in place from any Link field (ADR-091); not auto-save, shortcuts beyond Ctrl+S | 🟡 | L7 |
 | Report view (editable columns, group by, totals, export) | Report Builder with group by, totals and CSV export done (ADR-045) | 🟡 | L9 |
 | Kanban, Calendar, Gantt, Map, Image, Tree, Dashboard views | done: Tree, Dashboard, Board, Calendar, **Gantt** (timeline), **Map** (plain grid) and **Image** (gallery) (ADR-031, ADR-049) | ✅ (v1) | L12 |
 | Workspaces (shortcuts, charts, number cards, onboarding) and **Workspace Builder** | done: headings, shortcut rows, embedded dashboards, role-based; not yet onboarding | ✅ (v1) | L9 |
@@ -718,7 +718,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | User, Role, Has Role | ✅ | done |
 | DocType, Custom Field, Property Setter, Module Def | 🟡 | L1, L3 |
 | Comment, Communication, ToDo, DocShare, Document Follow, Tag, Version, File, Note | ⬜ | L7, L10 |
-| Notification, Email Template, Email Account, Assignment Rule, Auto Repeat, Workflow, Webhook | ⬜ | L8, L10 |
+| Notification, Email Template, Email Account, Assignment Rule, Auto Repeat, Workflow, Webhook | 🟡 (all but incoming mail done) | L8, L10 |
 | Report, Dashboard, Dashboard Chart, Number Card, Workspace, Print Format, Letter Head | Dashboard, Workspace, Print Format and Letter Head done (charts and number cards are tiles of a Dashboard) | ✅ (v1) | L9 |
 | Data Import, Data Export, Scheduled Job Type, Error Log, System Settings, Navbar Settings | ⬜ | L10, L12 |
 | Contact, Address, Country, Currency, Language, Salutation, Gender (master data) | done: Country, Currency, Language, Salutation, Gender (ADR-046), Contact and Address with dynamic links (ADR-077) | ✅ | L10 |

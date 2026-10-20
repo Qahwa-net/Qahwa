@@ -1,4 +1,5 @@
 import { UserPasswordActions, TestEmailAction } from './UserPasswordActions.tsx'
+import { DocumentActionFields } from './DocumentActionFields.tsx'
 import { WorkflowBar } from './WorkflowBar.tsx'
 import { DocRail } from './DocRail.tsx'
 import { buildLayout } from '../lib/layout.ts'
@@ -386,7 +387,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
           }
 
           return (
-            <FieldControl key={field.name} field={field} state={stateOf(field)} siblings={view.values}
+            <div key={field.name} style={{ display: 'contents' }}><FieldControl field={field} state={stateOf(field)} siblings={view.values}
               value={view.values[field.name] ?? ''} readOnly={!canWriteField(field)} error={fieldErrors[field.name]}
               onChange={(v) => {
                 // A document chosen for a Dynamic Link belongs to the old DocType: clear it when the DocType changes.
@@ -395,6 +396,10 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
                 if (fieldErrors[field.name]) setFieldErrors({ ...fieldErrors, [field.name]: '' })
                 if (field.type === 'Link') fetchForDocument(field, String(v))
               }} />
+            {meta.name === 'Document Action' && ['event', 'watch_field', 'target_field', 'value', 'mapping'].includes(field.name) && stateOf(field).active &&
+              <DocumentActionFields field={field.name} values={view.values} readOnly={!canWriteField(field) || stateOf(field).readOnly}
+                onChange={v => { setValues({ ...values, [field.name]: v }); clearErrorsFor(field.name) }} />}
+            </div>
           )
   }
 

@@ -141,6 +141,8 @@ public class DocumentActionTests
     [InlineData("Create Document", null, null, "Followup", "owner = someone")] // not a field
     [InlineData("Create Document", null, null, "Followup", "subject = {{x.y}}")]
     [InlineData("Create Document", null, null, "Followup", "")]
+    [InlineData("Create Document", null, null, "Followup", "subject = Valid\nmalformed line")]
+    [InlineData("Create Document", null, null, "Followup", "subject = First\nsubject = Second")]
     public async Task An_action_that_is_wrong_changes_nothing_and_says_why(string action, string? field, string? value, string? doctype, string? mapping)
     {
         await ActionAsync("Bad", action: action, targetField: field, value: value, targetDoctype: doctype, mapping: mapping);

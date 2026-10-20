@@ -162,6 +162,8 @@ public sealed class DocumentActionEngine(IMetaRegistry registry, IDocumentReposi
             return "The action belongs to another DocType.";
         if (!Events.Contains(action["event"] as string))
             return "Choose when the action runs.";
+        if (action["event"] as string is "Submit" or "Cancel" && !meta.IsSubmittable)
+            return $"{meta.Name} does not support submission. Use ValueChange with its workflow field, or New / Update.";
         if (action["event"] as string == "ValueChange" && meta.Fields.All(f => f.Name != action["watch_field"] as string))
             return "Name a field of this DocType to watch.";
 
@@ -182,6 +184,11 @@ public sealed class DocumentActionEngine(IMetaRegistry registry, IDocumentReposi
             if (target.IsChildTable || target.IsSingle || target.Module == "Core")
                 return "Choose a DocType to create (not a child table or settings page).";
             var lines = Mapping(action["mapping"] as string).ToList();
+            var rawLines = (action["mapping"] as string ?? string.Empty).Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+            if (rawLines.Any(line => line.IndexOf('=', StringComparison.Ordinal) <= 0))
+                return "Every mapping line must use target_field = value.";
+            if (lines.Select(line => line.Field).Distinct(StringComparer.Ordinal).Count() != lines.Count)
+                return "Map each target field only once.";
             if (lines.Count == 0 || lines.Count > MaxMappingLines)
                 return $"Map between 1 and {MaxMappingLines} fields, one per line, like  customer = {{{{customer}}}}.";
             foreach (var (field, template) in lines)

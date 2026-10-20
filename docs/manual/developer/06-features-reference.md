@@ -367,3 +367,23 @@ Core DocTypes `contact.json`, `address.json`, `dynamic_link.json` (module "Conta
 ## Script reports ([ADR-088](../../adr/088-script-reports.md))
 
 `ScriptReports.cs`: `ScriptReportService` (`List`, `RunAsync` with limits, role check, filter whitelist, Error Log on failure, Access Log line), `IAppBuilder.ScriptReport`, `ScriptReportContext/Data/Options`. Endpoints in `MethodEndpoints.cs`. Desk: `pages/ScriptReports.tsx`. Tests: `ScriptReportTests`, `Reports_written_by_apps_are_listed_and_run_for_the_people_who_may`.
+
+## Personal Desk ([ADR-089](../../adr/089-personal-desk.md))
+
+`DeskSettings.cs` (`DeskSettingsService`: effective layout = standard, then first configured role, then the person's own; permission-checked writes, optimistic concurrency), Core DocType `desk_setting.json` (rows keyed by a SHA-256 of scope and target), `DeskEndpoints.cs` (`/api/desk-settings`, `/api/desk-settings/roles/{role}`). Desk: `lib/desk.ts`, `pages/DeskEditor.tsx`, sidebar in `Shell`. Tests: `DeskSettingsApiTests`, `desk.test.ts`.
+
+## Email Account and user password actions ([ADR-090](../../adr/090-email-account-and-user-password-actions.md))
+
+`EmailAccounts.cs` (`EmailAccountService.GetAsync` per send, `IsConfiguredAsync`, `PublicUrlAsync`; `EmailSettings` is the host fallback), Core single DocType `email_account.json` (skipped by `BackupService`), `SmtpEmailSender` (fails when unconfigured; the log-only sender was removed), `UserSecurityEndpoints.cs` (`/api/users/{email}/password`, `/reset-password`, `/api/email/test`; Access Log actions `Set Password`, `Send Password Reset`), `AuthService.ResetIdentityAsync`/`IsAdministratorUserAsync`, `PasswordResetService` (five-part token: user, expiry, password version, user creation). Desk: `UserPasswordActions.tsx`, `TestEmailAction`. Tests: `UserSecurityApiTests`.
+
+## Searchable fields, create in place, previews ([ADR-091](../../adr/091-searchable-fields-quick-create-previews.md))
+
+Desk: `controls/SearchSelect.tsx`, `LinkSelect.tsx` ("Create new"), `QuickCreate.tsx` + `QuickCreateContext.ts` (no nesting), `FilePreview.tsx` (`pdfjs-dist`, bundled worker via `?url`), `lib/files.ts` (`filePreviewKind`). Tests: `DocumentControls.test.tsx`, `files.test.ts`.
+
+## Document Action guidance ([ADR-092](../../adr/092-document-action-authoring-guidance.md))
+
+`DocumentActionEngine` (Submit/Cancel need a submittable DocType; mapping lines `field = value`, each target once). Desk: `pages/DocumentActionFields.tsx` (shown by `FormView` for the Document Action DocType). Tests: `DocumentActionTests`, `DocumentControls.test.tsx`.
+
+## Samples
+
+`samples/employee-operations/` is a worked example built only through the REST API on a running site (DocTypes with workflows, a dashboard and a workspace). `README.md` there says how to install and verify it; it stores no credentials (`QAHWA_API_TOKEN` is read from the environment). It is a sample, not part of the framework or its tests.

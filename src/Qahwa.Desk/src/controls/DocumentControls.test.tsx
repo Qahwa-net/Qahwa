@@ -8,6 +8,7 @@ import { FieldInput } from './FieldControl.tsx'
 import { FilePreview } from './FilePreview.tsx'
 import { AuthProvider } from '../auth.tsx'
 import { api } from '../api/client.ts'
+import { DocumentActionFields } from '../pages/DocumentActionFields.tsx'
 import type { DocField, MetaResponse } from '../api/types.ts'
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true })
@@ -36,6 +37,22 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); container.remove(); vi.restoreAllMocks() })
 
 describe('Searchable document controls', () => {
+  it('shows source placeholders and appends target mapping examples without submitting', async () => {
+    vi.spyOn(api, 'meta').mockResolvedValue(targetMeta)
+    const change = vi.fn(), submit = vi.fn()
+    await act(async () => root.render(wrapper(<form onSubmit={submit}><DocumentActionFields field="mapping" values={{ reference_doctype: 'Customer', target_doctype: 'Customer', action: 'Create Document', mapping: 'existing = literal' }} readOnly={false} onChange={change} /></form>)))
+    await waitFor(() => expect(container.textContent).toContain('customer_name = {{customer_name}}'))
+    expect(container.textContent).toContain('{{name}}')
+    const example = [...container.querySelectorAll('button')].find(b => b.textContent === 'customer_name = {{customer_name}}')!
+    await act(async () => example.click())
+    expect(change).toHaveBeenCalledWith('existing = literal\ncustomer_name = {{customer_name}}')
+    expect(submit).not.toHaveBeenCalled()
+  })
+  it('warns when Submit cannot fire for the source document', async () => {
+    vi.spyOn(api, 'meta').mockResolvedValue(targetMeta)
+    await act(async () => root.render(wrapper(<DocumentActionFields field="event" values={{ reference_doctype: 'Customer', event: 'Submit' }} readOnly={false} onChange={vi.fn()} />)))
+    await waitFor(() => expect(container.querySelector('[role="alert"]')?.textContent).toContain('does not support submission'))
+  })
   it('filters static options immediately and selects without submitting a form', async () => {
     const change = vi.fn(), submitted = vi.fn()
     await act(async () => root.render(wrapper(<form onSubmit={submitted}><SearchSelect label="Status" value="" options={[{ value: 'Draft', label: 'Draft' }, { value: 'Approved', label: 'Approved' }]} onChange={change} /></form>)))

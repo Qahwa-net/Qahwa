@@ -22,6 +22,11 @@ customer = {{customer}}
 subject = Follow up {{name}}
 ```
 
+## Help while you write
+On the form, the boxes for **field to watch**, **field to set**, **value** and **mapping** show the fields of the DocTypes involved. Click a field to fill the box, or click an example line to add it to the mapping (replace sample values before saving). The form warns you when the event cannot work, for example **Submit** or **Cancel** on a DocType that is not submittable (use ValueChange on a workflow field, or New / Update), or when the DocType to create has a required table that an action cannot fill.
+
+Saving is refused when a mapping line is not written `target_field = value` or when the same target field appears twice.
+
 ## Good to know
 - The action runs **as the person who made the change**, with their rights. If they may not do it, nothing happens and **Last problem** says why.
 - A change made by an action does **not** start other actions, so actions cannot loop.
