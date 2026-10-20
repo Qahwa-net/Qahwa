@@ -111,11 +111,11 @@ public sealed class DocTypeDesigner(
     }
 
     public Task<DesignerDetail> CreateAsync(DocTypeMeta definition, IUserContext user, CancellationToken ct = default) =>
-        SerializedAsync(() => CreateCoreAsync(DocTypeLoader.WithTreeFields(definition), user, ct), ct);
+        SerializedAsync(() => CreateCoreAsync(DocTypeLoader.WithAmendedField(DocTypeLoader.WithTreeFields(definition)), user, ct), ct);
 
     public Task<DesignerDetail> UpdateAsync(
         string name, DocTypeMeta definition, DateTime? expectedModified, IUserContext user, CancellationToken ct = default) =>
-        SerializedAsync(() => UpdateCoreAsync(name, DocTypeLoader.WithTreeFields(definition), expectedModified, user, ct), ct);
+        SerializedAsync(() => UpdateCoreAsync(name, DocTypeLoader.WithAmendedField(DocTypeLoader.WithTreeFields(definition)), expectedModified, user, ct), ct);
 
     public Task DeleteAsync(string name, IUserContext user, CancellationToken ct = default) =>
         SerializedAsync(async () => { await DeleteCoreAsync(name, user, ct); return true; }, ct);

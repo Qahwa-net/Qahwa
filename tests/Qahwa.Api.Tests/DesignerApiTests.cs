@@ -57,7 +57,7 @@ public sealed class DesignerApiTests : IAsyncDisposable
         var types = (await JsonOf(await Admin.GetAsync("/api/designer/field-types"))).GetProperty("data").EnumerateArray().ToList();
 
         var currency = types.Single(t => t.GetProperty("type").GetString() == "Currency");
-        var attach = types.Single(t => t.GetProperty("type").GetString() == "ColumnBreak");
+        var attach = types.Single(t => t.GetProperty("type").GetString() == "DynamicLink");
         Assert.True(currency.GetProperty("supported").GetBoolean());
         Assert.False(attach.GetProperty("supported").GetBoolean());
         Assert.True(types.Single(t => t.GetProperty("type").GetString() == "Table").GetProperty("supported").GetBoolean());
@@ -82,7 +82,7 @@ public sealed class DesignerApiTests : IAsyncDisposable
     public async Task Invalid_definitions_return_400_with_a_path_for_each_problem()
     {
         var response = await Admin.PostAsJsonAsync("/api/designer/doctypes", Supplier(
-            new { name = "Bad Name", type = "Data" }, new { name = "file", type = "ColumnBreak" }));
+            new { name = "Bad Name", type = "Data" }, new { name = "file", type = "DynamicLink" }));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var fields = (await JsonOf(response)).GetProperty("details").EnumerateArray()

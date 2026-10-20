@@ -117,7 +117,7 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<RealtimeHub>();
         services.TryAddSingleton<RealtimeBackplane>(sp => new RealtimeBackplane(sp.GetRequiredService<IMetaRegistry>(), sp.GetRequiredService<IDocumentRepository>(), sp.GetRequiredService<RealtimeHub>(), sp.GetRequiredService<TimeProvider>()));
         // With Qahwa:Realtime:Backplane = database, events also reach the other servers through the site's database (ADR-086).
-        services.TryAddSingleton<IRealtimePublisher>(sp => sp.GetRequiredService<IConfiguration>()["Qahwa:Realtime:Backplane"] == "database"
+        services.TryAddSingleton<IRealtimePublisher>(sp => sp.GetService<IConfiguration>()?["Qahwa:Realtime:Backplane"] == "database" // the command line has no configuration: it never uses the backplane
             ? sp.GetRequiredService<RealtimeBackplane>()
             : sp.GetRequiredService<RealtimeHub>());
         services.TryAddSingleton<FollowService>();

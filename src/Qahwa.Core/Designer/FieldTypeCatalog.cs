@@ -72,7 +72,7 @@ public static class FieldTypeCatalog
         new(FieldType.Attach, "Attachment", "Advanced", "An uploaded file (attach it after the document is saved)", OptionsKind.None, true),
         new(FieldType.AttachImage, "Image", "Advanced", "An uploaded picture, shown on the form", OptionsKind.None, true),
         new(FieldType.Password, "Password", "Advanced", "A secret stored encrypted and never shown again", OptionsKind.None, true),
-        new(FieldType.ColumnBreak, "Column", "Layout", "Splits a section into columns", OptionsKind.None, false, Later),
+        new(FieldType.ColumnBreak, "Column", "Layout", "Starts the next column of the section; fields after it appear beside the earlier ones", OptionsKind.None, true),
     ];
 
     public static bool IsSupported(FieldType type) => All.Any(i => i.Type == type && i.Supported);

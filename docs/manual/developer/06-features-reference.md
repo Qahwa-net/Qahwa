@@ -455,3 +455,7 @@ Desk only: `lib/draft.ts` (`saveDraft`, `loadDraft`, `clearDraft`, `draftKey`) u
 ## Keyboard shortcuts ([ADR-110](../../adr/110-keyboard-shortcuts.md))
 
 Desk only: `lib/shortcuts.ts` (`shortcutFor`, `isTyping`, `newDocumentPath`, `SHORTCUTS`) used by `shell/Shell.tsx`. Test: `shortcuts.test.ts` (the Shell wiring was not exercised in a browser).
+
+## What was verified on a real database and in a browser
+
+The Data suite ran in full on PostgreSQL (143 of 143) and on SQL Server (142 of 143; the one skipped test is PostgreSQL-specific). A server was then started on PostgreSQL and driven in a browser: sign-in, home page grouped by module, form drafts (saved, restored, discarded), the shortcuts list and Alt+N, form columns, Heading and HTML fields (script removed), bold labels, default view (first visit only), field rules (negative and set-once refused, precision rounded), amend (new draft linked, noCopy field empty, second amend refused), search by a search field, `/api/v1` and its version header, and the CLI `migrate`, `create-admin`, `backup` and `restore`. That run found and fixed four problems the in-memory tests could not see: designer-made submittable DocTypes had no `amended_from` column (so Amend failed with a 500), the Column Break type was still refused by the designer, the CLI could not start `create-admin` because of a missing configuration service, and `backup` over an existing file showed a stack trace instead of a message.

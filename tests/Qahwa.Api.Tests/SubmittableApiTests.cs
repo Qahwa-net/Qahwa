@@ -38,6 +38,8 @@ public sealed class SubmittableApiTests : IAsyncDisposable
         var id = doc.GetProperty("name").GetString();
         var meta = await JsonOf(await manager.GetAsync("/api/meta/Voucher"));
         Assert.True(meta.GetProperty("permissions").GetProperty("submit").GetBoolean());
+        // The table of a designer-made submittable DocType must have the amended_from column (found by running on a real database).
+        Assert.Contains(meta.GetProperty("data").GetProperty("fields").EnumerateArray(), f => f.GetProperty("name").GetString() == "amended_from");
 
         var submitted = await manager.PostAsync($"/api/resource/Voucher/{id}/submit", null);
         Assert.True(submitted.StatusCode == HttpStatusCode.OK, await submitted.Content.ReadAsStringAsync());

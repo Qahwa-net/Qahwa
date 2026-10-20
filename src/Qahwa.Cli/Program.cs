@@ -190,6 +190,10 @@ try
         _ => await CreateAdminAsync(provider),
     };
 }
+catch (IOException e)
+{
+    return Fail(e.Message);
+}
 catch (SiteConfigException e)
 {
     return Fail(e.Message);

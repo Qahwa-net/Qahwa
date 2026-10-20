@@ -140,6 +140,8 @@ export function FieldControl(props: Props) {
   const label = t(labelOf(field))
 
   if (field.hidden && !preview) return null
+  // The link to the cancelled document an amendment replaces is only worth showing when there is one (ADR-103).
+  if (field.name === 'amended_from' && !preview && (value === '' || value === null || value === undefined)) return null
   if (state && !state.active && !preview) return null
 
   if (field.type === 'SectionBreak' || field.type === 'TabBreak') {
