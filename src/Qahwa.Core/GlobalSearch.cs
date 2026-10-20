@@ -91,5 +91,9 @@ public sealed class GlobalSearchService(DocumentService documents, PermissionSer
         {
             yield return "name";
         }
+
+        // The DocType's own search fields (ADR-105): a failed read of one the person may not see is skipped by the caller.
+        foreach (var field in meta.SearchFields)
+            yield return field;
     }
 }

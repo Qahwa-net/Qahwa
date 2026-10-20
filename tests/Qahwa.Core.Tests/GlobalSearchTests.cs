@@ -130,4 +130,21 @@ public class GlobalSearchTests
         await Assert.ThrowsAsync<RateLimitedException>(() => _engine.GlobalSearch.SearchAsync("match", Ann));
         Assert.NotNull(await _engine.GlobalSearch.SearchAsync("match", Vic)); // another person has their own allowance
     }
+
+    [Fact]
+    public async Task A_DocType_can_make_more_of_its_fields_searchable_but_never_a_field_the_person_may_not_read()
+    {
+        _engine.Registry.Add(DocTypeLoader.Parse("""
+            { "name": "Vendor", "titleField": "vendor_name", "searchFields": [ "phone", "bank_ref" ], "autoname": "VEN-.####", "fields": [
+                { "name": "vendor_name", "type": "Data" }, { "name": "phone", "type": "Data" }, { "name": "bank_ref", "type": "Data", "permLevel": 1 } ],
+              "permissions": [ { "role": "Clerk", "read": true, "write": true, "create": true }, { "role": "Boss", "read": true, "write": true, "create": true },
+                               { "role": "Boss", "read": true, "write": true, "permLevel": 1 } ] }
+            """));
+        var boss = new UserContext("boss@example.com", ["Boss"]);
+        await _engine.Documents.InsertAsync("Vendor", Values(("vendor_name", "Delta"), ("phone", "0551234567"), ("bank_ref", "IBAN-7788")), boss);
+
+        Assert.Contains(( await _engine.GlobalSearch.SearchAsync("055123", Ann)).Documents, h => h.DocType == "Vendor" && h.Title == "Delta");
+        Assert.DoesNotContain((await _engine.GlobalSearch.SearchAsync("IBAN-7788", Ann)).Documents, h => h.DocType == "Vendor");
+        Assert.Contains((await _engine.GlobalSearch.SearchAsync("IBAN-7788", boss)).Documents, h => h.DocType == "Vendor");
+    }
 }
