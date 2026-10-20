@@ -648,7 +648,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Form view: child table grid (editable, reorder, row form) | | ✅ | L2 |
 | Form view: child table grid, upload/download rows as CSV | done in the browser: download and upload (adds rows), formula-safe, checked by the server on save (ADR-076) | ✅ | L10 |
 | Form view: sidebar (assign, attachments, tags, share, follow, like), timeline, form dashboard with linked documents | done (ADR-019, ADR-068) | ✅ | L7 |
-| Form: quick entry dialog, auto-save indicator, keyboard shortcuts, unsaved-changes warning | quick entry: create a linked document in place from any Link field (ADR-091); unsaved changes are kept in the browser and offered back (ADR-109), not auto-saved to the server; shortcuts beyond Ctrl+S not built | 🟡 | L7 |
+| Form: quick entry dialog, auto-save indicator, keyboard shortcuts, unsaved-changes warning | quick entry: create a linked document in place from any Link field (ADR-091); unsaved changes are kept in the browser and offered back (ADR-109); shortcuts (ADR-110); saving to the server without a click left out on purpose (ADR-110) | ✅ | L7 |
 | Report view (editable columns, group by, totals, export) | Report Builder with group by, totals and CSV export done (ADR-045) | 🟡 | L9 |
 | Kanban, Calendar, Gantt, Map, Image, Tree, Dashboard views | done: Tree, Dashboard, Board, Calendar, **Gantt** (timeline), **Map** (plain grid) and **Image** (gallery) (ADR-031, ADR-049) | ✅ (v1) | L12 |
 | Workspaces (shortcuts, charts, number cards, onboarding) and **Workspace Builder** | done: headings, shortcut rows, embedded dashboards, role-based; not yet onboarding | ✅ (v1) | L9 |

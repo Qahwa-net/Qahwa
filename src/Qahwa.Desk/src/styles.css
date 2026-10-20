@@ -872,3 +872,7 @@ kbd { font: .75rem ui-monospace, Consolas, monospace; padding: .05rem .35rem; bo
 .form-heading { margin: .25rem 0 0; font-size: 1.05rem; }
 .form-html { color: var(--muted, inherit); line-height: 1.5; }
 .form-html a { text-decoration: underline; }
+.shortcut-list { display: grid; gap: .6rem; margin: 0; }
+.shortcut-list > div { display: grid; grid-template-columns: 10rem 1fr; gap: .75rem; align-items: baseline; }
+.shortcut-list dt, .shortcut-list dd { margin: 0; }
+.shortcut-list kbd { font: inherit; font-family: ui-monospace, monospace; padding: .1rem .4rem; border: 1px solid var(--border, #ccc); border-radius: 4px; background: var(--surface, transparent); }

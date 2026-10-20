@@ -451,3 +451,7 @@ Desk: `controls/SearchSelect.tsx`, `LinkSelect.tsx` ("Create new"), `QuickCreate
 ## Form drafts ([ADR-109](../../adr/109-form-drafts.md))
 
 Desk only: `lib/draft.ts` (`saveDraft`, `loadDraft`, `clearDraft`, `draftKey`) used by `FormView.tsx`. Test: `draft.test.ts` (the form wiring itself was not exercised in a browser).
+
+## Keyboard shortcuts ([ADR-110](../../adr/110-keyboard-shortcuts.md))
+
+Desk only: `lib/shortcuts.ts` (`shortcutFor`, `isTyping`, `newDocumentPath`, `SHORTCUTS`) used by `shell/Shell.tsx`. Test: `shortcuts.test.ts` (the Shell wiring was not exercised in a browser).

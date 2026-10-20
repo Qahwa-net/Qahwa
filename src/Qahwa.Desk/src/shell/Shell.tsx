@@ -5,7 +5,9 @@ import { useToast } from '../controls/Toast.tsx'
 import { Icon } from '../controls/Icon.tsx'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Modal } from '../controls/Modal.tsx'
+import { SHORTCUTS, isTyping, newDocumentPath, shortcutFor } from '../lib/shortcuts.ts'
 import { api } from '../api/client.ts'
 import type { MetaSummary } from '../api/types.ts'
 import { useAuth } from '../auth.tsx'
@@ -51,18 +53,30 @@ export function Shell() {
     onError: () => { toast('Could not save sidebar state. Reload and try again.'); void queryClient.invalidateQueries({ queryKey: ['desk-settings'] }) },
   })
 
-  // Ctrl+K (or ⌘K) opens the search box from anywhere.
+  const location = useLocation()
+  const navigate = useNavigate()
+  const [showShortcuts, setShowShortcuts] = useState(false)
+  // Ctrl+K (or ⌘K) opens the search box from anywhere; Alt+N starts a new document and ? lists the shortcuts, never while typing.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+      const action = shortcutFor(event, isTyping(event.target))
+      if (action === 'search') {
         event.preventDefault()
         setSearching(true)
+      } else if (action === 'help') {
+        event.preventDefault()
+        setShowShortcuts(true)
+      } else if (action === 'new') {
+        const target = newDocumentPath(location.pathname)
+        if (target) {
+          event.preventDefault()
+          navigate(target)
+        }
       }
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [])
-  const location = useLocation()
+  }, [location.pathname, navigate])
   const contentRef = useRef<HTMLElement>(null)
   // The shell stays mounted across pages; reset only the page, preserving the menu's position.
   useLayoutEffect(() => {
@@ -156,6 +170,13 @@ export function Shell() {
         <Outlet key={settings.dataUpdatedAt} />
       </main>
       {editingDesk && desk.data && <DeskEditor state={desk.data} manager={canDesign} onClose={() => { setEditingDesk(false); setDeskPreview(null) }} onPreview={setDeskPreview} />}
+      {showShortcuts && (
+        <Modal title="Keyboard shortcuts" onClose={() => setShowShortcuts(false)}>
+          <dl className="shortcut-list">
+            {SHORTCUTS.map((s) => <div key={s.keys}><dt><kbd>{s.keys}</kbd></dt><dd>{s.does}</dd></div>)}
+          </dl>
+        </Modal>
+      )}
       {searching && <CommandPalette metas={metas.data ?? []} canDesign={canDesign} isAdministrator={Boolean(user?.roles.includes('Administrator'))} onClose={() => setSearching(false)} />}
     </div>
   )

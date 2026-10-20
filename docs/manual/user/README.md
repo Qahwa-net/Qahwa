@@ -89,6 +89,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 85. [Number format](85-number-format.md)
 86. [API scripts](86-api-scripts.md)
 87. [Unsaved changes are kept](87-unsaved-changes.md)
+88. [Keyboard shortcuts](88-keyboard-shortcuts.md)
 
 **Words used**
 
