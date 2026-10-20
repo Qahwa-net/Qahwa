@@ -567,7 +567,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Naming: format with date/field parts (`INV-{YYYY}-.####`), expression, naming rules, series manager | done: series, date and field parts, prompt, expression, rule tables, series manager (ADR-011, ADR-063, ADR-073) | ✅ | L6 |
 | Rename document (updates links), merge documents | done: rename with link updates and merge (ADR-011) | ✅ (v1) | L6 |
 | Duplicate document, track changes (versions), track seen, track views | duplicate (ADR-063), track changes (ADR-014) and track views (ADR-080) done | ✅ | L7 |
-| Document options: title field, sort field/order, search fields, image field, quick entry, allow rename, allow import, allow copy, editable grid, max attachments, default view | title field, allow rename, allow import (permission flag), quick entry (ADR-091), default sort, allow copy, max attachments, search fields, default view and image field (ADR-105) done; editable grid not built | 🟡 | L1, L3 |
+| Document options: title field, sort field/order, search fields, image field, quick entry, allow rename, allow import, allow copy, editable grid, max attachments, default view | title field, allow rename, allow import (permission flag), quick entry (ADR-091), default sort, allow copy, max attachments, search fields, default view and image field (ADR-105) done; child tables are edited in an inline grid (TableControl) | ✅ | L1, L3 |
 | Customize Form (adjust standard DocTypes) | done (ADR-013) | ✅ (v1) | L3 |
 | Custom Field, Property Setter | done: stored as data, survive upgrades (ADR-013) | ✅ (v1) | L3 |
 | DocType Layout (alternative form layouts per role) | | 🔽 | L3 |
@@ -649,7 +649,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Form view: child table grid, upload/download rows as CSV | done in the browser: download and upload (adds rows), formula-safe, checked by the server on save (ADR-076) | ✅ | L10 |
 | Form view: sidebar (assign, attachments, tags, share, follow, like), timeline, form dashboard with linked documents | done (ADR-019, ADR-068) | ✅ | L7 |
 | Form: quick entry dialog, auto-save indicator, keyboard shortcuts, unsaved-changes warning | quick entry: create a linked document in place from any Link field (ADR-091); unsaved changes are kept in the browser and offered back (ADR-109); shortcuts (ADR-110); saving to the server without a click left out on purpose (ADR-110) | ✅ | L7 |
-| Report view (editable columns, group by, totals, export) | Report Builder with group by, totals and CSV export done (ADR-045) | 🟡 | L9 |
+| Report view (editable columns, group by, totals, export) | Report Builder with group by, totals and CSV export (ADR-045); each person chooses and orders the list columns (saved per person); export to CSV and Excel | ✅ | L9 |
 | Kanban, Calendar, Gantt, Map, Image, Tree, Dashboard views | done: Tree, Dashboard, Board, Calendar, **Gantt** (timeline), **Map** (plain grid) and **Image** (gallery) (ADR-031, ADR-049) | ✅ (v1) | L12 |
 | Workspaces (shortcuts, charts, number cards, onboarding) and **Workspace Builder** | done: headings, shortcut rows, embedded dashboards, role-based; not yet onboarding | ✅ (v1) | L9 |
 | Awesomebar (global search, create, commands), global search index | done: Ctrl+K search box with pages, DocTypes, "new …" and permission-checked document search (ADR-061); no full-text index | 🟡 | L9 |
