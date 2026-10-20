@@ -551,7 +551,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Field types: Table | child rows inside a document | ✅ | L2 |
 | Field types: Dynamic Link, Table MultiSelect | Dynamic Link done (ADR-038); Table MultiSelect done as a flag on Table fields (ADR-078) | ✅ | L2 |
 | Field types: Password (encrypted), Phone with country | Password done (ADR-066); Phone numbers are validated (ADR-079) with a country picker (ADR-087) | ✅ | L3 |
-| Layout fields: Section Break, Column Break, Tab Break | | 🟡 | L1 (section/tab), L3 |
+| Layout fields: Section Break, Column Break, Tab Break | sections, tabs and (ADR-100) columns | ✅ | L1 (section/tab), L3 |
 | Field properties: label, required, unique, default, options, in list view, lowercase | | ✅ | done |
 | Field properties: description, hidden, read only | UI hints (not enforced by the API) | ✅ | L1 |
 | Field properties: `depends_on`, `mandatory_depends_on`, `read_only_depends_on` | conditional logic by expression (read-only is a UI hint) | ✅ | L4 |
@@ -644,7 +644,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | List view: sidebar group-by counts, row indicators/status colors, tags, assigned, like, comment count | group-by counts, status indicators and comment counts done (ADR-017); tag and like filters (ADR-068) | ✅ | L7 |
 | List view: bulk actions (edit, delete, assign, tag, export, print) | done: edit, delete, rename, assign (ADR-016), tag (ADR-098); export uses the list filters (CSV, Excel) and printing is per document | ✅ | L7 |
 | Form view: field controls per type, validation, conflict warning, delete | | ✅ | done |
-| Form view: tabs/sections/columns layout, collapsible sections | | 🟡 | L1, L3 |
+| Form view: tabs/sections/columns layout, collapsible sections | tabs, sections, up to four columns (ADR-100), collapsible sections | ✅ | L1, L3 |
 | Form view: child table grid (editable, reorder, row form) | | ✅ | L2 |
 | Form view: child table grid, upload/download rows as CSV | done in the browser: download and upload (adds rows), formula-safe, checked by the server on save (ADR-076) | ✅ | L10 |
 | Form view: sidebar (assign, attachments, tags, share, follow, like), timeline, form dashboard with linked documents | done (ADR-019, ADR-068) | ✅ | L7 |

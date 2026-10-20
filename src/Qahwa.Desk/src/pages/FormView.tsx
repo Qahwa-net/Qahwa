@@ -542,9 +542,15 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
                       </button>
                     </h2>
                   )}
-                  <div id={`form-section-${id}`} className="form-grid" hidden={closed}>
-                    {section.fields.map(renderField)}
-                  </div>
+                  {section.columns.length > 1 ? (
+                    <div id={`form-section-${id}`} className="form-columns" style={{ gridTemplateColumns: `repeat(${section.columns.length}, minmax(0, 1fr))` }} hidden={closed}>
+                      {section.columns.map((column, ci) => <div key={ci} className="form-column">{column.map(renderField)}</div>)}
+                    </div>
+                  ) : (
+                    <div id={`form-section-${id}`} className="form-grid" hidden={closed}>
+                      {section.fields.map(renderField)}
+                    </div>
+                  )}
                 </section>
               )
             })}

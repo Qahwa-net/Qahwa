@@ -48,6 +48,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **Gallery, map and timeline views**: pictures as tiles, places on a plain grid (no outside map service), documents as bars between two dates ([ADR-049](docs/adr/049-gallery-map-and-timeline-views.md))
 - **Light, dark and automatic themes and a brand**: per-person theme, organisation name, logo, colours and default theme, all checked as plain data, readable colours guaranteed ([ADR-056](docs/adr/056-brand-and-theme.md))
 - **App dependencies**: apps name the apps they need; installed in order, bad graphs stop start-up ([ADR-085](docs/adr/085-app-dependencies.md))
+- **Form columns**: Column Break fields lay a section out in up to four columns ([ADR-100](docs/adr/100-form-columns.md))
 - **Module Definition**: label, order and visibility of modules on the home page ([ADR-099](docs/adr/099-module-definition.md))
 - **Bulk tagging**: tag many selected documents at once ([ADR-098](docs/adr/098-bulk-tag.md))
 - **API versioning**: `/api/v1/…` is a stable address for integrations ([ADR-097](docs/adr/097-api-versioning.md))

@@ -80,6 +80,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 76. [User types](76-user-types.md)
 77. [API versions](77-api-versions.md)
 78. [Modules on the home page](78-modules.md)
+79. [Columns on forms](79-form-columns.md)
 
 **Words used**
 

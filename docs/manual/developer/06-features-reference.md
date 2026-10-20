@@ -415,3 +415,7 @@ Desk: `controls/SearchSelect.tsx`, `LinkSelect.tsx` ("Create new"), `QuickCreate
 ## Module Definition ([ADR-099](../../adr/099-module-definition.md))
 
 `module_definition.json` (read for `All`); Desk `lib/modules.ts` `groupByModule` used by `HomePage.tsx`. Tests: `ModuleDefinitionTests`, `modules.test.ts`.
+
+## Form columns ([ADR-100](../../adr/100-form-columns.md))
+
+`lib/layout.ts` `buildLayout` fills `FormSection.columns` from Column Breaks (max 4); `FormView.tsx` draws `.form-columns`. Test: `layout.test.ts`.

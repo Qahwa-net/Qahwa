@@ -586,7 +586,10 @@ kbd { font: .75rem ui-monospace, Consolas, monospace; padding: .05rem .35rem; bo
 
 /* Form sections, tabs, toasts, skeleton */
 .form-stack { display: grid; grid-template-columns: minmax(0, 1fr); gap: 1rem; min-inline-size: 0; }
-.form-stack[hidden], .form-grid[hidden] { display: none; }
+.form-stack[hidden], .form-grid[hidden], .form-columns[hidden] { display: none; }
+.form-columns { display: grid; gap: .9rem 1.25rem; min-inline-size: 0; }
+.form-column { display: grid; gap: .9rem; align-content: start; min-inline-size: 0; }
+@media (max-width: 720px) { .form-columns { grid-template-columns: 1fr !important; } }
 .form-section { padding: 1.1rem 1.25rem; min-inline-size: 0; }
 .section-toggle { margin: 0 0 .85rem; font-size: 1rem; }
 .section-toggle button { all: unset; display: inline-flex; align-items: center; gap: .4rem; cursor: pointer; font-weight: 600; border-radius: 6px; padding: .1rem .25rem .1rem 0; }

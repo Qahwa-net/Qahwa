@@ -11,9 +11,16 @@ describe('buildLayout', () => {
     expect(tabs[0]!.sections.map((s) => [s.label, s.fields.map((x) => x.name)])).toEqual([['', ['a', 'b']]])
   })
 
-  it('starts a titled section at each section break and ignores column breaks', () => {
+  it('starts a titled section at each section break and keeps every field of its columns', () => {
     const tabs = buildLayout([f('a'), f('s1', 'SectionBreak', 'Contact'), f('b'), f('c1', 'ColumnBreak'), f('c'), f('s2', 'SectionBreak', 'More'), f('d')])
     expect(tabs[0]!.sections.map((s) => [s.label, s.fields.map((x) => x.name)])).toEqual([['', ['a']], ['Contact', ['b', 'c']], ['More', ['d']]])
+  })
+
+  it('splits a section into columns at column breaks, at most four, never empty', () => {
+    const tabs = buildLayout([f('c0', 'ColumnBreak'), f('a'), f('c1', 'ColumnBreak'), f('c2', 'ColumnBreak'), f('b'), f('c3', 'ColumnBreak'), f('c'), f('c4', 'ColumnBreak'), f('d'), f('c5', 'ColumnBreak'), f('e'), f('c6', 'ColumnBreak')])
+    expect(tabs[0]!.sections[0]!.columns.map((c) => c.map((x) => x.name))).toEqual([['a'], ['b'], ['c'], ['d', 'e']])
+    expect(tabs[0]!.sections[0]!.fields.map((x) => x.name)).toEqual(['a', 'b', 'c', 'd', 'e'])
+    expect(buildLayout([f('a'), f('b')])[0]!.sections[0]!.columns).toHaveLength(1)
   })
 
   it('starts a tab at each tab break and names the first one', () => {
