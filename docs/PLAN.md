@@ -716,10 +716,10 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Document | Status | Step |
 |---|---|---|
 | User, Role, Has Role | ✅ | done |
-| DocType, Custom Field, Property Setter, Module Def | 🟡 | L1, L3 |
-| Comment, Communication, ToDo, DocShare, Document Follow, Tag, Version, File, Note | ⬜ | L7, L10 |
+| DocType, Custom Field, Property Setter, Module Def | ✅ (DocType designer, Customize Form for custom fields and property changes, Module Definition ADR-099) | L1, L3 |
+| Comment, Communication, ToDo, DocShare, Document Follow, Tag, Version, File, Note | ✅ all built except Note (a free-standing note adds nothing over Comment and ToDo; left out on purpose) | L7, L10 |
 | Notification, Email Template, Email Account, Assignment Rule, Auto Repeat, Workflow, Webhook | ✅ (incoming mail added, ADR-095) | L8, L10 |
 | Report, Dashboard, Dashboard Chart, Number Card, Workspace, Print Format, Letter Head | Dashboard, Workspace, Print Format and Letter Head done (charts and number cards are tiles of a Dashboard) | ✅ (v1) | L9 |
-| Data Import, Data Export, Scheduled Job Type, Error Log, System Settings, Navbar Settings | ⬜ | L10, L12 |
+| Data Import, Data Export, Scheduled Job Type, Error Log, System Settings, Navbar Settings | ✅ import and export (files), app jobs, Error Log, System Settings, Desk Setting for the sidebar | L10, L12 |
 | Contact, Address, Country, Currency, Language, Salutation, Gender (master data) | done: Country, Currency, Language, Salutation, Gender (ADR-046), Contact and Address with dynamic links (ADR-077) | ✅ | L10 |
 | Web Form, Web Page, Blog, Website Settings (portal and website) | 🔽 | later |
