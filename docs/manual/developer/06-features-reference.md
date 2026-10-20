@@ -411,3 +411,7 @@ Desk: `controls/SearchSelect.tsx`, `LinkSelect.tsx` ("Create new"), `QuickCreate
 ## Bulk tagging ([ADR-098](../../adr/098-bulk-tag.md))
 
 `Bulk.cs` `BulkService.TagAsync`; `ListEndpoints.cs` bulk `action: "tag"`; Desk `BulkBar.tsx`. Tests: `Bulk_tagging_tags_what_can_be_read_and_reports_the_rest`, `Selected_documents_can_be_tagged_in_one_call`.
+
+## Module Definition ([ADR-099](../../adr/099-module-definition.md))
+
+`module_definition.json` (read for `All`); Desk `lib/modules.ts` `groupByModule` used by `HomePage.tsx`. Tests: `ModuleDefinitionTests`, `modules.test.ts`.

@@ -1,0 +1,17 @@
+{
+  "name": "Module Definition",
+  "module": "Core",
+  "autoname": "field:module_name",
+  "titleField": "label",
+  "fields": [
+    { "name": "module_name", "type": "Data", "label": "Module Name", "required": true, "unique": true, "inListView": true, "description": "The same text as in the Module field of its DocTypes." },
+    { "name": "label", "type": "Data", "label": "Shown As", "inListView": true, "description": "How the module is named on the home page. Leave empty to use the module name." },
+    { "name": "sort_order", "type": "Int", "label": "Position", "default": "100", "inListView": true, "description": "Modules are listed from the lowest number to the highest, then by name." },
+    { "name": "description", "type": "SmallText", "label": "Description" },
+    { "name": "hidden", "type": "Check", "label": "Hide from the home page", "default": "0", "description": "Only hides the tiles; people keep any access they have." }
+  ],
+  "permissions": [
+    { "role": "All", "read": true },
+    { "role": "System Manager", "read": true, "write": true, "create": true, "delete": true }
+  ]
+}

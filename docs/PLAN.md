@@ -571,7 +571,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Customize Form (adjust standard DocTypes) | done (ADR-013) | ✅ (v1) | L3 |
 | Custom Field, Property Setter | done: stored as data, survive upgrades (ADR-013) | ✅ (v1) | L3 |
 | DocType Layout (alternative form layouts per role) | | 🔽 | L3 |
-| Module Definition, Module Profile | group DocTypes, restrict access to modules | 🟡 | L5 |
+| Module Definition, Module Profile | group DocTypes on the home page with label, order and hide flag (ADR-099); restrict access to modules with Module Profiles (ADR-081) | ✅ | L5 |
 
 ### A2. Document lifecycle and logic
 

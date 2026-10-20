@@ -79,6 +79,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 75. [Receiving email in Qahwa](75-incoming-mail.md)
 76. [User types](76-user-types.md)
 77. [API versions](77-api-versions.md)
+78. [Modules on the home page](78-modules.md)
 
 **Words used**
 
