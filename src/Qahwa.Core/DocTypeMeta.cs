@@ -128,6 +128,9 @@ public sealed record DocFieldMeta
     /// <summary>Submittable DocTypes: the field may still be changed after the document is submitted.</summary>
     public bool AllowOnSubmit { get; init; }
 
+    /// <summary>The decimals a Float, Decimal, Currency or Percent value keeps (0 to 9): longer values are rounded, halves away from zero, when saved.</summary>
+    public int? Precision { get; init; }
+
     /// <summary>The value is not copied when a document is duplicated, amended or repeated.</summary>
     public bool NoCopy { get; init; }
 

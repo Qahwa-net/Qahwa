@@ -6,6 +6,7 @@ In the DocType designer, open a field to set:
 - **Longest text**: text fields refuse text longer than the number you enter (1 to 10000).
 
 - **Do not copy when duplicating**: the field starts empty in a duplicate, an amended or a repeated document.
+- **Decimals kept**: number fields round to that many decimals when saved (for example 2 for money) and show that many.
 - **Bold label** and **Offer as a list filter** (it appears in the list's filter sidebar).
 
 The rules apply everywhere: forms, imports, bulk edits and the API.

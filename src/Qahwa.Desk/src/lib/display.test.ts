@@ -40,3 +40,11 @@ describe('formatNumber', () => {
     expect(formatNumber(Number.NaN, settings({}))).toBe('NaN')
   })
 })
+
+describe('formatNumber with a fixed number of decimals', () => {
+  it('always shows that many', () => {
+    expect(formatNumber(1234.5, settings({ numberFormat: '1,234.56' }), 2)).toBe('1,234.50')
+    expect(formatNumber(2, settings({ numberFormat: '1.234,56' }), 3)).toBe('2,000')
+    expect(formatNumber(1234.567, settings({ numberFormat: '1,234.56' }), 0)).toBe('1,235')
+  })
+})

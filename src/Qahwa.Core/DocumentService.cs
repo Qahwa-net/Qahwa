@@ -964,6 +964,16 @@ public sealed partial class DocumentService(
             try
             {
                 var value = FieldValueConverter.ToStorage(field.Type, raw);
+                if (field.Precision is { } places)
+                {
+                    value = value switch
+                    {
+                        decimal money => Math.Round(money, places, MidpointRounding.AwayFromZero),
+                        double real => Math.Round(real, places, MidpointRounding.AwayFromZero),
+                        _ => value,
+                    };
+                }
+
                 if (field.NonNegative && value is sbyte or short or int or long or float or double or decimal && Convert.ToDecimal(value, System.Globalization.CultureInfo.InvariantCulture) < 0)
                 {
                     errors.Add(new FieldError(pathPrefix + key, "This value cannot be negative."));

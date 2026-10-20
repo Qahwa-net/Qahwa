@@ -19,9 +19,9 @@ export function setDisplaySettings(settings: DisplaySettings): void {
 export const getDisplaySettings = (): DisplaySettings => current
 
 /** A number written with the chosen separators (at most nine decimals). Anything that is not a finite number is shown as it is. */
-export function formatNumber(value: unknown, settings: DisplaySettings = current): string {
+export function formatNumber(value: unknown, settings: DisplaySettings = current, places?: number | null): string {
   if (typeof value !== 'number' || !Number.isFinite(value)) return String(value)
-  const [whole, fraction] = Math.abs(value).toLocaleString('en-US', { maximumFractionDigits: 9, useGrouping: false }).split('.')
+  const [whole, fraction] = Math.abs(value).toLocaleString('en-US', { minimumFractionDigits: places ?? 0, maximumFractionDigits: places ?? 9, useGrouping: false }).split('.')
   const [group, mark] = settings.numberFormat === '1.234,56' ? ['.', ','] : settings.numberFormat === '1 234,56' ? [' ', ','] : [',', '.']
   const grouped = whole!.replace(/\B(?=(\d{3})+(?!\d))/g, group)
   return `${value < 0 ? '-' : ''}${grouped}${fraction ? mark + fraction : ''}`

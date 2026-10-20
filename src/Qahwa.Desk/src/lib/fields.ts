@@ -104,7 +104,7 @@ export function formatCell(field: DocField, value: unknown): string {
   switch (field.type) {
     case 'Check': return value ? '✓' : ''
     case 'Currency': case 'Decimal': case 'Float': case 'Percent':
-      return typeof value === 'number' ? formatNumber(value) : String(value)
+      return typeof value === 'number' ? formatNumber(value, undefined, field.precision) : String(value)
     case 'Attach': case 'AttachImage': return '(file)'
     case 'Rating': return starsLabel(value)
     case 'Duration': return formatDuration(Number(value))

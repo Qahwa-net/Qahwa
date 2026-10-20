@@ -192,6 +192,9 @@ export function FieldCard({
                 {isTextType(field.type) && (
                   <label><input type="checkbox" checked={field.lowercase} onChange={(e) => onChange({ lowercase: e.target.checked })} /> Lower case</label>
                 )}
+                {['Float', 'Decimal', 'Currency', 'Percent'].includes(field.type) && (
+                  <label>Decimals kept <input type="number" min={0} max={9} aria-label="Decimals kept" value={field.precision ?? ''} onChange={(e) => onChange({ precision: e.target.value === '' ? null : Number(e.target.value) })} /></label>
+                )}
                 {!isTable && (
                   <label><input type="checkbox" checked={Boolean(field.noCopy)} onChange={(e) => onChange({ noCopy: e.target.checked })} /> Do not copy when duplicating</label>
                 )}

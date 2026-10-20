@@ -389,6 +389,8 @@ public static partial class DocTypeLoader
             add($"{path}.nonNegative", "Only number fields can be marked non-negative.");
         if (field.MaxLength is { } maxLength && (!FieldTypes.IsTextual(field.Type) || field.Type == FieldType.Password || maxLength < 1 || maxLength > 10000))
             add($"{path}.maxLength", "A maximum length (1 to 10000) only applies to text fields.");
+        if (field.Precision is { } precision && (precision < 0 || precision > 9 || field.Type is not (FieldType.Float or FieldType.Decimal or FieldType.Currency or FieldType.Percent)))
+            add($"{path}.precision", "Precision (0 to 9 decimals) only applies to Float, Decimal, Currency and Percent fields.");
         if (field.InStandardFilter && field.Type is not (FieldType.Select or FieldType.Link or FieldType.Check or FieldType.Data or FieldType.Email or FieldType.Phone or FieldType.Int or FieldType.Rating))
             add($"{path}.inStandardFilter", "Only Select, Link, Check, Data, Email, Phone, Int and Rating fields can be offered as a standard filter.");
         if (field.SetOnce && (FieldTypes.IsLayout(field.Type) || field.Type == FieldType.Table))

@@ -14,7 +14,7 @@ public class FieldPropertyTests
                 { "name": "serial", "type": "Data", "setOnce": true },
                 { "name": "qty", "type": "Int", "nonNegative": true },
                 { "name": "price", "type": "Currency", "nonNegative": true },
-                { "name": "note", "type": "Data", "maxLength": 5 } ],
+                { "name": "note", "type": "Data", "maxLength": 5 }, { "name": "ratio", "type": "Decimal", "precision": 2 }, { "name": "whole", "type": "Float", "precision": 0 } ],
               "permissions": [ { "role": "Clerk", "read": true, "write": true, "create": true } ] }
             """));
     }
@@ -43,6 +43,17 @@ public class FieldPropertyTests
     }
 
     [Fact]
+    public async Task Numbers_are_rounded_to_the_decimals_a_field_keeps()
+    {
+        var name = await NewAsync(("ratio", 1.005m), ("whole", 2.5));
+        var back = await _engine.Documents.GetAsync("Gadget", name, Ann);
+        Assert.Equal(1.01m, back["ratio"]);
+        Assert.Equal(3d, back["whole"]);
+        var negative = await NewAsync(("ratio", -1.005m));
+        Assert.Equal(-1.01m, (await _engine.Documents.GetAsync("Gadget", negative, Ann))["ratio"]);
+    }
+
+    [Fact]
     public async Task Text_longer_than_the_limit_is_refused()
     {
         await NewAsync(("note", "12345"));
@@ -55,6 +66,8 @@ public class FieldPropertyTests
     [InlineData("""{ "name": "X3", "fields": [ { "name": "a", "type": "Data", "maxLength": 0 } ] }""")]
     [InlineData("""{ "name": "X4", "fields": [ { "name": "a", "type": "Data", "maxLength": 20000 } ] }""")]
     [InlineData("""{ "name": "X6", "fields": [ { "name": "a", "type": "Text", "inStandardFilter": true } ] }""")]
+    [InlineData("""{ "name": "X7", "fields": [ { "name": "a", "type": "Int", "precision": 2 } ] }""")]
+    [InlineData("""{ "name": "X8", "fields": [ { "name": "a", "type": "Decimal", "precision": 10 } ] }""")]
     [InlineData("""{ "name": "X5", "fields": [ { "name": "a", "type": "SectionBreak", "setOnce": true } ] }""")]
     public void Meaningless_combinations_are_rejected_when_a_DocType_is_defined(string json) =>
         Assert.Throws<DocTypeValidationException>(() => DocTypeLoader.Parse(json));

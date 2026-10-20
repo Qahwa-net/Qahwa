@@ -557,7 +557,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Field properties: `depends_on`, `mandatory_depends_on`, `read_only_depends_on` | conditional logic by expression (read-only is a UI hint) | ✅ | L4 |
 | Field properties: `fetch_from`, `fetch_if_empty` | copy a value from a linked document, only what the user may read | ✅ | L4 |
 | Calculated fields (formula), expression defaults | recalculated on every save and live in the form | ✅ | L4 |
-| Field properties: in standard filter, in preview, in global search, bold, no copy, allow on submit, set only once, non negative, collapsible, translatable, search index, precision, length, ignore user permissions, permission level | permission level, set only once, non-negative and maximum length enforced on the server (ADR-101); no copy, bold and in standard filter also done; in preview, translatable and precision not built | 🟡 | L3 |
+| Field properties: in standard filter, in preview, in global search, bold, no copy, allow on submit, set only once, non negative, collapsible, translatable, search index, precision, length, ignore user permissions, permission level | permission level, set only once, non-negative and maximum length enforced on the server (ADR-101); no copy, bold, in standard filter and precision also done; in preview and translatable not built | 🟡 | L3 |
 | Child tables (Table field, parent/child) | created in the designer, saved atomically with the parent | ✅ | L2 |
 | Single DocTypes (settings stored as one document) | done (ADR-011) | ✅ (v1) | L6 |
 | Tree DocTypes (nested set, parent/child hierarchy) | done: parent/child with tree views (ADR-011) | ✅ (v1) | L6 |
