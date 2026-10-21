@@ -91,6 +91,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 87. [Unsaved changes are kept](87-unsaved-changes.md)
 88. [Keyboard shortcuts](88-keyboard-shortcuts.md)
 89. [Notes](89-notes.md)
+90. [Slow requests](90-slow-requests.md)
 
 **Words used**
 

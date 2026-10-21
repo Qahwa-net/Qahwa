@@ -694,7 +694,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | **Data Import** (CSV/Excel template, validate, preview, background, update existing) | done: CSV, template, preview, row results, update existing; not yet Excel, background, child tables | ✅ (v1) | L10 |
 | Data Export, bulk update, bulk rename | export to CSV and Excel (ADR-064), import from CSV and Excel (ADR-027, ADR-064), bulk edit (ADR-016) and bulk rename (ADR-065) done | ✅ | L10 |
 | Backups (download, scheduled, restore) | done: download, daily folder, additive restore (ADR-044); not encryption, file contents, cloud storage | ✅ (v1) | L12 |
-| Error Log, Scheduled Job Log, Recorder (query profiler), System Console | done: Error Log (requests and scheduler), Scheduled Job Log (ADR-075); no profiler or console, by design (ADR-107) | ✅ | L12 |
+| Error Log, Scheduled Job Log, Recorder (query profiler), System Console | done: Error Log (requests and scheduler), Scheduled Job Log (ADR-075); slow-request recorder (ADR-112); no query profiler or console, by design (ADR-107) | ✅ | L12 |
 | System Settings (time zone, formats, session expiry, security) | done: time zone, date format, first weekday, default language; session and password policy stay in configuration, by design (ADR-107) | ✅ | L10 |
 | Fixtures (export UI-made customisations as files) | done: **bundle** export/import of DocTypes, customizations, workflows and rules with preview; not yet print formats/dashboards, patches, CLI | ✅ (v1) | L12 |
 

@@ -14,6 +14,7 @@ import { DashboardsPage } from './pages/Dashboards.tsx'
 import { NotificationRulesPage } from './pages/NotificationRules.tsx'
 import { AutoRepeatPage } from './pages/AutoRepeatPage.tsx'
 import { EmailedReportsPage } from './pages/EmailedReports.tsx'
+import { SlowRequestsPage } from './pages/SlowRequests.tsx'
 import { ScriptReportsPage } from './pages/ScriptReports.tsx'
 import { AppsPage } from './pages/AppsPage.tsx'
 import { OAuthClientsPage } from './pages/OAuthClients.tsx'
@@ -87,6 +88,7 @@ export function App() {
           <Route path="notification-rules/:name" element={<NotificationRulesPage />} />
           <Route path="auto-repeat" element={<AutoRepeatPage />} />
           <Route path="emailed-reports" element={<EmailedReportsPage />} />
+          <Route path="slow-requests" element={<SlowRequestsPage />} />
           <Route path="assignment-rules" element={<AssignmentRulesPage />} />
           <Route path="assignment-rules/:name" element={<AssignmentRulesPage />} />
           <Route path="workflows" element={<WorkflowBuilderPage />} />

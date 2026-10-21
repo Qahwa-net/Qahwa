@@ -463,3 +463,7 @@ The Data suite ran in full on PostgreSQL (143 of 143) and on SQL Server (142 of 
 ## Incoming mail against a real server
 
 `RealMailboxTests` (Api.Tests) reads a real IMAP server over TLS. Start GreenMail (`docker run -d -p 3025:3025 -p 3993:3993 -e GREENMAIL_OPTS="-Dgreenmail.setup.test.smtp -Dgreenmail.setup.test.imaps -Dgreenmail.hostname=0.0.0.0 -Dgreenmail.users=desk:deskpass@example.com" greenmail/standalone:2.1.0`) and set `QAHWA_TEST_IMAP=localhost`; without it the tests are skipped. It was run once this way: connect, sign in, folder size, first poll notes the end, two new messages become Communications, and the mailbox still holds every message afterwards (read-only). `MailKitMailbox.Configure` is a test seam for the self-signed certificate; the real class never relaxes certificate checks. A wrong password could not be tested because GreenMail accepts any password; a closed port is an error.
+
+## Slow request recorder ([ADR-112](../../adr/112-slow-request-recorder.md))
+
+`Qahwa.Api/RequestRecorder.cs` (`RequestRecorder`, `UseQahwaRecorder` first in `UseQahwa`, `MapQahwaRecorder`), Desk `pages/SlowRequests.tsx`. Tests: `RequestRecorderTests`; also driven live with `Qahwa:Recorder:SlowMs=1`. A scheduled script and the Note form were verified live on PostgreSQL: the scheduler tick ran the script as its maker and logged "1 ran, 0 failed", and a Note was saved through the Desk.

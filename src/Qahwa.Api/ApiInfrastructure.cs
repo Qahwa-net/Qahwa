@@ -139,6 +139,7 @@ public static class ApiServiceCollectionExtensions
     {
         services.Configure<JsonOptions>(o => o.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
         services.AddMemoryCache();
+        services.AddQahwaRecorder();
         services.AddDataProtection();
         services.TryAddSingleton<ISecretProtector, DataProtectionSecretProtector>();
         services.TryAddSingleton<IOidcBackchannel, HttpOidcBackchannel>();
@@ -207,7 +208,7 @@ public static class ApplicationBuilderExtensions
 
     /// <summary>Error envelope, rate limiting and authentication, in the order they must run.</summary>
     public static IApplicationBuilder UseQahwa(this IApplicationBuilder app) =>
-        app.UseQahwaErrors().UseQahwaNetworkRestriction().UseRateLimiter().UseAuthentication();
+        app.UseQahwaRecorder().UseQahwaErrors().UseQahwaNetworkRestriction().UseRateLimiter().UseAuthentication();
 
     /// <summary>
     /// With <c>Qahwa:Auth:AllowedIps</c> set, the API answers 403 to every other address (before anything else looks at the request).

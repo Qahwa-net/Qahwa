@@ -107,6 +107,7 @@ public static class QahwaEndpoints
         });
 
         app.MapQahwaAuth();
+        app.MapQahwaRecorder();
         app.MapUserSecurity();
         app.MapQahwaDesigner();
         app.MapQahwaPermissions();
