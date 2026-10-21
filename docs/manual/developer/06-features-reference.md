@@ -467,3 +467,7 @@ The Data suite ran in full on PostgreSQL (143 of 143) and on SQL Server (142 of 
 ## Slow request recorder ([ADR-112](../../adr/112-slow-request-recorder.md))
 
 `Qahwa.Api/RequestRecorder.cs` (`RequestRecorder`, `UseQahwaRecorder` first in `UseQahwa`, `MapQahwaRecorder`), Desk `pages/SlowRequests.tsx`. Tests: `RequestRecorderTests`; also driven live with `Qahwa:Recorder:SlowMs=1`. A scheduled script and the Note form were verified live on PostgreSQL: the scheduler tick ran the script as its maker and logged "1 ran, 0 failed", and a Note was saved through the Desk.
+
+## Roles from the sign-in provider ([ADR-113](../../adr/113-sso-role-map.md))
+
+`SsoProvider.GroupsClaim/RoleMap/RoleMapProblem/NeverFromProvider` and `SsoService.GroupsOf` + sync in `CompleteAsync` (`Sso.cs`); `AuthService.SyncProviderRolesAsync`. Test: `SsoRoleMapTests` (uses `FakeIdentityProvider.Issue(groupsClaim:, groups:)`).

@@ -37,7 +37,7 @@ public sealed class FakeIdentityProvider : IOidcBackchannel
 
     public string Issue(
         string subject, string? email = null, bool? verified = true, string? name = null, string? nonce = null, string audience = ClientId, string issuer = Authority,
-        TimeSpan? lifetime = null, RSA? signWith = null, string? algorithm = null, DateTime? now = null)
+        TimeSpan? lifetime = null, RSA? signWith = null, string? algorithm = null, DateTime? now = null, string? groupsClaim = null, object? groups = null)
     {
         var claims = new Dictionary<string, object> { ["sub"] = subject };
         if (email is not null)
@@ -48,6 +48,8 @@ public sealed class FakeIdentityProvider : IOidcBackchannel
             claims["name"] = name;
         if (nonce is not null)
             claims["nonce"] = nonce;
+        if (groupsClaim is not null && groups is not null)
+            claims[groupsClaim] = groups;
         var issued = now ?? DateTime.UtcNow;
         var key = new RsaSecurityKey(signWith ?? _rsa) { KeyId = signWith is null ? _kid : "other" };
         var descriptor = new SecurityTokenDescriptor

@@ -277,6 +277,31 @@ public sealed class AuthService(
         }
     }
 
+    /// <summary>
+    /// Makes the person's roles among <paramref name="managed"/> exactly <paramref name="wanted"/>: grants the missing ones and removes the
+    /// others. Roles outside <paramref name="managed"/> are never touched, and the roles a provider may never give are never touched at all.
+    /// </summary>
+    public async Task SyncProviderRolesAsync(string email, IReadOnlySet<string> managed, IReadOnlySet<string> wanted, CancellationToken ct = default)
+    {
+        var key = Normalize(email) ?? throw new DocumentValidationException([new FieldError("email", "A valid email is required.")]);
+        var user = await GetUserAsync(key, ct) ?? throw new NotFoundException($"User '{key}' was not found.");
+        bool Allowed(string role) => !SsoProvider.NeverFromProvider.Contains(role, StringComparer.OrdinalIgnoreCase);
+        var grant = wanted.Where(r => managed.Contains(r) && Allowed(r)).ToList();
+        await GrantRolesAsync(key, grant, ct);
+
+        var held = await repository.ListAsync(registry.Get(HasRoleDocType), new ListQuery
+        {
+            Filters = [new QueryFilter("user", FilterOp.Eq, key), new QueryFilter("creation", FilterOp.Ge, user["creation"])],
+            Fields = ["name", "role"], Limit = 1000,
+        }, ct);
+        foreach (var row in held)
+        {
+            var role = (string)row["role"]!;
+            if (managed.Contains(role) && Allowed(role) && !wanted.Contains(role))
+                await documents.DeleteAsync(HasRoleDocType, (string)row["name"]!, SystemContext, ct);
+        }
+    }
+
     public static string? Normalize(string? email)
     {
         var key = email?.Trim().ToLowerInvariant();

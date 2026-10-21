@@ -27,6 +27,45 @@ public sealed class SsoProvider
 
     public string[] DefaultRoles { get; set; } = [];
 
+    /// <summary>
+    /// The claim in the id token that lists the person's groups (for example "groups"). With <see cref="RoleMap"/> it gives roles (ADR-113).
+    /// Empty: roles never come from the token.
+    /// </summary>
+    public string? GroupsClaim { get; set; }
+
+    /// <summary>
+    /// Provider group to Qahwa roles. Every role named here is managed by the provider: it is granted at each sign-in to people in the group
+    /// and taken away from people who are not. Administrator and System Manager can never be named (the provider is not trusted with them).
+    /// </summary>
+    public Dictionary<string, string[]> RoleMap { get; set; } = new(StringComparer.Ordinal);
+
+    public static readonly string[] NeverFromProvider = ["Administrator", "System Manager", "All", "Guest"];
+
+    /// <summary>Why the role map cannot be used, or null. A provider with a problem here refuses every sign-in rather than guess.</summary>
+    public string? RoleMapProblem()
+    {
+        if (string.IsNullOrWhiteSpace(GroupsClaim) && RoleMap.Count == 0)
+            return null;
+        if (string.IsNullOrWhiteSpace(GroupsClaim) || GroupsClaim.Length > 64 || RoleMap.Count == 0)
+            return "A role map needs both a groups claim and at least one group.";
+        if (RoleMap.Count > 100)
+            return "At most 100 groups can be mapped.";
+        foreach (var (group, roles) in RoleMap)
+        {
+            if (string.IsNullOrWhiteSpace(group) || group.Length > 200 || group.Any(char.IsControl))
+                return "A group name in the role map is not valid.";
+            foreach (var role in roles ?? [])
+            {
+                if (string.IsNullOrWhiteSpace(role) || role.Length > 140 || role.Any(char.IsControl))
+                    return "A role name in the role map is not valid.";
+                if (NeverFromProvider.Contains(role, StringComparer.OrdinalIgnoreCase))
+                    return $"The role '{role}' cannot be given by a sign-in provider.";
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>Believe the provider's email without its "email_verified" claim (for providers that do not send it, such as some Microsoft setups).</summary>
     public bool TrustEmail { get; set; }
 }
@@ -96,8 +135,13 @@ public sealed class SsoService(
 
     public static bool ValidName(string? name) => name is { Length: > 0 and <= 40 } && name.All(c => char.IsAsciiLetterOrDigit(c) || c is '-' or '_');
 
-    private SsoProvider Provider(string name) =>
-        ValidName(name) && options.Value.Providers.TryGetValue(name, out var p) && p.Authority.Length > 0 && p.ClientId.Length > 0 ? p : throw new SsoException("unknown_provider", $"No provider '{name}'.");
+    private SsoProvider Provider(string name)
+    {
+        var provider = ValidName(name) && options.Value.Providers.TryGetValue(name, out var p) && p.Authority.Length > 0 && p.ClientId.Length > 0 ? p : throw new SsoException("unknown_provider", $"No provider '{name}'.");
+        if (provider.RoleMapProblem() is { } problem)
+            throw new SsoException("misconfigured", problem);
+        return provider;
+    }
 
     /// <summary>Only a path on this site, so a sign-in can never send someone to another address.</summary>
     public static string SafeNext(string? next) =>
@@ -156,10 +200,17 @@ public sealed class SsoService(
 
         var claims = await ValidateAsync(provider, metadata, idToken, saved.N, ct);
         var user = await ResolveAsync(provider, metadata.Issuer, claims, ct);
+        if (!string.IsNullOrWhiteSpace(provider.GroupsClaim))
+        {
+            var wanted = provider.RoleMap.Where(kv => claims.Groups.Contains(kv.Key, StringComparer.Ordinal)).SelectMany(kv => kv.Value ?? []).ToHashSet(StringComparer.Ordinal);
+            var managed = provider.RoleMap.Values.SelectMany(v => v ?? []).ToHashSet(StringComparer.Ordinal);
+            await auth.SyncProviderRolesAsync(user, managed, wanted, ct);
+        }
+
         return new SsoSignIn(user, saved.Next, providerName);
     }
 
-    private sealed record Claims(string Subject, string? Email, bool EmailVerified, string? Name);
+    private sealed record Claims(string Subject, string? Email, bool EmailVerified, string? Name, IReadOnlyList<string> Groups);
 
     private async Task<Claims> ValidateAsync(SsoProvider provider, OidcMetadata metadata, string idToken, string nonce, CancellationToken ct)
     {
@@ -189,7 +240,30 @@ public sealed class SsoService(
         if (string.IsNullOrEmpty(subject) || subject.Length > 255)
             throw new SsoException("bad_token", "No subject.");
         var verified = string.Equals(Text("email_verified"), "true", StringComparison.OrdinalIgnoreCase);
-        return new Claims(subject, Text("email"), verified || provider.TrustEmail, Text("name"));
+        return new Claims(subject, Text("email"), verified || provider.TrustEmail, Text("name"), GroupsOf(provider, result.Claims));
+    }
+
+    /// <summary>The groups the token lists: a JSON list, or one text separated by commas or spaces. At most 200 of at most 200 characters each.</summary>
+    private static List<string> GroupsOf(SsoProvider provider, IDictionary<string, object> claims)
+    {
+        var groups = new List<string>();
+        if (string.IsNullOrWhiteSpace(provider.GroupsClaim) || !claims.TryGetValue(provider.GroupsClaim, out var raw) || raw is null)
+            return groups;
+        IEnumerable<string?> values = raw switch
+        {
+            string text => text.Split([',', ' '], StringSplitOptions.RemoveEmptyEntries),
+            System.Text.Json.JsonElement { ValueKind: System.Text.Json.JsonValueKind.Array } array => array.EnumerateArray().Select(e => e.ValueKind == System.Text.Json.JsonValueKind.String ? e.GetString() : null),
+            System.Text.Json.JsonElement { ValueKind: System.Text.Json.JsonValueKind.String } one => (one.GetString() ?? string.Empty).Split([',', ' '], StringSplitOptions.RemoveEmptyEntries),
+            System.Collections.IEnumerable list => list.Cast<object?>().Select(o => o as string),
+            _ => [],
+        };
+        foreach (var value in values)
+        {
+            if (value is { Length: > 0 and <= 200 } && groups.Count < 200)
+                groups.Add(value);
+        }
+
+        return groups;
     }
 
     private Task<string> ResolveAsync(SsoProvider provider, string issuer, Claims claims, CancellationToken ct) =>

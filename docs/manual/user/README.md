@@ -92,6 +92,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 88. [Keyboard shortcuts](88-keyboard-shortcuts.md)
 89. [Notes](89-notes.md)
 90. [Slow requests](90-slow-requests.md)
+91. [Roles from your company sign-in](91-roles-from-sign-in.md)
 
 **Words used**
 
