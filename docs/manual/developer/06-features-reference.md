@@ -475,3 +475,7 @@ The Data suite ran in full on PostgreSQL (143 of 143) and on SQL Server (142 of 
 ## Stricter security settings ([ADR-114](../../adr/114-stricter-security-settings.md))
 
 `SecurityPolicy.cs` `SecurityPolicyService` (used by `AuthService` for password length and expiry and by `SessionService` for the sign-in length); fields in `system_settings.json`. Tests: `SecurityPolicyTests`.
+
+## Verified against a real identity provider and on a running server
+
+The role map (ADR-113) was tried with a real OpenID Connect provider over HTTP, not the test stand-in: the mock OAuth2 server `ghcr.io/navikt/mock-oauth2-server` (issuer `http://localhost:8081/default`, allowed because Qahwa accepts plain HTTP for loopback addresses only), with provider settings `Qahwa__Auth__Sso__Providers__mock__*` (`GroupsClaim=groups`, `RoleMap__staff__0=Support`, `RoleMap__staff__1=Employee`, `RoleMap__sales__0=Seller`, auto-create for example.com). A person with groups `staff, unrelated` was created with the roles Employee and Support. Signing in again with groups `sales, System Manager, admins` left only Seller: the other mapped roles were taken away and the group names `System Manager` and `admins` gave nothing. The stricter settings (ADR-114) were set through the API on a running server: a minimum of 20 refused a 17-character password and accepted a 35-character one, and a minimum of 4 was refused when saved. The browser pass did not use the Desk's System Settings form for these two settings.
