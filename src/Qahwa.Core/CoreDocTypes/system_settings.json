@@ -8,7 +8,15 @@
     { "name": "date_format", "type": "Select", "label": "Date format", "options": "yyyy-mm-dd\ndd/mm/yyyy\nmm/dd/yyyy", "default": "yyyy-mm-dd" },
     { "name": "number_format", "type": "Select", "label": "Number format", "options": "1,234.56\n1.234,56\n1 234,56", "default": "1,234.56" },
     { "name": "first_day_of_week", "type": "Select", "label": "First day of the week", "options": "Monday\nSunday\nSaturday", "default": "Monday" },
+    { "name": "min_password_length", "type": "Int", "label": "Shortest password (0 = as configured)", "default": "0", "description": "Can only make the rule stricter than the server configuration: it never lowers it. 8 to 64." },
+    { "name": "absolute_session_days", "type": "Int", "label": "Longest sign-in, in days (0 = as configured)", "default": "0", "description": "Can only shorten what the server configuration allows. 1 to 90. Applies to new sign-ins." },
+    { "name": "password_max_age_days", "type": "Int", "label": "Change passwords every (days, 0 = as configured)", "default": "0", "description": "Can only make the rule stricter than the server configuration. 1 to 3650." },
     { "name": "default_language", "type": "Data", "label": "Default language code (for example en, ar)", "default": "en" }
+  ],
+  "validations": [
+    { "expression": "min_password_length == 0 || (min_password_length >= 8 && min_password_length <= 64)", "message": "Use 0, or a number from 8 to 64.", "field": "min_password_length" },
+    { "expression": "absolute_session_days == 0 || (absolute_session_days >= 1 && absolute_session_days <= 90)", "message": "Use 0, or a number from 1 to 90.", "field": "absolute_session_days" },
+    { "expression": "password_max_age_days == 0 || (password_max_age_days >= 1 && password_max_age_days <= 3650)", "message": "Use 0, or a number from 1 to 3650.", "field": "password_max_age_days" }
   ],
   "permissions": [
     { "role": "System Manager", "read": true, "write": true, "create": true }

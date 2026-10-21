@@ -143,6 +143,7 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<ShareStore>();
         services.TryAddSingleton<ShareManager>();
         services.TryAddSingleton<DocumentService>();
+        services.TryAddSingleton<SecurityPolicyService>();
         services.TryAddSingleton<AuthService>();
         services.TryAddSingleton<SqlBuilder>();
         services.TryAddSingleton<IDocumentRepository, DocumentRepository>();

@@ -154,6 +154,7 @@ public sealed class TestEngine
         Workflows = new WorkflowManager(Registry, WorkflowStore, WorkflowCatalog, Permissions, Clock);
         AuthStore = new InMemoryAuthStore();
         AuthOptions = new AuthOptions { HashIterations = 1000 };
+        SecurityPolicy = new SecurityPolicyService(Registry, Repository, Options.Create(AuthOptions));
         Auth = new AuthService(
             Registry,
             Repository,
@@ -161,7 +162,8 @@ public sealed class TestEngine
             AuthStore,
             new PasswordHasher<string>(Options.Create(new PasswordHasherOptions { IterationCount = 1000 })),
             Options.Create(AuthOptions),
-            Clock);
+            Clock,
+            SecurityPolicy);
         TotpStore = new InMemoryTotpStore();
         var protector = new FakeSecretProtector();
         IdentityProvider = new FakeIdentityProvider();
@@ -169,7 +171,7 @@ public sealed class TestEngine
         SsoOptions = new SsoOptions { Providers = { ["idp"] = new SsoProvider { DisplayName = "Company login", Authority = FakeIdentityProvider.Authority, ClientId = FakeIdentityProvider.ClientId, ClientSecret = "s3cret" } } };
         Sso = new SsoService(Options.Create(SsoOptions), IdentityProvider, IdentityStore, Auth, protector, Clock);
         TwoFactor = new TwoFactorService(TotpStore, protector, AuthStore, Options.Create(AuthOptions), Clock);
-        Sessions = new SessionService(new InMemorySessionStore(), Options.Create(AuthOptions), Clock);
+        Sessions = new SessionService(new InMemorySessionStore(), Options.Create(AuthOptions), Clock, SecurityPolicy);
         GlobalSearch = new GlobalSearchService(Documents, Permissions, new HitCounter(Clock));
         SamlIdp = new FakeSamlIdp();
         SamlOptions = new SamlOptions { Providers = { ["saml"] = new SamlProvider { DisplayName = "Company SAML", IdpEntityId = FakeSamlIdp.EntityId, SsoUrl = FakeSamlIdp.SsoUrl, Certificates = [SamlIdp.CertificateText] } } };
@@ -228,6 +230,7 @@ public sealed class TestEngine
     public AppInstaller AppInstaller { get; }
     public AppJobRunner AppJobs { get; }
     public JobLogService JobLog { get; }
+    public SecurityPolicyService SecurityPolicy { get; }
     public FakeMailbox Mailbox { get; }
     public EmailAccountService EmailAccounts { get; }
     public IncomingMailService IncomingMail { get; }

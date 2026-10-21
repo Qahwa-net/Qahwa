@@ -471,3 +471,7 @@ The Data suite ran in full on PostgreSQL (143 of 143) and on SQL Server (142 of 
 ## Roles from the sign-in provider ([ADR-113](../../adr/113-sso-role-map.md))
 
 `SsoProvider.GroupsClaim/RoleMap/RoleMapProblem/NeverFromProvider` and `SsoService.GroupsOf` + sync in `CompleteAsync` (`Sso.cs`); `AuthService.SyncProviderRolesAsync`. Test: `SsoRoleMapTests` (uses `FakeIdentityProvider.Issue(groupsClaim:, groups:)`).
+
+## Stricter security settings ([ADR-114](../../adr/114-stricter-security-settings.md))
+
+`SecurityPolicy.cs` `SecurityPolicyService` (used by `AuthService` for password length and expiry and by `SessionService` for the sign-in length); fields in `system_settings.json`. Tests: `SecurityPolicyTests`.

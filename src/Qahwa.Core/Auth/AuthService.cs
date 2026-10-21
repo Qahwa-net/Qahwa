@@ -27,7 +27,8 @@ public sealed class AuthService(
     IAuthStore store,
     IPasswordHasher<string> hasher,
     IOptions<AuthOptions> options,
-    TimeProvider clock)
+    TimeProvider clock,
+    SecurityPolicyService? policy = null)
 {
     public const string UserDocType = "User";
     public const string RoleDocType = "Role";
@@ -97,7 +98,7 @@ public sealed class AuthService(
     /// <summary>True when the person's password is older than <see cref="AuthOptions.PasswordMaxAgeDays"/> (never, when that is 0).</summary>
     public async Task<bool> PasswordExpiredAsync(string key, CancellationToken ct = default)
     {
-        var days = options.Value.PasswordMaxAgeDays;
+        var days = policy is null ? options.Value.PasswordMaxAgeDays : await policy.PasswordMaxAgeDaysAsync(ct);
         if (days <= 0)
             return false;
         var credential = await store.GetAsync(key, ct);
@@ -160,7 +161,7 @@ public sealed class AuthService(
     {
         var key = Normalize(email) ?? throw new DocumentValidationException([new FieldError("email", "A valid email is required.")]);
         var user = await GetUserAsync(key, ct) ?? throw new NotFoundException($"User '{key}' was not found.");
-        ValidatePassword(key, newPassword, "new_password", user.GetValueOrDefault("full_name") as string);
+        await ValidatePasswordAsync(key, newPassword, "new_password", user.GetValueOrDefault("full_name") as string, ct);
         await store.SetPasswordAsync(key, hasher.HashPassword(key, newPassword), (DateTime)user["creation"]!, Now(), ct);
     }
 
@@ -201,7 +202,7 @@ public sealed class AuthService(
         CancellationToken ct = default)
     {
         var key = Normalize(email) ?? throw new DocumentValidationException([new FieldError("email", "A valid email is required.")]);
-        ValidatePassword(key, password, "password", fullName);
+        await ValidatePasswordAsync(key, password, "password", fullName, ct);
 
         var user = await GetUserAsync(key, ct);
         if (user is null)
@@ -230,7 +231,7 @@ public sealed class AuthService(
     public async Task CreateUserAsync(string email, string fullName, string password, IEnumerable<string> roles, CancellationToken ct = default)
     {
         var key = Normalize(email) ?? throw new DocumentValidationException([new FieldError("email", "A valid email is required.")]);
-        ValidatePassword(key, password, "password", fullName);
+        await ValidatePasswordAsync(key, password, "password", fullName, ct);
         if (await GetUserAsync(key, ct) is not null)
             throw new ConflictException("There is already an account for that email address.");
 
@@ -308,9 +309,10 @@ public sealed class AuthService(
         return string.IsNullOrEmpty(key) || key.Length > FieldTypes.ShortTextLength ? null : key;
     }
 
-    private void ValidatePassword(string email, string? password, string field, string? fullName)
+    private async Task ValidatePasswordAsync(string email, string? password, string field, string? fullName, CancellationToken ct)
     {
-        var problem = PasswordPolicy.Problem(password, email, fullName, options.Value.MinPasswordLength, MaxPasswordLength);
+        var minimum = policy is null ? options.Value.MinPasswordLength : await policy.MinPasswordLengthAsync(ct);
+        var problem = PasswordPolicy.Problem(password, email, fullName, minimum, MaxPasswordLength);
         if (problem is not null)
             throw new DocumentValidationException([new FieldError(field, problem)]);
     }

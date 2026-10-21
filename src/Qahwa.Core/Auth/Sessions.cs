@@ -31,7 +31,7 @@ public interface ISessionStore
 /// Server-side record of every sign-in. The cookie only carries a random id; whether it still counts is decided here, so a session can
 /// be ended from another device, by an administrator, and it ends by itself after an absolute limit however busy it is.
 /// </summary>
-public sealed class SessionService(ISessionStore store, IOptions<AuthOptions> options, TimeProvider clock)
+public sealed class SessionService(ISessionStore store, IOptions<AuthOptions> options, TimeProvider clock, SecurityPolicyService? policy = null)
 {
     public const int MaxAgentLength = 200;
     private static readonly TimeSpan TouchEvery = TimeSpan.FromMinutes(5);
@@ -42,7 +42,7 @@ public sealed class SessionService(ISessionStore store, IOptions<AuthOptions> op
     {
         var now = Now();
         var id = Convert.ToHexString(RandomNumberGenerator.GetBytes(16)).ToLowerInvariant();
-        await store.CreateAsync(new SessionRecord(id, user, now, now, now.AddDays(Math.Max(options.Value.AbsoluteSessionDays, 1)), Cut(address, 64), Cut(agent, MaxAgentLength), false), ct);
+        await store.CreateAsync(new SessionRecord(id, user, now, now, now.AddDays(policy is null ? Math.Max(options.Value.AbsoluteSessionDays, 1) : await policy.AbsoluteSessionDaysAsync(ct)), Cut(address, 64), Cut(agent, MaxAgentLength), false), ct);
         if (Random.Shared.Next(50) == 0)
             await store.DeleteExpiredAsync(now.AddDays(-1), ct); // housekeeping now and then, never a separate job
         return id;
