@@ -55,6 +55,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **Keyboard shortcuts**: Alt+N for a new document and ? for the list ([ADR-110](docs/adr/110-keyboard-shortcuts.md))
 - **Form drafts**: unsaved typing is kept in the browser and offered back ([ADR-109](docs/adr/109-form-drafts.md))
 - **API scripts**: a sandboxed Server Script answers `/api/script-method/<name>` as the caller ([ADR-108](docs/adr/108-api-scripts.md))
+- **Browser end-to-end tests**: a Playwright project in `e2e/` ([ADR-115](docs/adr/115-browser-end-to-end-tests.md))
 - **Deliberate limits**: what Qahwa leaves out on purpose and why ([ADR-107](docs/adr/107-deliberate-limits.md))
 - **Number format**: site-wide thousands and decimal marks ([ADR-106](docs/adr/106-number-format.md))
 - **Document options**: default sort, allow duplicate and file limit per DocType ([ADR-105](docs/adr/105-document-options.md))

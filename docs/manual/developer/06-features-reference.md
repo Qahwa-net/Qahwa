@@ -483,3 +483,7 @@ The role map (ADR-113) was tried with a real OpenID Connect provider over HTTP, 
 ## Database statements per request (ADR-112)
 
 `Qahwa.Core/DbStats.cs` (`Begin`, `Measure`, `Current`) is started by `UseQahwaRecorder` and measured in `DocumentRepository` (`QueryAsync`, `ExecuteAsync`, `ExecuteScalarAsync`, `GroupCountAsync`); stores other than the document repository are not counted. Tests: `DbStatsTests`. Checked live on PostgreSQL: a sign-in took 5 statements (10 ms of 382 ms; the rest is password hashing) and a list 2.
+
+## Browser end-to-end tests ([ADR-115](../../adr/115-browser-end-to-end-tests.md))
+
+`e2e/` (Playwright; `playwright.config.ts`, `tests/desk.spec.ts`). Five tests passed in Chromium against a throwaway PostgreSQL site; without `QAHWA_E2E_EMAIL` and `QAHWA_E2E_PASSWORD` they all skip.

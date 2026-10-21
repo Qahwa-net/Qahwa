@@ -709,7 +709,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Multi-tenancy (sites, per-site config, database per site) | done: Host-header sites, a container and database per site, per-site config files, `qahwa new-site` (ADR-055); not live add/remove, no site manager UI | ✅ (v1) | L12 |
 | Developer mode (UI-made DocTypes written to the app's files) | done (ADR-062) | ✅ (v1) | L12 |
 | Caching, boot info, performance | boot info in one call (`BootService`); DocType definitions held in memory and refreshed when they change; script and action lists cached for 15 seconds on each server; API responses are never cached (they hold private data, `Cache-Control: no-store`) | ✅ | L12 |
-| Test framework (unit, integration, UI) | unit and integration done: xUnit with in-memory stores (Core, Api through a full test server), tests against real PostgreSQL and SQL Server (Data, need a database), vitest for the Desk, shared expression vectors checked by both C# and TypeScript; browser end-to-end tests deliberately not built (ADR-107) | ✅ | ongoing |
+| Test framework (unit, integration, UI) | unit and integration done: xUnit with in-memory stores (Core, Api through a full test server), tests against real PostgreSQL and SQL Server (Data, need a database), vitest for the Desk, shared expression vectors checked by both C# and TypeScript; browser end-to-end tests with Playwright in `e2e/` (ADR-115), run against a throwaway site | ✅ | ongoing |
 
 ### A10. Standard documents shipped with the framework
 
