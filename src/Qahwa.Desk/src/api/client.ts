@@ -531,7 +531,7 @@ export const api = {
     set: async (body: { enabled?: boolean; frequency?: string; sendHour?: number }) => (await request<{ data: EmailDigest }>('PUT', '/api/email-digest', body)).data,
   },
 
-  slowRequests: async () => request<{ thresholdMs: number; data: { at: string; method: string; path: string; status: number; milliseconds: number; user: string | null }[] }>('GET', '/api/system/slow-requests'),
+  slowRequests: async () => request<{ thresholdMs: number; data: { at: string; method: string; path: string; status: number; milliseconds: number; user: string | null; dbStatements: number; dbMilliseconds: number }[] }>('GET', '/api/system/slow-requests'),
 
   emailedReports: {
     list: async () => (await request<{ data: EmailedReport[] }>('GET', '/api/auto-email-reports')).data,

@@ -10,7 +10,7 @@ using Qahwa.Core.Auth;
 namespace Qahwa.Api;
 
 /// <summary>One request that took longer than the threshold. No query string, body or header is ever kept.</summary>
-public sealed record SlowRequest(DateTime At, string Method, string Path, int Status, long Milliseconds, string? User);
+public sealed record SlowRequest(DateTime At, string Method, string Path, int Status, long Milliseconds, string? User, int DbStatements = 0, long DbMilliseconds = 0);
 
 /// <summary>
 /// A small recorder of the slowest API requests (ADR-112): the last few that took at least <c>Qahwa:Recorder:SlowMs</c> milliseconds
@@ -24,12 +24,12 @@ public sealed class RequestRecorder
     private readonly Queue<SlowRequest> _items = new();
     private readonly object _lock = new();
 
-    public void Record(string method, string path, int status, long milliseconds, string? user, DateTime at)
+    public void Record(string method, string path, int status, long milliseconds, string? user, DateTime at, int dbStatements = 0, long dbMilliseconds = 0)
     {
         var clean = new string((path.Length > MaxPathLength ? path[..MaxPathLength] : path).Where(c => !char.IsControl(c)).ToArray());
         lock (_lock)
         {
-            _items.Enqueue(new SlowRequest(at, method, clean, status, milliseconds, user));
+            _items.Enqueue(new SlowRequest(at, method, clean, status, milliseconds, user, dbStatements, dbMilliseconds));
             while (_items.Count > Capacity)
                 _items.Dequeue();
         }
@@ -69,6 +69,7 @@ public static class RequestRecorderExtensions
             }
 
             var watch = Stopwatch.StartNew();
+            var stats = DbStats.Begin();
             try
             {
                 await next(context);
@@ -78,7 +79,7 @@ public static class RequestRecorderExtensions
                 watch.Stop();
                 if (watch.ElapsedMilliseconds >= threshold)
                     recorder.Record(context.Request.Method, context.Request.Path.Value ?? string.Empty, context.Response.StatusCode, watch.ElapsedMilliseconds,
-                        context.User.Identity?.IsAuthenticated == true ? context.User.Identity.Name : null, DateTime.UtcNow);
+                        context.User.Identity?.IsAuthenticated == true ? context.User.Identity.Name : null, DateTime.UtcNow, stats.Statements, stats.Milliseconds);
             }
         });
 

@@ -133,6 +133,7 @@ public sealed class DocumentRepository(
         var type = meta.ColumnTypes()[field];
         await using var connection = await connections.OpenAsync(ct);
         await using var command = DbCommands.Create(connection, statement.Sql, statement.Parameters);
+        using var measure = DbStats.Measure();
         await using var reader = await command.ExecuteReaderAsync(ct);
 
         var result = new List<GroupCount>();
@@ -229,6 +230,7 @@ public sealed class DocumentRepository(
     {
         await using var command = DbCommands.Create(connection, statement.Sql, statement.Parameters);
         command.Transaction = transaction;
+        using var measure = DbStats.Measure();
         return await command.ExecuteNonQueryAsync(ct);
     }
 
@@ -237,6 +239,7 @@ public sealed class DocumentRepository(
         var types = meta.ColumnTypes();
         await using var connection = await connections.OpenAsync(ct);
         await using var command = DbCommands.Create(connection, statement.Sql, statement.Parameters);
+        using var measure = DbStats.Measure();
         await using var reader = await command.ExecuteReaderAsync(ct);
 
         var rows = new List<Dictionary<string, object?>>();
@@ -260,6 +263,7 @@ public sealed class DocumentRepository(
     {
         await using var connection = await connections.OpenAsync(ct);
         await using var command = DbCommands.Create(connection, statement.Sql, statement.Parameters);
+        using var measure = DbStats.Measure();
         var result = await command.ExecuteScalarAsync(ct);
         return result is DBNull ? null : result;
     }
