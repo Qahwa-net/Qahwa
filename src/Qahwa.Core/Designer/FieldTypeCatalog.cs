@@ -9,6 +9,9 @@ public enum OptionsKind
     Choices,
     DocType,
     Html,
+
+    /// <summary>The name of another field of the DocType (a Link to DocType) that says which DocType this field points to.</summary>
+    LinkField,
 }
 
 public sealed record FieldTypeInfo(
@@ -68,7 +71,7 @@ public static class FieldTypeCatalog
         new(FieldType.Html, "HTML", "Layout", "A block of fixed text with simple formatting and links", OptionsKind.Html, true),
 
         new(FieldType.Table, "Table", "Layout", "Rows of a child DocType, e.g. the items of an order", OptionsKind.DocType, true),
-        new(FieldType.DynamicLink, "Dynamic Link", "Advanced", "A link whose target DocType is chosen per document", OptionsKind.None, false, Later),
+        new(FieldType.DynamicLink, "Dynamic Link", "Advanced", "A link whose target DocType is chosen per document, by another field", OptionsKind.LinkField, true),
         new(FieldType.Attach, "Attachment", "Advanced", "An uploaded file (attach it after the document is saved)", OptionsKind.None, true),
         new(FieldType.AttachImage, "Image", "Advanced", "An uploaded picture, shown on the form", OptionsKind.None, true),
         new(FieldType.Password, "Password", "Advanced", "A secret stored encrypted and never shown again", OptionsKind.None, true),

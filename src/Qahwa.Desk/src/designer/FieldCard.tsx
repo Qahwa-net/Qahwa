@@ -162,6 +162,18 @@ export function FieldCard({
             </label>
           )}
 
+          {info?.options === 'LinkField' && (
+            <label className="field full">
+              <span>Field that holds the DocType</span>
+              <select value={field.options ?? ''} disabled={disabled} onChange={(e) => onChange({ options: e.target.value })}>
+                <option value="">Choose…</option>
+                {linkFields.filter((f) => f.options === 'DocType' && f.name !== field.name).map((f) => <option key={f.name} value={f.name}>{f.label || f.name}</option>)}
+              </select>
+              <small className="muted">Add a Link field to "DocType" first; people choose the DocType there and the document here.</small>
+              <Err message={errors[`${path}.options`]} />
+            </label>
+          )}
+
           {info?.options === 'DocType' && (
             <label className="field full">
               <span>{isTable ? 'Child table DocType' : 'Link to DocType'}</span>

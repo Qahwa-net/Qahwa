@@ -52,14 +52,15 @@ public sealed class DesignerApiTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task The_field_type_catalog_marks_unsupported_types()
+    public async Task The_field_type_catalog_lists_every_type_as_supported()
     {
         var types = (await JsonOf(await Admin.GetAsync("/api/designer/field-types"))).GetProperty("data").EnumerateArray().ToList();
 
         var currency = types.Single(t => t.GetProperty("type").GetString() == "Currency");
-        var attach = types.Single(t => t.GetProperty("type").GetString() == "DynamicLink");
+        var dynamic = types.Single(t => t.GetProperty("type").GetString() == "DynamicLink");
         Assert.True(currency.GetProperty("supported").GetBoolean());
-        Assert.False(attach.GetProperty("supported").GetBoolean());
+        Assert.True(dynamic.GetProperty("supported").GetBoolean());
+        Assert.Equal("LinkField", dynamic.GetProperty("options").GetString());
         Assert.True(types.Single(t => t.GetProperty("type").GetString() == "Table").GetProperty("supported").GetBoolean());
         Assert.Equal("DocType", types.Single(t => t.GetProperty("type").GetString() == "Link").GetProperty("options").GetString());
     }
@@ -82,13 +83,13 @@ public sealed class DesignerApiTests : IAsyncDisposable
     public async Task Invalid_definitions_return_400_with_a_path_for_each_problem()
     {
         var response = await Admin.PostAsJsonAsync("/api/designer/doctypes", Supplier(
-            new { name = "Bad Name", type = "Data" }, new { name = "file", type = "DynamicLink" }));
+            new { name = "Bad Name", type = "Data" }, new { name = "target", type = "DynamicLink" }));
 
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         var fields = (await JsonOf(response)).GetProperty("details").EnumerateArray()
             .Select(d => d.GetProperty("field").GetString()).ToList();
         Assert.Contains("fields[2].name", fields);
-        Assert.Contains("fields[3].type", fields);
+        Assert.Contains("fields[3].options", fields); // a Dynamic Link must name the field that holds the DocType
     }
 
     [Fact]

@@ -153,7 +153,7 @@ export interface DesignerDetail {
   documentCount?: number | null
 }
 
-export type OptionsKind = 'None' | 'Choices' | 'DocType' | 'Html'
+export type OptionsKind = 'None' | 'Choices' | 'DocType' | 'Html' | 'LinkField'
 
 export interface FieldTypeInfo {
   type: FieldType

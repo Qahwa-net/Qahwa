@@ -302,7 +302,7 @@ public class DesignerTests
         Assert.Equal(Enum.GetValues<FieldType>().Order(), types.Order());
         Assert.All(FieldTypeCatalog.All.Where(i => !i.Supported), i => Assert.NotNull(i.UnsupportedReason));
         Assert.True(FieldTypeCatalog.IsSupported(FieldType.ColumnBreak)); // columns are built (ADR-100)
-        Assert.False(FieldTypeCatalog.IsSupported(FieldType.DynamicLink));
+        Assert.True(FieldTypeCatalog.IsSupported(FieldType.DynamicLink));
         Assert.True(FieldTypeCatalog.IsSupported(FieldType.Password));
         Assert.True(FieldTypeCatalog.IsSupported(FieldType.Table));
         Assert.True(FieldTypeCatalog.IsSupported(FieldType.Currency));
@@ -341,5 +341,17 @@ public class DesignerTests
 
         Assert.Equal(3, errors.Count);
         Assert.Equal(errors, ex.Errors);
+    }
+
+    [Fact]
+    public async Task A_dynamic_link_can_be_designed_when_it_names_the_field_that_holds_the_DocType()
+    {
+        var made = DocTypeLoader.Parse("""
+            { "name": "Reference Note", "fields": [
+                { "name": "ref_type", "type": "Link", "options": "DocType" }, { "name": "ref_name", "type": "DynamicLink", "options": "ref_type" } ],
+              "permissions": [ { "role": "System Manager", "read": true, "write": true, "create": true } ] }
+            """);
+        await _engine.Designer.CreateAsync(made, TestUsers.SystemManager);
+        Assert.Contains(_engine.Registry.Get("Reference Note").Fields, f => f.Type == FieldType.DynamicLink && f.Options == "ref_type");
     }
 }
