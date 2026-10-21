@@ -48,6 +48,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **Gallery, map and timeline views**: pictures as tiles, places on a plain grid (no outside map service), documents as bars between two dates ([ADR-049](docs/adr/049-gallery-map-and-timeline-views.md))
 - **Light, dark and automatic themes and a brand**: per-person theme, organisation name, logo, colours and default theme, all checked as plain data, readable colours guaranteed ([ADR-056](docs/adr/056-brand-and-theme.md))
 - **App dependencies**: apps name the apps they need; installed in order, bad graphs stop start-up ([ADR-085](docs/adr/085-app-dependencies.md))
+- **Scheduled scripts and Notes**: sandboxed scripts the scheduler runs as their maker, and private shareable notes ([ADR-108](docs/adr/108-api-scripts.md))
 - **Keyboard shortcuts**: Alt+N for a new document and ? for the list ([ADR-110](docs/adr/110-keyboard-shortcuts.md))
 - **Form drafts**: unsaved typing is kept in the browser and offered back ([ADR-109](docs/adr/109-form-drafts.md))
 - **API scripts**: a sandboxed Server Script answers `/api/script-method/<name>` as the caller ([ADR-108](docs/adr/108-api-scripts.md))

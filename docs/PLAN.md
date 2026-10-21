@@ -582,7 +582,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Lifecycle events: before_insert, validate, before_save, after_insert, on_update, on_trash, after_delete | event bus plus code hooks | 🟡 no-code Document Actions on New, Update, ValueChange, Submit, Cancel; no code hooks | L11 (code), L4 (rules) |
 | Submit events: before_submit, on_submit, before_cancel, on_cancel, on_update_after_submit | done as Server Script events (ADR-053) | ✅ | L6 |
 | Validation rules without code | expression language, per document and per table row | ✅ | L4 |
-| Server Script (DocType event, API, scheduler event, permission query) | sandboxed DocType-event scripts and API scripts (ADR-108); scheduler-event scripts (use app jobs) and permission-query scripts (use permission rules) left out on purpose | ✅ | L11 |
+| Server Script (DocType event, API, scheduler event, permission query) | sandboxed DocType-event scripts, API scripts and scheduled scripts (ADR-108); permission-query scripts (use permission rules) left out on purpose | ✅ | L11 |
 | Client Script (form/list events, field change) | done for forms (ADR-057) and lists: buttons, notes, row marks, filters (ADR-083) | ✅ | L11 |
 | Hooks per app (doc events, scheduler events, fixtures, boot) | done (ADR-062, ADR-084) | ✅ | L12 |
 | Versions: updates log on every document (field-level history, who/when, restore deleted) | on by default for all DocTypes, same transaction; restore of deleted documents done (ADR-067) | ✅ | L7 |
@@ -717,7 +717,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 |---|---|---|
 | User, Role, Has Role | ✅ | done |
 | DocType, Custom Field, Property Setter, Module Def | ✅ (DocType designer, Customize Form for custom fields and property changes, Module Definition ADR-099) | L1, L3 |
-| Comment, Communication, ToDo, DocShare, Document Follow, Tag, Version, File, Note | ✅ all built except Note (a free-standing note adds nothing over Comment and ToDo; left out on purpose) | L7, L10 |
+| Comment, Communication, ToDo, DocShare, Document Follow, Tag, Version, File, Note | ✅ all built, including Note (private to its owner, shareable) | L7, L10 |
 | Notification, Email Template, Email Account, Assignment Rule, Auto Repeat, Workflow, Webhook | ✅ (incoming mail added, ADR-095) | L8, L10 |
 | Report, Dashboard, Dashboard Chart, Number Card, Workspace, Print Format, Letter Head | Dashboard, Workspace, Print Format and Letter Head done (charts and number cards are tiles of a Dashboard) | ✅ (v1) | L9 |
 | Data Import, Data Export, Scheduled Job Type, Error Log, System Settings, Navbar Settings | ✅ import and export (files), app jobs, Error Log, System Settings, Desk Setting for the sidebar | L10, L12 |

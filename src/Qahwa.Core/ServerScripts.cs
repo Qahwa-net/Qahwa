@@ -238,6 +238,8 @@ public sealed class ScriptSandbox(DocumentService documents, TimeProvider clock)
             throw Fail("The script has a mistake: " + Short(e.Message));
         }
 
+        if (input.Event == ServerScriptEngine.ScheduledEvent)
+            return new ScriptOutcome(new Dictionary<string, object?>(), log, reads, writes);
         if (input.Event == ServerScriptEngine.ApiEvent)
         {
             var returned = engine.Evaluate("JSON.stringify(typeof result === 'undefined' ? null : result)");
@@ -314,6 +316,7 @@ public sealed class ServerScriptEngine(IMetaRegistry registry, IDocumentReposito
     public const string AfterSubmitEvent = "After Submit";
     public const string AfterCancelEvent = "After Cancel";
     public const string ApiEvent = "API";
+    public const string ScheduledEvent = "Scheduled";
 
     public static readonly IReadOnlyList<string> Events = [ValidateEvent, BeforeSubmitEvent, BeforeCancelEvent, BeforeDeleteEvent, AfterSaveEvent, AfterSubmitEvent, AfterCancelEvent];
 
@@ -322,6 +325,7 @@ public sealed class ServerScriptEngine(IMetaRegistry registry, IDocumentReposito
     /// <summary>Before events run before the change is stored (they can refuse it); only Validate and Before Submit may also change the document.</summary>
     public static bool MayChange(string kind) => kind is ValidateEvent or BeforeSubmitEvent;
     public const int MaxPerEvent = 10;
+    public const int MaxScheduled = 50;
     private static readonly TimeSpan CacheFor = TimeSpan.FromSeconds(15);
     private static readonly AsyncLocal<bool> Running = new();
 
@@ -372,6 +376,11 @@ public sealed class ServerScriptEngine(IMetaRegistry registry, IDocumentReposito
         {
             if (!IsMethodName(script.GetValueOrDefault("method_name") as string))
                 errors.Add(new FieldError("method_name", "Use lower-case letters, digits and underscores, starting with a letter (up to 60)."));
+        }
+        else if (kind == ScheduledEvent)
+        {
+            if (script.GetValueOrDefault("frequency") is not ("Hourly" or "Daily"))
+                errors.Add(new FieldError("frequency", "Choose Hourly or Daily."));
         }
         else if (script.GetValueOrDefault("reference_doctype") is not string { Length: > 0 })
             errors.Add(new FieldError("reference_doctype", "Choose the DocType this script belongs to."));
@@ -485,6 +494,68 @@ public sealed class ServerScriptEngine(IMetaRegistry registry, IDocumentReposito
 
         await RecordAsync(script, null, ct);
         return outcome.Changes.GetValueOrDefault("result") as string ?? "null";
+    }
+
+    /// <summary>
+    /// Runs the Scheduled scripts that are due (ADR-108). Each occurrence is claimed with a compare-and-swap on the row, so several servers
+    /// never run it twice, and a missed run happens once. A script runs as the person who made it, with their permissions; when that
+    /// account is gone or disabled the script is not run and the problem is shown on it. The first time a script is seen it is only
+    /// scheduled, not run.
+    /// </summary>
+    /// <returns>How many ran and how many failed.</returns>
+    public async Task<(int Ran, int Failed)> RunScheduledAsync(Func<string, CancellationToken, Task<IUserContext?>> userOf, CancellationToken ct)
+    {
+        var now = clock.GetUtcNow().UtcDateTime;
+        var rows = await repository.ListAsync(registry.Get(DocTypeName), new ListQuery
+        {
+            Filters = [new QueryFilter("active", FilterOp.Eq, true), new QueryFilter("event", FilterOp.Eq, ScheduledEvent)],
+            OrderBy = "creation", Descending = false, Limit = MaxScheduled,
+        }, ct);
+        int ran = 0, failed = 0;
+        foreach (var row in rows)
+        {
+            var next = row.GetValueOrDefault("next_run") as DateTime?;
+            if (next is not null && next > now)
+                continue;
+            var version = (DateTime)row["modified"]!;
+            var period = row.GetValueOrDefault("frequency") as string == "Hourly" ? TimeSpan.FromHours(1) : TimeSpan.FromDays(1);
+            var claimed = new Dictionary<string, object?> { ["next_run"] = now + period, ["modified"] = new DateTime(Math.Max(now.Ticks, version.Ticks + 10) / 10 * 10, DateTimeKind.Utc) };
+            if (!await repository.UpdateAsync(registry.Get(DocTypeName), (string)row["name"]!, claimed, version, null, ct))
+                continue; // another server took this run
+            if (next is null)
+                continue; // first sight: scheduled, not run
+
+            var script = new Dictionary<string, object?>(row, StringComparer.Ordinal);
+            try
+            {
+                var owner = (string)(row.GetValueOrDefault("owner") ?? string.Empty);
+                var user = await userOf(owner, ct) ?? throw new DocumentValidationException([new FieldError(string.Empty, $"The person who made this script ({owner}) is not an enabled user.")]);
+                Running.Value = true;
+                try
+                {
+                    await sandbox.RunAsync((string)script["script"]!, new ScriptInput(registry.Get(DocTypeName), ScheduledEvent, IsNew: false, new Dictionary<string, object?>(), null, user, AllowWrites: true), ct);
+                }
+                finally
+                {
+                    Running.Value = false;
+                }
+
+                await RecordAsync(script, null, ct);
+                ran++;
+            }
+            catch (DocumentValidationException e)
+            {
+                await RecordAsync(script, e, ct);
+                failed++;
+            }
+            catch (Exception e) when (e is PermissionDeniedException or NotFoundException or ConflictException or UnauthenticatedException)
+            {
+                await RecordAsync(script, new DocumentValidationException([new FieldError(string.Empty, e.Message)]), ct);
+                failed++;
+            }
+        }
+
+        return (ran, failed);
     }
 
     /// <summary>Tries a script on a sample document without saving anything and without being allowed to write.</summary>

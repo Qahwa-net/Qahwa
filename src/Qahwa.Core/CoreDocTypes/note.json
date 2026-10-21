@@ -1,0 +1,14 @@
+{
+  "name": "Note",
+  "module": "Core",
+  "autoname": "NOTE-.#####",
+  "titleField": "title",
+  "fields": [
+    { "name": "title", "type": "Data", "label": "Title", "required": true, "inListView": true },
+    { "name": "content", "type": "TextEditor", "label": "Note" }
+  ],
+  "permissions": [
+    { "role": "All", "read": true, "write": true, "create": true, "delete": true, "ifOwner": true },
+    { "role": "System Manager", "read": true, "write": true, "create": true, "delete": true }
+  ]
+}

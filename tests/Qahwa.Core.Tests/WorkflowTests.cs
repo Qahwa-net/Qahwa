@@ -350,27 +350,27 @@ public class WorkflowTests
     public async Task Only_a_submittable_doctype_can_use_document_status_and_a_select_state_field_needs_the_states_as_choices()
     {
         _engine.Registry.Add(DocTypeLoader.Parse("""
-            { "name": "Note", "fields": [ { "name": "text", "type": "Data" }, { "name": "stage", "type": "Select", "options": "New\nDone" } ],
+            { "name": "Memo Item", "fields": [ { "name": "text", "type": "Data" }, { "name": "stage", "type": "Select", "options": "New\nDone" } ],
               "permissions": [ { "role": "Clerk", "read": true, "write": true, "create": true } ] }
             """));
 
-        var ex = await Assert.ThrowsAsync<DocumentValidationException>(() => _engine.Workflows.SaveAsync("Note", new WorkflowDefinition
+        var ex = await Assert.ThrowsAsync<DocumentValidationException>(() => _engine.Workflows.SaveAsync("Memo Item", new WorkflowDefinition
         {
-            DocType = "Note", StateField = "stage",
+            DocType = "Memo Item", StateField = "stage",
             States = [new() { Name = "New" }, new() { Name = "Done", DocStatus = 1 }, new() { Name = "Archived" }],
         }, null, TestUsers.SystemManager));
 
         Assert.Contains(ex.Errors, e => e.Field == "states[1].docStatus");
         Assert.Contains(ex.Errors, e => e.Field == "states[2].name" && e.Message.Contains("choices"));
-        await _engine.Workflows.SaveAsync("Note", new WorkflowDefinition
+        await _engine.Workflows.SaveAsync("Memo Item", new WorkflowDefinition
         {
-            DocType = "Note", StateField = "stage",
+            DocType = "Memo Item", StateField = "stage",
             States = [new() { Name = "New" }, new() { Name = "Done" }],
             Transitions = [new() { From = "New", Action = "Finish", To = "Done", Roles = ["Clerk"] }],
         }, null, TestUsers.SystemManager);
-        var note = (string)(await _engine.Documents.InsertAsync("Note", Values(("text", "x")), Clerk))["name"]!;
-        await _engine.Documents.ApplyWorkflowActionAsync("Note", note, "Finish", null, Clerk);
-        Assert.Equal("Done", (await _engine.Documents.GetAsync("Note", note, Clerk))["stage"]);
+        var note = (string)(await _engine.Documents.InsertAsync("Memo Item", Values(("text", "x")), Clerk))["name"]!;
+        await _engine.Documents.ApplyWorkflowActionAsync("Memo Item", note, "Finish", null, Clerk);
+        Assert.Equal("Done", (await _engine.Documents.GetAsync("Memo Item", note, Clerk))["stage"]);
     }
 
     [Fact]
