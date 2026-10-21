@@ -35,20 +35,41 @@ public class PostgresSiteTests(PostgresFixture postgres) : IClassFixture<Postgre
     [SkippableFact]
     public async Task A_site_database_is_made_once_and_is_a_database_of_its_own()
     {
-        Skip.If(PostgresFixture.UseSqlServer, "This one is about PostgreSQL databases.");
         Skip.IfNot(postgres.Available, postgres.SkipReason);
         var admin = postgres.ConnectionString;
         var name = "qahwa_test_" + Guid.NewGuid().ToString("N")[..10];
 
+        if (PostgresFixture.UseSqlServer)
+        {
+            Assert.True(await Qahwa.Data.SqlServer.SqlServerSites.CreateDatabaseAsync(admin, name));
+            Assert.False(await Qahwa.Data.SqlServer.SqlServerSites.CreateDatabaseAsync(admin, name)); // again: nothing happens
+
+            await using (var site = new Microsoft.Data.SqlClient.SqlConnection(Qahwa.Data.SqlServer.SqlServerSites.ConnectionFor(admin, name)))
+            {
+                await site.OpenAsync();
+                await using var command = site.CreateCommand();
+                command.CommandText = "SELECT DB_NAME()";
+                Assert.Equal(name, await command.ExecuteScalarAsync());
+            }
+
+            Microsoft.Data.SqlClient.SqlConnection.ClearAllPools();
+            await using var server = new Microsoft.Data.SqlClient.SqlConnection(admin);
+            await server.OpenAsync();
+            await using var drop = server.CreateCommand();
+            drop.CommandText = $"ALTER DATABASE [{name}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE; DROP DATABASE [{name}]";
+            await drop.ExecuteNonQueryAsync();
+            return;
+        }
+
         Assert.True(await PostgresSites.CreateDatabaseAsync(admin, name));
         Assert.False(await PostgresSites.CreateDatabaseAsync(admin, name)); // again: nothing happens
 
-        await using var site = NpgsqlDataSource.Create(PostgresSites.ConnectionFor(admin, name));
-        await using var command = site.CreateCommand("SELECT current_database()");
-        Assert.Equal(name, await command.ExecuteScalarAsync());
+        await using var pg = NpgsqlDataSource.Create(PostgresSites.ConnectionFor(admin, name));
+        await using var query = pg.CreateCommand("SELECT current_database()");
+        Assert.Equal(name, await query.ExecuteScalarAsync());
 
         await using var cleanup = NpgsqlDataSource.Create(admin);
-        await using var drop = cleanup.CreateCommand($"DROP DATABASE \"{name}\" WITH (FORCE)");
-        await drop.ExecuteNonQueryAsync();
+        await using var dropPg = cleanup.CreateCommand($"DROP DATABASE \"{name}\" WITH (FORCE)");
+        await dropPg.ExecuteNonQueryAsync();
     }
 }
