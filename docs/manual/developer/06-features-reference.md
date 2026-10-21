@@ -487,3 +487,7 @@ The role map (ADR-113) was tried with a real OpenID Connect provider over HTTP, 
 ## Browser end-to-end tests ([ADR-115](../../adr/115-browser-end-to-end-tests.md))
 
 `e2e/` (Playwright; `playwright.config.ts`, `tests/desk.spec.ts`). Five tests passed in Chromium against a throwaway PostgreSQL site; without `QAHWA_E2E_EMAIL` and `QAHWA_E2E_PASSWORD` they all skip.
+
+## Field preview and translatable ([ADR-116](../../adr/116-field-preview-and-translatable.md))
+
+`DocFieldMeta.InPreview/Translatable` (checks in `DocTypeLoader`); Desk `controls/LinkPreview.tsx`, `translateValue`/`setValueTranslator` in `lib/i18n.ts` used by `formatCell` and Select options. Tests: `FieldPropertyTests`, `i18n.test.ts`, and the Playwright test `e2e/tests/fields.spec.ts` (checked in Chromium: the card shows only the marked fields, and a status shows in Arabic after switching language).

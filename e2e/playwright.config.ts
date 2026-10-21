@@ -9,13 +9,17 @@ import { defineConfig } from '@playwright/test'
  */
 export default defineConfig({
   testDir: './tests',
+  globalSetup: './global-setup.ts',
   timeout: 30_000,
   fullyParallel: false,
   workers: 1,
   retries: 0,
   reporter: [['list']],
+  expect: { timeout: 10_000 },
   use: {
     baseURL: process.env.QAHWA_E2E_URL ?? 'http://localhost:5099',
+    // Signed in once by global-setup.ts (the site limits sign-ins per minute).
+    storageState: process.env.QAHWA_E2E_EMAIL ? '.auth/state.json' : undefined,
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
   },

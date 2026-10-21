@@ -29,6 +29,15 @@ export function translate(messages: Record<string, string>, text: string): strin
   return Object.prototype.hasOwnProperty.call(messages, text) ? messages[text]! : text
 }
 
+let valueTranslator: (text: string) => string = (text) => text
+
+/** Set by the language provider, so values of translatable fields can be shown in the person's language anywhere (lists, previews). */
+export function setValueTranslator(fn: (text: string) => string): void {
+  valueTranslator = fn
+}
+
+export const translateValue = (text: string): string => valueTranslator(text)
+
 export function readLanguage(storage: Pick<Storage, 'getItem'> | undefined): string {
   try {
     const saved = storage?.getItem(STORAGE_KEY)

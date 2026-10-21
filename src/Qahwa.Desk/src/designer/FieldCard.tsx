@@ -210,6 +210,12 @@ export function FieldCard({
                 {!isTable && (
                   <label><input type="checkbox" checked={Boolean(field.noCopy)} onChange={(e) => onChange({ noCopy: e.target.checked })} /> Do not copy when duplicating</label>
                 )}
+                {!isTable && !inChildTable && (
+                  <label><input type="checkbox" checked={Boolean(field.inPreview)} onChange={(e) => onChange({ inPreview: e.target.checked })} /> Show in the preview card of a link</label>
+                )}
+                {['Data', 'Select', 'SmallText', 'Text', 'Autocomplete'].includes(field.type) && (
+                  <label><input type="checkbox" checked={Boolean(field.translatable)} onChange={(e) => onChange({ translatable: e.target.checked })} /> Translatable (the value is looked up in Translations)</label>
+                )}
                 <label><input type="checkbox" checked={Boolean(field.bold)} onChange={(e) => onChange({ bold: e.target.checked })} /> Bold label</label>
                 {['Select', 'Link', 'Check', 'Data', 'Email', 'Phone', 'Int', 'Rating'].includes(field.type) && !inChildTable && (
                   <label><input type="checkbox" checked={Boolean(field.inStandardFilter)} onChange={(e) => onChange({ inStandardFilter: e.target.checked })} /> Offer as a list filter</label>

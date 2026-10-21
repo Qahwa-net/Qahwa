@@ -14,11 +14,13 @@ import { SavedFilters } from '../controls/SavedFilters.tsx'
 import { ReportPanel } from './ReportPanel.tsx'
 import { ImportDialog } from './ImportDialog.tsx'
 import { STANDARD_FIELDS, formatCell, hasColumn, labelOf } from '../lib/fields.ts'
+import { useI18n } from '../i18n.tsx'
 import { decodeFilters, encodeFilters, type Filter } from '../lib/filters.ts'
 
 const PAGE_SIZE = 20
 
 export function ListView() {
+  useI18n() // translatable values in the cells follow the language
   const { doctype = '' } = useParams()
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()

@@ -6,20 +6,20 @@ const password = process.env.QAHWA_E2E_PASSWORD
 test.skip(!email || !password, 'Set QAHWA_E2E_EMAIL and QAHWA_E2E_PASSWORD to run the browser tests.')
 
 async function signIn(page: Page) {
-  await page.goto('/login')
-  await page.getByLabel('Email').fill(email!)
-  await page.getByLabel('Password').fill(password!)
-  await page.getByRole('button', { name: 'Sign in' }).click()
+  await page.goto('/')
   await expect(page.getByRole('heading', { name: /^Welcome/ })).toBeVisible()
 }
 
-test('a wrong password stays on the sign-in page with a message', async ({ page }) => {
+test.describe('signed out', () => {
+  test.use({ storageState: { cookies: [], origins: [] } })
+  test('a wrong password stays on the sign-in page with a message', async ({ page }) => {
   await page.goto('/login')
   await page.getByLabel('Email').fill(email!)
   await page.getByLabel('Password').fill('definitely-not-the-password-1')
   await page.getByRole('button', { name: 'Sign in' }).click()
   await expect(page).toHaveURL(/\/login/)
   await expect(page.getByRole('alert')).toBeVisible()
+  })
 })
 
 test('signing in shows the home page grouped by module', async ({ page }) => {

@@ -7,6 +7,8 @@ import { api } from '../api/client.ts'
 import type { DocField } from '../api/types.ts'
 import { useT } from '../i18n.tsx'
 import { isEditable, labelOf, selectOptions } from '../lib/fields.ts'
+import { translateValue } from '../lib/i18n.ts'
+import { LinkPreview } from './LinkPreview.tsx'
 import type { FieldState } from '../lib/logic.ts'
 import { LinkSelect } from './LinkSelect.tsx'
 import { AttachInput, ColorInput, DurationInput, GeolocationInput, IconInput, RatingInput, SignatureInput } from './SpecialInputs.tsx'
@@ -50,6 +52,7 @@ function LinkInput({ field, value, onChange, readOnly, id, invalid, ariaLabel, s
       onChange={(next) => onChange(next)}
       onCreate={!readOnly && !inQuickCreate && targetMeta.data?.permissions.create && !targetMeta.data.data.isSingle ? text => setCreating(text) : undefined}
     />
+    {Boolean(value) && <LinkPreview doctype={target} name={String(value)} />}
     {creating !== null && <QuickCreate doctype={target} initialText={creating} onClose={() => setCreating(null)} onCreated={doc => { onChange(doc.name); setCreating(null) }} />}</>
   )
 }
@@ -66,7 +69,7 @@ export function FieldInput(props: InputProps) {
         onChange={(e) => onChange(e.target.checked)} />
     case 'Select':
       return (
-        <SearchSelect id={id} label={ariaLabel} value={text} readOnly={readOnly} invalid={invalid} options={selectOptions(field).map(o => ({ value: o, label: o }))} onChange={onChange} />
+        <SearchSelect id={id} label={ariaLabel} value={text} readOnly={readOnly} invalid={invalid} options={selectOptions(field).map(o => ({ value: o, label: field.translatable ? translateValue(o) : o }))} onChange={onChange} />
       )
     case 'Link':
     case 'DynamicLink':

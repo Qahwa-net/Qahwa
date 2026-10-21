@@ -41,6 +41,8 @@ export interface DocField {
   allowOnSubmit?: boolean
   setOnce?: boolean
   noCopy?: boolean
+  inPreview?: boolean
+  translatable?: boolean
   precision?: number | null
   bold?: boolean
   inStandardFilter?: boolean

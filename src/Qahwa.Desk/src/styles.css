@@ -876,3 +876,9 @@ kbd { font: .75rem ui-monospace, Consolas, monospace; padding: .05rem .35rem; bo
 .shortcut-list > div { display: grid; grid-template-columns: 10rem 1fr; gap: .75rem; align-items: baseline; }
 .shortcut-list dt, .shortcut-list dd { margin: 0; }
 .shortcut-list kbd { font: inherit; font-family: ui-monospace, monospace; padding: .1rem .4rem; border: 1px solid var(--border, #ccc); border-radius: 4px; background: var(--surface, transparent); }
+.link-preview { position: relative; display: inline-block; margin-inline-start: .4rem; }
+.link-preview-card { position: absolute; inset-inline-start: 0; z-index: 20; min-inline-size: 14rem; padding: .6rem .8rem; margin-block-start: .3rem; }
+.link-preview-card dl { margin: 0; display: grid; gap: .35rem; }
+.link-preview-card dl > div { display: grid; grid-template-columns: 7rem 1fr; gap: .5rem; }
+.link-preview-card dt { color: var(--muted, inherit); margin: 0; }
+.link-preview-card dd { margin: 0; }

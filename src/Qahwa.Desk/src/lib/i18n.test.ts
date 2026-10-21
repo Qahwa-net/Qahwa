@@ -37,3 +37,16 @@ describe('i18n helpers', () => {
     expect(readLanguage(undefined)).toBe(DEFAULT_LANGUAGE)
   })
 })
+
+describe('values of translatable fields', () => {
+  it('are shown in the language of the person, and other fields are left alone', async () => {
+    const { setValueTranslator } = await import('./i18n.ts')
+    const { formatCell } = await import('./fields.ts')
+    setValueTranslator((text) => ({ Open: 'مفتوح' })[text] ?? text)
+    const field = (translatable: boolean) => ({ name: 'status', type: 'Select', translatable }) as never
+    expect(formatCell(field(true), 'Open')).toBe('مفتوح')
+    expect(formatCell(field(true), 'Unknown')).toBe('Unknown')
+    expect(formatCell(field(false), 'Open')).toBe('Open')
+    setValueTranslator((text) => text)
+  })
+})

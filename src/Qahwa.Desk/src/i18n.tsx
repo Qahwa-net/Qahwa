@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { api } from './api/client.ts'
-import { DEFAULT_LANGUAGE, STORAGE_KEY, isRtl, isValidLanguage, mergeMessages, readLanguage, translate } from './lib/i18n.ts'
+import { DEFAULT_LANGUAGE, STORAGE_KEY, isRtl, isValidLanguage, mergeMessages, readLanguage, setValueTranslator, translate } from './lib/i18n.ts'
 
 interface I18n {
   language: string
@@ -56,6 +56,9 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       },
     }
   }, [language, catalog.data])
+
+  // Values of translatable fields are shown through the same words (lists and previews call this without a hook).
+  useEffect(() => { setValueTranslator(value.t) }, [value])
 
   return <Context.Provider value={value}>{children}</Context.Provider>
 }

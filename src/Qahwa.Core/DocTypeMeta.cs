@@ -134,6 +134,12 @@ public sealed record DocFieldMeta
     /// <summary>The value is not copied when a document is duplicated, amended or repeated.</summary>
     public bool NoCopy { get; init; }
 
+    /// <summary>When a document of this DocType is chosen in a Link field, a small preview card offers this field's value (ADR-116).</summary>
+    public bool InPreview { get; init; }
+
+    /// <summary>The value is shown through the Translation documents of the person's language, like a label (Data, Select, Text and Autocomplete fields).</summary>
+    public bool Translatable { get; init; }
+
     /// <summary>The label is shown in bold on the form.</summary>
     public bool Bold { get; init; }
 

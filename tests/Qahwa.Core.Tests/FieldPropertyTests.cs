@@ -68,7 +68,22 @@ public class FieldPropertyTests
     [InlineData("""{ "name": "X6", "fields": [ { "name": "a", "type": "Text", "inStandardFilter": true } ] }""")]
     [InlineData("""{ "name": "X7", "fields": [ { "name": "a", "type": "Int", "precision": 2 } ] }""")]
     [InlineData("""{ "name": "X8", "fields": [ { "name": "a", "type": "Decimal", "precision": 10 } ] }""")]
+    [InlineData("""{ "name": "Y1", "fields": [ { "name": "a", "type": "Int", "translatable": true } ] }""")]
+    [InlineData("""{ "name": "Y2", "fields": [ { "name": "a", "type": "Password", "inPreview": true } ] }""")]
+    [InlineData("""{ "name": "Y3", "fields": [ { "name": "a", "type": "SectionBreak", "inPreview": true } ] }""")]
     [InlineData("""{ "name": "X5", "fields": [ { "name": "a", "type": "SectionBreak", "setOnce": true } ] }""")]
     public void Meaningless_combinations_are_rejected_when_a_DocType_is_defined(string json) =>
         Assert.Throws<DocTypeValidationException>(() => DocTypeLoader.Parse(json));
+
+    [Fact]
+    public void Translatable_and_preview_fields_are_kept_when_they_make_sense()
+    {
+        var meta = DocTypeLoader.Parse("""
+            { "name": "Z1", "fields": [ { "name": "status", "type": "Select", "options": "Open", "translatable": true, "inPreview": true }, { "name": "amount", "type": "Currency", "inPreview": true } ] }
+            """);
+        Assert.True(meta.Fields[0].Translatable);
+        Assert.True(meta.Fields[0].InPreview);
+        Assert.True(meta.Fields[1].InPreview);
+        Assert.False(meta.Fields[1].Translatable);
+    }
 }

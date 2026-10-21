@@ -1,4 +1,5 @@
 import { formatDate, formatDateTime, formatNumber } from './display.ts'
+import { translateValue } from './i18n.ts'
 import { htmlToText } from './richText.ts'
 import { formatDuration, placeLabel, starsLabel } from './fieldtypes.ts'
 import type { DocField, FieldType } from '../api/types.ts'
@@ -101,6 +102,7 @@ export function fromInput(field: DocField, value: string | boolean): unknown {
 
 export function formatCell(field: DocField, value: unknown): string {
   if (value === null || value === undefined || value === '') return ''
+  if (field.translatable && typeof value === 'string') return translateValue(value)
   switch (field.type) {
     case 'Check': return value ? '✓' : ''
     case 'Currency': case 'Decimal': case 'Float': case 'Percent':
