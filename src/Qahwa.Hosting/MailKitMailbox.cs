@@ -11,13 +11,19 @@ namespace Qahwa.Hosting;
 /// connection is always encrypted (TLS from the start, or STARTTLS), certificates are checked, a message larger than the limit is never
 /// downloaded, and only the plain text of a message is taken: attachments and HTML are dropped.
 /// </summary>
-public sealed class MailKitMailbox : IMailboxClient
+public class MailKitMailbox : IMailboxClient
 {
     private static readonly TimeSpan Timeout = TimeSpan.FromSeconds(30);
 
-    private static async Task<ImapClient> ConnectAsync(ImapSettings settings, CancellationToken ct)
+    /// <summary>A hook for tests that talk to a mail server with a certificate nobody trusts. The real mailbox never changes how certificates are checked.</summary>
+    protected virtual void Configure(ImapClient client)
+    {
+    }
+
+    private async Task<ImapClient> ConnectAsync(ImapSettings settings, CancellationToken ct)
     {
         var client = new ImapClient { Timeout = (int)Timeout.TotalMilliseconds, CheckCertificateRevocation = true };
+        Configure(client);
         try
         {
             await client.ConnectAsync(settings.Host, settings.Port, settings.StartTls ? SecureSocketOptions.StartTls : SecureSocketOptions.SslOnConnect, ct);
