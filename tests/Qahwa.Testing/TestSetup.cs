@@ -134,6 +134,7 @@ public sealed class TestEngine
         ScriptReports = new ScriptReportService(AppCatalog, new EmptyServices(), new Lazy<DocumentService>(() => Documents), ErrorLog, AccessLog);
         Boot = new BootService(AppCatalog, new EmptyServices(), new Lazy<DocumentService>(() => Documents), ErrorLog);
         AppJobs = new AppJobRunner(AppCatalog, new EmptyServices(), ErrorLog, Clock, JobLog);
+        BackgroundJobs = new BackgroundJobService(Registry, Repository, AppCatalog, new EmptyServices(), ErrorLog, JobLog, History);
         Patches = new List<IPatch>();
         PatchRunner = new PatchRunner(Registry, Repository, Patches, new EmptyServices(), Clock);
         PdfRenderer = new FakePdfRenderer();
@@ -230,6 +231,7 @@ public sealed class TestEngine
     public AppInstaller AppInstaller { get; }
     public AppJobRunner AppJobs { get; }
     public JobLogService JobLog { get; }
+    public BackgroundJobService BackgroundJobs { get; }
     public SecurityPolicyService SecurityPolicy { get; }
     public FakeMailbox Mailbox { get; }
     public EmailAccountService EmailAccounts { get; }

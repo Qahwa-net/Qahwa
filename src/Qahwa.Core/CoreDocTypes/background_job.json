@@ -1,0 +1,20 @@
+{
+  "name": "Background Job",
+  "module": "Core",
+  "trackChanges": false,
+  "fields": [
+    { "name": "handler", "type": "Data", "label": "Handler", "required": true, "inListView": true, "readOnly": true },
+    { "name": "queue", "type": "Select", "options": "short\ndefault\nlong", "label": "Queue", "default": "default", "inListView": true, "readOnly": true, "description": "short: up to 30 seconds; default: up to 5 minutes; long: up to 30 minutes." },
+    { "name": "status", "type": "Select", "options": "Queued\nRunning\nDone\nFailed", "label": "Status", "default": "Queued", "inListView": true, "readOnly": true },
+    { "name": "attempts", "type": "Int", "label": "Attempts", "readOnly": true },
+    { "name": "max_attempts", "type": "Int", "label": "Most attempts", "default": "3", "readOnly": true },
+    { "name": "run_after", "type": "Datetime", "label": "Run after", "readOnly": true, "indexed": true },
+    { "name": "started_at", "type": "Datetime", "label": "Started", "readOnly": true },
+    { "name": "finished_at", "type": "Datetime", "label": "Finished", "readOnly": true },
+    { "name": "last_error", "type": "Text", "label": "Last problem", "readOnly": true },
+    { "name": "payload", "type": "LongText", "label": "Data", "readOnly": true }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "write": false, "create": false, "delete": true }
+  ]
+}

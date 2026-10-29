@@ -491,3 +491,7 @@ The role map (ADR-113) was tried with a real OpenID Connect provider over HTTP, 
 ## Field preview and translatable ([ADR-116](../../adr/116-field-preview-and-translatable.md))
 
 `DocFieldMeta.InPreview/Translatable` (checks in `DocTypeLoader`); Desk `controls/LinkPreview.tsx`, `translateValue`/`setValueTranslator` in `lib/i18n.ts` used by `formatCell` and Select options. Tests: `FieldPropertyTests`, `i18n.test.ts`, and the Playwright test `e2e/tests/fields.spec.ts` (checked in Chromium: the card shows only the marked fields, and a status shows in Arabic after switching language).
+
+## Background job queue ([ADR-117](../../adr/117-background-job-queue.md))
+
+`BackgroundJobs.cs` (`BackgroundJobService`, `QueueContext`, `QueueHandler`), `IAppBuilder.Queue` and `AppCatalog.HasQueueHandler/QueueHandler` in `Apps.cs`, `background_job.json`, scheduler step "background jobs" (and clean-up), `POST /api/background-jobs/{name}/retry` in `RequestRecorder.cs`. Example in an app: `app.Queue("send_batch", async ctx => { ... })` then `await jobs.EnqueueAsync("myapp.send_batch", new { id = 7 }, "short")`. Tests: `BackgroundJobTests` (11). Not run through a real app and scheduler in a browser; the Data suite creates its table on PostgreSQL and SQL Server.

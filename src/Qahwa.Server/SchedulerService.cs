@@ -10,7 +10,7 @@ using Qahwa.Core;
 public sealed class SchedulerService(
     AutoRepeatService autoRepeat, NotificationRuleEngine notificationRules, EmailService email, WebhookService webhooks, ErrorLogService errorLog,
     BackupService backup, BackupOptions backupOptions, AppJobRunner appJobs, DeletedDocumentService deletedDocuments, AccessLogService accessLog, AutoEmailReportService emailedReports,
-    EmailDigestService digests, AppInstaller installer, OAuthService oauth, IncomingMailService incomingMail, ServerScriptEngine serverScripts, NotificationService notifications, JobLogService jobLog, IConfiguration configuration, ILogger<SchedulerService> logger) : BackgroundService
+    EmailDigestService digests, AppInstaller installer, OAuthService oauth, IncomingMailService incomingMail, BackgroundJobService backgroundJobs, ServerScriptEngine serverScripts, NotificationService notifications, JobLogService jobLog, IConfiguration configuration, ILogger<SchedulerService> logger) : BackgroundService
 {
     /// <summary>
     /// Runs one step. It returns what to say about the run, or null when there was nothing to do (nothing is logged then). A step that
@@ -72,6 +72,12 @@ public sealed class SchedulerService(
                 return sent > 0 ? $"{sent} sent." : null;
             }, stoppingToken);
 
+            await StepAsync("background jobs", async () =>
+            {
+                var run = await backgroundJobs.RunDueAsync(stoppingToken);
+                return run.Done + run.Failed + run.Retried > 0 ? $"{run.Done} done, {run.Retried} to try again, {run.Failed} failed." : null;
+            }, stoppingToken);
+
             await StepAsync("scheduled scripts", async () =>
             {
                 var (ran, failed) = await serverScripts.RunScheduledAsync(async (who, token) => (IUserContext?)await notifications.ContextOfAsync(who, token), stoppingToken);
@@ -120,6 +126,7 @@ public sealed class SchedulerService(
                     var accessDays = Math.Clamp(configuration.GetValue("Qahwa:AccessLog:RetentionDays", AccessLogService.DefaultRetentionDays), 1, 3650);
                     await accessLog.PurgeAsync(TimeSpan.FromDays(accessDays), stoppingToken);
                     await oauth.PurgeAsync(stoppingToken);
+                    await backgroundJobs.PurgeAsync(stoppingToken);
                     return copies > 0 ? $"Removed {copies} old copy(ies) of deleted documents." : null;
                 }, stoppingToken);
             }

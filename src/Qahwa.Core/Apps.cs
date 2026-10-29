@@ -157,6 +157,12 @@ public interface IAppBuilder
     /// <summary>A job run by the scheduler about every <paramref name="every"/> (at least a minute). It must be safe to run twice, as several servers may.</summary>
     IAppBuilder Schedule(string name, TimeSpan every, Func<IServiceProvider, CancellationToken, Task> job);
 
+    /// <summary>
+    /// A handler for background work queued with <see cref="BackgroundJobService.EnqueueAsync"/> as "app.name" (ADR-117). It runs on the
+    /// scheduler with retries and a time limit, and must be safe to run twice.
+    /// </summary>
+    IAppBuilder Queue(string name, QueueHandler handler);
+
     /// <summary>A document made when the app is first installed on a site (and left alone if it is already there).</summary>
     IAppBuilder Fixture(string doctype, IReadOnlyDictionary<string, object?> values);
 }
@@ -194,6 +200,8 @@ internal sealed record RegisteredMethod(string App, string FullName, MethodHandl
 
 internal sealed record RegisteredJob(string App, string Name, TimeSpan Every, Func<IServiceProvider, CancellationToken, Task> Job);
 
+internal sealed record RegisteredQueueHandler(string App, string FullName, QueueHandler Handler);
+
 internal sealed record RegisteredFixture(string App, string DocType, IReadOnlyDictionary<string, object?> Values);
 
 /// <summary>
@@ -217,6 +225,7 @@ public sealed partial class AppCatalog
     private readonly List<RegisteredPermissionQuery> _permissionQueries = [];
     private readonly Dictionary<string, RegisteredMethod> _methods = new(StringComparer.Ordinal);
     private readonly List<RegisteredJob> _jobs = [];
+    private readonly Dictionary<string, RegisteredQueueHandler> _queueHandlers = new(StringComparer.Ordinal);
     private readonly List<RegisteredFixture> _fixtures = [];
     private readonly List<IQahwaApp> _apps = [];
 
@@ -270,6 +279,11 @@ public sealed partial class AppCatalog
     internal IReadOnlyList<RegisteredJob> Jobs => _jobs.Where(j => IsActive(j.App)).ToList();
 
     internal IReadOnlyList<RegisteredFixture> Fixtures => _fixtures;
+
+    /// <summary>True when an installed app registered this queue handler ("app.name").</summary>
+    public bool HasQueueHandler(string fullName) => _queueHandlers.TryGetValue(fullName, out var h) && IsActive(h.App);
+
+    public QueueHandler? QueueHandler(string fullName) => _queueHandlers.TryGetValue(fullName, out var h) && IsActive(h.App) ? h.Handler : null;
 
     internal IReadOnlyDictionary<string, RegisteredMethod> Methods => _methods.Where(m => IsActive(m.Value.App)).ToDictionary(m => m.Key, m => m.Value, StringComparer.Ordinal);
 
@@ -379,6 +393,16 @@ public sealed partial class AppCatalog
             if (catalog._jobs.Any(j => j.App == app && j.Name == name))
                 throw new InvalidOperationException($"The job '{app}.{name}' is registered twice.");
             catalog._jobs.Add(new RegisteredJob(app, name, every, job));
+            return this;
+        }
+
+        public IAppBuilder Queue(string name, QueueHandler handler)
+        {
+            if (!ShortName().IsMatch(name))
+                throw new InvalidOperationException($"'{name}' is not a valid queue handler name in the app '{app}' (lower case letters, digits and underscores).");
+            var full = $"{app}.{name}";
+            if (!catalog._queueHandlers.TryAdd(full, new RegisteredQueueHandler(app, full, handler)))
+                throw new InvalidOperationException($"The queue handler '{full}' is registered twice.");
             return this;
         }
 

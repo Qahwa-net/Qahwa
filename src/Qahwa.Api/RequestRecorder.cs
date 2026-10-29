@@ -94,6 +94,16 @@ public static class RequestRecorderExtensions
                 throw new PermissionDeniedException("Only a System Manager can see the slow requests.");
             return Results.Ok(new { thresholdMs = configuration.GetValue("Qahwa:Recorder:SlowMs", 1000), data = recorder.Slowest() });
         });
+        app.MapPost("/api/background-jobs/{name}/retry", async (string name, HttpContext http, IUserContextResolver users, BackgroundJobService jobs, CancellationToken ct) =>
+        {
+            var user = await users.ResolveAsync(http, ct);
+            if (!user.IsAuthenticated)
+                throw new UnauthenticatedException();
+            if (!UserSecurityEndpoints.CanManage(user))
+                throw new PermissionDeniedException("Only a System Manager can retry a background job.");
+            await jobs.RetryAsync(name, ct);
+            return Results.Ok(new { message = "ok" });
+        });
         return app;
     }
 }
