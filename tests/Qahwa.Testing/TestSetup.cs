@@ -153,6 +153,7 @@ public sealed class TestEngine
         NotificationRuleManager = new NotificationRuleManager(Registry, NotificationRuleStore, NotificationRuleCatalog, Repository, Permissions, Clock);
         AssignmentRuleManager = new AssignmentRuleManager(Registry, AssignmentRuleStore, AssignmentRuleCatalog, Repository, Permissions, Clock);
         Workflows = new WorkflowManager(Registry, WorkflowStore, WorkflowCatalog, Permissions, Clock);
+        WorkflowStateFields = new WorkflowStateFieldService(Registry, Designer, Customization);
         AuthStore = new InMemoryAuthStore();
         AuthOptions = new AuthOptions { HashIterations = 1000 };
         SecurityPolicy = new SecurityPolicyService(Registry, Repository, Options.Create(AuthOptions));
@@ -206,6 +207,7 @@ public sealed class TestEngine
     public WorkflowCatalog WorkflowCatalog { get; }
     public InMemoryWorkflowStore WorkflowStore { get; }
     public WorkflowManager Workflows { get; }
+    public WorkflowStateFieldService WorkflowStateFields { get; }
     public AutoRepeatService AutoRepeat { get; }
     public AssignmentRuleCatalog AssignmentRuleCatalog { get; }
     public InMemoryAssignmentRuleStore AssignmentRuleStore { get; }

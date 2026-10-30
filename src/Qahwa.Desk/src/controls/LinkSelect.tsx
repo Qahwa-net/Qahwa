@@ -23,6 +23,8 @@ interface Props {
   knownLabel?: string
   localOptions?: LinkOption[]
   onCreate?: (text: string) => void
+  /** Shows a button that empties the value. On by default; off for choices that must always have a value. */
+  clearable?: boolean
 }
 
 const DELAY = 200
@@ -31,7 +33,7 @@ const DELAY = 200
  * A search-as-you-type select for documents: type a name or ID, pick from the list with the mouse or the arrow keys.
  * Choices show the friendly name with the ID as a smaller hint, and the chosen value is shown by its friendly name.
  */
-export function LinkSelect({ value, onChange, search, resolve, cacheKey, readOnly, invalid, id, ariaLabel, placeholder, knownLabel, localOptions, onCreate }: Props) {
+export function LinkSelect({ value, onChange, search, resolve, cacheKey, readOnly, invalid, id, ariaLabel, placeholder, knownLabel, localOptions, onCreate, clearable = true }: Props) {
   const listId = useId()
   const [open, setOpen] = useState(false)
   const [text, setText] = useState('')
@@ -155,7 +157,7 @@ export function LinkSelect({ value, onChange, search, resolve, cacheKey, readOnl
         onKeyDown={onKeyDown}
       />
       {localOptions && <span className="select-chevron"><Icon name="chevronDown" size={14} /></span>}
-      {value && (
+      {value && clearable && (
         <button type="button" className="link-clear" aria-label="Clear" tabIndex={-1}
           onMouseDown={(e) => { e.preventDefault(); setTyped(false); setText(''); onChange(''); setOpen(true); inputRef.current?.focus() }}>✕</button>
       )}

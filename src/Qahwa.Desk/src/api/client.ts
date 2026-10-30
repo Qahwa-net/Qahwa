@@ -347,6 +347,8 @@ export const api = {
       if (before) query.set('before', before)
       return (await request<{ data: ActivityItem[] }>('GET', `${resource(doctype, name)}/timeline?${query}`)).data
     },
+    mentionUsers: async (doctype: string, name: string, text: string) =>
+      (await request<{ data: LinkOption[] }>('GET', `${resource(doctype, name)}/mention-users?${new URLSearchParams({ q: text })}`)).data,
     addComment: async (doctype: string, name: string, content: string) =>
       (await request<{ data: ActivityItem }>('POST', `${resource(doctype, name)}/comments`, { content })).data,
     updateComment: async (doctype: string, name: string, id: string, content: string) =>
@@ -570,6 +572,8 @@ export const api = {
       (await request<{ data: WorkflowView }>('GET', `/api/workflows/doctypes/${encodeURIComponent(name)}`)).data,
     save: async (name: string, workflow: WorkflowDefinition, modified: string | null | undefined) =>
       (await request<{ data: WorkflowView }>('PUT', `/api/workflows/doctypes/${encodeURIComponent(name)}`, { workflow, modified })).data,
+    createStateField: async (name: string) =>
+      await request<{ field: string; data: WorkflowView }>('POST', `/api/workflows/doctypes/${encodeURIComponent(name)}/state-field`),
     remove: async (name: string) => { await request<unknown>('DELETE', `/api/workflows/doctypes/${encodeURIComponent(name)}`) },
     status: async (doctype: string, name: string) =>
       (await request<{ data: WorkflowStatus | null }>('GET', `${resource(doctype, name)}/workflow`)).data,

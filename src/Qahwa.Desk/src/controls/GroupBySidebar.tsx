@@ -4,6 +4,7 @@ import { api } from '../api/client.ts'
 import type { DocField } from '../api/types.ts'
 import { labelOf } from '../lib/fields.ts'
 import type { Filter } from '../lib/filters.ts'
+import { Select } from './Select.tsx'
 
 const key = (doctype: string) => `qahwa.groupby.${doctype}`
 
@@ -60,10 +61,10 @@ export function GroupBySidebar({ doctype, fields, filters, applied, onChange }: 
   return (
     <aside className="group-by" aria-label="Group by">
       <label>Group by
-        <select value={field} onChange={(e) => choose(e.target.value)}>
+        <Select value={field} onChange={(e) => choose(e.target.value)}>
           <option value="">Choose a field…</option>
           {fields.map((f) => <option key={f.name} value={f.name}>{labelOf(f)}</option>)}
-        </select>
+        </Select>
       </label>
       {!popular.isError && (
         <div className="tag-filter" aria-label="Filter by tag or like">

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client.ts'
 import { Icon } from '../controls/Icon.tsx'
 import { Modal } from '../controls/Modal.tsx'
+import { Select } from '../controls/Select.tsx'
 
 /** A preview of the printout. The page is shown inside a sandboxed frame that can run nothing; "Open to print" opens it in its own tab. */
 export function PrintDialog({ doctype, name, onClose }: { doctype: string; name: string; onClose: () => void }) {
@@ -23,18 +24,18 @@ export function PrintDialog({ doctype, name, onClose }: { doctype: string; name:
       <div className="modal-row">
         <div className="field">
           <label htmlFor="print-format">Format</label>
-          <select id="print-format" value={format} onChange={(e) => setFormat(e.target.value)}>
+          <Select id="print-format" value={format} onChange={(e) => setFormat(e.target.value)}>
             <option value="">Default</option>
             {choices.data?.formats.map((f) => <option key={f.name} value={f.name}>{f.name}{f.isDefault ? ' (default)' : ''}</option>)}
-          </select>
+          </Select>
         </div>
         <div className="field">
           <label htmlFor="print-letterhead">Letter head</label>
-          <select id="print-letterhead" value={letterHead} onChange={(e) => setLetterHead(e.target.value)}>
+          <Select id="print-letterhead" value={letterHead} onChange={(e) => setLetterHead(e.target.value)}>
             <option value="">Default</option>
             <option value="none">None</option>
             {choices.data?.letterHeads.map((h) => <option key={h} value={h}>{h}</option>)}
-          </select>
+          </Select>
         </div>
       </div>
       {page.isPending && <p className="muted" role="status">Preparing the preview…</p>}

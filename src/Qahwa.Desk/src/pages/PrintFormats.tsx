@@ -7,6 +7,7 @@ import { LinkSelect } from '../controls/LinkSelect.tsx'
 import { ConfirmDialog } from '../controls/Modal.tsx'
 import { useToast } from '../controls/Toast.tsx'
 import { hasColumn } from '../lib/fields.ts'
+import { Select } from '../controls/Select.tsx'
 
 /** Print Formats and Letter Heads: how documents look on paper. */
 export function PrintFormatsPage() {
@@ -110,17 +111,17 @@ function EditorBody({ initial, doctypes, heads, onSaved, onDeleted }: {
         </div>
         <div className="field">
           <label htmlFor="pf-doctype">DocType</label>
-          <select id="pf-doctype" value={docType} disabled={initial !== null} onChange={(e) => { setDocType(e.target.value); setSample('') }}>
+          <Select id="pf-doctype" value={docType} disabled={initial !== null} onChange={(e) => { setDocType(e.target.value); setSample('') }}>
             <option value="">— choose —</option>
             {doctypes.map((d) => <option key={d}>{d}</option>)}
-          </select>
+          </Select>
         </div>
         <div className="field">
           <label htmlFor="pf-head">Letter head</label>
-          <select id="pf-head" value={letterHead} onChange={(e) => setLetterHead(e.target.value)}>
+          <Select id="pf-head" value={letterHead} onChange={(e) => setLetterHead(e.target.value)}>
             <option value="">Default</option>
             {heads.map((h) => <option key={h}>{h}</option>)}
-          </select>
+          </Select>
         </div>
         <label className="switch"><input type="checkbox" checked={isDefault} onChange={(e) => setIsDefault(e.target.checked)} /><span>Use by default for {docType || 'this DocType'}</span></label>
 
@@ -128,18 +129,18 @@ function EditorBody({ initial, doctypes, heads, onSaved, onDeleted }: {
           <label htmlFor="pf-html">Format (HTML)</label>
           <textarea id="pf-html" className="mono" rows={14} spellCheck={false} value={html} onChange={(e) => setHtml(e.target.value)} />
           <div className="insert-row">
-            <select aria-label="Insert a field" className="compact" value="" onChange={(e) => { if (e.target.value) insert(`{{${e.target.value}}}`) }}>
+            <Select aria-label="Insert a field" className="compact" value="" onChange={(e) => { if (e.target.value) insert(`{{${e.target.value}}}`) }}>
               <option value="">Insert a field…</option>
               {['name', 'doctype', 'today', 'user', 'status', ...fields.map((f) => f.name)].map((f) => <option key={f}>{f}</option>)}
-            </select>
-            <select aria-label="Insert a table" className="compact" value="" onChange={(e) => {
+            </Select>
+            <Select aria-label="Insert a table" className="compact" value="" onChange={(e) => {
               const t = e.target.value
               const child = tables.find((x) => x.name === t)
               if (t && child) insert(`<table>\n{{#each ${t}}}\n<tr><td>{{@index}}</td></tr>\n{{/each}}\n</table>`)
             }}>
               <option value="">Insert a table…</option>
               {tables.map((t) => <option key={t.name} value={t.name}>{t.label || t.name}</option>)}
-            </select>
+            </Select>
           </div>
           <small className="muted">Use <code>{'{{field}}'}</code>, <code>{'{{label:field}}'}</code>, <code>{'{{#if field}}…{{else}}…{{/if}}'}</code> and <code>{'{{#each table}}…{{/each}}'}</code>. Scripts, forms and event attributes are not allowed.</small>
         </div>

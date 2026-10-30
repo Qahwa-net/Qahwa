@@ -85,3 +85,19 @@ export function splitMentions(text: string): Piece[] {
   if (last < text.length) pieces.push({ text: text.slice(last), mention: false })
   return pieces
 }
+
+/** The @word being typed at the caret (not yet finished), or null. `start` is where the "@" is. */
+export function mentionAt(text: string, caret: number): { start: number; query: string } | null {
+  const before = text.slice(0, caret)
+  const match = /(^|\s)@([^\s@]*)$/.exec(before)
+  if (!match) return null
+  return { start: before.length - match[2]!.length - 1, query: match[2]! }
+}
+
+/** Replaces the @word being typed with the chosen person's @email and a space (unless one follows); returns the new text and caret. */
+export function insertMention(text: string, caret: number, email: string): { text: string; caret: number } | null {
+  const at = mentionAt(text, caret)
+  if (!at) return null
+  const inserted = /^\s/.test(text.slice(caret)) ? `@${email}` : `@${email} `
+  return { text: text.slice(0, at.start) + inserted + text.slice(caret), caret: at.start + inserted.length }
+}

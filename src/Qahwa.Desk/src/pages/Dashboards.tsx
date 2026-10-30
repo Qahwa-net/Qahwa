@@ -10,6 +10,7 @@ import { useToast } from '../controls/Toast.tsx'
 import { formatNumber } from '../lib/charts.ts'
 import { FUNCTIONS, OPERATORS, dateFields, filterValue, groupableFields, newItem, numericFields, tileTitle, toItem } from '../lib/dashboards.ts'
 import { STANDARD_FIELDS, labelOf } from '../lib/fields.ts'
+import { Select } from '../controls/Select.tsx'
 
 /** Dashboards: tiles of numbers, charts and lists over your documents, each one shown with the permissions of whoever is looking. */
 export function DashboardsPage() {
@@ -266,9 +267,9 @@ function ItemEditor({ index, item, open, errors, doctypes, onToggle, onChange, o
         <div className="form-grid">
           <div className="field">
             <label>Type</label>
-            <select aria-label={`${label} type`} value={item.type} onChange={(e) => onChange({ type: e.target.value as DashboardItem['type'] })}>
+            <Select aria-label={`${label} type`} value={item.type} onChange={(e) => onChange({ type: e.target.value as DashboardItem['type'] })}>
               <option value="Number">Number</option><option value="Chart">Chart</option><option value="List">List of documents</option>
-            </select>
+            </Select>
             <Err k="type" />
           </div>
           <div className="field">
@@ -278,35 +279,35 @@ function ItemEditor({ index, item, open, errors, doctypes, onToggle, onChange, o
           </div>
           <div className="field">
             <label>DocType</label>
-            <select aria-label={`${label} DocType`} value={item.docType} aria-invalid={Boolean(errors.docType)} onChange={(e) => onChange({ docType: e.target.value, valueField: null, groupBy: null, columns: [], orderBy: null, filters: [] })}>
+            <Select aria-label={`${label} DocType`} value={item.docType} aria-invalid={Boolean(errors.docType)} onChange={(e) => onChange({ docType: e.target.value, valueField: null, groupBy: null, columns: [], orderBy: null, filters: [] })}>
               <option value="">— choose —</option>
               {doctypes.map((d) => <option key={d} value={d}>{d}</option>)}
-            </select>
+            </Select>
             <Err k="docType" />
           </div>
           <div className="field">
             <label>Colour</label>
-            <select aria-label={`${label} colour`} value={item.color} onChange={(e) => onChange({ color: e.target.value as DashboardItem['color'] })}>
+            <Select aria-label={`${label} colour`} value={item.color} onChange={(e) => onChange({ color: e.target.value as DashboardItem['color'] })}>
               {['blue', 'green', 'orange', 'red', 'purple', 'gray'].map((c) => <option key={c}>{c}</option>)}
-            </select>
+            </Select>
           </div>
 
           {summary && (
             <>
               <div className="field">
                 <label>Show</label>
-                <select aria-label={`${label} function`} value={item.function} onChange={(e) => onChange({ function: e.target.value as DashboardItem['function'] })}>
+                <Select aria-label={`${label} function`} value={item.function} onChange={(e) => onChange({ function: e.target.value as DashboardItem['function'] })}>
                   {FUNCTIONS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
-                </select>
+                </Select>
                 <Err k="function" />
               </div>
               {item.function !== 'count' && (
                 <div className="field">
                   <label>Of the field</label>
-                  <select aria-label={`${label} value field`} value={item.valueField ?? ''} aria-invalid={Boolean(errors.valueField)} onChange={(e) => onChange({ valueField: e.target.value })}>
+                  <Select aria-label={`${label} value field`} value={item.valueField ?? ''} aria-invalid={Boolean(errors.valueField)} onChange={(e) => onChange({ valueField: e.target.value })}>
                     <option value="">— choose —</option>
                     {numericFields(fields).map((f) => <option key={f.name} value={f.name}>{labelOf(f)}</option>)}
-                  </select>
+                  </Select>
                   <Err k="valueField" />
                 </div>
               )}
@@ -317,26 +318,26 @@ function ItemEditor({ index, item, open, errors, doctypes, onToggle, onChange, o
             <>
               <div className="field">
                 <label>Group by</label>
-                <select aria-label={`${label} group by`} value={item.groupBy ?? ''} aria-invalid={Boolean(errors.groupBy)} onChange={(e) => onChange({ groupBy: e.target.value, period: null })}>
+                <Select aria-label={`${label} group by`} value={item.groupBy ?? ''} aria-invalid={Boolean(errors.groupBy)} onChange={(e) => onChange({ groupBy: e.target.value, period: null })}>
                   <option value="">— choose —</option>
                   {groupableFields(fields).map((f) => <option key={f.name} value={f.name}>{labelOf(f)}</option>)}
-                </select>
+                </Select>
                 <Err k="groupBy" />
               </div>
               {dateFields(fields).some((f) => f.name === item.groupBy) && (
                 <div className="field">
                   <label>Per</label>
-                  <select aria-label={`${label} period`} value={item.period ?? 'day'} onChange={(e) => onChange({ period: e.target.value as 'day' | 'month' | 'year' })}>
+                  <Select aria-label={`${label} period`} value={item.period ?? 'day'} onChange={(e) => onChange({ period: e.target.value as 'day' | 'month' | 'year' })}>
                     <option value="day">Day</option><option value="month">Month</option><option value="year">Year</option>
-                  </select>
+                  </Select>
                   <Err k="period" />
                 </div>
               )}
               <div className="field">
                 <label>Chart</label>
-                <select aria-label={`${label} chart type`} value={item.chartType} onChange={(e) => onChange({ chartType: e.target.value as DashboardItem['chartType'] })}>
+                <Select aria-label={`${label} chart type`} value={item.chartType} onChange={(e) => onChange({ chartType: e.target.value as DashboardItem['chartType'] })}>
                   <option value="bar">Bars</option><option value="line">Line</option><option value="pie">Pie</option>
-                </select>
+                </Select>
                 <Err k="chartType" />
               </div>
             </>
@@ -358,10 +359,10 @@ function ItemEditor({ index, item, open, errors, doctypes, onToggle, onChange, o
               </fieldset>
               <div className="field">
                 <label>Newest first by</label>
-                <select aria-label={`${label} order by`} value={item.orderBy ?? ''} onChange={(e) => onChange({ orderBy: e.target.value })}>
+                <Select aria-label={`${label} order by`} value={item.orderBy ?? ''} onChange={(e) => onChange({ orderBy: e.target.value })}>
                   <option value="">Last changed</option>
                   {withStandard.map((f) => <option key={f.name} value={f.name}>{labelOf(f)}</option>)}
-                </select>
+                </Select>
               </div>
               <div className="field">
                 <label htmlFor={`t${index}-limit`}>Rows</label>
@@ -375,18 +376,18 @@ function ItemEditor({ index, item, open, errors, doctypes, onToggle, onChange, o
             <label>Only documents where</label>
             {item.filters.map((f, fi) => (
               <div key={fi} className="filter-row">
-                <select aria-label={`${label} filter ${fi + 1} field`} value={f.field} onChange={(e) => onChange({ filters: item.filters.map((x, j) => (j === fi ? { ...x, field: e.target.value } : x)) })}>
+                <Select aria-label={`${label} filter ${fi + 1} field`} value={f.field} onChange={(e) => onChange({ filters: item.filters.map((x, j) => (j === fi ? { ...x, field: e.target.value } : x)) })}>
                   <option value="">— field —</option>
                   {withStandard.map((fld) => <option key={fld.name} value={fld.name}>{labelOf(fld)}</option>)}
-                </select>
-                <select aria-label={`${label} filter ${fi + 1} operator`} value={f.op} onChange={(e) => onChange({ filters: item.filters.map((x, j) => (j === fi ? { ...x, op: e.target.value } : x)) })}>
+                </Select>
+                <Select aria-label={`${label} filter ${fi + 1} operator`} value={f.op} onChange={(e) => onChange({ filters: item.filters.map((x, j) => (j === fi ? { ...x, op: e.target.value } : x)) })}>
                   {OPERATORS.map((o) => <option key={o}>{o}</option>)}
-                </select>
+                </Select>
                 {f.op === 'is'
                   ? (
-                    <select aria-label={`${label} filter ${fi + 1} value`} value={String(f.value || 'set')} onChange={(e) => onChange({ filters: item.filters.map((x, j) => (j === fi ? { ...x, value: e.target.value } : x)) })}>
+                    <Select aria-label={`${label} filter ${fi + 1} value`} value={String(f.value || 'set')} onChange={(e) => onChange({ filters: item.filters.map((x, j) => (j === fi ? { ...x, value: e.target.value } : x)) })}>
                       <option value="set">is set</option><option value="not set">is not set</option>
-                    </select>
+                    </Select>
                   )
                   : <input aria-label={`${label} filter ${fi + 1} value`} value={String(f.value ?? '')} onChange={(e) => onChange({ filters: item.filters.map((x, j) => (j === fi ? { ...x, value: e.target.value } : x)) })} />}
                 <IconButton icon="x" label="Remove filter" onClick={() => onChange({ filters: item.filters.filter((_, j) => j !== fi) })} />

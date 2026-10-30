@@ -8,6 +8,7 @@ import { ConfirmDialog } from '../controls/Modal.tsx'
 import { useToast } from '../controls/Toast.tsx'
 import { EVENTS, newHook, randomSecret, toSet, urlHint } from '../lib/webhooks.ts'
 import { rowErrors } from '../lib/workflow.ts'
+import { Select } from '../controls/Select.tsx'
 
 /** Webhooks: tell other systems when documents change, with a signed JSON post. */
 export function WebhooksPage() {
@@ -109,9 +110,9 @@ function Body({ view }: { view: WebhookView }) {
               <div className="form-grid">
                 <div className="field">
                   <label>When</label>
-                  <select aria-label={`${label} event`} value={hook.event} disabled={readOnly} onChange={(ev) => update(i, { event: ev.target.value as WebhookEvent })}>
+                  <Select aria-label={`${label} event`} value={hook.event} disabled={readOnly} onChange={(ev) => update(i, { event: ev.target.value as WebhookEvent })}>
                     {EVENTS.map((ev) => <option key={ev.value} value={ev.value}>{ev.label}</option>)}
-                  </select>
+                  </Select>
                   {e.event && <small className="error-text" role="alert">{e.event}</small>}
                 </div>
                 <div className="field">

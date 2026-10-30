@@ -148,6 +148,23 @@ public class CollaborationTests
     }
 
     [Fact]
+    public async Task Mention_suggestions_match_name_or_email_and_only_offer_people_who_may_read_the_document()
+    {
+        await AllUsersAsync();
+        await UserAsync(new UserContext("off@example.com", ["Clerk"]), "Bob Gone", enabled: false);
+        var id = await DealAsync(Ann);
+
+        var byName = await _engine.Activity.MentionCandidatesAsync("Deal", id, "bo", Ann);
+        Assert.Equal(["bob@example.com"], byName.Select(o => o.Value));
+        Assert.Equal("Bob Stone", byName[0].Label);
+
+        Assert.Equal(["bob@example.com"], (await _engine.Activity.MentionCandidatesAsync("Deal", id, "bob@exa", Ann)).Select(o => o.Value));
+        Assert.Empty(await _engine.Activity.MentionCandidatesAsync("Deal", id, "eve", Ann)); // cannot read the Deal
+        Assert.DoesNotContain(await _engine.Activity.MentionCandidatesAsync("Deal", id, "", Ann), o => o.Value == Ann.User); // not yourself
+        await Assert.ThrowsAsync<PermissionDeniedException>(() => _engine.Activity.MentionCandidatesAsync("Deal", id, "bo", Eve));
+    }
+
+    [Fact]
     public void Mentions_need_an_at_sign_and_are_limited()
     {
         Assert.Equal(["a@x.com"], Mentions.Find("hi @a@x.com and a@x.com again @A@X.com"));

@@ -82,6 +82,7 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<IWorkflowStore, WorkflowStore>();
         services.TryAddSingleton<WorkflowCatalog>();
         services.TryAddSingleton<WorkflowManager>();
+        services.TryAddSingleton<WorkflowStateFieldService>();
         services.TryAddSingleton<IAssignmentRuleStore, AssignmentRuleStore>();
         services.TryAddSingleton<EmailService>();
         services.TryAddSingleton<DashboardService>();

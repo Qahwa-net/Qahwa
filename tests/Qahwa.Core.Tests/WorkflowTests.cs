@@ -52,6 +52,45 @@ public class WorkflowTests
         ],
     };
 
+    // ---- creating the state field from the builder ----
+
+    [Fact]
+    public async Task A_state_field_is_added_to_a_designer_made_DocType_and_can_then_be_used_by_a_workflow()
+    {
+        await _engine.Designer.CreateAsync(DocTypeLoader.Parse("""{ "name": "Leave", "fields": [ { "name": "reason", "type": "Data" } ], "permissions": [ { "role": "Clerk", "read": true, "write": true, "create": true } ] }"""), TestUsers.SystemManager);
+
+        var field = await _engine.WorkflowStateFields.EnsureAsync("Leave", TestUsers.SystemManager);
+
+        Assert.Equal("workflow_state", field);
+        Assert.Contains("workflow_state", (await _engine.Workflows.GetAsync("Leave", TestUsers.SystemManager)).StateFields);
+        var definition = new WorkflowDefinition { DocType = "Leave", StateField = field, Active = true, States = [new() { Name = "Open" }, new() { Name = "Done" }], Transitions = [new() { From = "Open", Action = "Finish", To = "Done", Roles = ["Clerk"] }] };
+        await _engine.Workflows.SaveAsync("Leave", definition, null, TestUsers.SystemManager);
+        var id = (string)(await _engine.Documents.InsertAsync("Leave", Values(("reason", "Holiday")), Clerk))["name"]!;
+        Assert.Equal("Open", (await _engine.Documents.GetAsync("Leave", id, Clerk))["workflow_state"]);
+    }
+
+    [Fact]
+    public async Task A_state_field_on_a_DocType_with_its_own_definition_is_a_custom_field_and_asking_again_reuses_it()
+    {
+        _engine.Registry.Add(DocTypeLoader.Parse("""{ "name": "Ticket", "fields": [ { "name": "title", "type": "Data" } ] }"""));
+
+        var first = await _engine.WorkflowStateFields.EnsureAsync("Ticket", TestUsers.Admin);
+        var second = await _engine.WorkflowStateFields.EnsureAsync("Ticket", TestUsers.Admin);
+
+        Assert.Equal("custom_workflow_state", first);
+        Assert.Equal(first, second);
+        Assert.Single(_engine.Registry.Get("Ticket").Fields, f => f.Name == first);
+    }
+
+    [Fact]
+    public async Task Only_a_manager_can_add_a_state_field_and_a_name_clash_is_refused()
+    {
+        await Assert.ThrowsAsync<PermissionDeniedException>(() => _engine.WorkflowStateFields.EnsureAsync("Expense", Clerk));
+        _engine.Registry.Add(DocTypeLoader.Parse("""{ "name": "Odd", "fields": [ { "name": "custom_workflow_state", "type": "Int" } ] }"""));
+        await Assert.ThrowsAsync<ConflictException>(() => _engine.WorkflowStateFields.EnsureAsync("Odd", TestUsers.Admin));
+        await Assert.ThrowsAsync<NotFoundException>(() => _engine.WorkflowStateFields.EnsureAsync("Nope", TestUsers.Admin));
+    }
+
     private Task<WorkflowView> SaveAsync(WorkflowDefinition definition, DateTime? expected = null, IUserContext? user = null) =>
         _engine.Workflows.SaveAsync("Expense", definition, expected, user ?? TestUsers.SystemManager);
 

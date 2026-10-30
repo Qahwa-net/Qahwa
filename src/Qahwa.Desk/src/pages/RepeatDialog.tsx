@@ -6,6 +6,7 @@ import { Icon, IconButton } from '../controls/Icon.tsx'
 import { Modal } from '../controls/Modal.tsx'
 import { useToast } from '../controls/Toast.tsx'
 import { FREQUENCIES, describeRepeat, tomorrow } from '../lib/autoRepeat.ts'
+import { Select } from '../controls/Select.tsx'
 
 export const repeatKey = (doctype: string, name: string) => ['auto-repeat', doctype, name]
 
@@ -96,9 +97,9 @@ export function RepeatDialog({ meta, name, onClose }: { meta: DocTypeMeta; name:
         <div className="modal-row">
           <div className="field">
             <label htmlFor="repeat-frequency">How often</label>
-            <select id="repeat-frequency" value={frequency} onChange={(e) => setFrequency(e.target.value as RepeatFrequency)}>
+            <Select id="repeat-frequency" value={frequency} onChange={(e) => setFrequency(e.target.value as RepeatFrequency)}>
               {FREQUENCIES.map((f) => <option key={f}>{f}</option>)}
-            </select>
+            </Select>
           </div>
           <div className="field">
             <label htmlFor="repeat-start">First copy on</label>

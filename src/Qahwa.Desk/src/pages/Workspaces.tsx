@@ -8,6 +8,7 @@ import { ConfirmDialog } from '../controls/Modal.tsx'
 import { useToast } from '../controls/Toast.tsx'
 import { PAGES, moveBlock, newBlock, newShortcut, toRequest } from '../lib/workspaces.ts'
 import { rowErrors } from '../lib/workflow.ts'
+import { Select } from '../controls/Select.tsx'
 
 /** Workspaces: arrange the pages people start from, and choose which roles see each. */
 export function WorkspacesPage() {
@@ -106,9 +107,9 @@ function Body({ initial, onDone }: { initial: WorkspaceDetail | null; onDone: ()
             <li key={i} className={`card rule-card${Object.keys(e).length ? ' has-error' : ''}`}>
               <header className="rule-head">
                 <span className="rule-no" aria-hidden="true">{i + 1}</span>
-                <select aria-label={`Block ${i + 1} type`} value={block.type} onChange={(ev) => update(i, newBlock(ev.target.value as WorkspaceBlock['type']))}>
+                <Select aria-label={`Block ${i + 1} type`} value={block.type} onChange={(ev) => update(i, newBlock(ev.target.value as WorkspaceBlock['type']))}>
                   <option value="Heading">Heading</option><option value="Shortcuts">Shortcuts</option><option value="Dashboard">Dashboard</option>
-                </select>
+                </Select>
                 <span className="spacer" />
                 <IconButton icon="arrowLeft" label="Move up" className="rot-up" disabled={i === 0} onClick={() => setBlocks(moveBlock(blocks, i, -1))} />
                 <IconButton icon="arrowLeft" label="Move down" className="rot-down" disabled={i === blocks.length - 1} onClick={() => setBlocks(moveBlock(blocks, i, 1))} />
@@ -122,10 +123,10 @@ function Body({ initial, onDone }: { initial: WorkspaceDetail | null; onDone: ()
               )}
               {block.type === 'Dashboard' && (
                 <div className="field">
-                  <select aria-label={`Block ${i + 1} dashboard`} value={block.dashboardId ?? ''} aria-invalid={Boolean(e.dashboardId)} onChange={(ev) => update(i, { dashboardId: ev.target.value })}>
+                  <Select aria-label={`Block ${i + 1} dashboard`} value={block.dashboardId ?? ''} aria-invalid={Boolean(e.dashboardId)} onChange={(ev) => update(i, { dashboardId: ev.target.value })}>
                     <option value="">— choose a dashboard —</option>
                     {dashboards.data?.map((d) => <option key={d.id} value={d.id}>{d.title}</option>)}
-                  </select>
+                  </Select>
                   {e.dashboardId && <small className="error-text" role="alert">{e.dashboardId}</small>}
                 </div>
               )}
@@ -136,17 +137,17 @@ function Body({ initial, onDone }: { initial: WorkspaceDetail | null; onDone: ()
                     <div key={si} className="shortcut-row">
                       <input aria-label={`Block ${i + 1} shortcut ${si + 1} label`} placeholder="Label" maxLength={60} value={s.label} aria-invalid={Boolean(e[`items[${si}].label`])}
                         onChange={(ev) => update(i, { items: block.items.map((x, j) => (j === si ? { ...x, label: ev.target.value } : x)) })} />
-                      <select aria-label={`Block ${i + 1} shortcut ${si + 1} kind`} value={s.kind}
+                      <Select aria-label={`Block ${i + 1} shortcut ${si + 1} kind`} value={s.kind}
                         onChange={(ev) => update(i, { items: block.items.map((x, j) => (j === si ? { ...x, kind: ev.target.value as typeof s.kind, target: '' } : x)) })}>
                         <option value="DocType">Documents of a DocType</option><option value="Dashboard">A dashboard</option><option value="Page">A Desk page</option>
-                      </select>
-                      <select aria-label={`Block ${i + 1} shortcut ${si + 1} target`} value={s.target} aria-invalid={Boolean(e[`items[${si}].target`])}
-                        onChange={(ev) => update(i, { items: block.items.map((x, j) => (j === si ? { ...x, target: ev.target.value, label: x.label || ev.target.selectedOptions[0]?.textContent || '' } : x)) })}>
+                      </Select>
+                      <Select aria-label={`Block ${i + 1} shortcut ${si + 1} target`} value={s.target} aria-invalid={Boolean(e[`items[${si}].target`])}
+                        onChange={(ev) => update(i, { items: block.items.map((x, j) => (j === si ? { ...x, target: ev.target.value, label: x.label || ev.target.label } : x)) })}>
                         <option value="">— choose —</option>
                         {s.kind === 'DocType' && metas.data?.map((m) => <option key={m.name} value={m.name}>{m.name}</option>)}
                         {s.kind === 'Dashboard' && dashboards.data?.map((d) => <option key={d.id} value={d.id}>{d.title}</option>)}
                         {s.kind === 'Page' && PAGES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
-                      </select>
+                      </Select>
                       <IconButton icon="x" label="Remove shortcut" onClick={() => update(i, { items: block.items.filter((_, j) => j !== si) })} />
                       {(e[`items[${si}].label`] ?? e[`items[${si}].target`]) && <small className="error-text" role="alert">{e[`items[${si}].label`] ?? e[`items[${si}].target`]}</small>}
                     </div>

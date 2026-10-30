@@ -8,6 +8,7 @@ import { ConnectedAppsSection } from './ConnectedAppsSection.tsx'
 import { EmailDigestSection } from './EmailDigestSection.tsx'
 import { SessionsSection } from './SessionsSection.tsx'
 import { TwoFactorSection } from './TwoFactorSection.tsx'
+import { Select } from '../controls/Select.tsx'
 
 export function AccountPage() {
   const { user } = useAuth()
@@ -52,12 +53,12 @@ export function AccountPage() {
       <section className="card narrow">
         <h2>Appearance</h2>
         <label className="field"><span>Theme</span>
-          <select value={pref ?? 'default'} onChange={(e) => setPref(isThemePref(e.target.value) ? e.target.value : null)}>
+          <Select value={pref ?? 'default'} onChange={(e) => setPref(isThemePref(e.target.value) ? e.target.value : null)}>
             <option value="default">Organisation default ({brand.theme})</option>
             <option value="auto">Automatic (follows my device)</option>
             <option value="light">Light</option>
             <option value="dark">Dark</option>
-          </select></label>
+          </Select></label>
       </section>
 
       <form className="card narrow" onSubmit={submit}>

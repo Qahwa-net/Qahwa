@@ -128,7 +128,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **List sidebar, status colours and comment counts**: a Group by panel with counts per value (click to filter), coloured status labels per DocType, and a comment count on each row ([ADR-017](docs/adr/017-list-sidebar-status-comment-counts.md))
 - Desk (React + TypeScript): login, DocType sidebar, generic list view (search, dynamic filters kept in the URL, sorting, paging) and form view (field controls per type, server-side validation errors inline, concurrent-edit detection, delete), account page with change password. Layout is right-to-left ready and works on phones.
 
-Not yet (see the [plan](docs/PLAN.md)): email notifications, saved filters and per-user list settings, attachments, workflow, reports and dashboards, import, scripting.
+Not yet (see the [plan](docs/PLAN.md)): parallel approvals and escalation, email approval links, a page builder, virtual DocTypes, a site manager UI, payment and chat integrations, a typed-document source generator and a flagship app.
 
 ## Try it
 

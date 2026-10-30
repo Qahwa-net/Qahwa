@@ -28,6 +28,15 @@ public static class WorkflowEndpoints
             string name, WorkflowSaveRequest body, HttpContext http, IUserContextResolver users, WorkflowManager manager, CancellationToken ct) =>
             Results.Ok(new { data = await manager.SaveAsync(name, body.Workflow, body.Modified, await users.ResolveAsync(http, ct), ct) }));
 
+        // Creates the field that holds the state (or reuses it) and says which field it is.
+        builder.MapPost("/doctypes/{name}/state-field", async (
+            string name, HttpContext http, IUserContextResolver users, WorkflowStateFieldService fields, WorkflowManager manager, CancellationToken ct) =>
+        {
+            var user = await users.ResolveAsync(http, ct);
+            var field = await fields.EnsureAsync(name, user, ct);
+            return Results.Ok(new { field, data = await manager.GetAsync(name, user, ct) });
+        });
+
         builder.MapDelete("/doctypes/{name}", async (string name, HttpContext http, IUserContextResolver users, WorkflowManager manager, CancellationToken ct) =>
         {
             await manager.DeleteAsync(name, await users.ResolveAsync(http, ct), ct);

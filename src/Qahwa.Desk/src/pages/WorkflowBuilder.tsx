@@ -6,6 +6,7 @@ import type { IndicatorColor, WorkflowDefinition, WorkflowView } from '../api/ty
 import {
   DOCSTATUS_LABELS, STATE_COLORS, draftFrom, newState, newTransition, parseRoles, removeState, renameState, rowErrors, toDefinition, unreachableStates,
 } from '../lib/workflow.ts'
+import { Select } from '../controls/Select.tsx'
 
 /** Workflow Builder: who moves a document from which state to which, and under what condition. */
 export function WorkflowBuilderPage() {
@@ -28,7 +29,7 @@ export function WorkflowBuilderPage() {
       <div className="page-head">
         <div>
           <h1>Workflow Builder</h1>
-          <p className="muted">Define the states a document goes through, who may move it on, and when. The first state is where new documents start. A DocType needs a text or Select field to hold the state; see <Link to="/designer">the DocType Designer</Link>.</p>
+          <p className="muted">Define the states a document goes through, who may move it on, and when. The first state is where new documents start. The state lives in a text or Select field: choose one, or let the builder create a "Workflow State" field for you (more in <Link to="/designer">the DocType Designer</Link>).</p>
         </div>
       </div>
       <div className="perm-layout">
@@ -92,6 +93,22 @@ function EditorBody({ view, notice, setNotice }: { view: WorkflowView; notice: s
     },
   })
 
+  // Adds (or reuses) the field that holds the state, so a DocType does not have to be changed elsewhere first.
+  const createField = useMutation({
+    mutationFn: () => api.workflows.createStateField(view.docType),
+    onSuccess: ({ field, data }) => {
+      queryClient.setQueryData(['workflows', 'view', view.docType], { ...data, workflow: view.workflow, modified: view.modified })
+      setDraft((d) => ({ ...d, stateField: field }))
+      setErrors((e) => { const { stateField: _, ...rest } = e; return rest })
+      setBanner(null)
+      setNotice(`The field "${field}" is ready and chosen as the state field. Save the workflow to keep it.`)
+    },
+    onError: (error) => {
+      setNotice(null)
+      setBanner({ text: error instanceof ApiError ? (error.details[0]?.message ?? error.message) : 'Could not create the field.', conflict: false })
+    },
+  })
+
   const remove = useMutation({
     mutationFn: () => api.workflows.remove(view.docType),
     onSuccess: async () => {
@@ -123,12 +140,17 @@ function EditorBody({ view, notice, setNotice }: { view: WorkflowView; notice: s
       <div className="card form-grid">
         <label className="field">
           <span>State field</span>
-          <select value={draft.stateField} disabled={readOnly} aria-invalid={Boolean(errors.stateField)}
+          <Select value={draft.stateField} disabled={readOnly} aria-invalid={Boolean(errors.stateField)}
             onChange={(e) => set({ ...draft, stateField: e.target.value })}>
             <option value="">— choose —</option>
             {view.stateFields.map((f) => <option key={f} value={f}>{f}</option>)}
-          </select>
+          </Select>
           <small className="muted">The field that holds the state. Only the workflow can change it.</small>
+          {!readOnly && (
+            <button type="button" className="link-button" disabled={createField.isPending} onClick={() => createField.mutate()}>
+              {createField.isPending ? 'Creating…' : '+ Create a new "Workflow State" field'}
+            </button>
+          )}
           {errors.stateField && <small className="error-text" role="alert">{errors.stateField}</small>}
         </label>
         <label className="field check">
@@ -153,17 +175,17 @@ function EditorBody({ view, notice, setNotice }: { view: WorkflowView; notice: s
                     {(e.name ?? e._) && <small className="error-text" role="alert">{e.name ?? e._}</small>}
                   </td>
                   <td>
-                    <select aria-label={`State ${i + 1} colour`} value={s.color} disabled={readOnly}
+                    <Select aria-label={`State ${i + 1} colour`} value={s.color} disabled={readOnly}
                       onChange={(ev) => updateState(i, { color: ev.target.value as IndicatorColor })}>
                       {STATE_COLORS.map((c) => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                    </Select>
                     <span className={`pill pill-${s.color}`}>{s.name || '…'}</span>
                   </td>
                   <td>
-                    <select aria-label={`State ${i + 1} document status`} value={s.docStatus} disabled={readOnly}
+                    <Select aria-label={`State ${i + 1} document status`} value={s.docStatus} disabled={readOnly}
                       onChange={(ev) => updateState(i, { docStatus: Number(ev.target.value) })}>
                       {DOCSTATUS_LABELS.map((l, n) => <option key={n} value={n}>{l}</option>)}
-                    </select>
+                    </Select>
                     {e.docStatus && <small className="error-text" role="alert">{e.docStatus}</small>}
                   </td>
                   <td>

@@ -5,6 +5,7 @@ import { ApiError, api } from '../api/client.ts'
 import { Icon } from '../controls/Icon.tsx'
 import { NO_VALUE, boardFields, columnLabel, columnsOf, groupCards, valueOf, withMoved, type CardDoc } from '../lib/board.ts'
 import { STANDARD_FIELDS, formatCell, labelOf } from '../lib/fields.ts'
+import { Select } from '../controls/Select.tsx'
 
 const LIMIT = 500
 
@@ -78,9 +79,9 @@ export function BoardView() {
         <span className="spacer" />
         {fields.length > 1 && (
           <label className="inline-field">Columns from
-            <select value={by.name} onChange={(e) => setParams({ by: e.target.value })}>
+            <Select value={by.name} onChange={(e) => setParams({ by: e.target.value })}>
               {fields.map((f) => <option key={f.name} value={f.name}>{labelOf(f)}</option>)}
-            </select>
+            </Select>
           </label>
         )}
         {perms?.create && <Link className="btn primary" to={`${base}/new`}><Icon name="plus" /> New {doctype}</Link>}
@@ -107,9 +108,9 @@ export function BoardView() {
                       return text ? <small key={f.name} className="muted">{labelOf(f)}: {text}</small> : null
                     })}
                     {canMove && (
-                      <select aria-label={`Move ${card.name} to`} value={column} onChange={(e) => move.mutate({ name: card.name, to: e.target.value })}>
+                      <Select aria-label={`Move ${card.name} to`} value={column} onChange={(e) => move.mutate({ name: card.name, to: e.target.value })}>
                         {columns.map((c) => <option key={c || 'none'} value={c}>{columnLabel(c)}</option>)}
-                      </select>
+                      </Select>
                     )}
                   </li>
                 ))}

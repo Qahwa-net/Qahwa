@@ -8,6 +8,7 @@ import {
   addableTypes, customName, errorsFor, moveRow, newCustomField, stateFromView, toCustomization,
   type CustomizeState, type Row,
 } from '../lib/customize.ts'
+import { Select } from '../controls/Select.tsx'
 
 const SOURCE_LABEL = { Core: 'Framework', App: 'App', Custom: 'Custom' } as const
 const LAYOUT = new Set(['SectionBreak', 'ColumnBreak', 'TabBreak', 'Heading', 'Html'])
@@ -177,10 +178,10 @@ function Editor({ view, types, linkTargets, notice, onNotice, onSaved }: {
 
         {view.canEdit && (
           <form className="share-add" onSubmit={(e) => { e.preventDefault(); add() }}>
-            <select aria-label="Type of the new field" value={addType} disabled={disabled} onChange={(e) => setAddType(e.target.value)}>
+            <Select aria-label="Type of the new field" value={addType} disabled={disabled} onChange={(e) => setAddType(e.target.value)}>
               <option value="">Add a custom field…</option>
               {types.map((t) => <option key={t.type} value={t.type}>{t.label}</option>)}
-            </select>
+            </Select>
             <input aria-label="Label of the new field" placeholder="Label" value={addLabel} disabled={disabled || !addType}
               onChange={(e) => setAddLabel(e.target.value)} />
             <button className="btn" disabled={disabled || !addType}>Add</button>
@@ -193,12 +194,12 @@ function Editor({ view, types, linkTargets, notice, onNotice, onSaved }: {
         <h3>Title field</h3>
         <label className="field">
           <span>The field that names a document in lists and links</span>
-          <select value={state.titleField} disabled={disabled} onChange={(e) => setState((s) => ({ ...s, titleField: e.target.value }))}>
+          <Select value={state.titleField} disabled={disabled} onChange={(e) => setState((s) => ({ ...s, titleField: e.target.value }))}>
             <option value="">None (use the ID)</option>
             {state.rows.filter((r) => r.field.type === 'Data' || r.field.type === 'Email').map((r) => (
               <option key={r.key} value={r.field.name}>{r.field.label || r.field.name}</option>
             ))}
-          </select>
+          </Select>
           {errors.titleField && <small className="error-text" role="alert">{errors.titleField}</small>}
         </label>
       </section>
@@ -260,10 +261,10 @@ function RowEditor({ row, index, total, open, disabled, names, linkTargets, erro
             {errors.name && <small className="error-text" role="alert">{errors.name}</small>}</label>}
           {row.custom && field.type === 'Link' && (
             <label className="field"><span>Links to</span>
-              <select value={field.options ?? ''} disabled={disabled || !row.isNew} onChange={(e) => onChange({ options: e.target.value })}>
+              <Select value={field.options ?? ''} disabled={disabled || !row.isNew} onChange={(e) => onChange({ options: e.target.value })}>
                 <option value="">Choose a DocType…</option>
                 {linkTargets.map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
+              </Select>
               {errors.options && <small className="error-text" role="alert">{errors.options}</small>}
             </label>
           )}
@@ -287,9 +288,9 @@ function RowEditor({ row, index, total, open, disabled, names, linkTargets, erro
                 {flag('hidden', 'Hidden')}
               </div>
               <label className="field"><span>Permission level</span>
-                <select value={field.permLevel ?? 0} disabled={disabled} onChange={(e) => onChange({ permLevel: Number(e.target.value) })}>
+                <Select value={field.permLevel ?? 0} disabled={disabled} onChange={(e) => onChange({ permLevel: Number(e.target.value) })}>
                   {Array.from({ length: 10 }, (_, n) => <option key={n} value={n}>{n === 0 ? '0 (same as the document)' : `Level ${n}`}</option>)}
-                </select>
+                </Select>
                 {errors.permLevel && <small className="error-text" role="alert">{errors.permLevel}</small>}
               </label>
             </>

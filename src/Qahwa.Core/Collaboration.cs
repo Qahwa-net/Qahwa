@@ -334,6 +334,51 @@ public sealed class CollaborationHooks(
             await notifications.NotifyAsync(follower, "Update", meta.Name, docName, actor.User, $"{who} changed {Describe(meta.Name, docName)}", ct);
     }
 
+    /// <summary>
+    /// People who could be @mentioned on a document: enabled users matching what was typed (name or email) who may read the
+    /// document themselves, because anyone else would never be told. The author is left out.
+    /// </summary>
+    public async Task<IReadOnlyList<LinkOption>> MentionCandidatesAsync(string doctype, string name, string? search, IUserContext author, CancellationToken ct = default)
+    {
+        if (!registry.TryGet("User", out var userMeta))
+            return [];
+
+        search = (search ?? string.Empty).Trim();
+        if (search.Length > 100)
+            search = search[..100];
+
+        async Task<IReadOnlyList<Dictionary<string, object?>>> Find(string field) =>
+            await repository.ListAsync(userMeta, new ListQuery
+            {
+                Filters = [new QueryFilter("enabled", FilterOp.Eq, true), .. (search.Length == 0 ? [] : new[] { new QueryFilter(field, FilterOp.Like, "%" + search + "%") })],
+                Fields = ["name", "full_name"],
+                OrderBy = field == "email" ? "email" : "full_name",
+                Descending = false,
+                Limit = 30,
+            }, ct);
+
+        var rows = new List<Dictionary<string, object?>>(await Find("full_name"));
+        if (search.Length > 0)
+            foreach (var row in await Find("email"))
+                if (rows.All(r => !Equals(r["name"], row["name"])))
+                    rows.Add(row);
+
+        var result = new List<LinkOption>();
+        foreach (var row in rows)
+        {
+            var email = (string)row["name"]!;
+            if (string.Equals(email, author.User, StringComparison.Ordinal))
+                continue;
+            var person = await notifications.ContextOfAsync(email, ct);
+            if (person is null || !await notifications.CanReadAsync(person, doctype, name, ct))
+                continue;
+            result.Add(new LinkOption(email, row.GetValueOrDefault("full_name") as string is { Length: > 0 } full ? full : email, email));
+            if (result.Count == 8)
+                break;
+        }
+        return result;
+    }
+
     /// <summary>A comment was written: the author follows, people mentioned and followers are told (only if they can read the document).</summary>
     public async Task AfterCommentAsync(string doctype, string docName, string content, IUserContext author, CancellationToken ct = default)
     {

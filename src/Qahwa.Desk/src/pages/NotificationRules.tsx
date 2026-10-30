@@ -10,6 +10,7 @@ import { useToast } from '../controls/Toast.tsx'
 import { EVENTS, SPECIAL_NAMES, isTimeBased, newRule, toSet, unknownPlaceholders, withPlaceholder } from '../lib/notificationRules.ts'
 import { moveRule } from '../lib/assignmentRules.ts'
 import { rowErrors } from '../lib/workflow.ts'
+import { Select } from '../controls/Select.tsx'
 
 /** Notification Rules: who is told what when something happens to a document. */
 export function NotificationRulesPage() {
@@ -176,9 +177,9 @@ function RuleCard({ index, rule, count, errors, view, readOnly, onChange, onMove
       <div className="form-grid">
         <div className="field">
           <label>When</label>
-          <select aria-label={`${label} event`} value={rule.event} disabled={readOnly} onChange={(e) => onChange({ event: e.target.value as NotificationEvent })}>
+          <Select aria-label={`${label} event`} value={rule.event} disabled={readOnly} onChange={(e) => onChange({ event: e.target.value as NotificationEvent })}>
             {EVENTS.map((e) => <option key={e.value} value={e.value}>{e.label}</option>)}
-          </select>
+          </Select>
           <small className="muted">{event?.help}</small>
           <Err k="event" />
         </div>
@@ -186,10 +187,10 @@ function RuleCard({ index, rule, count, errors, view, readOnly, onChange, onMove
         {rule.event === 'ValueChange' && (
           <div className="field">
             <label>Field</label>
-            <select aria-label={`${label} field`} value={rule.field ?? ''} disabled={readOnly} aria-invalid={Boolean(errors.field)} onChange={(e) => onChange({ field: e.target.value })}>
+            <Select aria-label={`${label} field`} value={rule.field ?? ''} disabled={readOnly} aria-invalid={Boolean(errors.field)} onChange={(e) => onChange({ field: e.target.value })}>
               <option value="">— choose —</option>
               {view.fields.map((f) => <option key={f} value={f}>{f}</option>)}
-            </select>
+            </Select>
             <Err k="field" />
           </div>
         )}
@@ -197,10 +198,10 @@ function RuleCard({ index, rule, count, errors, view, readOnly, onChange, onMove
           <>
             <div className="field">
               <label>Date field</label>
-              <select aria-label={`${label} date field`} value={rule.dateField ?? ''} disabled={readOnly} aria-invalid={Boolean(errors.dateField)} onChange={(e) => onChange({ dateField: e.target.value })}>
+              <Select aria-label={`${label} date field`} value={rule.dateField ?? ''} disabled={readOnly} aria-invalid={Boolean(errors.dateField)} onChange={(e) => onChange({ dateField: e.target.value })}>
                 <option value="">— choose —</option>
                 {view.dateFields.map((f) => <option key={f} value={f}>{f}</option>)}
-              </select>
+              </Select>
               <Err k="dateField" />
             </div>
             <div className="field">
@@ -256,10 +257,10 @@ function RuleCard({ index, rule, count, errors, view, readOnly, onChange, onMove
           <input id={`nr-${index}-msg`} maxLength={300} value={rule.message} disabled={readOnly} aria-invalid={Boolean(errors.message)} placeholder="e.g. {{user}} changed {{name}}"
             onChange={(e) => onChange({ message: e.target.value })} />
           {!readOnly && (
-            <select aria-label={`${label} insert field`} className="compact" value="" onChange={(e) => { if (e.target.value) onChange({ message: withPlaceholder(rule.message, e.target.value) }) }}>
+            <Select aria-label={`${label} insert field`} className="compact" value="" onChange={(e) => { if (e.target.value) onChange({ message: withPlaceholder(rule.message, e.target.value) }) }}>
               <option value="">Insert a field…</option>
               {[...SPECIAL_NAMES, ...view.fields].map((f) => <option key={f} value={f}>{f}</option>)}
-            </select>
+            </Select>
           )}
           {unknown.length > 0 && !errors.message && <small className="error-text" role="status">Not a field: {unknown.join(', ')}</small>}
           <Err k="message" />

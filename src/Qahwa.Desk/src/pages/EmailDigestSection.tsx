@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError, api } from '../api/client.ts'
 import { useToast } from '../controls/Toast.tsx'
+import { Select } from '../controls/Select.tsx'
 
 /** A daily or weekly email to yourself with your unread notifications and open assignments (nothing is sent when there is nothing to say). */
 export function EmailDigestSection() {
@@ -25,9 +26,9 @@ export function EmailDigestSection() {
       {d.enabled && (
         <div className="row">
           <label className="field"><span>How often</span>
-            <select value={d.frequency} disabled={save.isPending} onChange={(e) => save.mutate({ frequency: e.target.value })}>
+            <Select value={d.frequency} disabled={save.isPending} onChange={(e) => save.mutate({ frequency: e.target.value })}>
               <option>Daily</option><option>Weekly</option>
-            </select>
+            </Select>
           </label>
           <label className="field"><span>Hour (UTC)</span>
             <input type="number" min={0} max={23} defaultValue={d.sendHour} disabled={save.isPending}

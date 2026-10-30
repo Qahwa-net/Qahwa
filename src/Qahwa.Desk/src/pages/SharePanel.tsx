@@ -5,6 +5,7 @@ import type { LinkOption, ShareInfo } from '../api/types.ts'
 import { LinkSelect } from '../controls/LinkSelect.tsx'
 import { Avatar, Icon, IconButton } from '../controls/Icon.tsx'
 import { Modal } from '../controls/Modal.tsx'
+import { Select } from '../controls/Select.tsx'
 
 export const sharesKey = (doctype: string, name: string) => ['share', doctype, name]
 
@@ -53,11 +54,11 @@ export function ShareDialog({ doctype, name, onClose }: { doctype: string; name:
                   {s.fullName && <small className="muted">{s.user}</small>}
                 </span>
                 <span className="row-actions">
-                  <select aria-label={`Access for ${s.fullName || s.user}`} className="compact" value={s.write ? 'write' : 'read'} disabled={set.isPending}
+                  <Select aria-label={`Access for ${s.fullName || s.user}`} className="compact" value={s.write ? 'write' : 'read'} disabled={set.isPending}
                     onChange={(e) => set.mutate({ user: s.user, read: true, write: e.target.value === 'write' })}>
                     <option value="read">Can view</option>
                     <option value="write">Can edit</option>
-                  </select>
+                  </Select>
                   <IconButton icon="trash" label={`Stop sharing with ${s.fullName || s.user}`} tone="danger" disabled={set.isPending}
                     onClick={() => set.mutate({ user: s.user, read: false, write: false })} />
                 </span>

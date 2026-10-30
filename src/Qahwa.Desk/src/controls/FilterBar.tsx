@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { DocField } from '../api/types.ts'
 import { kindOf, labelOf, operatorsFor, selectOptions } from '../lib/fields.ts'
 import { describeFilter, TIMESPANS, type Filter, type FilterOp } from '../lib/filters.ts'
+import { Select } from './Select.tsx'
 
 interface Props {
   fields: DocField[]
@@ -42,9 +43,9 @@ function ValueInput({ field, op, value, onChange }: {
   const label = 'Filter value'
   if (op === 'timespan') {
     return (
-      <select aria-label={label} value={value || 'today'} onChange={(e) => onChange(e.target.value)}>
+      <Select aria-label={label} value={value || 'today'} onChange={(e) => onChange(e.target.value)}>
         {TIMESPANS.map((t) => <option key={t} value={t}>{t}</option>)}
-      </select>
+      </Select>
     )
   }
 
@@ -61,27 +62,27 @@ function ValueInput({ field, op, value, onChange }: {
 
   if (op === 'is') {
     return (
-      <select aria-label={label} value={value || 'set'} onChange={(e) => onChange(e.target.value)}>
+      <Select aria-label={label} value={value || 'set'} onChange={(e) => onChange(e.target.value)}>
         <option value="set">set</option>
         <option value="not set">not set</option>
-      </select>
+      </Select>
     )
   }
 
   switch (kindOf(field.type)) {
     case 'check':
       return (
-        <select aria-label={label} value={value || 'true'} onChange={(e) => onChange(e.target.value)}>
+        <Select aria-label={label} value={value || 'true'} onChange={(e) => onChange(e.target.value)}>
           <option value="true">Yes</option>
           <option value="false">No</option>
-        </select>
+        </Select>
       )
     case 'select':
       return (
-        <select aria-label={label} value={value} onChange={(e) => onChange(e.target.value)}>
+        <Select aria-label={label} value={value} onChange={(e) => onChange(e.target.value)}>
           <option value="" />
           {selectOptions(field).map((o) => <option key={o} value={o}>{o}</option>)}
-        </select>
+        </Select>
       )
     case 'number':
       return <input aria-label={label} type="number" step="any" value={value} onChange={(e) => onChange(e.target.value)} />
@@ -140,12 +141,12 @@ export function FilterBar({ fields, filters, onChange }: Props) {
 
       {adding && field && (
         <form className="filter-form" onSubmit={(e) => { e.preventDefault(); add() }}>
-          <select aria-label="Filter field" value={field.name} onChange={(e) => chooseField(e.target.value)}>
+          <Select aria-label="Filter field" value={field.name} onChange={(e) => chooseField(e.target.value)}>
             {fields.map((f) => <option key={f.name} value={f.name}>{labelOf(f)}</option>)}
-          </select>
-          <select aria-label="Filter operator" value={op} onChange={(e) => setOp(e.target.value as FilterOp)}>
+          </Select>
+          <Select aria-label="Filter operator" value={op} onChange={(e) => setOp(e.target.value as FilterOp)}>
             {operatorsFor(field.type).map((o) => <option key={o.op} value={o.op}>{o.label}</option>)}
-          </select>
+          </Select>
           <ValueInput field={field} op={op} value={raw} onChange={setRaw} />
           <button className="btn primary small" type="submit">Apply</button>
         </form>
