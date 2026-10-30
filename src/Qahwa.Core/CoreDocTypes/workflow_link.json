@@ -1,0 +1,17 @@
+{
+  "name": "Workflow Link",
+  "module": "Core",
+  "trackChanges": false,
+  "fields": [
+    { "name": "reference_doctype", "type": "Data", "label": "DocType", "required": true, "indexed": true },
+    { "name": "reference_name", "type": "Data", "label": "Document", "required": true, "indexed": true },
+    { "name": "state", "type": "Data", "label": "State", "required": true },
+    { "name": "action", "type": "Data", "label": "Action", "required": true },
+    { "name": "user", "type": "Data", "label": "For", "required": true, "inListView": true },
+    { "name": "token_hash", "type": "Data", "label": "Token (hashed)", "required": true, "unique": true },
+    { "name": "expires", "type": "Datetime", "label": "Expires", "required": true, "inListView": true }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true }
+  ]
+}

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
 import { ApiError, api } from '../api/client.ts'
 import { csvCell } from '../lib/tableCsv.ts'
+import { Select } from '../controls/Select.tsx'
 
 const messageOf = (e: unknown): string =>
   e instanceof ApiError ? (e.details.length > 0 ? e.details.map((d) => d.message).join(' ') : e.message) : 'Something went wrong.'
@@ -43,10 +44,10 @@ export function ScriptReportsPage() {
       {list.data && list.data.length > 0 && (
         <form className="card form-stack" onSubmit={(e) => { e.preventDefault(); if (id) run.mutate() }} aria-label="Run a report">
           <label className="field"><span>Report</span>
-            <select value={id} onChange={(e) => { setId(e.target.value); setFilters({}); run.reset() }}>
+            <Select value={id} onChange={(e) => { setId(e.target.value); setFilters({}); run.reset() }}>
               <option value="">Choose…</option>
               {list.data.map((r) => <option key={r.id} value={r.id}>{r.title}</option>)}
-            </select>
+            </Select>
           </label>
           {chosen?.filters.map((name) => (
             <label className="field" key={name}><span>{name.replace(/_/g, ' ')}</span>

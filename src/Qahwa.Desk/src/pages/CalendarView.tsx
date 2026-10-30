@@ -6,6 +6,7 @@ import { Icon, IconButton } from '../controls/Icon.tsx'
 import { MONTH_NAMES, WEEKDAYS, addMonths, eventsByDay, formatMonth, monthGrid, monthRange, parseMonth } from '../lib/calendar.ts'
 import { weekStartIndex } from '../lib/display.ts'
 import { labelOf } from '../lib/fields.ts'
+import { Select } from '../controls/Select.tsx'
 
 const MAX_PER_DAY = 3
 const LIMIT = 500
@@ -54,9 +55,9 @@ export function CalendarView() {
         <span className="spacer" />
         {dateFields.length > 1 && (
           <label className="inline-field">By
-            <select value={by.name} onChange={(e) => { const p = new URLSearchParams(params); p.set('by', e.target.value); setParams(p) }}>
+            <Select value={by.name} onChange={(e) => { const p = new URLSearchParams(params); p.set('by', e.target.value); setParams(p) }}>
               {dateFields.map((f) => <option key={f.name} value={f.name}>{labelOf(f)}</option>)}
-            </select>
+            </Select>
           </label>
         )}
         {metaQuery.data?.permissions.create && <Link className="btn primary" to={`${base}/new`}><Icon name="plus" /> New {doctype}</Link>}

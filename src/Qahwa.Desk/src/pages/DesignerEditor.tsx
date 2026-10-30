@@ -17,6 +17,7 @@ import {
   type FieldState, type Session,
 } from '../lib/logic.ts'
 import { emptyRow, type TableRow } from '../lib/tables.ts'
+import { Select } from '../controls/Select.tsx'
 
 function useDebounced<T>(value: T, ms: number): T {
   const [debounced, setDebounced] = useState(value)
@@ -288,12 +289,12 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
                 {!draft.isSingle && <StatusSettings draft={draft} disabled={disabled} patch={patch} />}
                 {!draft.isSingle && <label className="field">
                   <span>Sort the list by (until a person chooses otherwise)</span>
-                  <select value={draft.sortField} disabled={disabled} onChange={(e) => patch({ sortField: e.target.value })}>
+                  <Select value={draft.sortField} disabled={disabled} onChange={(e) => patch({ sortField: e.target.value })}>
                     <option value="">Last modified</option>
                     <option value="creation">Created</option>
                     <option value="name">Name</option>
                     {draft.fields.filter((f) => f.name && !isLayoutType(f.type) && f.type !== 'Table').map((f) => <option key={f.key} value={f.name}>{f.label || f.name}</option>)}
-                  </select>
+                  </Select>
                   <label className="check-line"><input type="checkbox" checked={draft.sortDescending} disabled={disabled} onChange={(e) => patch({ sortDescending: e.target.checked })} /> Highest or newest first</label>
                   {errors.sortField && <small className="error-text" role="alert">{errors.sortField}</small>}
                 </label>}
@@ -314,7 +315,7 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
                 </fieldset>}
                 {!draft.isSingle && !draft.isChildTable && <label className="field">
                   <span>Open on this view the first time (in a session)</span>
-                  <select value={draft.defaultView} disabled={disabled} onChange={(e) => patch({ defaultView: e.target.value })}>
+                  <Select value={draft.defaultView} disabled={disabled} onChange={(e) => patch({ defaultView: e.target.value })}>
                     <option value="">List</option>
                     {draft.isTree && <option value="tree">Tree</option>}
                     <option value="board">Board</option>
@@ -322,15 +323,15 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
                     {draft.fields.some((f) => f.type === 'AttachImage') && <option value="gallery">Gallery</option>}
                     <option value="map">Map</option>
                     <option value="timeline">Timeline</option>
-                  </select>
+                  </Select>
                   {errors.defaultView && <small className="error-text" role="alert">{errors.defaultView}</small>}
                 </label>}
                 {!draft.isChildTable && draft.fields.some((f) => f.name && f.type === 'AttachImage') && <label className="field">
                   <span>Picture shown in the gallery</span>
-                  <select value={draft.imageField} disabled={disabled} onChange={(e) => patch({ imageField: e.target.value })}>
+                  <Select value={draft.imageField} disabled={disabled} onChange={(e) => patch({ imageField: e.target.value })}>
                     <option value="">The first image field</option>
                     {draft.fields.filter((f) => f.name && f.type === 'AttachImage').map((f) => <option key={f.key} value={f.name}>{f.label || f.name}</option>)}
-                  </select>
+                  </Select>
                   {errors.imageField && <small className="error-text" role="alert">{errors.imageField}</small>}
                 </label>}
                 <label className="field">
@@ -353,22 +354,22 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
               </div>}
               {!draft.isChildTable && <label className="field">
                 <span>Title field</span>
-                <select value={draft.titleField} disabled={disabled} onChange={(e) => patch({ titleField: e.target.value })}>
+                <Select value={draft.titleField} disabled={disabled} onChange={(e) => patch({ titleField: e.target.value })}>
                   <option value="">None (use the ID)</option>
                   {dataFields.map((f) => <option key={f.key} value={f.name}>{f.label || f.name}</option>)}
-                </select>
+                </Select>
                 {errors.titleField && <small className="error-text" role="alert">{errors.titleField}</small>}
               </label>}
               {!draft.isChildTable && <div className="field">
                 <label htmlFor="autoname-kind">Document names</label>
-                <select id="autoname-kind" value={draft.autonameKind} disabled={disabled}
+                <Select id="autoname-kind" value={draft.autonameKind} disabled={disabled}
                   onChange={(e) => patch({ autonameKind: e.target.value as AutonameKind })}>
                   <option value="hash">Random ID</option>
                   <option value="series">Numbered series (e.g. SUP-00001)</option>
                   <option value="field">From a field</option>
                   <option value="expression">From an expression</option>
                   <option value="prompt">Typed by the user</option>
-                </select>
+                </Select>
                 {draft.autonameKind === 'series' && (
                   <span className="inline">
                     <input aria-label="Series prefix" placeholder="SUP-" value={draft.seriesPrefix} disabled={disabled}
@@ -379,11 +380,11 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
                 )}
                 {draft.autonameKind === 'series' && <small className="muted">The prefix may hold {'{YYYY}'}, {'{YY}'}, {'{MM}'}, {'{DD}'} (today) and {'{field_name}'}, for example INV-{'{YYYY}'}-: each different result has its own counter.</small>}
                 {draft.autonameKind === 'field' && (
-                  <select aria-label="Naming field" value={draft.autonameField} disabled={disabled}
+                  <Select aria-label="Naming field" value={draft.autonameField} disabled={disabled}
                     onChange={(e) => patch({ autonameField: e.target.value })}>
                     <option value="">Choose a field…</option>
                     {dataFields.map((f) => <option key={f.key} value={f.name}>{f.label || f.name}</option>)}
-                  </select>
+                  </Select>
                 )}
                 {draft.autonameKind === 'expression' && (
                   <input aria-label="Naming expression" placeholder={'upper(region) + "-" + customer'} value={draft.autonameField} disabled={disabled}
@@ -595,20 +596,20 @@ function StatusSettings({ draft, disabled, patch }: { draft: Draft; disabled: bo
   return (
     <div className="status-settings">
       <label className="field"><span>Status field (shown as a coloured label in lists)</span>
-        <select value={draft.statusField} disabled={disabled} onChange={(e) => patch({ statusField: e.target.value, indicators: [] })}>
+        <Select value={draft.statusField} disabled={disabled} onChange={(e) => patch({ statusField: e.target.value, indicators: [] })}>
           <option value="">None</option>
           {candidates.map((f) => <option key={f.key} value={f.name}>{f.label || f.name}</option>)}
-        </select>
+        </Select>
       </label>
       {values.length > 0 && (
         <ul className="status-colors">
           {values.map((value) => (
             <li key={value}>
               <span className={`pill pill-${colorOf(value) || 'gray'}`}>{value}</span>
-              <select aria-label={`Colour of ${value}`} value={colorOf(value)} disabled={disabled} onChange={(e) => setColor(value, e.target.value)}>
+              <Select aria-label={`Colour of ${value}`} value={colorOf(value)} disabled={disabled} onChange={(e) => setColor(value, e.target.value)}>
                 <option value="">Grey</option>
                 {COLORS.filter((c) => c !== 'gray').map((c) => <option key={c} value={c}>{c[0]!.toUpperCase() + c.slice(1)}</option>)}
-              </select>
+              </Select>
             </li>
           ))}
         </ul>

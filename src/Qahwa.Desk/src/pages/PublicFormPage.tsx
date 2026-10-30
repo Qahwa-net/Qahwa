@@ -3,6 +3,7 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import { ApiError, api } from '../api/client.ts'
 import { inputType, isMultiline, missing, toPayload, type Answers } from '../lib/webform.ts'
+import { Select } from '../controls/Select.tsx'
 
 /** A public form: opened by anyone without signing in. Everything shown comes from the form's definition and is rendered as text. */
 export function PublicFormPage() {
@@ -58,10 +59,10 @@ export function PublicFormPage() {
                 <>
                   <label htmlFor={id}>{field.label}{field.required && <span aria-hidden="true"> *</span>}</label>
                   {field.type === 'Select' ? (
-                    <select id={id} value={(value as string) ?? ''} onChange={(e) => set(e.target.value)} aria-invalid={Boolean(error)}>
+                    <Select id={id} value={(value as string) ?? ''} onChange={(e) => set(e.target.value)} aria-invalid={Boolean(error)}>
                       <option value="" />
                       {field.options.map((o) => <option key={o} value={o}>{o}</option>)}
-                    </select>
+                    </Select>
                   ) : isMultiline(field.type) ? (
                     <textarea id={id} rows={4} maxLength={5000} value={(value as string) ?? ''} onChange={(e) => set(e.target.value)} aria-invalid={Boolean(error)} />
                   ) : (

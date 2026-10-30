@@ -8,6 +8,7 @@ import { dayNumber, layout } from '../lib/gantt.ts'
 import { labelOf } from '../lib/fields.ts'
 import { mapUrl } from '../lib/fieldtypes.ts'
 import { layoutMap } from '../lib/map.ts'
+import { Select } from '../controls/Select.tsx'
 
 const LIMIT = 500
 
@@ -68,7 +69,7 @@ export function GalleryView() {
   return (
     <>
       <Head doctype={doctype} base={base} what="gallery">
-        {fields.length > 1 && <label className="inline-field">Picture from <select value={by.name} onChange={(e) => setParams({ by: e.target.value })}>{fields.map((f) => <option key={f.name} value={f.name}>{labelOf(f)}</option>)}</select></label>}
+        {fields.length > 1 && <label className="inline-field">Picture from <Select value={by.name} onChange={(e) => setParams({ by: e.target.value })}>{fields.map((f) => <option key={f.name} value={f.name}>{labelOf(f)}</option>)}</Select></label>}
         {perms?.create && <Link className="btn primary" to={`${base}/new`}><Icon name="plus" /> New {doctype}</Link>}
       </Head>
       {list.isPending && <p className="muted" role="status">Loading…</p>}
@@ -109,7 +110,7 @@ export function MapView() {
   return (
     <>
       <Head doctype={doctype} base={base} what="map">
-        {fields.length > 1 && <label className="inline-field">Place from <select value={by.name} onChange={(e) => setParams({ by: e.target.value })}>{fields.map((f) => <option key={f.name} value={f.name}>{labelOf(f)}</option>)}</select></label>}
+        {fields.length > 1 && <label className="inline-field">Place from <Select value={by.name} onChange={(e) => setParams({ by: e.target.value })}>{fields.map((f) => <option key={f.name} value={f.name}>{labelOf(f)}</option>)}</Select></label>}
         {perms?.create && <Link className="btn primary" to={`${base}/new`}><Icon name="plus" /> New {doctype}</Link>}
       </Head>
       {list.isPending && <p className="muted" role="status">Loading…</p>}
@@ -165,8 +166,8 @@ export function GanttView() {
   return (
     <>
       <Head doctype={doctype} base={base} what="timeline">
-        <label className="inline-field">Start <select value={start.name} onChange={(e) => choose('start', e.target.value)}>{dates.map((f) => <option key={f.name} value={f.name}>{labelOf(f)}</option>)}</select></label>
-        <label className="inline-field">End <select value={end.name} onChange={(e) => choose('end', e.target.value)}>{dates.map((f) => <option key={f.name} value={f.name}>{labelOf(f)}</option>)}</select></label>
+        <label className="inline-field">Start <Select value={start.name} onChange={(e) => choose('start', e.target.value)}>{dates.map((f) => <option key={f.name} value={f.name}>{labelOf(f)}</option>)}</Select></label>
+        <label className="inline-field">End <Select value={end.name} onChange={(e) => choose('end', e.target.value)}>{dates.map((f) => <option key={f.name} value={f.name}>{labelOf(f)}</option>)}</Select></label>
         {perms?.create && <Link className="btn primary" to={`${base}/new`}><Icon name="plus" /> New {doctype}</Link>}
       </Head>
       {list.isPending && <p className="muted" role="status">Loading…</p>}

@@ -4,6 +4,7 @@ import { ApiError, api } from '../api/client.ts'
 import type { ActivityItem, DocTypeMeta } from '../api/types.ts'
 import { Avatar } from '../controls/Icon.tsx'
 import { ConfirmDialog } from '../controls/Modal.tsx'
+import { MentionTextarea } from '../controls/MentionTextarea.tsx'
 import { describeVersion, splitMentions, timeAgo, versionHeadline } from '../lib/activity.ts'
 
 const MAX = 5000
@@ -44,8 +45,8 @@ export function ActivityPanel({ meta, childMetas, name }: { meta: DocTypeMeta; c
       <h3>Activity</h3>
 
       <form className="comment-box" onSubmit={(e) => { e.preventDefault(); if (text.trim()) add.mutate() }}>
-        <textarea rows={3} maxLength={MAX} placeholder="Write a comment… use @name to mention someone" aria-label="Write a comment"
-          value={text} onChange={(e) => setText(e.target.value)}
+        <MentionTextarea doctype={meta.name} docName={name} rows={3} maxLength={MAX} placeholder="Write a comment… type @ to mention someone" aria-label="Write a comment"
+          value={text} onChange={setText}
           onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && text.trim()) { e.preventDefault(); add.mutate() } }} />
         <div className="comment-actions">
           <small className="muted">{text.length}/{MAX} · Ctrl+Enter to post</small>
@@ -127,7 +128,7 @@ function CommentEntry({ item, doctype, name, onChanged, onError }: {
       <div><Who item={item} /> commented · <When at={item.at} />{item.edited && <span className="muted"> (edited)</span>}</div>
       {editing ? (
         <div className="comment-box">
-          <textarea rows={3} maxLength={MAX} aria-label="Edit comment" value={draft} onChange={(e) => setDraft(e.target.value)} />
+          <MentionTextarea doctype={doctype} docName={name} rows={3} maxLength={MAX} aria-label="Edit comment" value={draft} onChange={setDraft} />
           <div className="comment-actions">
             <button className="btn small" onClick={() => { setEditing(false); setDraft(item.content ?? '') }}>Cancel</button>
             <button className="btn small primary" disabled={!draft.trim() || save.isPending} onClick={() => save.mutate()}>Save</button>

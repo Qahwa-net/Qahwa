@@ -10,6 +10,7 @@ import { formatCell, labelOf } from '../lib/fields.ts'
 import {
   FUNCTIONS, OPERATORS, draftProblem, fromDefinition, isNumeric, newDraft, reportFields, toDefinition, toggle, type ReportDraft,
 } from '../lib/reports.ts'
+import { Select } from '../controls/Select.tsx'
 
 const messageOf = (e: unknown): string =>
   e instanceof ApiError ? (e.details.length > 0 ? e.details.map((d) => d.message).join(' ') : e.message) : 'Something went wrong.'
@@ -185,19 +186,19 @@ export function ReportEditorPage() {
             ) : (
               <>
                 <label className="field">Group by
-                  <select value={draft.groupBy} onChange={(e) => set({ groupBy: e.target.value })}>
+                  <Select value={draft.groupBy} onChange={(e) => set({ groupBy: e.target.value })}>
                     <option value="" />{fields.map((f) => <option key={f.name} value={f.name}>{labelOf(f)}</option>)}
-                  </select></label>
+                  </Select></label>
                 <h3>Numbers to show</h3>
                 {draft.aggregates.map((a, i) => (
                   <div className="row" key={i}>
-                    <select aria-label="Function" value={a.function} onChange={(e) => updateAggregate(i, { function: e.target.value })}>
+                    <Select aria-label="Function" value={a.function} onChange={(e) => updateAggregate(i, { function: e.target.value })}>
                       {FUNCTIONS.filter((f) => f.value === 'count' || numeric.length > 0).map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
-                    </select>
+                    </Select>
                     {a.function !== 'count' && (
-                      <select aria-label="Field" value={a.field} onChange={(e) => updateAggregate(i, { field: e.target.value })}>
+                      <Select aria-label="Field" value={a.field} onChange={(e) => updateAggregate(i, { field: e.target.value })}>
                         <option value="" />{numeric.map((f) => <option key={f.name} value={f.name}>{labelOf(f)}</option>)}
-                      </select>
+                      </Select>
                     )}
                     <button type="button" className="btn small" aria-label="Remove this number" onClick={() => set({ aggregates: draft.aggregates.filter((_, n) => n !== i) })}>✕</button>
                   </div>
@@ -211,14 +212,14 @@ export function ReportEditorPage() {
             <h3>Only documents where</h3>
             {draft.filters.map((f, i) => (
               <div className="row" key={i}>
-                <select aria-label="Field" value={f.field} onChange={(e) => updateFilter(i, { field: e.target.value })}>
+                <Select aria-label="Field" value={f.field} onChange={(e) => updateFilter(i, { field: e.target.value })}>
                   <option value="" />{fields.map((x) => <option key={x.name} value={x.name}>{labelOf(x)}</option>)}
-                </select>
-                <select aria-label="Operator" value={f.op} onChange={(e) => updateFilter(i, { op: e.target.value, value: e.target.value === 'is' ? 'set' : f.value })}>
+                </Select>
+                <Select aria-label="Operator" value={f.op} onChange={(e) => updateFilter(i, { op: e.target.value, value: e.target.value === 'is' ? 'set' : f.value })}>
                   {OPERATORS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
+                </Select>
                 {f.op === 'is'
-                  ? <select aria-label="Value" value={f.value} onChange={(e) => updateFilter(i, { value: e.target.value })}><option value="set">set</option><option value="not set">not set</option></select>
+                  ? <Select aria-label="Value" value={f.value} onChange={(e) => updateFilter(i, { value: e.target.value })}><option value="set">set</option><option value="not set">not set</option></Select>
                   : <input aria-label="Value" value={f.value} maxLength={500} onChange={(e) => updateFilter(i, { value: e.target.value })} />}
                 <button type="button" className="btn small" aria-label="Remove this filter" onClick={() => set({ filters: draft.filters.filter((_, n) => n !== i) })}>✕</button>
               </div>
@@ -226,7 +227,7 @@ export function ReportEditorPage() {
             {draft.filters.length < 10 && <button type="button" className="btn small" onClick={() => set({ filters: [...draft.filters, { field: fields[0]?.name ?? '', op: '=', value: '' }] })}>Add a filter</button>}
             {draft.mode === 'list' && (
               <div className="row">
-                <label>Order by <select value={draft.orderBy} onChange={(e) => set({ orderBy: e.target.value })}><option value="">Newest changes</option>{fields.map((f) => <option key={f.name} value={f.name}>{labelOf(f)}</option>)}</select></label>
+                <label>Order by <Select value={draft.orderBy} onChange={(e) => set({ orderBy: e.target.value })}><option value="">Newest changes</option>{fields.map((f) => <option key={f.name} value={f.name}>{labelOf(f)}</option>)}</Select></label>
                 <label><input type="checkbox" checked={draft.descending} onChange={(e) => set({ descending: e.target.checked })} /> highest first</label>
                 <label>Rows <input type="number" min={1} max={1000} value={draft.limit} onChange={(e) => set({ limit: Math.max(1, Math.min(1000, Number(e.target.value) || 1)) })} /></label>
               </div>

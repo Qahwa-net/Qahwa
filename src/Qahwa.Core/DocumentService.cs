@@ -32,7 +32,8 @@ public sealed partial class DocumentService(
     ISecretProtector? secrets = null,
     IRealtimePublisher? realtime = null,
     ViewLogService? viewLog = null,
-    AccessLogService? accessLog = null)
+    AccessLogService? accessLog = null,
+    Lazy<WorkflowLinkService>? workflowLinks = null)
 {
     private readonly DocumentLogic _logic = new(registry, repository, permissions, clock);
 

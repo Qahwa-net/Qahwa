@@ -5,6 +5,7 @@ import type { BulkResult, DocField } from '../api/types.ts'
 import { fromInput } from '../lib/fields.ts'
 import { renamePairs } from '../lib/bulkRename.ts'
 import { FieldInput, type InputValue } from './FieldControl.tsx'
+import { Select } from './Select.tsx'
 
 /** Actions on the documents ticked in a list: set one field on all of them, or delete them. Each is reported on its own. */
 export interface BulkReport {
@@ -73,10 +74,10 @@ export function BulkBar({ doctype, names, fields, canWrite, canDelete, canRename
       <strong>{names.length} selected</strong>
       {canWrite && fields.length > 0 && (
         <>
-          <select aria-label="Field to set" value={field} onChange={(e) => { setField(e.target.value); setValue('') }}>
+          <Select aria-label="Field to set" value={field} onChange={(e) => { setField(e.target.value); setValue('') }}>
             <option value="">Set a field…</option>
             {fields.map((f) => <option key={f.name} value={f.name}>{f.label || f.name}</option>)}
-          </select>
+          </Select>
           {target && <span className="bulk-value"><FieldInput field={target} value={value} onChange={setValue} ariaLabel="New value" /></span>}
           <button className="btn small" disabled={!target || busy}
             onClick={() => { if (window.confirm(`Set "${target?.label || field}" on ${names.length} document(s)?`)) update.mutate() }}>Apply</button>

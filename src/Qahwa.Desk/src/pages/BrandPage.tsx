@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { ApiError, api } from '../api/client.ts'
 import { DEFAULT_BRAND, brandVariables, isHexColor, logoFileProblem, safeLogo, type ThemePref } from '../lib/theme.ts'
 import { useTheme } from '../theme.tsx'
+import { Select } from '../controls/Select.tsx'
 
 const fileToDataUrl = (file: File): Promise<string> =>
   new Promise((resolve, reject) => {
@@ -91,9 +92,9 @@ export function BrandPage() {
           </div>
         </div>
         <label className="field"><span>Theme for people who have not chosen one</span>
-          <select value={theme} onChange={(e) => setTheme(e.target.value as ThemePref)}>
+          <Select value={theme} onChange={(e) => setTheme(e.target.value as ThemePref)}>
             <option value="auto">Automatic (follows their device)</option><option value="light">Light</option><option value="dark">Dark</option>
-          </select></label>
+          </Select></label>
         <label className="field"><span>Message on the sign-in page</span>
           <textarea rows={3} maxLength={300} value={message} onChange={(e) => setMessage(e.target.value)} /></label>
 

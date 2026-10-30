@@ -20,6 +20,24 @@ public sealed record WorkflowState
 
     /// <summary>Roles that may edit the document while it is in this state; empty means anyone with write access.</summary>
     public IReadOnlyList<string> EditRoles { get; init; } = [];
+
+    /// <summary>
+    /// Escalation: when a document has been in this state, untouched, for this many hours (1 to 8760; 0 is off), the
+    /// scheduler tells <see cref="EscalateNotify"/> and/or does <see cref="EscalateAction"/> for it. Once per time in the state.
+    /// </summary>
+    public int EscalateAfterHours { get; init; }
+
+    /// <summary>The action (a transition leaving this state, needing only one person) the system does when time is up.</summary>
+    public string? EscalateAction { get; init; }
+
+    /// <summary>People holding these roles are told when time is up.</summary>
+    public IReadOnlyList<string> EscalateNotify { get; init; } = [];
+
+    /// <summary>
+    /// When a document moves into this state, email each person who can act on it a message with one link per action.
+    /// The link opens a page that asks them to sign in and confirm; nothing happens from a click alone.
+    /// </summary>
+    public bool EmailApprovers { get; init; }
 }
 
 /// <summary>A move from one state to another, done with a named action by people with one of the roles.</summary>
@@ -35,6 +53,12 @@ public sealed record WorkflowTransition
 
     /// <summary>When false, the person who created the document cannot do this step themselves.</summary>
     public bool AllowSelfApproval { get; init; } = true;
+
+    /// <summary>
+    /// How many different people must do this action before the document moves (1 to 10). With more than one, each person's
+    /// action is recorded and the document stays where it is until the last one is in.
+    /// </summary>
+    public int RequiredApprovals { get; init; } = 1;
 }
 
 /// <summary>The approval process of one DocType. The first state is where new documents start.</summary>
@@ -43,6 +67,9 @@ public sealed record WorkflowDefinition
     public const int MaxStates = 30;
     public const int MaxTransitions = 100;
     public const int MaxCondition = 500;
+    public const int MaxApprovals = 10;
+    public const int MaxEscalateHours = 8760;
+    public const int MaxEscalateRoles = 10;
 
     public required string DocType { get; init; }
 
@@ -58,7 +85,8 @@ public sealed record WorkflowDefinition
 }
 
 /// <summary>What one person can do with one document in its workflow.</summary>
-public sealed record WorkflowAction(string Action, string To);
+/// <param name="Required">How many people must do this action; <paramref name="Given"/> of them already have.</param>
+public sealed record WorkflowAction(string Action, string To, int Required = 1, int Given = 0);
 
 public sealed record WorkflowStatus(string StateField, string State, string Color, IReadOnlyList<WorkflowAction> Actions, bool CanEdit);
 
@@ -278,7 +306,7 @@ public sealed partial class WorkflowManager(
     private static WorkflowDefinition CleanText(WorkflowDefinition d) => d with
     {
         StateField = d.StateField?.Trim() ?? string.Empty,
-        States = (d.States ?? []).Select(s => s with { Name = s.Name?.Trim() ?? string.Empty, Color = string.IsNullOrWhiteSpace(s.Color) ? "gray" : s.Color.Trim().ToLowerInvariant(), EditRoles = Roles(s.EditRoles) }).ToList(),
+        States = (d.States ?? []).Select(s => s with { Name = s.Name?.Trim() ?? string.Empty, Color = string.IsNullOrWhiteSpace(s.Color) ? "gray" : s.Color.Trim().ToLowerInvariant(), EditRoles = Roles(s.EditRoles), EscalateAction = string.IsNullOrWhiteSpace(s.EscalateAction) ? null : s.EscalateAction.Trim(), EscalateNotify = Roles(s.EscalateNotify) }).ToList(),
         Transitions = (d.Transitions ?? []).Select(t => t with
         {
             From = t.From?.Trim() ?? string.Empty, To = t.To?.Trim() ?? string.Empty, Action = t.Action?.Trim() ?? string.Empty,
@@ -322,6 +350,23 @@ public sealed partial class WorkflowManager(
                 Add($"states[{i}].docStatus", "New documents start as drafts, so the first state must be 0.");
             if (state.EditRoles.Any(r => r.Length > FieldTypes.ShortTextLength))
                 Add($"states[{i}].editRoles", "A role name is too long.");
+            if (state.EscalateAfterHours is < 0 or > WorkflowDefinition.MaxEscalateHours)
+                Add($"states[{i}].escalateAfterHours", $"Use 0 (off) or a number of hours up to {WorkflowDefinition.MaxEscalateHours}.");
+            else if (state.EscalateAfterHours > 0)
+            {
+                if (state.EscalateAction is null && state.EscalateNotify.Count == 0)
+                    Add($"states[{i}].escalateAction", "Say what happens when time is up: choose an action, or roles to tell.");
+                if (state.EscalateNotify.Count > WorkflowDefinition.MaxEscalateRoles || state.EscalateNotify.Any(r => r.Length > FieldTypes.ShortTextLength))
+                    Add($"states[{i}].escalateNotify", $"At most {WorkflowDefinition.MaxEscalateRoles} roles.");
+                if (state.EscalateAction is { } escalate)
+                {
+                    var step = d.Transitions.FirstOrDefault(t => string.Equals(t.From, state.Name, StringComparison.OrdinalIgnoreCase) && string.Equals(t.Action, escalate, StringComparison.OrdinalIgnoreCase));
+                    if (step is null)
+                        Add($"states[{i}].escalateAction", $"'{escalate}' is not an action that leaves '{state.Name}'.");
+                    else if (step.RequiredApprovals > 1)
+                        Add($"states[{i}].escalateAction", "An action that needs several people cannot be done by the system.");
+                }
+            }
             if (field?.Type == FieldType.Select && NameRegex().IsMatch(state.Name)
                 && !(field.Options ?? string.Empty).Split('\n', StringSplitOptions.TrimEntries).Contains(state.Name, StringComparer.Ordinal))
             {
@@ -348,6 +393,8 @@ public sealed partial class WorkflowManager(
                 Add($"transitions[{i}].roles", "Say which roles may do this (at least one).");
             if (from is not null && to is not null && !ValidMove(from.DocStatus, to.DocStatus))
                 Add($"transitions[{i}].to", "A document can be submitted (0 to 1) or cancelled (1 to 2), never moved back, and a cancelled one stays cancelled.");
+            if (t.RequiredApprovals is < 1 or > WorkflowDefinition.MaxApprovals)
+                Add($"transitions[{i}].requiredApprovals", $"Use a number of people from 1 to {WorkflowDefinition.MaxApprovals}.");
             if (t.Condition is { } condition)
             {
                 if (condition.Length > WorkflowDefinition.MaxCondition)

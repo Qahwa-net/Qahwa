@@ -882,3 +882,19 @@ kbd { font: .75rem ui-monospace, Consolas, monospace; padding: .05rem .35rem; bo
 .link-preview-card dl > div { display: grid; grid-template-columns: 7rem 1fr; gap: .5rem; }
 .link-preview-card dt { color: var(--muted, inherit); margin: 0; }
 .link-preview-card dd { margin: 0; }
+
+/* Searchable select (replaces the native select element) */
+.select-wrap { display: block; min-inline-size: 0; }
+.select-wrap .link-select input { cursor: pointer; }
+.filter-form .select-wrap, .inline-field .select-wrap, .lang-select.select-wrap, .compact.select-wrap, .board-card .select-wrap { display: inline-block; inline-size: auto; min-inline-size: 8rem; }
+.compact.select-wrap input, .lang-select.select-wrap input { padding: .25rem .5rem; font-size: .85rem; }
+.board-card .select-wrap input { padding: .15rem .4rem; font-size: .8rem; }
+.grid td .select-wrap { min-inline-size: 6rem; }
+.phone-input .select-wrap { flex: 0 1 9rem; max-inline-size: 11rem; }
+
+/* @mention picker under a comment box */
+.mention-box { position: relative; }
+.mention-box textarea { width: 100%; resize: vertical; }
+.mention-options { inset-block-start: 100%; inset-inline: 0; z-index: 30; max-height: 12rem; }
+.narrow { max-inline-size: 5rem; }
+.escalate-cell { display: grid; gap: .3rem; min-inline-size: 11rem; } .escalate-cell label { display: flex; align-items: center; gap: .35rem; }

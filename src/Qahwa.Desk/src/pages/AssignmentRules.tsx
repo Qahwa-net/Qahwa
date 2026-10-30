@@ -9,6 +9,7 @@ import { ConfirmDialog } from '../controls/Modal.tsx'
 import { useToast } from '../controls/Toast.tsx'
 import { STRATEGIES, addUser, moveRule, newRule, toSet } from '../lib/assignmentRules.ts'
 import { rowErrors } from '../lib/workflow.ts'
+import { Select } from '../controls/Select.tsx'
 
 /** Assignment Rules: who gets which documents, without anyone having to assign them by hand. */
 export function AssignmentRulesPage() {
@@ -178,9 +179,9 @@ function RuleCard({ index, rule, count, errors, userFields, readOnly, onChange, 
       <div className="form-grid">
         <div className="field">
           <label>Choose the person by</label>
-          <select aria-label={`${label} strategy`} value={rule.strategy} disabled={readOnly} onChange={(e) => onChange({ strategy: e.target.value as AssignmentStrategy })}>
+          <Select aria-label={`${label} strategy`} value={rule.strategy} disabled={readOnly} onChange={(e) => onChange({ strategy: e.target.value as AssignmentStrategy })}>
             {STRATEGIES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-          </select>
+          </Select>
           <small className="muted">{strategy?.help}</small>
           <Err k="strategy" />
         </div>
@@ -188,10 +189,10 @@ function RuleCard({ index, rule, count, errors, userFields, readOnly, onChange, 
         {rule.strategy === 'Field' ? (
           <div className="field">
             <label>Field holding the user</label>
-            <select aria-label={`${label} user field`} value={rule.userField ?? ''} disabled={readOnly} aria-invalid={Boolean(errors.userField)} onChange={(e) => onChange({ userField: e.target.value })}>
+            <Select aria-label={`${label} user field`} value={rule.userField ?? ''} disabled={readOnly} aria-invalid={Boolean(errors.userField)} onChange={(e) => onChange({ userField: e.target.value })}>
               <option value="">— choose —</option>
               {userFields.map((f) => <option key={f} value={f}>{f}</option>)}
-            </select>
+            </Select>
             <Err k="userField" />
           </div>
         ) : (
@@ -238,9 +239,9 @@ function RuleCard({ index, rule, count, errors, userFields, readOnly, onChange, 
         </div>
         <div className="field">
           <label htmlFor={`rule-${index}-prio`}>Priority</label>
-          <select id={`rule-${index}-prio`} value={rule.priority} disabled={readOnly} onChange={(e) => onChange({ priority: e.target.value as AssignmentRule['priority'] })}>
+          <Select id={`rule-${index}-prio`} value={rule.priority} disabled={readOnly} onChange={(e) => onChange({ priority: e.target.value as AssignmentRule['priority'] })}>
             <option>Low</option><option>Medium</option><option>High</option>
-          </select>
+          </Select>
           <Err k="priority" />
         </div>
       </div>

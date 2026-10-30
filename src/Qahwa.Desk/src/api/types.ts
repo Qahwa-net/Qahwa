@@ -498,6 +498,14 @@ export interface WorkflowState {
   color: IndicatorColor
   docStatus: number
   editRoles: string[]
+  /** Escalate after this many hours in the state with no change (0 or missing is off). */
+  escalateAfterHours?: number
+  /** The action the system does when time is up (a transition leaving this state). */
+  escalateAction?: string | null
+  /** Roles told when time is up. */
+  escalateNotify?: string[]
+  /** Email each person who can act on a document that enters this state, with a link per action. */
+  emailApprovers?: boolean
 }
 
 export interface WorkflowTransition {
@@ -507,6 +515,8 @@ export interface WorkflowTransition {
   roles: string[]
   condition?: string | null
   allowSelfApproval: boolean
+  /** How many different people must do this action before the document moves (1 to 10). */
+  requiredApprovals: number
 }
 
 export interface WorkflowDefinition {
@@ -537,6 +547,19 @@ export interface WorkflowView {
 }
 
 export interface WorkflowAction {
+  action: string
+  to: string
+  /** How many people must do this action; `given` of them already have. */
+  required: number
+  given: number
+}
+
+/** What an emailed workflow link would do. */
+export interface WorkflowLinkInfo {
+  docType: string
+  name: string
+  title?: string | null
+  state: string
   action: string
   to: string
 }

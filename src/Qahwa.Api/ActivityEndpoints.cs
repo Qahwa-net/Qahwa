@@ -39,6 +39,11 @@ public static class ActivityEndpoints
             return Results.Ok(new { data = items.Where(i => i.Kind == "comment") });
         });
 
+        group.MapGet("/mention-users", async (
+            string doctype, string name, string? q, HttpContext http,
+            IUserContextResolver users, ActivityService activity, CancellationToken ct) =>
+            Results.Ok(new { data = await activity.MentionCandidatesAsync(doctype, name, q, await users.ResolveAsync(http, ct), ct) }));
+
         group.MapPost("/comments", async (
             string doctype, string name, CommentRequest body, HttpContext http,
             IUserContextResolver users, ActivityService activity, CancellationToken ct) =>

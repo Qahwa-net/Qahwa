@@ -4,6 +4,7 @@ import type { DocPerm, FieldTypeInfo } from '../api/types.ts'
 import { localExpressionError } from '../lib/expr/check.ts'
 import { ExpressionInput } from './ExpressionInput.tsx'
 import { isLayoutType, isTextType, slugify, uniqueName, type DraftField } from '../lib/designer.ts'
+import { Select } from '../controls/Select.tsx'
 
 interface Props {
   field: DraftField
@@ -58,17 +59,17 @@ function FetchFromEditor({ field, linkFields, disabled, error, onChange }: {
     <div className="field full">
       <span>Fetch from a linked document</span>
       <span className="inline">
-        <select aria-label="Link field to fetch from" value={linkName} disabled={disabled}
+        <Select aria-label="Link field to fetch from" value={linkName} disabled={disabled}
           onChange={(e) => set(e.target.value, '')}>
           <option value="">Not fetched</option>
           {linkFields.filter((f) => f.name !== field.name).map((f) => <option key={f.name} value={f.name}>{f.label || f.name}</option>)}
-        </select>
+        </Select>
         {linkName && (
-          <select aria-label="Field to copy" value={targetName} disabled={disabled} onChange={(e) => set(linkName, e.target.value)}>
+          <Select aria-label="Field to copy" value={targetName} disabled={disabled} onChange={(e) => set(linkName, e.target.value)}>
             <option value="">Choose a field…</option>
             {targetFields.map((f) => <option key={f.name} value={f.name}>{f.label || f.name}</option>)}
             {['name', 'owner', 'creation', 'modified'].map((n) => <option key={n} value={n}>{n} (standard)</option>)}
-          </select>
+          </Select>
         )}
       </span>
       {linkName && (
@@ -165,10 +166,10 @@ export function FieldCard({
           {info?.options === 'LinkField' && (
             <label className="field full">
               <span>Field that holds the DocType</span>
-              <select value={field.options ?? ''} disabled={disabled} onChange={(e) => onChange({ options: e.target.value })}>
+              <Select value={field.options ?? ''} disabled={disabled} onChange={(e) => onChange({ options: e.target.value })}>
                 <option value="">Choose…</option>
                 {linkFields.filter((f) => f.options === 'DocType' && f.name !== field.name).map((f) => <option key={f.name} value={f.name}>{f.label || f.name}</option>)}
-              </select>
+              </Select>
               <small className="muted">Add a Link field to "DocType" first; people choose the DocType there and the document here.</small>
               <Err message={errors[`${path}.options`]} />
             </label>
@@ -177,10 +178,10 @@ export function FieldCard({
           {info?.options === 'DocType' && (
             <label className="field full">
               <span>{isTable ? 'Child table DocType' : 'Link to DocType'}</span>
-              <select value={field.options ?? ''} disabled={disabled} onChange={(e) => onChange({ options: e.target.value })}>
+              <Select value={field.options ?? ''} disabled={disabled} onChange={(e) => onChange({ options: e.target.value })}>
                 <option value="">Choose…</option>
                 {targets.map((d) => <option key={d} value={d}>{d}</option>)}
-              </select>
+              </Select>
               {isTable && targets.length === 0 && (
                 <small className="muted">There is no child table yet. Create a DocType and tick "This DocType is a table used inside other documents".</small>
               )}
@@ -234,14 +235,14 @@ export function FieldCard({
               {!isTable && <label className="field">
                 <span>Default value</span>
                 {field.type === 'Check' ? (
-                  <select value={field.default ?? ''} disabled={disabled} onChange={(e) => onChange({ default: e.target.value || null })}>
+                  <Select value={field.default ?? ''} disabled={disabled} onChange={(e) => onChange({ default: e.target.value || null })}>
                     <option value="">None</option><option value="1">Checked</option><option value="0">Unchecked</option>
-                  </select>
+                  </Select>
                 ) : field.type === 'Select' ? (
-                  <select value={field.default ?? ''} disabled={disabled} onChange={(e) => onChange({ default: e.target.value || null })}>
+                  <Select value={field.default ?? ''} disabled={disabled} onChange={(e) => onChange({ default: e.target.value || null })}>
                     <option value="">None</option>
                     {choices.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
+                  </Select>
                 ) : (
                   <input value={field.default ?? ''} disabled={disabled} onChange={(e) => onChange({ default: e.target.value })} />
                 )}
@@ -250,9 +251,9 @@ export function FieldCard({
 
               {!inChildTable && <label className="field">
                 <span>Permission level</span>
-                <select value={field.permLevel ?? 0} disabled={disabled} onChange={(e) => onChange({ permLevel: Number(e.target.value) })}>
+                <Select value={field.permLevel ?? 0} disabled={disabled} onChange={(e) => onChange({ permLevel: Number(e.target.value) })}>
                   {Array.from({ length: 10 }, (_, n) => <option key={n} value={n}>{n === 0 ? '0 (same as the document)' : `Level ${n}`}</option>)}
-                </select>
+                </Select>
                 <small className="muted">Above 0, only roles with a rule at this level can see or change the field.</small>
                 <Err message={errors[`${path}.permLevel`]} />
               </label>}
@@ -350,10 +351,10 @@ export function PermissionsEditor({ permissions, roles, disabled, errors, onChan
                   {errors[`${errorPrefix}[${i}].role`] && <small className="error-text" role="alert">{errors[`${errorPrefix}[${i}].role`]}</small>}
                 </td>
                 <td>
-                  <select aria-label={`Level for ${p.role || 'role'}`} value={p.permLevel ?? 0} disabled={disabled}
+                  <Select aria-label={`Level for ${p.role || 'role'}`} value={p.permLevel ?? 0} disabled={disabled}
                     onChange={(e) => { const level = Number(e.target.value); update(i, level > 0 ? { permLevel: level, create: false, delete: false, submit: false, cancel: false, export: false, report: false, import: false, share: false, print: false, email: false } : { permLevel: level }) }}>
                     {Array.from({ length: 10 }, (_, n) => <option key={n} value={n}>{n}</option>)}
-                  </select>
+                  </Select>
                   {errors[`${errorPrefix}[${i}].permLevel`] && <small className="error-text" role="alert">{errors[`${errorPrefix}[${i}].permLevel`]}</small>}
                 </td>
                 {flags.map((f) => (

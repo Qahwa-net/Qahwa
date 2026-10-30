@@ -28,11 +28,27 @@ public static class WorkflowEndpoints
             string name, WorkflowSaveRequest body, HttpContext http, IUserContextResolver users, WorkflowManager manager, CancellationToken ct) =>
             Results.Ok(new { data = await manager.SaveAsync(name, body.Workflow, body.Modified, await users.ResolveAsync(http, ct), ct) }));
 
+        // Creates the field that holds the state (or reuses it) and says which field it is.
+        builder.MapPost("/doctypes/{name}/state-field", async (
+            string name, HttpContext http, IUserContextResolver users, WorkflowStateFieldService fields, WorkflowManager manager, CancellationToken ct) =>
+        {
+            var user = await users.ResolveAsync(http, ct);
+            var field = await fields.EnsureAsync(name, user, ct);
+            return Results.Ok(new { field, data = await manager.GetAsync(name, user, ct) });
+        });
+
         builder.MapDelete("/doctypes/{name}", async (string name, HttpContext http, IUserContextResolver users, WorkflowManager manager, CancellationToken ct) =>
         {
             await manager.DeleteAsync(name, await users.ResolveAsync(http, ct), ct);
             return Results.Ok(new { message = "ok" });
         });
+
+        // The page an emailed link opens: look at what it would do, then confirm it (as the signed-in person it was written for).
+        var links = app.MapGroup("/api/workflow-links/{token}");
+        links.MapGet("", async (string token, HttpContext http, IUserContextResolver users, WorkflowLinkService service, CancellationToken ct) =>
+            Results.Ok(new { data = await service.InfoAsync(token, await users.ResolveAsync(http, ct), ct) }));
+        links.MapPost("/confirm", async (string token, HttpContext http, IUserContextResolver users, WorkflowLinkService service, CancellationToken ct) =>
+            Results.Ok(new { data = await service.ConfirmAsync(token, await users.ResolveAsync(http, ct), ct) }));
 
         // Using a workflow: where a document is and what I can do with it, doing it, and what is waiting for me.
         var doc = app.MapGroup("/api/resource/{doctype}/{name}");

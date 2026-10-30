@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { ActivityItem } from '../api/types.ts'
-import { describeChanges, describeVersion, showValue, splitMentions, timeAgo, versionHeadline } from './activity.ts'
+import { describeChanges, describeVersion, insertMention, mentionAt, showValue, splitMentions, timeAgo, versionHeadline } from './activity.ts'
 
 const item = (event: string, data: unknown = null): ActivityItem => ({
   kind: 'version', id: 'v1', event, user: 'a@x.com', userName: 'Ann', at: '2026-01-01T00:00:00Z', data: data as ActivityItem['data'],
@@ -70,5 +70,25 @@ describe('splitMentions', () => {
   it('does not treat the middle of an email address as a mention', () => {
     expect(splitMentions('mail ann@example.com now')).toEqual([{ text: 'mail ann@example.com now', mention: false }])
     expect(splitMentions('')).toEqual([])
+  })
+})
+
+describe('mentionAt and insertMention', () => {
+  it('finds the @word being typed at the caret', () => {
+    expect(mentionAt('hello @al', 9)).toEqual({ start: 6, query: 'al' })
+    expect(mentionAt('@', 1)).toEqual({ start: 0, query: '' })
+    expect(mentionAt('hi @al and more', 6)).toEqual({ start: 3, query: 'al' })
+  })
+
+  it('ignores an @ inside a word or after the caret has moved on', () => {
+    expect(mentionAt('mail me at a@b', 14)).toBeNull()
+    expect(mentionAt('@al done', 8)).toBeNull()
+    expect(mentionAt('no mention', 10)).toBeNull()
+  })
+
+  it('replaces the typed word with the chosen @email and a space', () => {
+    expect(insertMention('hi @al and more', 6, 'alice@example.com')).toEqual({ text: 'hi @alice@example.com and more', caret: 21 })
+    expect(insertMention('hi @al', 6, 'alice@example.com')).toEqual({ text: 'hi @alice@example.com ', caret: 22 })
+    expect(insertMention('no mention', 10, 'a@b.co')).toBeNull()
   })
 })

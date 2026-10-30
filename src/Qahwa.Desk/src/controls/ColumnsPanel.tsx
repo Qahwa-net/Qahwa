@@ -4,6 +4,7 @@ import { ApiError, api } from '../api/client.ts'
 import type { DocField, ListViewSettings } from '../api/types.ts'
 import { labelOf } from '../lib/fields.ts'
 import { moveItem } from '../lib/designer.ts'
+import { Select } from './Select.tsx'
 
 const PAGE_SIZES = [10, 20, 50, 100]
 
@@ -65,23 +66,23 @@ export function ColumnsPanel({ doctype, fields, current, initial, onClose }: {
             ))}
             {columns.length === 0 && <li className="muted">The usual columns.</li>}
           </ol>
-          <select aria-label="Add a column" value="" onChange={(e) => { if (e.target.value) setColumns([...columns, e.target.value]) }}>
+          <Select aria-label="Add a column" value="" onChange={(e) => { if (e.target.value) setColumns([...columns, e.target.value]) }}>
             <option value="">Add a column…</option>
             {hidden.map((f) => <option key={f.name} value={f.name}>{labelOf(f)}</option>)}
-          </select>
+          </Select>
         </div>
 
         <div className="columns-options">
           <label className="field"><span>Rows per page</span>
-            <select value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))}>
+            <Select value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))}>
               {PAGE_SIZES.map((n) => <option key={n} value={n}>{n}</option>)}
-            </select>
+            </Select>
           </label>
           <label className="field"><span>Sort by</span>
-            <select value={sortField} onChange={(e) => setSortField(e.target.value)}>
+            <Select value={sortField} onChange={(e) => setSortField(e.target.value)}>
               <option value="">Last modified</option>
               {fields.map((f) => <option key={f.name} value={f.name}>{labelOf(f)}</option>)}
-            </select>
+            </Select>
           </label>
           <label className="check-line"><input type="checkbox" checked={descending} onChange={(e) => setDescending(e.target.checked)} /> Newest or largest first</label>
         </div>

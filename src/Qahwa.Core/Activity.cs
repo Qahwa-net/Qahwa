@@ -211,6 +211,13 @@ public sealed class ActivityService(
         return (await WithNamesAsync([ToItem(row, user)], ct))[0];
     }
 
+    /// <summary>People who can be @mentioned in a comment on this document (only those who may read it). Needs read access to the document.</summary>
+    public async Task<IReadOnlyList<LinkOption>> MentionCandidatesAsync(string doctype, string name, string? search, IUserContext user, CancellationToken ct = default)
+    {
+        await RequireReadableAsync(doctype, name, user, ct);
+        return collaboration is null ? [] : await collaboration.MentionCandidatesAsync(doctype, name, search, user, ct);
+    }
+
     private static ActivityItem ToItem(Dictionary<string, object?> row, IUserContext user) =>
         new("comment", (string)row["name"]!, "Comment", (string)row["owner"]!, null, (DateTime)row["creation"]!, null,
             row["content"] as string, false, string.Equals((string)row["owner"]!, user.User, StringComparison.Ordinal));

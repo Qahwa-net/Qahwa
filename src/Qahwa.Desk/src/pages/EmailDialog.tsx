@@ -5,6 +5,7 @@ import { Icon } from '../controls/Icon.tsx'
 import { Modal } from '../controls/Modal.tsx'
 import { useToast } from '../controls/Toast.tsx'
 import { MAX_RECIPIENTS, parseAddresses } from '../lib/email.ts'
+import { Select } from '../controls/Select.tsx'
 
 /** Email about a document, from a template or written by hand. The message is queued and sent by the server. */
 export function EmailDialog({ doctype, name, onClose }: { doctype: string; name: string; onClose: () => void }) {
@@ -52,10 +53,10 @@ export function EmailDialog({ doctype, name, onClose }: { doctype: string; name:
         {templates.data && templates.data.length > 0 && (
           <div className="field">
             <label htmlFor="email-template">Template <span className="muted">(optional)</span></label>
-            <select id="email-template" value={template} disabled={fill.isPending} onChange={(e) => { setTemplate(e.target.value); if (e.target.value) fill.mutate(e.target.value) }}>
+            <Select id="email-template" value={template} disabled={fill.isPending} onChange={(e) => { setTemplate(e.target.value); if (e.target.value) fill.mutate(e.target.value) }}>
               <option value="">— write it myself —</option>
               {templates.data.map((t) => <option key={t.name} value={t.name}>{t.name}</option>)}
-            </select>
+            </Select>
           </div>
         )}
         <div className="field">

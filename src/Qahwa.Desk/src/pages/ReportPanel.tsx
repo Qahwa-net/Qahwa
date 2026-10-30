@@ -4,6 +4,7 @@ import { ApiError, api } from '../api/client.ts'
 import type { DocField } from '../api/types.ts'
 import type { Filter } from '../lib/filters.ts'
 import { hasColumn, labelOf } from '../lib/fields.ts'
+import { Select } from '../controls/Select.tsx'
 
 const NUMERIC = new Set(['Int', 'Float', 'Decimal', 'Currency', 'Percent', 'Rating', 'Duration'])
 const FUNCTIONS = [['count', 'Count'], ['sum', 'Sum'], ['avg', 'Average'], ['min', 'Smallest'], ['max', 'Largest']] as const
@@ -37,20 +38,20 @@ export function ReportPanel({ doctype, fields, filters, onClose }: {
       </div>
       <form className="report-form" onSubmit={(e) => { e.preventDefault(); run.mutate() }}>
         <label>Group by
-          <select value={groupBy} onChange={(e) => setGroupBy(e.target.value)}>
+          <Select value={groupBy} onChange={(e) => setGroupBy(e.target.value)}>
             {groupable.map((f) => <option key={f.name} value={f.name}>{labelOf(f)}</option>)}
-          </select>
+          </Select>
         </label>
         <label>Show
-          <select value={aggregate} onChange={(e) => setAggregate(e.target.value as typeof aggregate)}>
+          <Select value={aggregate} onChange={(e) => setAggregate(e.target.value as typeof aggregate)}>
             {FUNCTIONS.filter(([key]) => key === 'count' || numeric.length > 0).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
-          </select>
+          </Select>
         </label>
         {needsField && (
           <label>of
-            <select value={field} onChange={(e) => setField(e.target.value)}>
+            <Select value={field} onChange={(e) => setField(e.target.value)}>
               {numeric.map((f) => <option key={f.name} value={f.name}>{labelOf(f)}</option>)}
-            </select>
+            </Select>
           </label>
         )}
         <button className="btn primary" disabled={run.isPending || !groupBy || (needsField && !field)}>Run</button>

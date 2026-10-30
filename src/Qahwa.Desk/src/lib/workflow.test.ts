@@ -10,8 +10,8 @@ const flow = (): WorkflowDefinition => ({
     { name: 'Approved', color: 'green', docStatus: 1, editRoles: [] },
   ],
   transitions: [
-    { from: 'Draft', action: 'Request', to: 'Pending', roles: ['Clerk'], condition: '  ', allowSelfApproval: true },
-    { from: 'Pending', action: 'Approve', to: 'Approved', roles: ['Boss'], condition: ' amount < 500 ', allowSelfApproval: false },
+    { from: 'Draft', action: 'Request', to: 'Pending', roles: ['Clerk'], condition: '  ', allowSelfApproval: true, requiredApprovals: 1 },
+    { from: 'Pending', action: 'Approve', to: 'Approved', roles: ['Boss'], condition: ' amount < 500 ', allowSelfApproval: false, requiredApprovals: 1 },
   ],
 })
 

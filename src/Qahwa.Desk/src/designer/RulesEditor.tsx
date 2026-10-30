@@ -1,5 +1,6 @@
 import type { ValidationRule } from '../api/types.ts'
 import { ExpressionInput } from './ExpressionInput.tsx'
+import { Select } from '../controls/Select.tsx'
 
 interface Props {
   rules: ValidationRule[]
@@ -36,10 +37,10 @@ export function RulesEditor({ rules, fieldNames, fieldLabels, allowParent, error
               </label>
               <label className="field">
                 <span>Show the message under</span>
-                <select value={rule.field ?? ''} disabled={disabled} onChange={(e) => update(i, { field: e.target.value || null })}>
+                <Select value={rule.field ?? ''} disabled={disabled} onChange={(e) => update(i, { field: e.target.value || null })}>
                   <option value="">The whole {allowParent ? 'row' : 'document'}</option>
                   {fieldNames.map((n) => <option key={n} value={n}>{fieldLabels[n] || n}</option>)}
-                </select>
+                </Select>
                 {errors[`${path}.field`] && <small className="error-text" role="alert">{errors[`${path}.field`]}</small>}
               </label>
               <button type="button" className="btn small icon danger" aria-label={`Remove rule ${i + 1}`} disabled={disabled}

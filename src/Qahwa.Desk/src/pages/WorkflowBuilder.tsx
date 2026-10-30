@@ -6,6 +6,7 @@ import type { IndicatorColor, WorkflowDefinition, WorkflowView } from '../api/ty
 import {
   DOCSTATUS_LABELS, STATE_COLORS, draftFrom, newState, newTransition, parseRoles, removeState, renameState, rowErrors, toDefinition, unreachableStates,
 } from '../lib/workflow.ts'
+import { Select } from '../controls/Select.tsx'
 
 /** Workflow Builder: who moves a document from which state to which, and under what condition. */
 export function WorkflowBuilderPage() {
@@ -28,7 +29,7 @@ export function WorkflowBuilderPage() {
       <div className="page-head">
         <div>
           <h1>Workflow Builder</h1>
-          <p className="muted">Define the states a document goes through, who may move it on, and when. The first state is where new documents start. A DocType needs a text or Select field to hold the state; see <Link to="/designer">the DocType Designer</Link>.</p>
+          <p className="muted">Define the states a document goes through, who may move it on, and when. The first state is where new documents start. The state lives in a text or Select field: choose one, or let the builder create a "Workflow State" field for you (more in <Link to="/designer">the DocType Designer</Link>).</p>
         </div>
       </div>
       <div className="perm-layout">
@@ -92,6 +93,22 @@ function EditorBody({ view, notice, setNotice }: { view: WorkflowView; notice: s
     },
   })
 
+  // Adds (or reuses) the field that holds the state, so a DocType does not have to be changed elsewhere first.
+  const createField = useMutation({
+    mutationFn: () => api.workflows.createStateField(view.docType),
+    onSuccess: ({ field, data }) => {
+      queryClient.setQueryData(['workflows', 'view', view.docType], { ...data, workflow: view.workflow, modified: view.modified })
+      setDraft((d) => ({ ...d, stateField: field }))
+      setErrors((e) => { const { stateField: _, ...rest } = e; return rest })
+      setBanner(null)
+      setNotice(`The field "${field}" is ready and chosen as the state field. Save the workflow to keep it.`)
+    },
+    onError: (error) => {
+      setNotice(null)
+      setBanner({ text: error instanceof ApiError ? (error.details[0]?.message ?? error.message) : 'Could not create the field.', conflict: false })
+    },
+  })
+
   const remove = useMutation({
     mutationFn: () => api.workflows.remove(view.docType),
     onSuccess: async () => {
@@ -123,12 +140,17 @@ function EditorBody({ view, notice, setNotice }: { view: WorkflowView; notice: s
       <div className="card form-grid">
         <label className="field">
           <span>State field</span>
-          <select value={draft.stateField} disabled={readOnly} aria-invalid={Boolean(errors.stateField)}
+          <Select value={draft.stateField} disabled={readOnly} aria-invalid={Boolean(errors.stateField)}
             onChange={(e) => set({ ...draft, stateField: e.target.value })}>
             <option value="">— choose —</option>
             {view.stateFields.map((f) => <option key={f} value={f}>{f}</option>)}
-          </select>
+          </Select>
           <small className="muted">The field that holds the state. Only the workflow can change it.</small>
+          {!readOnly && (
+            <button type="button" className="link-button" disabled={createField.isPending} onClick={() => createField.mutate()}>
+              {createField.isPending ? 'Creating…' : '+ Create a new "Workflow State" field'}
+            </button>
+          )}
           {errors.stateField && <small className="error-text" role="alert">{errors.stateField}</small>}
         </label>
         <label className="field check">
@@ -140,7 +162,7 @@ function EditorBody({ view, notice, setNotice }: { view: WorkflowView; notice: s
       <h3>States</h3>
       <div className="table-wrap">
         <table aria-label="States">
-          <thead><tr><th>State</th><th>Colour</th><th>Document status</th><th>Roles who can edit</th><th /></tr></thead>
+          <thead><tr><th>State</th><th>Colour</th><th>Document status</th><th>Roles who can edit</th><th title="What happens when a document sits in this state with no change">Escalate</th><th title="Email the people who can act, with a link per action">Email links</th><th /></tr></thead>
           <tbody>
             {draft.states.map((s, i) => {
               const e = rowErrors(errors, 'states', i)
@@ -153,17 +175,17 @@ function EditorBody({ view, notice, setNotice }: { view: WorkflowView; notice: s
                     {(e.name ?? e._) && <small className="error-text" role="alert">{e.name ?? e._}</small>}
                   </td>
                   <td>
-                    <select aria-label={`State ${i + 1} colour`} value={s.color} disabled={readOnly}
+                    <Select aria-label={`State ${i + 1} colour`} value={s.color} disabled={readOnly}
                       onChange={(ev) => updateState(i, { color: ev.target.value as IndicatorColor })}>
                       {STATE_COLORS.map((c) => <option key={c} value={c}>{c}</option>)}
-                    </select>
+                    </Select>
                     <span className={`pill pill-${s.color}`}>{s.name || '…'}</span>
                   </td>
                   <td>
-                    <select aria-label={`State ${i + 1} document status`} value={s.docStatus} disabled={readOnly}
+                    <Select aria-label={`State ${i + 1} document status`} value={s.docStatus} disabled={readOnly}
                       onChange={(ev) => updateState(i, { docStatus: Number(ev.target.value) })}>
                       {DOCSTATUS_LABELS.map((l, n) => <option key={n} value={n}>{l}</option>)}
-                    </select>
+                    </Select>
                     {e.docStatus && <small className="error-text" role="alert">{e.docStatus}</small>}
                   </td>
                   <td>
@@ -171,6 +193,25 @@ function EditorBody({ view, notice, setNotice }: { view: WorkflowView; notice: s
                       defaultValue={s.editRoles.join(', ')} onBlur={(ev) => updateState(i, { editRoles: parseRoles(ev.target.value) })} />
                     {e.editRoles && <small className="error-text" role="alert">{e.editRoles}</small>}
                   </td>
+                  <td>
+                    <div className="escalate-cell">
+                      <label>After <input type="number" min={0} max={8760} className="narrow" aria-label={`State ${i + 1} escalate after hours`} value={s.escalateAfterHours ?? 0} disabled={readOnly}
+                        aria-invalid={Boolean(e.escalateAfterHours)}
+                        onChange={(ev) => updateState(i, { escalateAfterHours: Math.max(0, Math.min(8760, Number(ev.target.value) || 0)) })} /> hours</label>
+                      {(s.escalateAfterHours ?? 0) > 0 && <>
+                        <Select aria-label={`State ${i + 1} escalation action`} value={s.escalateAction ?? ''} disabled={readOnly} aria-invalid={Boolean(e.escalateAction)}
+                          onChange={(ev) => updateState(i, { escalateAction: ev.target.value || null })}>
+                          <option value="">— do nothing —</option>
+                          {draft.transitions.filter((t) => t.from === s.name && t.action && (t.requiredApprovals ?? 1) <= 1).map((t) => <option key={t.action} value={t.action}>{t.action}</option>)}
+                        </Select>
+                        <input aria-label={`State ${i + 1} escalation notify roles`} placeholder="tell roles: Role, Role" disabled={readOnly} aria-invalid={Boolean(e.escalateNotify)}
+                          defaultValue={(s.escalateNotify ?? []).join(', ')} onBlur={(ev) => updateState(i, { escalateNotify: parseRoles(ev.target.value) })} />
+                      </>}
+                      {(e.escalateAfterHours ?? e.escalateAction ?? e.escalateNotify) && <small className="error-text" role="alert">{e.escalateAfterHours ?? e.escalateAction ?? e.escalateNotify}</small>}
+                    </div>
+                  </td>
+                  <td><input type="checkbox" aria-label={`State ${i + 1} email approvers`} checked={s.emailApprovers ?? false} disabled={readOnly}
+                    onChange={(ev) => updateState(i, { emailApprovers: ev.target.checked })} /></td>
                   <td>{!readOnly && <button className="link-button" aria-label={`Remove state ${s.name || i + 1}`} onClick={() => set(removeState(draft, i))}>Remove</button>}</td>
                 </tr>
               )
@@ -185,7 +226,7 @@ function EditorBody({ view, notice, setNotice }: { view: WorkflowView; notice: s
       <datalist id="workflow-states">{stateNames.filter(Boolean).map((n) => <option key={n} value={n} />)}</datalist>
       <div className="table-wrap">
         <table aria-label="Transitions">
-          <thead><tr><th>From</th><th>Action</th><th>To</th><th>Roles</th><th>Condition</th><th>Creator may</th><th /></tr></thead>
+          <thead><tr><th>From</th><th>Action</th><th>To</th><th>Roles</th><th>Condition</th><th>Creator may</th><th title="How many different people must do this action before the document moves">People needed</th><th /></tr></thead>
           <tbody>
             {draft.transitions.map((t, i) => {
               const e = rowErrors(errors, 'transitions', i)
@@ -211,11 +252,15 @@ function EditorBody({ view, notice, setNotice }: { view: WorkflowView; notice: s
                   </td>
                   <td><input type="checkbox" aria-label={`Transition ${i + 1} creator may do this`} checked={t.allowSelfApproval} disabled={readOnly}
                     onChange={(ev) => updateTransition(i, { allowSelfApproval: ev.target.checked })} /></td>
+                  <td><input type="number" min={1} max={10} className="narrow" aria-label={`Transition ${i + 1} people needed`} value={t.requiredApprovals ?? 1} disabled={readOnly}
+                    aria-invalid={Boolean(e.requiredApprovals)}
+                    onChange={(ev) => updateTransition(i, { requiredApprovals: Math.max(1, Math.min(10, Number(ev.target.value) || 1)) })} />
+                    {e.requiredApprovals && <small className="error-text" role="alert">{e.requiredApprovals}</small>}</td>
                   <td>{!readOnly && <button className="link-button" aria-label={`Remove transition ${i + 1}`} onClick={() => set({ ...draft, transitions: draft.transitions.filter((_, j) => j !== i) })}>Remove</button>}</td>
                 </tr>
               )
             })}
-            {draft.transitions.length === 0 && <tr><td colSpan={7} className="empty">No transitions yet: documents cannot leave their first state.</td></tr>}
+            {draft.transitions.length === 0 && <tr><td colSpan={8} className="empty">No transitions yet: documents cannot leave their first state.</td></tr>}
           </tbody>
         </table>
       </div>

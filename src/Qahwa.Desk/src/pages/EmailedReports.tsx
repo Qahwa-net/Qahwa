@@ -5,6 +5,7 @@ import { useAuth } from '../auth.tsx'
 import { ConfirmDialog } from '../controls/Modal.tsx'
 import { useToast } from '../controls/Toast.tsx'
 import { describeSchedule, problemWith, type EmailedReport } from '../lib/emailedReports.ts'
+import { Select } from '../controls/Select.tsx'
 
 const when = (value: string | null) => (value ? new Date(value).toLocaleString() : '—')
 
@@ -65,10 +66,10 @@ export function EmailedReportsPage() {
 
       <form className="card form-stack" onSubmit={(e) => { e.preventDefault(); if (!problem) create.mutate() }} aria-label="Schedule a report">
         <label className="field"><span>Report</span>
-          <select value={report} onChange={(e) => setReport(e.target.value)}>
+          <Select value={report} onChange={(e) => setReport(e.target.value)}>
             <option value="">Choose…</option>
             {(reports.data ?? []).map((r) => <option key={r.id} value={r.id}>{r.title}</option>)}
-          </select>
+          </Select>
         </label>
         <label className="field"><span>Send to (one address per line, up to 10)</span>
           <textarea rows={3} value={recipients} onChange={(e) => setRecipients(e.target.value)} />
@@ -78,9 +79,9 @@ export function EmailedReportsPage() {
         </label>
         <div className="row">
           <label className="field"><span>How often</span>
-            <select value={frequency} onChange={(e) => setFrequency(e.target.value)}>
+            <Select value={frequency} onChange={(e) => setFrequency(e.target.value)}>
               <option>Daily</option><option>Weekly</option><option>Monthly</option>
-            </select>
+            </Select>
           </label>
           <label className="field"><span>Hour (UTC)</span>
             <input type="number" min={0} max={23} value={sendHour} onChange={(e) => setSendHour(Number(e.target.value))} />

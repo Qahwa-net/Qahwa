@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ApiError, api } from '../api/client.ts'
 import type { SavedFilter } from '../api/types.ts'
 import { decodeFilters, encodeFilters, type Filter } from '../lib/filters.ts'
+import { Select } from './Select.tsx'
 
 /** Pick a saved set of filters, save the current ones under a name (privately or for everyone), or delete one of yours. */
 export function SavedFilters({ doctype, saved, current, canShare, onApply }: {
@@ -37,13 +38,13 @@ export function SavedFilters({ doctype, saved, current, canShare, onApply }: {
 
   return (
     <div className="saved-filters">
-      <select aria-label="Saved filters" value={showing?.id ?? ''} onChange={(e) => {
+      <Select aria-label="Saved filters" value={showing?.id ?? ''} onChange={(e) => {
         const chosen = saved.find((s) => s.id === e.target.value)
         if (chosen?.filters) onApply(decodeFilters(JSON.stringify(chosen.filters)))
       }}>
         <option value="">{saved.length === 0 ? 'No saved filters' : 'Saved filters…'}</option>
         {saved.map((s) => <option key={s.id} value={s.id}>{s.name}{s.isPublic ? (s.mine ? ' (shared)' : ` (by ${s.ownerName || s.owner})`) : ''}</option>)}
-      </select>
+      </Select>
       {showing?.mine && (
         <button className="btn small" disabled={remove.isPending}
           onClick={() => { if (window.confirm(`Delete the saved filter "${showing.name}"?`)) remove.mutate(showing.id) }}>Delete</button>
