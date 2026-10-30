@@ -504,6 +504,8 @@ export interface WorkflowState {
   escalateAction?: string | null
   /** Roles told when time is up. */
   escalateNotify?: string[]
+  /** Email each person who can act on a document that enters this state, with a link per action. */
+  emailApprovers?: boolean
 }
 
 export interface WorkflowTransition {
@@ -550,6 +552,16 @@ export interface WorkflowAction {
   /** How many people must do this action; `given` of them already have. */
   required: number
   given: number
+}
+
+/** What an emailed workflow link would do. */
+export interface WorkflowLinkInfo {
+  docType: string
+  name: string
+  title?: string | null
+  state: string
+  action: string
+  to: string
 }
 
 /** Where one document is in its workflow and what the current user can do with it. */

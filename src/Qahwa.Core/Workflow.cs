@@ -32,6 +32,12 @@ public sealed record WorkflowState
 
     /// <summary>People holding these roles are told when time is up.</summary>
     public IReadOnlyList<string> EscalateNotify { get; init; } = [];
+
+    /// <summary>
+    /// When a document moves into this state, email each person who can act on it a message with one link per action.
+    /// The link opens a page that asks them to sign in and confirm; nothing happens from a click alone.
+    /// </summary>
+    public bool EmailApprovers { get; init; }
 }
 
 /// <summary>A move from one state to another, done with a named action by people with one of the roles.</summary>

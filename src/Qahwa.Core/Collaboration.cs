@@ -279,6 +279,7 @@ public sealed class CollaborationHooks(
         (FileService.DocTypeName, "reference_doctype", "reference_name"),
         ("Workflow Approval", "reference_doctype", "reference_name"),
         ("Workflow Escalation", "reference_doctype", "reference_name"),
+        ("Workflow Link", "reference_doctype", "reference_name"),
     ];
 
     /// <summary>References to a document's name in assignments, follows and notifications, for rename and merge.</summary>

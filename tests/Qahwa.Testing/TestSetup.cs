@@ -106,7 +106,7 @@ public sealed class TestEngine
         Collaboration = new CollaborationHooks(Follows, Notifications, Registry, Repository);
         NamingSeries = new NamingSeriesManager(Registry, Repository, Permissions);
         Documents = new DocumentService(
-            Registry, Repository, Permissions, new NamingService(Repository, Clock, Registry), Clock, new UserPermissionService(Registry, Repository), Shares, Profiles, History, Collaboration, WorkflowCatalog, new Lazy<AssignmentRuleEngine>(() => AssignmentRules!), new Lazy<NotificationRuleEngine>(() => NotificationRules!), new Lazy<WebhookService>(() => Webhooks!), new Lazy<FileService>(() => Files!), new Lazy<DocumentActionEngine>(() => DocumentActions!), new Lazy<ServerScriptEngine>(() => ServerScripts!), new Lazy<AppHookRunner>(() => AppHooks!), new FakeSecretProtector(), Realtime, ViewLog, AccessLog);
+            Registry, Repository, Permissions, new NamingService(Repository, Clock, Registry), Clock, new UserPermissionService(Registry, Repository), Shares, Profiles, History, Collaboration, WorkflowCatalog, new Lazy<AssignmentRuleEngine>(() => AssignmentRules!), new Lazy<NotificationRuleEngine>(() => NotificationRules!), new Lazy<WebhookService>(() => Webhooks!), new Lazy<FileService>(() => Files!), new Lazy<DocumentActionEngine>(() => DocumentActions!), new Lazy<ServerScriptEngine>(() => ServerScripts!), new Lazy<AppHookRunner>(() => AppHooks!), new FakeSecretProtector(), Realtime, ViewLog, AccessLog, new Lazy<WorkflowLinkService>(() => WorkflowLinks!));
         ShareManager = new ShareManager(Registry, Repository, Documents, Permissions, Shares, History, Notifications);
         Activity = new ActivityService(Registry, Repository, Documents, Permissions, History, Collaboration);
         Assignments = new AssignmentService(Registry, Repository, Documents, Permissions, ShareManager, Notifications, Follows, History);
@@ -158,6 +158,7 @@ public sealed class TestEngine
         AuthStore = new InMemoryAuthStore();
         AuthOptions = new AuthOptions { HashIterations = 1000 };
         SecurityPolicy = new SecurityPolicyService(Registry, Repository, Options.Create(AuthOptions));
+        WorkflowLinks = new WorkflowLinkService(Registry, Repository, Documents, WorkflowCatalog, Notifications, Email, EmailAccounts, Options.Create(AuthOptions), History);
         Auth = new AuthService(
             Registry,
             Repository,
@@ -210,6 +211,7 @@ public sealed class TestEngine
     public WorkflowManager Workflows { get; }
     public WorkflowStateFieldService WorkflowStateFields { get; }
     public WorkflowEscalationService WorkflowEscalations { get; }
+    public WorkflowLinkService WorkflowLinks { get; }
     public AutoRepeatService AutoRepeat { get; }
     public AssignmentRuleCatalog AssignmentRuleCatalog { get; }
     public InMemoryAssignmentRuleStore AssignmentRuleStore { get; }

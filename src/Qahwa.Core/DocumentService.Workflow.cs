@@ -112,8 +112,20 @@ public sealed partial class DocumentService
         var current = Convert.ToInt32(raw.GetValueOrDefault("docstatus") ?? 0);
         var step = new WorkflowStep(workflow.StateField, target.Name, target.DocStatus != current ? target.DocStatus : null);
         var result = await UpdateCoreAsync(doctype, name, TransitionInput(modified), user, transition: null, step, ct);
-        if (workflow.Transitions.Any(t => t.RequiredApprovals > 1) || workflow.States.Any(st => st.EscalateAfterHours > 0))
-            await ClearApprovalsAsync(doctype, name, ct); // the document moved on: the next state starts with nobody having approved and no escalation done
+        if (workflow.Transitions.Any(t => t.RequiredApprovals > 1) || workflow.States.Any(st => st.EscalateAfterHours > 0 || st.EmailApprovers))
+            await ClearApprovalsAsync(doctype, name, ct); // the document moved on: the next state starts with nobody having approved, no escalation done and no old links
+        if (workflowLinks is not null && target.EmailApprovers)
+        {
+            try
+            {
+                await workflowLinks.Value.SendAsync(doctype, name, ct);
+            }
+            catch (Exception ex) when (ex is DocumentValidationException or PermissionDeniedException or NotFoundException or ConflictException)
+            {
+                // the move is done; a problem writing the emails must not undo it
+            }
+        }
+
         return result;
     }
 
@@ -142,6 +154,7 @@ public sealed partial class DocumentService
             foreach (var vote in await VotesAsync(doctype, name, null, ct))
                 await repository.DeleteAsync(meta, (string)vote["name"]!, null, ct);
         await WorkflowEscalationService.ClearAsync(registry, repository, doctype, name, ct);
+        await WorkflowLinkService.ClearAsync(registry, repository, doctype, name, ct);
     }
 
     /// <summary>Documents waiting for this person's action, across every workflow (the inbox on the home page).</summary>

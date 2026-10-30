@@ -185,6 +185,106 @@ public class WorkflowTests
         Assert.Contains((await Fails(several)).Errors, e => e.Message.Contains("several people"));
     }
 
+    // ---- approve or reject from an email ----
+
+    private static WorkflowDefinition Emailing() => Standard() with
+    {
+        States = Standard().States.Select(st => st.Name == "Pending Approval" ? st with { EmailApprovers = true } : st).ToList(),
+    };
+
+    private async Task UsersAsync()
+    {
+        foreach (var (person, role) in new[] { (Manager, "Approver"), (Director, "Director"), (Clerk, "Clerk") })
+        {
+            if (!await _engine.Repository.ExistsAsync(_engine.Registry.Get("Role"), role))
+                await _engine.Documents.InsertAsync("Role", Values(("role_name", role)), TestUsers.Admin);
+            await _engine.Documents.InsertAsync("User", Values(("email", person.User), ("full_name", person.User), ("enabled", true)), TestUsers.Admin);
+            await _engine.Documents.InsertAsync("Has Role", Values(("user", person.User), ("role", role)), TestUsers.Admin);
+        }
+    }
+
+    private async Task<IReadOnlyList<Dictionary<string, object?>>> MailAsync() =>
+        await _engine.Repository.ListAsync(_engine.Registry.Get("Email Queue"), new ListQuery { OrderBy = "creation", Descending = false, Limit = 100 });
+
+    private static string[] TokensIn(string body) =>
+        System.Text.RegularExpressions.Regex.Matches(body, @"https://qahwa\.example/workflow-action/([\w-]+)").Select(m => m.Groups[1].Value).ToArray();
+
+    private async Task<(string Id, string Token)> ApproveLinkAsync()
+    {
+        await UsersAsync();
+        _engine.AuthOptions.PublicUrl = "https://qahwa.example";
+        await SaveAsync(Emailing());
+        var id = await SubmittedExpenseAsync();
+        var mail = (await MailAsync()).Single(m => (string)m["recipient"]! == Manager.User);
+        var body = (string)mail["body"]!;
+        var line = body.Split('\n').Single(l => l.StartsWith("Approve:"));
+        return (id, TokensIn(line).Single());
+    }
+
+    [Fact]
+    public async Task Entering_a_state_emails_each_approver_one_link_per_action_they_can_take()
+    {
+        await UsersAsync();
+        _engine.AuthOptions.PublicUrl = "https://qahwa.example";
+        await SaveAsync(Emailing());
+        await SubmittedExpenseAsync();
+
+        var mail = await MailAsync();
+        var manager = mail.Single(m => (string)m["recipient"]! == Manager.User);
+        var director = mail.Single(m => (string)m["recipient"]! == Director.User);
+        Assert.Equal(2, TokensIn((string)manager["body"]!).Length); // Approve and Reject
+        Assert.Single(TokensIn((string)director["body"]!)); // the big-amount approval does not apply to a small one
+        Assert.DoesNotContain(mail, m => (string)m["recipient"]! == Clerk.User);
+
+        // Only a hash is kept.
+        var token = TokensIn((string)manager["body"]!)[0];
+        var stored = await _engine.Repository.ListAsync(_engine.Registry.Get("Workflow Link"), new ListQuery { Limit = 50 });
+        Assert.DoesNotContain(stored, r => (string)r["token_hash"]! == token);
+    }
+
+    [Fact]
+    public async Task Without_a_site_address_no_links_are_sent()
+    {
+        await UsersAsync();
+        await SaveAsync(Emailing());
+        await SubmittedExpenseAsync();
+        Assert.Empty(await MailAsync());
+    }
+
+    [Fact]
+    public async Task A_link_only_works_for_its_person_once_and_asks_for_confirmation()
+    {
+        var (id, token) = await ApproveLinkAsync();
+
+        var info = await _engine.WorkflowLinks.InfoAsync(token, Manager); // looking changes nothing
+        Assert.Equal(("Expense", id, "Approve", "Approved"), (info.DocType, info.Name, info.Action, info.To));
+        Assert.Equal("Pending Approval", await StateAsync(id));
+
+        await Assert.ThrowsAsync<NotFoundException>(() => _engine.WorkflowLinks.InfoAsync(token, Director)); // someone else's link
+        await Assert.ThrowsAsync<UnauthenticatedException>(() => _engine.WorkflowLinks.InfoAsync(token, UserContext.Anonymous));
+
+        await _engine.WorkflowLinks.ConfirmAsync(token, Manager);
+        Assert.Equal("Approved", await StateAsync(id));
+        await Assert.ThrowsAsync<NotFoundException>(() => _engine.WorkflowLinks.ConfirmAsync(token, Manager)); // used
+    }
+
+    [Fact]
+    public async Task A_link_dies_when_it_expires_or_the_document_moves_on()
+    {
+        var (_, expiring) = await ApproveLinkAsync();
+        _engine.Clock.Advance(TimeSpan.FromDays(8));
+        await Assert.ThrowsAsync<NotFoundException>(() => _engine.WorkflowLinks.InfoAsync(expiring, Manager));
+    }
+
+    [Fact]
+    public async Task Another_action_on_the_document_voids_the_other_links()
+    {
+        var (id, token) = await ApproveLinkAsync();
+        await DoAsync(id, "Reject", Director);
+        await Assert.ThrowsAsync<NotFoundException>(() => _engine.WorkflowLinks.ConfirmAsync(token, Manager));
+        Assert.Equal("Rejected", await StateAsync(id));
+    }
+
     // ---- creating the state field from the builder ----
 
     [Fact]

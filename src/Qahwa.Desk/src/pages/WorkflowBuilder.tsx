@@ -162,7 +162,7 @@ function EditorBody({ view, notice, setNotice }: { view: WorkflowView; notice: s
       <h3>States</h3>
       <div className="table-wrap">
         <table aria-label="States">
-          <thead><tr><th>State</th><th>Colour</th><th>Document status</th><th>Roles who can edit</th><th title="What happens when a document sits in this state with no change">Escalate</th><th /></tr></thead>
+          <thead><tr><th>State</th><th>Colour</th><th>Document status</th><th>Roles who can edit</th><th title="What happens when a document sits in this state with no change">Escalate</th><th title="Email the people who can act, with a link per action">Email links</th><th /></tr></thead>
           <tbody>
             {draft.states.map((s, i) => {
               const e = rowErrors(errors, 'states', i)
@@ -210,6 +210,8 @@ function EditorBody({ view, notice, setNotice }: { view: WorkflowView; notice: s
                       {(e.escalateAfterHours ?? e.escalateAction ?? e.escalateNotify) && <small className="error-text" role="alert">{e.escalateAfterHours ?? e.escalateAction ?? e.escalateNotify}</small>}
                     </div>
                   </td>
+                  <td><input type="checkbox" aria-label={`State ${i + 1} email approvers`} checked={s.emailApprovers ?? false} disabled={readOnly}
+                    onChange={(ev) => updateState(i, { emailApprovers: ev.target.checked })} /></td>
                   <td>{!readOnly && <button className="link-button" aria-label={`Remove state ${s.name || i + 1}`} onClick={() => set(removeState(draft, i))}>Remove</button>}</td>
                 </tr>
               )

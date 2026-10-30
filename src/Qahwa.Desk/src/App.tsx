@@ -21,6 +21,7 @@ import { OAuthClientsPage } from './pages/OAuthClients.tsx'
 import { OAuthConsentPage } from './pages/OAuthConsent.tsx'
 import { AssignmentRulesPage } from './pages/AssignmentRules.tsx'
 import { WorkflowBuilderPage } from './pages/WorkflowBuilder.tsx'
+import { WorkflowLinkPage } from './pages/WorkflowLinkPage.tsx'
 import { DesignerEditor } from './pages/DesignerEditor.tsx'
 import { DesignerList } from './pages/DesignerList.tsx'
 import { FormView } from './pages/FormView.tsx'
@@ -91,6 +92,7 @@ export function App() {
           <Route path="slow-requests" element={<SlowRequestsPage />} />
           <Route path="assignment-rules" element={<AssignmentRulesPage />} />
           <Route path="assignment-rules/:name" element={<AssignmentRulesPage />} />
+          <Route path="workflow-action/:token" element={<WorkflowLinkPage />} />
           <Route path="workflows" element={<WorkflowBuilderPage />} />
           <Route path="workflows/:name" element={<WorkflowBuilderPage />} />
           <Route path="permissions" element={<PermissionManagerPage />} />

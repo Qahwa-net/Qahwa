@@ -43,6 +43,13 @@ public static class WorkflowEndpoints
             return Results.Ok(new { message = "ok" });
         });
 
+        // The page an emailed link opens: look at what it would do, then confirm it (as the signed-in person it was written for).
+        var links = app.MapGroup("/api/workflow-links/{token}");
+        links.MapGet("", async (string token, HttpContext http, IUserContextResolver users, WorkflowLinkService service, CancellationToken ct) =>
+            Results.Ok(new { data = await service.InfoAsync(token, await users.ResolveAsync(http, ct), ct) }));
+        links.MapPost("/confirm", async (string token, HttpContext http, IUserContextResolver users, WorkflowLinkService service, CancellationToken ct) =>
+            Results.Ok(new { data = await service.ConfirmAsync(token, await users.ResolveAsync(http, ct), ct) }));
+
         // Using a workflow: where a document is and what I can do with it, doing it, and what is waiting for me.
         var doc = app.MapGroup("/api/resource/{doctype}/{name}");
 

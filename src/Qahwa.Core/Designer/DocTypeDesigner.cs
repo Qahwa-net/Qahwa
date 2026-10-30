@@ -37,7 +37,7 @@ public sealed class DocTypeDesigner(
     private static readonly HashSet<string> FrameworkNames = new(StringComparer.OrdinalIgnoreCase)
     {
         "DocType", "DocField", "DocPerm", "Custom Field", "Property Setter", "Custom DocPerm", "Comment", "Communication",
-        "ToDo", "DocShare", "Document Follow", "Version", "File", "Tag", "Note", "Workflow", "Workflow Action", "Workflow Approval", "Workflow Escalation", "Notification",
+        "ToDo", "DocShare", "Document Follow", "Version", "File", "Tag", "Note", "Workflow", "Workflow Action", "Workflow Approval", "Workflow Escalation", "Workflow Link", "Notification",
         "Notification Log", "Email Template", "Email Account", "Assignment Rule", "Auto Repeat", "Webhook", "Report",
         "Dashboard", "Dashboard Chart", "Number Card", "Workspace", "Print Format", "Letter Head", "Web Form", "Data Import",
         "Scheduled Job Type", "System Settings", "Module Def", "Series", "Session", "Error Log", "Activity Log", "Access Log",
