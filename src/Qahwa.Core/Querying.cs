@@ -25,6 +25,9 @@ public enum FilterOp
 
     /// <summary>The document's name is listed in a table of labels (tags, likes) for this DocType and value (see <see cref="MarkedBy"/>).</summary>
     Marked,
+
+    /// <summary>The document has a row in one of its child tables that matches every inner filter (see <see cref="ChildMatch"/>).</summary>
+    ChildMatches,
     IsNull,
     IsNotNull,
 }
@@ -34,6 +37,13 @@ public sealed record OwnerOrNames(string Owner, IReadOnlyList<string> Names);
 
 /// <summary>The value of a <see cref="FilterOp.Marked"/> filter: documents that have a row in <paramref name="Table"/> (with <c>ref_doctype</c> and <c>ref_docname</c>) whose <paramref name="Field"/> is <paramref name="Value"/>.</summary>
 public sealed record MarkedBy(DocTypeMeta Table, string RefDocType, string Field, string Value);
+
+/// <summary>
+/// The value of a <see cref="FilterOp.ChildMatches"/> filter: documents with at least one row of <paramref name="ParentField"/> (a Table field of
+/// <paramref name="ParentDocType"/>) for which every <paramref name="Inner"/> filter holds, all on the same row. Inner filters are validated
+/// like any other and refer to columns of the child DocType.
+/// </summary>
+public sealed record ChildMatch(DocTypeMeta Child, string ParentDocType, string ParentField, IReadOnlyList<QueryFilter> Inner);
 
 /// <summary>A filter whose field and value have already been validated and converted to storage types.</summary>
 public sealed record QueryFilter(string Field, FilterOp Op, object? Value = null);

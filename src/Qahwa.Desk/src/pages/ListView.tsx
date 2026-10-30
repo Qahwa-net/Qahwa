@@ -57,6 +57,18 @@ export function ListView() {
     [meta],
   )
 
+  // Filters can also look into the rows of a table ("Lines › Item"): the document must have a row that matches.
+  const childMetas = metaQuery.data?.children
+  const filterFields = useMemo<DocField[]>(() => {
+    if (!meta) return allFields
+    const nested = meta.fields
+      .filter((f) => f.type === 'Table' && f.options && childMetas?.[f.options] && (f.permLevel ?? 0) === 0)
+      .flatMap((table) => childMetas![table.options!]!.fields
+        .filter((c) => hasColumn(c.type) && c.type !== 'Password' && (c.permLevel ?? 0) === 0)
+        .map((c) => ({ ...c, name: `${table.name}.${c.name}`, label: `${labelOf(table)} › ${labelOf(c)}` })))
+    return [...allFields, ...nested]
+  }, [meta, allFields, childMetas])
+
   const columns = useMemo<DocField[]>(() => {
     if (!meta) return []
     if (settings && settings.columns.length > 0) {
@@ -217,7 +229,7 @@ export function ListView() {
       <div className="toolbar">
         <input type="search" className="search" placeholder={`Search by ${searchField.replace(/_/g, ' ')}…`}
           aria-label="Search" value={searchText} onChange={(e) => setSearchText(e.target.value)} />
-        <FilterBar fields={allFields} filters={filters} onChange={(next) => update({ f: encodeFilters(next) })} />
+        <FilterBar fields={filterFields} filters={filters} onChange={(next) => update({ f: encodeFilters(next) })} />
         <SavedFilters doctype={doctype} saved={viewState.data?.filters ?? []} current={filters} canShare={Boolean(perms?.write)}
           onApply={(next) => update({ f: encodeFilters(next) })} />
       </div>

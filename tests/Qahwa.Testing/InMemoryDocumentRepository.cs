@@ -283,7 +283,18 @@ public sealed class InMemoryDocumentRepository : IDocumentRepository
     }
 
     private IEnumerable<Dictionary<string, object?>> Filter(DocTypeMeta meta, ListQuery query) =>
-        Table(meta).Values.Where(row => query.Filters.All(f => f.Op == FilterOp.Marked ? IsMarked(f, row.GetValueOrDefault("name") as string) : Matches(row.GetValueOrDefault(f.Field), f, row.GetValueOrDefault("name") as string)));
+        Table(meta).Values.Where(row => query.Filters.All(f => Holds(f, row)));
+
+    private bool Holds(QueryFilter f, Dictionary<string, object?> row) => f.Op switch
+    {
+        FilterOp.Marked => IsMarked(f, row.GetValueOrDefault("name") as string),
+        FilterOp.ChildMatches => HasMatchingChild((ChildMatch)f.Value!, row.GetValueOrDefault("name") as string),
+        _ => Matches(row.GetValueOrDefault(f.Field), f, row.GetValueOrDefault("name") as string),
+    };
+
+    private bool HasMatchingChild(ChildMatch match, string? name) =>
+        Table(match.Child).Values.Any(r => Equals(r.GetValueOrDefault("parent"), name) && Equals(r.GetValueOrDefault("parenttype"), match.ParentDocType)
+            && Equals(r.GetValueOrDefault("parentfield"), match.ParentField) && match.Inner.All(i => Holds(i, r)));
 
     private bool IsMarked(QueryFilter filter, string? name)
     {

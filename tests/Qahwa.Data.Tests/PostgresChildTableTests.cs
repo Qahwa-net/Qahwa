@@ -57,6 +57,27 @@ public class PostgresChildTableTests(PostgresFixture postgres) : IClassFixture<P
     }
 
     [SkippableFact]
+    public async Task A_list_can_be_filtered_by_a_child_field_on_the_same_row()
+    {
+        await using var db = await StackAsync();
+        await db.Documents.InsertAsync("Order", Values(("title", "A"), ("lines", new[] { Line("Pen", 2), Line("Book", 10) })), Admin);
+        await db.Documents.InsertAsync("Order", Values(("title", "B"), ("lines", new[] { Line("Pen", 10) })), Admin);
+        await db.Documents.InsertAsync("Order", Values(("title", "C"), ("lines", new[] { Line("Ink", 1) })), Admin);
+        await db.Documents.InsertAsync("Order", Values(("title", "D")), Admin);
+
+        async Task<string[]> Titles(params RawFilter[] filters) =>
+            (await db.Documents.ListAsync("Order", new ListRequest { Filters = filters, Fields = ["title"], OrderBy = "title", Descending = false }, Admin))
+                .Data.Select(r => (string)r["title"]!).ToArray();
+
+        Assert.Equal(["A", "B"], await Titles(new RawFilter("lines.item", "=", "Pen")));
+        Assert.Equal(["B"], await Titles(new RawFilter("lines.item", "=", "Pen"), new RawFilter("lines.qty", ">", 5)));
+        Assert.Equal(["C"], await Titles(new RawFilter("lines.item", "like", "In%")));
+        Assert.Equal(["A", "C"], await Titles(new RawFilter("lines.item", "in", new[] { "Book", "Ink" })));
+        Assert.Equal(["A"], await Titles(new RawFilter("lines.item", "=", "Book"), new RawFilter("title", "=", "A")));
+        Assert.Equal(2, (await db.Documents.ListAsync("Order", new ListRequest { Filters = [new RawFilter("lines.item", "=", "Pen")] }, Admin)).Total);
+    }
+
+    [SkippableFact]
     public async Task Rows_round_trip_with_types_and_order()
     {
         await using var db = await StackAsync();
