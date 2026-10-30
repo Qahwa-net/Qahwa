@@ -223,6 +223,37 @@ public class FieldLogicTests
     }
 
     [Fact]
+    public async Task A_rule_can_look_across_the_rows_of_a_table()
+    {
+        _engine.Registry.Add(DocTypeLoader.Parse("""
+            { "name": "Order Pack", "fields": [ { "name": "lines", "type": "Table", "options": "Doc Line" } ],
+              "validations": [
+                { "expression": "len(distinct(lines, 'item')) == count(lines)", "message": "Each item once" },
+                { "expression": "empty(lines) || minOf(lines, 'qty') > 0 || empty(minOf(lines, 'qty'))", "message": "Every quantity above zero" },
+                { "expression": "countIf(lines, 'item', 'Gift') <= 1", "message": "One gift at most" },
+                { "expression": "sumIf(lines, 'qty', 'item', 'Pen') <= 10", "message": "At most 10 pens" } ],
+              "permissions": [ { "role": "Sales Manager", "read": true, "write": true, "create": true } ] }
+            """));
+
+        async Task<string?> Message(params Dictionary<string, object?>[] lines)
+        {
+            try
+            {
+                await _engine.Documents.InsertAsync("Order Pack", Values(("lines", lines)), TestUsers.Manager);
+                return null;
+            }
+            catch (DocumentValidationException ex)
+            {
+                return Assert.Single(ex.Errors).Message;
+            }
+        }
+
+        Assert.Null(await Message(Row("Pen", 2, 1m), Row("Book", 5, 10m)));
+        Assert.Equal("Each item once", await Message(Row("Pen", 2, 1m), Row("Pen", 3, 1m)));
+        Assert.Equal("At most 10 pens", await Message(Row("Pen", 11, 1m)));
+    }
+
+    [Fact]
     public async Task Row_rules_name_the_row_and_the_field()
     {
         var ex = await Assert.ThrowsAsync<DocumentValidationException>(() =>

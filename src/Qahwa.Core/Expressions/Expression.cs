@@ -201,6 +201,7 @@ internal static partial class Builtins
         ["contains"] = (2, 2), ["startsWith"] = (2, 2), ["endsWith"] = (2, 2),
         ["round"] = (1, 2), ["abs"] = (1, 1), ["floor"] = (1, 1), ["ceil"] = (1, 1), ["min"] = (1, 8), ["max"] = (1, 8),
         ["sum"] = (1, 2), ["count"] = (1, 1),
+        ["avg"] = (2, 2), ["minOf"] = (2, 2), ["maxOf"] = (2, 2), ["countIf"] = (3, 3), ["sumIf"] = (4, 4), ["distinct"] = (1, 2),
         ["today"] = (0, 0), ["now"] = (0, 0), ["user"] = (0, 0), ["hasRole"] = (1, 1), ["isNew"] = (0, 0),
         ["text"] = (1, 1), ["number"] = (1, 1),
         ["addDays"] = (2, 2), ["daysBetween"] = (2, 2),

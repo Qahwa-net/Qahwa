@@ -45,6 +45,10 @@ Arithmetic never fails: wrong kinds of value give no value, so a rule can be che
 | `abs(n)` `floor(n)` `ceil(n)` `min(a, b, …)` `max(a, b, …)` | numbers |
 | `sum(table, 'field')` | adds a field over the rows (`sum(list)` adds numbers) |
 | `count(table)` | number of rows |
+| `avg(table, 'field')` `minOf(table, 'field')` `maxOf(table, 'field')` | average, smallest and largest number of a field over the rows (rows with no number are skipped; no value if there are none) |
+| `countIf(table, 'field', value)` | how many rows have exactly this value in the field |
+| `sumIf(table, 'field', 'matchField', value)` | adds a field over the rows where another field has the value |
+| `distinct(table, 'field')` | the different values of a field over the rows, without empty ones; `distinct(list)` for a plain list. Count them with `len()` |
 | `today()` `now()` | current date (`yyyy-MM-dd`) and instant, in UTC |
 | `user()` `hasRole('Role')` `isNew()` | the person and whether the document is new |
 | `text(x)` `number(t)` | conversions (`number('42')` is 42, `number('abc')` is no value) |
@@ -65,6 +69,9 @@ addDays(order_date, 30)                    Calculate as (a due date)
 =user()                                    Default
 end_date >= start_date                     Rule: "The end date cannot be before the start date"
 count(items) > 0                           Rule: "Add at least one line"
+len(distinct(items, 'item')) == count(items)   Rule: "Each item only once"
+sumIf(items, 'amount', 'kind', 'Tax') < 1000      Rule: "Tax lines add up to under 1000"
+countIf(approvers, 'role', 'Manager') >= 1        Rule: "At least one manager"
 empty(qty) || qty > 0                      Rule on a child table: "Quantity must be positive"
 ```
 

@@ -52,6 +52,7 @@ export const FUNCTIONS: Record<string, [number, number]> = {
   contains: [2, 2], startsWith: [2, 2], endsWith: [2, 2],
   round: [1, 2], abs: [1, 1], floor: [1, 1], ceil: [1, 1], min: [1, 8], max: [1, 8],
   sum: [1, 2], count: [1, 1],
+  avg: [2, 2], minOf: [2, 2], maxOf: [2, 2], countIf: [3, 3], sumIf: [4, 4], distinct: [1, 2],
   today: [0, 0], now: [0, 0], user: [0, 0], hasRole: [1, 1], isNew: [0, 0],
   text: [1, 1], number: [1, 1],
   addDays: [2, 2], daysBetween: [2, 2],
@@ -501,6 +502,47 @@ function invoke(name: string, args: Value[], ctx: ExprContext): Value {
       return total
     }
     case 'count': return Array.isArray(a) ? a.length : 0
+    case 'avg': case 'minOf': case 'maxOf': {
+      if (!Array.isArray(a) || typeof b !== 'string') return null
+      let seen = 0, sum = 0, low = 0, high = 0
+      for (const row of a) {
+        const value = row !== null && typeof row === 'object' && !Array.isArray(row) ? (row[b] ?? null) : null
+        if (typeof value !== 'number') continue
+        low = seen === 0 ? value : Math.min(low, value)
+        high = seen === 0 ? value : Math.max(high, value)
+        sum += value
+        seen++
+      }
+      return seen === 0 ? null : name === 'avg' ? sum / seen : name === 'minOf' ? low : high
+    }
+    case 'countIf': {
+      if (!Array.isArray(a) || typeof b !== 'string') return null
+      let matching = 0
+      for (const row of a) {
+        const value = row !== null && typeof row === 'object' && !Array.isArray(row) ? (row[b] ?? null) : null
+        if (equal(value, args[2] ?? null)) matching++
+      }
+      return matching
+    }
+    case 'sumIf': {
+      if (!Array.isArray(a) || typeof b !== 'string' || typeof args[2] !== 'string') return null
+      let added = 0
+      for (const row of a) {
+        const fields = row !== null && typeof row === 'object' && !Array.isArray(row) ? row : null
+        const amount = fields ? (fields[b] ?? null) : null
+        if (fields && equal(fields[args[2]] ?? null, args[3] ?? null) && typeof amount === 'number') added += amount
+      }
+      return added
+    }
+    case 'distinct': {
+      if (!Array.isArray(a)) return null
+      const unique: Value[] = []
+      for (const row of a) {
+        const item = typeof b === 'string' ? (row !== null && typeof row === 'object' && !Array.isArray(row) ? (row[b] ?? null) : null) : row
+        if (item !== null && !unique.some((u) => equal(u, item))) unique.push(item)
+      }
+      return unique
+    }
     case 'today': return ctx.today
     case 'now': return ctx.now
     case 'user': return ctx.user
