@@ -606,7 +606,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Notification Log (bell icon), Email Digest | bell and log done (ADR-015); Email Digest done (ADR-072) | ✅ | L8 |
 | Scheduled Job Types (cron, hourly, daily, weekly, monthly), Scheduler UI and logs | background scheduler loop exists (auto repeat); job types, UI and logs not yet | 🔽 | L8 |
 | Background jobs and queues (short, default, long), job UI | scheduler steps and app jobs are timed and written to the Scheduled Job Log (ADR-075); persistent background queue with short, default and long queues, retries with backoff, crash recovery and a Background Job list (ADR-117) | ✅ | L8 |
-| Webhooks (outgoing, conditions, signed) | done: events, conditions, signing, retries, SSRF-safe; not yet custom headers, test button | ✅ (v1) | L10 |
+| Webhooks (outgoing, conditions, signed) | done: events, conditions, signing, retries, SSRF-safe; custom headers and a test button done (ADR-124) | ✅ | L10 |
 | Auto Email Report | done: scheduled plain-text emails of a saved report, run as a chosen user (ADR-071) | ✅ | L9 |
 | Document Naming Rule | done: rules with priority and conditions, naming by expression (ADR-073) | ✅ | L6 |
 | Energy Points and gamification | | 🔽 | later |

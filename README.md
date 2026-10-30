@@ -48,6 +48,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **Gallery, map and timeline views**: pictures as tiles, places on a plain grid (no outside map service), documents as bars between two dates ([ADR-049](docs/adr/049-gallery-map-and-timeline-views.md))
 - **Light, dark and automatic themes and a brand**: per-person theme, organisation name, logo, colours and default theme, all checked as plain data, readable colours guaranteed ([ADR-056](docs/adr/056-brand-and-theme.md))
 - **App dependencies**: apps name the apps they need; installed in order, bad graphs stop start-up ([ADR-085](docs/adr/085-app-dependencies.md))
+- **Webhook headers and test**: extra write-only headers per webhook and a "Send a test" button that sends a signed ping ([ADR-124](docs/adr/124-webhook-headers-and-test.md))
 - **Filter by a child table's field**: "Lines › Item contains Pen" finds documents with a matching row, with several conditions on the same row ([ADR-123](docs/adr/123-child-table-filters.md))
 - **Approve or reject from an email**: a state can email the people who can act with one link per action; a link opens a sign-in-and-confirm page, works once, for that person only ([ADR-120](docs/adr/120-workflow-email-links.md))
 - **Escalation**: a workflow state that sits untouched for N hours tells some roles and/or moves the document on ([ADR-119](docs/adr/119-workflow-escalation.md))

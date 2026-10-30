@@ -8,6 +8,8 @@ namespace Qahwa.Api;
 /// <param name="Hooks">The complete set; it replaces the current one. A blank secret keeps the stored one.</param>
 public sealed record WebhooksSaveRequest(WebhookSet Hooks, DateTime? Modified = null);
 
+public sealed record WebhookTestRequest(string? Hook);
+
 /// <summary>Webhooks: which other systems are told when documents change (System Managers).</summary>
 public static class WebhookEndpoints
 {
@@ -28,6 +30,13 @@ public static class WebhookEndpoints
         {
             await manager.DeleteAsync(name, await users.ResolveAsync(http, ct), ct);
             return Results.Ok(new { message = "ok" });
+        });
+
+        // Sends one sample "ping" to a saved webhook and says how the receiver answered (never the receiver's reply text).
+        group.MapPost("/doctypes/{name}/test", async (string name, WebhookTestRequest body, HttpContext http, IUserContextResolver users, WebhookService service, CancellationToken ct) =>
+        {
+            var result = await service.TestAsync(name, body.Hook ?? string.Empty, await users.ResolveAsync(http, ct), ct);
+            return Results.Ok(new { data = new { ok = result.Ok, statusCode = result.StatusCode, error = result.Error } });
         });
 
         return app;

@@ -7,7 +7,7 @@ import type { SsoProviderInfo } from '../lib/sso.ts'
 import type { DisplaySettings } from '../lib/display.ts'
 import type {
   DesignerDetail, DocPerm, DesignerItem, DesignerPreview, Doc, DocTypeDefinition, FieldError, FieldTypeInfo,
-  ListResponse, ReportDetail, ReportInfo, ReportRun, RestoreReport, SignIn, ExpiredPasswordChallenge, TwoFactorChallenge, TwoFactorSetup, TwoFactorStatus, PublicForm, BundleReport, TranslationCatalog, AttachedFile, WebhookItem, WebhookSet, WebhookView, ApiKeyCreated, ApiKeyInfo, ImportPreview, ImportResult, WorkspaceBlock, WorkspaceDetail, WorkspaceInfo, WorkspaceView, LetterHeadDetail, PrintChoices, PrintFormatDetail, PrintFormatInfo, DashboardDetail, DashboardInfo, DashboardItem, DashboardResult, EmailPreview, EmailTemplateInfo, NotificationRuleItem, NotificationRuleSet, NotificationRuleView, AutoRepeatInfo, AutoRepeatRequest, AssignmentRuleItem, AssignmentRuleSet, AssignmentRuleView, PendingAction, WorkflowDefinition, WorkflowItem, WorkflowStatus, WorkflowView, MetaResponse, MetaSummary, PermissionItem, ActivityItem, WorkflowLinkInfo, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, AppInfo, OAuthAuthorizeParams, OAuthConsent, OAuthClientInfo, OAuthConnected, EmailDigest, ScriptReportInfo, ScriptReportResult, Viewer, FollowState, LikeState, TagCount, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
+  ListResponse, ReportDetail, ReportInfo, ReportRun, RestoreReport, SignIn, ExpiredPasswordChallenge, TwoFactorChallenge, TwoFactorSetup, TwoFactorStatus, PublicForm, BundleReport, TranslationCatalog, AttachedFile, WebhookItem, WebhookSet, WebhookTestResult, WebhookView, ApiKeyCreated, ApiKeyInfo, ImportPreview, ImportResult, WorkspaceBlock, WorkspaceDetail, WorkspaceInfo, WorkspaceView, LetterHeadDetail, PrintChoices, PrintFormatDetail, PrintFormatInfo, DashboardDetail, DashboardInfo, DashboardItem, DashboardResult, EmailPreview, EmailTemplateInfo, NotificationRuleItem, NotificationRuleSet, NotificationRuleView, AutoRepeatInfo, AutoRepeatRequest, AssignmentRuleItem, AssignmentRuleSet, AssignmentRuleView, PendingAction, WorkflowDefinition, WorkflowItem, WorkflowStatus, WorkflowView, MetaResponse, MetaSummary, PermissionItem, ActivityItem, WorkflowLinkInfo, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, AppInfo, OAuthAuthorizeParams, OAuthConsent, OAuthClientInfo, OAuthConnected, EmailDigest, ScriptReportInfo, ScriptReportResult, Viewer, FollowState, LikeState, TagCount, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
 } from './types.ts'
 import type { Filter } from '../lib/filters.ts'
 import { toApiFilters } from '../lib/filters.ts'
@@ -409,6 +409,8 @@ export const api = {
     save: async (name: string, hooks: WebhookSet, modified: string | null | undefined) =>
       (await request<{ data: WebhookView }>('PUT', `/api/webhooks/doctypes/${encodeURIComponent(name)}`, { hooks, modified })).data,
     remove: async (name: string) => { await request<unknown>('DELETE', `/api/webhooks/doctypes/${encodeURIComponent(name)}`) },
+    test: async (name: string, hook: string) =>
+      (await request<{ data: WebhookTestResult }>('POST', `/api/webhooks/doctypes/${encodeURIComponent(name)}/test`, { hook })).data,
   },
 
   apiKeys: {

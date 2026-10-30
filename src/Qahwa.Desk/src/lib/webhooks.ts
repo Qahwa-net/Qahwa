@@ -11,7 +11,7 @@ export const EVENTS: { value: WebhookEvent; label: string }[] = [
 export const newHook = (existing: Webhook[]): Webhook => {
   let n = existing.length + 1
   while (existing.some((h) => h.name === `Webhook ${n}`)) n++
-  return { name: `Webhook ${n}`, active: true, event: 'New', condition: '', url: 'https://', secret: '', secretSet: false, fields: [] }
+  return { name: `Webhook ${n}`, active: true, event: 'New', condition: '', url: 'https://', secret: '', secretSet: false, fields: [], headers: [] }
 }
 
 /** A random secret in the browser, for people who do not want to invent one: 32 random bytes as hex. */
@@ -29,6 +29,7 @@ export function toSet(draft: WebhookSet): WebhookSet {
       url: h.url.trim(),
       condition: h.condition?.trim() ? h.condition.trim() : null,
       secret: h.secret ? h.secret : '',
+      headers: (h.headers ?? []).filter((x) => x.name.trim() !== '').map((x) => ({ name: x.name.trim(), value: x.value ? x.value : '', valueSet: x.valueSet })),
     })),
   }
 }

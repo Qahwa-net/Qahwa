@@ -186,7 +186,7 @@ public sealed class TestEngine
         SignUpOptions = new SignUpOptions { Enabled = true, DefaultRoles = ["Clerk"] };
         SignUp = new SignUpService(Auth, protector, EmailSender, new HitCounter(Clock), Options.Create(SignUpOptions), Clock);
         PasswordReset = new PasswordResetService(Auth, AuthStore, protector, Sessions, EmailSender, new HitCounter(Clock), Clock);
-        Webhooks = new WebhookService(WebhookCatalog, Registry, Repository, Documents, WebhookSender, History);
+        Webhooks = new WebhookService(WebhookCatalog, Registry, Repository, Documents, WebhookSender, History, WebhookStore);
         WebhookManager = new WebhookManager(Registry, WebhookStore, WebhookCatalog, Permissions, Clock, allowInsecure: false);
         Bundle = new BundleService(Registry, Designer, Customization, Workflows, AssignmentRuleManager, NotificationRuleManager, Permissions, Clock);
         Backup = new BackupService(Registry, Repository, Bundle, Permissions, Clock);
