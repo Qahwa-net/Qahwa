@@ -1,0 +1,15 @@
+{
+  "name": "Workflow Approval",
+  "module": "Core",
+  "trackChanges": false,
+  "fields": [
+    { "name": "reference_doctype", "type": "Data", "label": "DocType", "required": true, "indexed": true, "inListView": true },
+    { "name": "reference_name", "type": "Data", "label": "Document", "required": true, "indexed": true, "inListView": true },
+    { "name": "state", "type": "Data", "label": "State", "required": true, "inListView": true },
+    { "name": "action", "type": "Data", "label": "Action", "required": true, "inListView": true },
+    { "name": "user", "type": "Data", "label": "Approved by", "required": true, "inListView": true }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true }
+  ]
+}

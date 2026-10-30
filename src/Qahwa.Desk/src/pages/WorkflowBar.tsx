@@ -34,9 +34,9 @@ export function WorkflowBar({ doctype, doc, status, disabled, onError }: {
     <div className="workflow-bar" role="group" aria-label="Workflow">
       <StatusPill text={status.state} color={status.color} />
       {status.actions.map((a) => (
-        <button key={a.action} className="btn" disabled={disabled || apply.isPending} title={disabled ? 'Save your changes first' : `Moves it to ${a.to}`}
+        <button key={a.action} className="btn" disabled={disabled || apply.isPending} title={disabled ? 'Save your changes first' : a.required > 1 ? `${a.given} of ${a.required} people have done this; it moves to ${a.to} when the last one does` : `Moves it to ${a.to}`}
           onClick={() => apply.mutate(a.action)}>
-          {a.action}
+          {a.action}{a.required > 1 && <small className="muted"> ({a.given}/{a.required})</small>}
         </button>
       ))}
       {status.actions.length === 0 && <span className="muted">Nothing for you to do here.</span>}

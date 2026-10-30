@@ -507,6 +507,8 @@ export interface WorkflowTransition {
   roles: string[]
   condition?: string | null
   allowSelfApproval: boolean
+  /** How many different people must do this action before the document moves (1 to 10). */
+  requiredApprovals: number
 }
 
 export interface WorkflowDefinition {
@@ -539,6 +541,9 @@ export interface WorkflowView {
 export interface WorkflowAction {
   action: string
   to: string
+  /** How many people must do this action; `given` of them already have. */
+  required: number
+  given: number
 }
 
 /** Where one document is in its workflow and what the current user can do with it. */

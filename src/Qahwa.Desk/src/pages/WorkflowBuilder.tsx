@@ -207,7 +207,7 @@ function EditorBody({ view, notice, setNotice }: { view: WorkflowView; notice: s
       <datalist id="workflow-states">{stateNames.filter(Boolean).map((n) => <option key={n} value={n} />)}</datalist>
       <div className="table-wrap">
         <table aria-label="Transitions">
-          <thead><tr><th>From</th><th>Action</th><th>To</th><th>Roles</th><th>Condition</th><th>Creator may</th><th /></tr></thead>
+          <thead><tr><th>From</th><th>Action</th><th>To</th><th>Roles</th><th>Condition</th><th>Creator may</th><th title="How many different people must do this action before the document moves">People needed</th><th /></tr></thead>
           <tbody>
             {draft.transitions.map((t, i) => {
               const e = rowErrors(errors, 'transitions', i)
@@ -233,11 +233,15 @@ function EditorBody({ view, notice, setNotice }: { view: WorkflowView; notice: s
                   </td>
                   <td><input type="checkbox" aria-label={`Transition ${i + 1} creator may do this`} checked={t.allowSelfApproval} disabled={readOnly}
                     onChange={(ev) => updateTransition(i, { allowSelfApproval: ev.target.checked })} /></td>
+                  <td><input type="number" min={1} max={10} className="narrow" aria-label={`Transition ${i + 1} people needed`} value={t.requiredApprovals ?? 1} disabled={readOnly}
+                    aria-invalid={Boolean(e.requiredApprovals)}
+                    onChange={(ev) => updateTransition(i, { requiredApprovals: Math.max(1, Math.min(10, Number(ev.target.value) || 1)) })} />
+                    {e.requiredApprovals && <small className="error-text" role="alert">{e.requiredApprovals}</small>}</td>
                   <td>{!readOnly && <button className="link-button" aria-label={`Remove transition ${i + 1}`} onClick={() => set({ ...draft, transitions: draft.transitions.filter((_, j) => j !== i) })}>Remove</button>}</td>
                 </tr>
               )
             })}
-            {draft.transitions.length === 0 && <tr><td colSpan={7} className="empty">No transitions yet: documents cannot leave their first state.</td></tr>}
+            {draft.transitions.length === 0 && <tr><td colSpan={8} className="empty">No transitions yet: documents cannot leave their first state.</td></tr>}
           </tbody>
         </table>
       </div>

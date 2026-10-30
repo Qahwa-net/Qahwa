@@ -35,6 +35,12 @@ public sealed record WorkflowTransition
 
     /// <summary>When false, the person who created the document cannot do this step themselves.</summary>
     public bool AllowSelfApproval { get; init; } = true;
+
+    /// <summary>
+    /// How many different people must do this action before the document moves (1 to 10). With more than one, each person's
+    /// action is recorded and the document stays where it is until the last one is in.
+    /// </summary>
+    public int RequiredApprovals { get; init; } = 1;
 }
 
 /// <summary>The approval process of one DocType. The first state is where new documents start.</summary>
@@ -43,6 +49,7 @@ public sealed record WorkflowDefinition
     public const int MaxStates = 30;
     public const int MaxTransitions = 100;
     public const int MaxCondition = 500;
+    public const int MaxApprovals = 10;
 
     public required string DocType { get; init; }
 
@@ -58,7 +65,8 @@ public sealed record WorkflowDefinition
 }
 
 /// <summary>What one person can do with one document in its workflow.</summary>
-public sealed record WorkflowAction(string Action, string To);
+/// <param name="Required">How many people must do this action; <paramref name="Given"/> of them already have.</param>
+public sealed record WorkflowAction(string Action, string To, int Required = 1, int Given = 0);
 
 public sealed record WorkflowStatus(string StateField, string State, string Color, IReadOnlyList<WorkflowAction> Actions, bool CanEdit);
 
@@ -348,6 +356,8 @@ public sealed partial class WorkflowManager(
                 Add($"transitions[{i}].roles", "Say which roles may do this (at least one).");
             if (from is not null && to is not null && !ValidMove(from.DocStatus, to.DocStatus))
                 Add($"transitions[{i}].to", "A document can be submitted (0 to 1) or cancelled (1 to 2), never moved back, and a cancelled one stays cancelled.");
+            if (t.RequiredApprovals is < 1 or > WorkflowDefinition.MaxApprovals)
+                Add($"transitions[{i}].requiredApprovals", $"Use a number of people from 1 to {WorkflowDefinition.MaxApprovals}.");
             if (t.Condition is { } condition)
             {
                 if (condition.Length > WorkflowDefinition.MaxCondition)

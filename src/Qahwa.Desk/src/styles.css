@@ -896,3 +896,4 @@ kbd { font: .75rem ui-monospace, Consolas, monospace; padding: .05rem .35rem; bo
 .mention-box { position: relative; }
 .mention-box textarea { width: 100%; resize: vertical; }
 .mention-options { inset-block-start: 100%; inset-inline: 0; z-index: 30; max-height: 12rem; }
+.narrow { max-inline-size: 5rem; }

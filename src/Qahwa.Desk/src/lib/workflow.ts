@@ -15,7 +15,7 @@ export function parseRoles(text: string): string[] {
 
 export const newState = (name = ''): WorkflowState => ({ name, color: 'gray', docStatus: 0, editRoles: [] })
 
-export const newTransition = (from = '', to = ''): WorkflowTransition => ({ from, action: '', to, roles: [], condition: '', allowSelfApproval: true })
+export const newTransition = (from = '', to = ''): WorkflowTransition => ({ from, action: '', to, roles: [], condition: '', allowSelfApproval: true, requiredApprovals: 1 })
 
 /** What the builder edits: the saved workflow, or a starting point with the usual Draft state. */
 export function draftFrom(view: WorkflowView): WorkflowDefinition {

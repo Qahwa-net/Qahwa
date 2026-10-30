@@ -52,6 +52,67 @@ public class WorkflowTests
         ],
     };
 
+    // ---- several people must approve ----
+
+    private static readonly UserContext Manager2 = new("manager2@example.com", ["Approver"]);
+
+    private static WorkflowDefinition TwoApprovals() => Standard() with
+    {
+        Transitions = Standard().Transitions.Select(t => t.Action == "Approve" ? t with { RequiredApprovals = 2 } : t).ToList(),
+    };
+
+    private async Task<string> PendingExpenseAsync()
+    {
+        await SaveAsync(TwoApprovals());
+        var id = await ExpenseAsync(Clerk);
+        await DoAsync(id, "Submit for approval", Clerk);
+        return id;
+    }
+
+    [Fact]
+    public async Task A_step_that_needs_two_people_waits_for_the_second_and_each_person_counts_once()
+    {
+        var id = await PendingExpenseAsync();
+
+        var before = (await _engine.Documents.WorkflowStatusAsync("Expense", id, Manager))!.Actions.Single(a => a.Action == "Approve");
+        Assert.Equal((2, 0), (before.Required, before.Given));
+
+        await DoAsync(id, "Approve", Manager);
+        Assert.Equal("Pending Approval", await StateAsync(id));
+        Assert.DoesNotContain("Approve", await ActionsAsync(id, Manager)); // already approved
+        await Assert.ThrowsAsync<PermissionDeniedException>(() => DoAsync(id, "Approve", Manager));
+
+        var waiting = (await _engine.Documents.WorkflowStatusAsync("Expense", id, Manager2))!.Actions.Single(a => a.Action == "Approve");
+        Assert.Equal((2, 1), (waiting.Required, waiting.Given));
+
+        await DoAsync(id, "Approve", Manager2);
+        Assert.Equal("Approved", await StateAsync(id));
+    }
+
+    [Fact]
+    public async Task Moving_on_by_another_action_starts_the_next_round_with_nobody_having_approved()
+    {
+        var id = await PendingExpenseAsync();
+        await DoAsync(id, "Approve", Manager);
+        await DoAsync(id, "Reject", Manager2);
+        await DoAsync(id, "Reopen", Clerk);
+        await DoAsync(id, "Submit for approval", Clerk);
+
+        var again = (await _engine.Documents.WorkflowStatusAsync("Expense", id, Manager))!.Actions.Single(a => a.Action == "Approve");
+        Assert.Equal(0, again.Given);
+    }
+
+    [Fact]
+    public async Task The_number_of_people_must_be_between_one_and_ten()
+    {
+        foreach (var bad in new[] { 0, 11 })
+        {
+            var definition = Standard() with { Transitions = Standard().Transitions.Select(t => t.Action == "Approve" ? t with { RequiredApprovals = bad } : t).ToList() };
+            var ex = await Assert.ThrowsAsync<DocumentValidationException>(() => SaveAsync(definition));
+            Assert.Contains(ex.Errors, e => e.Field.EndsWith("requiredApprovals"));
+        }
+    }
+
     // ---- creating the state field from the builder ----
 
     [Fact]
