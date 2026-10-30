@@ -112,8 +112,8 @@ public sealed partial class DocumentService
         var current = Convert.ToInt32(raw.GetValueOrDefault("docstatus") ?? 0);
         var step = new WorkflowStep(workflow.StateField, target.Name, target.DocStatus != current ? target.DocStatus : null);
         var result = await UpdateCoreAsync(doctype, name, TransitionInput(modified), user, transition: null, step, ct);
-        if (workflow.Transitions.Any(t => t.RequiredApprovals > 1))
-            await ClearApprovalsAsync(doctype, name, ct); // the document moved on: the next state starts with nobody having approved
+        if (workflow.Transitions.Any(t => t.RequiredApprovals > 1) || workflow.States.Any(st => st.EscalateAfterHours > 0))
+            await ClearApprovalsAsync(doctype, name, ct); // the document moved on: the next state starts with nobody having approved and no escalation done
         return result;
     }
 
@@ -138,10 +138,10 @@ public sealed partial class DocumentService
 
     private async Task ClearApprovalsAsync(string doctype, string name, CancellationToken ct)
     {
-        if (!registry.TryGet(ApprovalDocType, out var meta))
-            return;
-        foreach (var vote in await VotesAsync(doctype, name, null, ct))
-            await repository.DeleteAsync(meta, (string)vote["name"]!, null, ct);
+        if (registry.TryGet(ApprovalDocType, out var meta))
+            foreach (var vote in await VotesAsync(doctype, name, null, ct))
+                await repository.DeleteAsync(meta, (string)vote["name"]!, null, ct);
+        await WorkflowEscalationService.ClearAsync(registry, repository, doctype, name, ct);
     }
 
     /// <summary>Documents waiting for this person's action, across every workflow (the inbox on the home page).</summary>

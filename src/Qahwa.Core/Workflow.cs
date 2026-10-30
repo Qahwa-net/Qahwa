@@ -20,6 +20,18 @@ public sealed record WorkflowState
 
     /// <summary>Roles that may edit the document while it is in this state; empty means anyone with write access.</summary>
     public IReadOnlyList<string> EditRoles { get; init; } = [];
+
+    /// <summary>
+    /// Escalation: when a document has been in this state, untouched, for this many hours (1 to 8760; 0 is off), the
+    /// scheduler tells <see cref="EscalateNotify"/> and/or does <see cref="EscalateAction"/> for it. Once per time in the state.
+    /// </summary>
+    public int EscalateAfterHours { get; init; }
+
+    /// <summary>The action (a transition leaving this state, needing only one person) the system does when time is up.</summary>
+    public string? EscalateAction { get; init; }
+
+    /// <summary>People holding these roles are told when time is up.</summary>
+    public IReadOnlyList<string> EscalateNotify { get; init; } = [];
 }
 
 /// <summary>A move from one state to another, done with a named action by people with one of the roles.</summary>
@@ -50,6 +62,8 @@ public sealed record WorkflowDefinition
     public const int MaxTransitions = 100;
     public const int MaxCondition = 500;
     public const int MaxApprovals = 10;
+    public const int MaxEscalateHours = 8760;
+    public const int MaxEscalateRoles = 10;
 
     public required string DocType { get; init; }
 
@@ -286,7 +300,7 @@ public sealed partial class WorkflowManager(
     private static WorkflowDefinition CleanText(WorkflowDefinition d) => d with
     {
         StateField = d.StateField?.Trim() ?? string.Empty,
-        States = (d.States ?? []).Select(s => s with { Name = s.Name?.Trim() ?? string.Empty, Color = string.IsNullOrWhiteSpace(s.Color) ? "gray" : s.Color.Trim().ToLowerInvariant(), EditRoles = Roles(s.EditRoles) }).ToList(),
+        States = (d.States ?? []).Select(s => s with { Name = s.Name?.Trim() ?? string.Empty, Color = string.IsNullOrWhiteSpace(s.Color) ? "gray" : s.Color.Trim().ToLowerInvariant(), EditRoles = Roles(s.EditRoles), EscalateAction = string.IsNullOrWhiteSpace(s.EscalateAction) ? null : s.EscalateAction.Trim(), EscalateNotify = Roles(s.EscalateNotify) }).ToList(),
         Transitions = (d.Transitions ?? []).Select(t => t with
         {
             From = t.From?.Trim() ?? string.Empty, To = t.To?.Trim() ?? string.Empty, Action = t.Action?.Trim() ?? string.Empty,
@@ -330,6 +344,23 @@ public sealed partial class WorkflowManager(
                 Add($"states[{i}].docStatus", "New documents start as drafts, so the first state must be 0.");
             if (state.EditRoles.Any(r => r.Length > FieldTypes.ShortTextLength))
                 Add($"states[{i}].editRoles", "A role name is too long.");
+            if (state.EscalateAfterHours is < 0 or > WorkflowDefinition.MaxEscalateHours)
+                Add($"states[{i}].escalateAfterHours", $"Use 0 (off) or a number of hours up to {WorkflowDefinition.MaxEscalateHours}.");
+            else if (state.EscalateAfterHours > 0)
+            {
+                if (state.EscalateAction is null && state.EscalateNotify.Count == 0)
+                    Add($"states[{i}].escalateAction", "Say what happens when time is up: choose an action, or roles to tell.");
+                if (state.EscalateNotify.Count > WorkflowDefinition.MaxEscalateRoles || state.EscalateNotify.Any(r => r.Length > FieldTypes.ShortTextLength))
+                    Add($"states[{i}].escalateNotify", $"At most {WorkflowDefinition.MaxEscalateRoles} roles.");
+                if (state.EscalateAction is { } escalate)
+                {
+                    var step = d.Transitions.FirstOrDefault(t => string.Equals(t.From, state.Name, StringComparison.OrdinalIgnoreCase) && string.Equals(t.Action, escalate, StringComparison.OrdinalIgnoreCase));
+                    if (step is null)
+                        Add($"states[{i}].escalateAction", $"'{escalate}' is not an action that leaves '{state.Name}'.");
+                    else if (step.RequiredApprovals > 1)
+                        Add($"states[{i}].escalateAction", "An action that needs several people cannot be done by the system.");
+                }
+            }
             if (field?.Type == FieldType.Select && NameRegex().IsMatch(state.Name)
                 && !(field.Options ?? string.Empty).Split('\n', StringSplitOptions.TrimEntries).Contains(state.Name, StringComparer.Ordinal))
             {

@@ -48,6 +48,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **Gallery, map and timeline views**: pictures as tiles, places on a plain grid (no outside map service), documents as bars between two dates ([ADR-049](docs/adr/049-gallery-map-and-timeline-views.md))
 - **Light, dark and automatic themes and a brand**: per-person theme, organisation name, logo, colours and default theme, all checked as plain data, readable colours guaranteed ([ADR-056](docs/adr/056-brand-and-theme.md))
 - **App dependencies**: apps name the apps they need; installed in order, bad graphs stop start-up ([ADR-085](docs/adr/085-app-dependencies.md))
+- **Escalation**: a workflow state that sits untouched for N hours tells some roles and/or moves the document on ([ADR-119](docs/adr/119-workflow-escalation.md))
 - **Approvals by several people**: a workflow step can need 2 to 10 different people before a document moves ([ADR-118](docs/adr/118-parallel-approvals.md))
 - **Background job queue**: three queues with retries, in the database ([ADR-117](docs/adr/117-background-job-queue.md))
 - **Stricter security settings**: password length, sign-in length and password age, never looser than configuration ([ADR-114](docs/adr/114-stricter-security-settings.md))
@@ -129,7 +130,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **List sidebar, status colours and comment counts**: a Group by panel with counts per value (click to filter), coloured status labels per DocType, and a comment count on each row ([ADR-017](docs/adr/017-list-sidebar-status-comment-counts.md))
 - Desk (React + TypeScript): login, DocType sidebar, generic list view (search, dynamic filters kept in the URL, sorting, paging) and form view (field controls per type, server-side validation errors inline, concurrent-edit detection, delete), account page with change password. Layout is right-to-left ready and works on phones.
 
-Not yet (see the [plan](docs/PLAN.md)): escalation and email approval links, a page builder, virtual DocTypes, a site manager UI, payment and chat integrations, a typed-document source generator and a flagship app.
+Not yet (see the [plan](docs/PLAN.md)): email approval links, a page builder, virtual DocTypes, a site manager UI, payment and chat integrations, a typed-document source generator and a flagship app.
 
 ## Try it
 

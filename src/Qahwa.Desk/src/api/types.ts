@@ -498,6 +498,12 @@ export interface WorkflowState {
   color: IndicatorColor
   docStatus: number
   editRoles: string[]
+  /** Escalate after this many hours in the state with no change (0 or missing is off). */
+  escalateAfterHours?: number
+  /** The action the system does when time is up (a transition leaving this state). */
+  escalateAction?: string | null
+  /** Roles told when time is up. */
+  escalateNotify?: string[]
 }
 
 export interface WorkflowTransition {

@@ -8,7 +8,7 @@ using Qahwa.Core;
 /// with <c>Qahwa:Scheduler:Enabled = false</c>; change the pace with <c>Qahwa:Scheduler:IntervalSeconds</c> (10 to 3600, default 300).
 /// </summary>
 public sealed class SchedulerService(
-    AutoRepeatService autoRepeat, NotificationRuleEngine notificationRules, EmailService email, WebhookService webhooks, ErrorLogService errorLog,
+    AutoRepeatService autoRepeat, WorkflowEscalationService escalations, NotificationRuleEngine notificationRules, EmailService email, WebhookService webhooks, ErrorLogService errorLog,
     BackupService backup, BackupOptions backupOptions, AppJobRunner appJobs, DeletedDocumentService deletedDocuments, AccessLogService accessLog, AutoEmailReportService emailedReports,
     EmailDigestService digests, AppInstaller installer, OAuthService oauth, IncomingMailService incomingMail, BackgroundJobService backgroundJobs, ServerScriptEngine serverScripts, NotificationService notifications, JobLogService jobLog, IConfiguration configuration, ILogger<SchedulerService> logger) : BackgroundService
 {
@@ -58,6 +58,12 @@ public sealed class SchedulerService(
             {
                 var run = await autoRepeat.RunDueAsync(stoppingToken);
                 return run.Created + run.Failed > 0 ? $"{run.Created} document(s) made, {run.Failed} failed." : null;
+            }, stoppingToken);
+
+            await StepAsync("workflow escalation", async () =>
+            {
+                var (escalated, failed) = await escalations.RunDueAsync(stoppingToken);
+                return escalated + failed > 0 ? $"{escalated} escalated, {failed} failed." : null;
             }, stoppingToken);
 
             await StepAsync("emailed reports", async () =>

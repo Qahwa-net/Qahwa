@@ -113,6 +113,78 @@ public class WorkflowTests
         }
     }
 
+    // ---- escalation ----
+
+    private static WorkflowDefinition Escalating(int hours, string? action, params string[] notify) => Standard() with
+    {
+        States = Standard().States.Select(st => st.Name == "Pending Approval" ? st with { EscalateAfterHours = hours, EscalateAction = action, EscalateNotify = notify } : st).ToList(),
+    };
+
+    private async Task DirectorUserAsync()
+    {
+        if (!await _engine.Repository.ExistsAsync(_engine.Registry.Get("Role"), "Director"))
+            await _engine.Documents.InsertAsync("Role", Values(("role_name", "Director")), TestUsers.Admin);
+        await _engine.Documents.InsertAsync("User", Values(("email", Director.User), ("full_name", "Dee Rector"), ("enabled", true)), TestUsers.Admin);
+        await _engine.Documents.InsertAsync("Has Role", Values(("user", Director.User), ("role", "Director")), TestUsers.Admin);
+    }
+
+    private async Task<string> SubmittedExpenseAsync()
+    {
+        var id = await ExpenseAsync(Clerk);
+        await DoAsync(id, "Submit for approval", Clerk);
+        return id;
+    }
+
+    [Fact]
+    public async Task An_overdue_document_tells_the_roles_once_and_stays_where_it_is()
+    {
+        await DirectorUserAsync();
+        await SaveAsync(Escalating(24, null, "Director"));
+        var id = await SubmittedExpenseAsync();
+
+        _engine.Clock.Advance(TimeSpan.FromHours(23));
+        Assert.Equal((0, 0), await _engine.WorkflowEscalations.RunDueAsync());
+
+        _engine.Clock.Advance(TimeSpan.FromHours(2));
+        Assert.Equal((1, 0), await _engine.WorkflowEscalations.RunDueAsync());
+        Assert.Equal((0, 0), await _engine.WorkflowEscalations.RunDueAsync()); // once per wait
+
+        var inbox = await _engine.Notifications.ListAsync(Director, unreadOnly: false, limit: 50, before: null);
+        Assert.Contains(inbox, n => n.Subject.Contains("has been \"Pending Approval\" for 24 hour(s)"));
+        Assert.Equal("Pending Approval", await StateAsync(id));
+    }
+
+    [Fact]
+    public async Task An_overdue_document_can_be_moved_on_by_the_system_and_a_later_wait_escalates_again()
+    {
+        await SaveAsync(Escalating(48, "Reject"));
+        var id = await SubmittedExpenseAsync();
+
+        _engine.Clock.Advance(TimeSpan.FromHours(49));
+        Assert.Equal((1, 0), await _engine.WorkflowEscalations.RunDueAsync());
+        Assert.Equal("Rejected", await StateAsync(id));
+
+        await DoAsync(id, "Reopen", Clerk);
+        await DoAsync(id, "Submit for approval", Clerk);
+        _engine.Clock.Advance(TimeSpan.FromHours(49));
+        Assert.Equal((1, 0), await _engine.WorkflowEscalations.RunDueAsync());
+        Assert.Equal("Rejected", await StateAsync(id));
+    }
+
+    [Fact]
+    public async Task Escalation_settings_are_checked()
+    {
+        async Task<DocumentValidationException> Fails(WorkflowDefinition d) => await Assert.ThrowsAsync<DocumentValidationException>(() => SaveAsync(d));
+
+        Assert.Contains((await Fails(Escalating(24, null))).Errors, e => e.Field == "states[1].escalateAction"); // nothing to do
+        Assert.Contains((await Fails(Escalating(24, "Nope"))).Errors, e => e.Message.Contains("not an action that leaves"));
+        Assert.Contains((await Fails(Escalating(99999, null, "Director"))).Errors, e => e.Field == "states[1].escalateAfterHours");
+
+        var several = Escalating(24, "Approve");
+        several = several with { Transitions = several.Transitions.Select(t => t.Action == "Approve" ? t with { RequiredApprovals = 2 } : t).ToList() };
+        Assert.Contains((await Fails(several)).Errors, e => e.Message.Contains("several people"));
+    }
+
     // ---- creating the state field from the builder ----
 
     [Fact]

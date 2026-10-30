@@ -162,7 +162,7 @@ function EditorBody({ view, notice, setNotice }: { view: WorkflowView; notice: s
       <h3>States</h3>
       <div className="table-wrap">
         <table aria-label="States">
-          <thead><tr><th>State</th><th>Colour</th><th>Document status</th><th>Roles who can edit</th><th /></tr></thead>
+          <thead><tr><th>State</th><th>Colour</th><th>Document status</th><th>Roles who can edit</th><th title="What happens when a document sits in this state with no change">Escalate</th><th /></tr></thead>
           <tbody>
             {draft.states.map((s, i) => {
               const e = rowErrors(errors, 'states', i)
@@ -192,6 +192,23 @@ function EditorBody({ view, notice, setNotice }: { view: WorkflowView; notice: s
                     <input aria-label={`State ${i + 1} edit roles`} placeholder="anyone with write access" disabled={readOnly}
                       defaultValue={s.editRoles.join(', ')} onBlur={(ev) => updateState(i, { editRoles: parseRoles(ev.target.value) })} />
                     {e.editRoles && <small className="error-text" role="alert">{e.editRoles}</small>}
+                  </td>
+                  <td>
+                    <div className="escalate-cell">
+                      <label>After <input type="number" min={0} max={8760} className="narrow" aria-label={`State ${i + 1} escalate after hours`} value={s.escalateAfterHours ?? 0} disabled={readOnly}
+                        aria-invalid={Boolean(e.escalateAfterHours)}
+                        onChange={(ev) => updateState(i, { escalateAfterHours: Math.max(0, Math.min(8760, Number(ev.target.value) || 0)) })} /> hours</label>
+                      {(s.escalateAfterHours ?? 0) > 0 && <>
+                        <Select aria-label={`State ${i + 1} escalation action`} value={s.escalateAction ?? ''} disabled={readOnly} aria-invalid={Boolean(e.escalateAction)}
+                          onChange={(ev) => updateState(i, { escalateAction: ev.target.value || null })}>
+                          <option value="">— do nothing —</option>
+                          {draft.transitions.filter((t) => t.from === s.name && t.action && (t.requiredApprovals ?? 1) <= 1).map((t) => <option key={t.action} value={t.action}>{t.action}</option>)}
+                        </Select>
+                        <input aria-label={`State ${i + 1} escalation notify roles`} placeholder="tell roles: Role, Role" disabled={readOnly} aria-invalid={Boolean(e.escalateNotify)}
+                          defaultValue={(s.escalateNotify ?? []).join(', ')} onBlur={(ev) => updateState(i, { escalateNotify: parseRoles(ev.target.value) })} />
+                      </>}
+                      {(e.escalateAfterHours ?? e.escalateAction ?? e.escalateNotify) && <small className="error-text" role="alert">{e.escalateAfterHours ?? e.escalateAction ?? e.escalateNotify}</small>}
+                    </div>
                   </td>
                   <td>{!readOnly && <button className="link-button" aria-label={`Remove state ${s.name || i + 1}`} onClick={() => set(removeState(draft, i))}>Remove</button>}</td>
                 </tr>

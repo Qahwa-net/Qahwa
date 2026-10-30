@@ -154,6 +154,7 @@ public sealed class TestEngine
         AssignmentRuleManager = new AssignmentRuleManager(Registry, AssignmentRuleStore, AssignmentRuleCatalog, Repository, Permissions, Clock);
         Workflows = new WorkflowManager(Registry, WorkflowStore, WorkflowCatalog, Permissions, Clock);
         WorkflowStateFields = new WorkflowStateFieldService(Registry, Designer, Customization);
+        WorkflowEscalations = new WorkflowEscalationService(Registry, Repository, Documents, WorkflowCatalog, Notifications, History);
         AuthStore = new InMemoryAuthStore();
         AuthOptions = new AuthOptions { HashIterations = 1000 };
         SecurityPolicy = new SecurityPolicyService(Registry, Repository, Options.Create(AuthOptions));
@@ -208,6 +209,7 @@ public sealed class TestEngine
     public InMemoryWorkflowStore WorkflowStore { get; }
     public WorkflowManager Workflows { get; }
     public WorkflowStateFieldService WorkflowStateFields { get; }
+    public WorkflowEscalationService WorkflowEscalations { get; }
     public AutoRepeatService AutoRepeat { get; }
     public AssignmentRuleCatalog AssignmentRuleCatalog { get; }
     public InMemoryAssignmentRuleStore AssignmentRuleStore { get; }
