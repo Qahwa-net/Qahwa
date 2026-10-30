@@ -11,6 +11,18 @@ using Qahwa.Core.Expressions;
 
 namespace Qahwa.Core;
 
+/// <summary>An extra header sent with every delivery of a webhook (for example an <c>Authorization</c> token the receiver wants).</summary>
+public sealed record WebhookHeader
+{
+    public required string Name { get; init; }
+
+    /// <summary>Write-only like the secret: never returned, and a blank value on save keeps the stored one.</summary>
+    public string? Value { get; init; }
+
+    /// <summary>True when a value is stored (what the API returns instead of the value).</summary>
+    public bool ValueSet { get; init; }
+}
+
 /// <summary>One webhook: when something happens to a document, tell another system by posting JSON to its address.</summary>
 public sealed record Webhook
 {
@@ -26,6 +38,26 @@ public sealed record Webhook
     public const int MaxCondition = 500;
     public const int MinSecret = 16;
     public const int MaxSecret = 200;
+    public const int MaxHeaders = 10;
+    public const int MaxHeaderValue = 500;
+
+    /// <summary>Headers that belong to the transport or to Qahwa's own signature and cannot be set by a webhook.</summary>
+    private static readonly HashSet<string> ReservedHeaders = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Host", "Content-Type", "Content-Length", "Content-Encoding", "Transfer-Encoding", "Connection", "Keep-Alive", "Upgrade", "Expect", "TE",
+        "Trailer", "Cookie", "Set-Cookie", "User-Agent", "Accept-Encoding", "Via", "Forwarded", "Origin", "Referer", "Date",
+    };
+
+    /// <summary>Why a header name cannot be used, or null.</summary>
+    public static string? HeaderNameProblem(string name)
+    {
+        if (!System.Text.RegularExpressions.Regex.IsMatch(name, "^[A-Za-z][A-Za-z0-9-]{0,49}$"))
+            return "Use a header name of letters, digits and dashes (up to 50), starting with a letter.";
+        if (ReservedHeaders.Contains(name) || name.StartsWith("X-Qahwa-", StringComparison.OrdinalIgnoreCase) || name.StartsWith("X-Forwarded-", StringComparison.OrdinalIgnoreCase)
+            || name.StartsWith("Proxy-", StringComparison.OrdinalIgnoreCase) || name.StartsWith("Sec-", StringComparison.OrdinalIgnoreCase))
+            return $"'{name}' is used by Qahwa or the connection itself and cannot be set.";
+        return null;
+    }
 
     public required string Name { get; init; }
     public bool Active { get; init; } = true;
@@ -43,6 +75,9 @@ public sealed record Webhook
 
     /// <summary>The fields to send; empty means every field a person at the lowest permission level could see (never passwords).</summary>
     public IReadOnlyList<string> Fields { get; init; } = [];
+
+    /// <summary>Extra headers for every delivery (up to <see cref="MaxHeaders"/>). Names the framework needs for itself cannot be used.</summary>
+    public IReadOnlyList<WebhookHeader> Headers { get; init; } = [];
 }
 
 public sealed record WebhookSet
@@ -199,7 +234,14 @@ public sealed class WebhookManager(
         meta.Fields.Where(f => FieldTypes.HasColumn(f.Type) && f.Type != FieldType.Password).Select(f => f.Name).ToList();
 
     private static WebhookSet Strip(WebhookSet set) =>
-        set with { Hooks = set.Hooks.Select(h => h with { Secret = null, SecretSet = !string.IsNullOrEmpty(h.Secret) }).ToList() };
+        set with
+        {
+            Hooks = set.Hooks.Select(h => h with
+            {
+                Secret = null, SecretSet = !string.IsNullOrEmpty(h.Secret),
+                Headers = h.Headers.Select(x => x with { Value = null, ValueSet = !string.IsNullOrEmpty(x.Value) }).ToList(),
+            }).ToList(),
+        };
 
     private static WebhookSet? TryParse(string json)
     {
@@ -309,8 +351,16 @@ public sealed class WebhookManager(
         {
             var name = h.Name?.Trim() ?? string.Empty;
             var secret = string.IsNullOrEmpty(h.Secret) ? previous.GetValueOrDefault(name)?.Secret : h.Secret;
+            var before = previous.GetValueOrDefault(name)?.Headers ?? [];
+            var headers = (h.Headers ?? []).Select(x =>
+            {
+                var headerName = x.Name?.Trim() ?? string.Empty;
+                var value = string.IsNullOrEmpty(x.Value) ? before.FirstOrDefault(b => string.Equals(b.Name, headerName, StringComparison.OrdinalIgnoreCase))?.Value : x.Value.Trim();
+                return new WebhookHeader { Name = headerName, Value = value, ValueSet = !string.IsNullOrEmpty(value) };
+            }).ToList();
             return h with
             {
+                Headers = headers,
                 Name = name, Event = h.Event?.Trim() ?? string.Empty, Url = h.Url?.Trim() ?? string.Empty,
                 Condition = string.IsNullOrWhiteSpace(h.Condition) ? null : h.Condition.Trim(),
                 Secret = secret, SecretSet = !string.IsNullOrEmpty(secret),
@@ -347,6 +397,22 @@ public sealed class WebhookManager(
             if (h.Fields.Any(f => !sendable.Contains(f)))
                 Add($"hooks[{i}].fields", "Use fields of this DocType (passwords cannot be sent).");
 
+            if (h.Headers.Count > Webhook.MaxHeaders)
+                Add($"hooks[{i}].headers", $"At most {Webhook.MaxHeaders} extra headers.");
+            var headerNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            for (var n = 0; n < h.Headers.Count; n++)
+            {
+                var header = h.Headers[n];
+                if (Webhook.HeaderNameProblem(header.Name) is { } nameProblem)
+                    Add($"hooks[{i}].headers[{n}].name", nameProblem);
+                else if (!headerNames.Add(header.Name))
+                    Add($"hooks[{i}].headers[{n}].name", $"'{header.Name}' is already used.");
+                if (string.IsNullOrEmpty(header.Value))
+                    Add($"hooks[{i}].headers[{n}].value", "Give the header a value.");
+                else if (header.Value.Length > Webhook.MaxHeaderValue || header.Value.Any(c => c < ' ' || c > '~'))
+                    Add($"hooks[{i}].headers[{n}].value", $"Use plain printable characters, up to {Webhook.MaxHeaderValue}.");
+            }
+
             if (h.Condition is { } condition)
             {
                 if (condition.Length > Webhook.MaxCondition)
@@ -381,7 +447,8 @@ public sealed class WebhookService(
     IDocumentRepository repository,
     DocumentService documents,
     IWebhookSender sender,
-    HistoryRecorder history)
+    HistoryRecorder history,
+    IWebhookStore? store = null)
 {
     public const string DocTypeName = "Webhook Delivery";
     public const int MaxAttempts = 5;
@@ -501,6 +568,56 @@ public sealed class WebhookService(
         return Convert.ToHexString(mac).ToLowerInvariant();
     }
 
+    /// <summary>The headers of one delivery: the hook's own extra headers first, then Qahwa's, which can never be overridden.</summary>
+    private static Dictionary<string, string> BuildHeaders(Webhook hook, string eventName, string deliveryId, string body, long timestamp)
+    {
+        var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var extra in hook.Headers.Where(x => !string.IsNullOrEmpty(x.Value) && Webhook.HeaderNameProblem(x.Name) is null))
+            headers[extra.Name] = extra.Value!;
+        headers["X-Qahwa-Event"] = eventName;
+        headers["X-Qahwa-Delivery"] = deliveryId;
+        headers["X-Qahwa-Signature"] = $"t={timestamp},v1={Sign(hook.Secret!, timestamp, body)}";
+        return headers;
+    }
+
+    private readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTime> _lastTest = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Sends one sample delivery (<c>event: ping</c>) to a saved webhook, straight away, so a System Manager can see that the address, the
+    /// headers and the secret work. It uses the same sender (public addresses only), signature and headers as a real delivery, sends no
+    /// document data, and is limited to one try every few seconds per webhook. Works even when the webhook is switched off.
+    /// </summary>
+    public async Task<WebhookResult> TestAsync(string doctype, string hookName, IUserContext user, CancellationToken ct = default)
+    {
+        if (!user.IsAuthenticated)
+            throw new UnauthenticatedException();
+        if (!(user.Roles.Contains(UserContext.AdministratorRole, StringComparer.Ordinal) || user.Roles.Contains("System Manager", StringComparer.Ordinal)))
+            throw new PermissionDeniedException("Only a System Manager can manage webhooks.");
+        if (store is null || await store.GetAsync(doctype, ct) is not { } stored
+            || DocTypeLoader.ParseWebhooks(stored.Definition).Hooks.FirstOrDefault(h => h.Name == hookName) is not { } hook)
+            throw new NotFoundException("Save the webhook first, then try it.");
+
+        var key = doctype + "\u0000" + hookName;
+        var now = history.Now();
+        if (_lastTest.TryGetValue(key, out var last) && now - last < TimeSpan.FromSeconds(5))
+            throw new ConflictException("Wait a few seconds before trying again.");
+        _lastTest[key] = now;
+
+        var body = JsonSerializer.Serialize(new Dictionary<string, object?>
+        {
+            ["event"] = "ping", ["doctype"] = doctype, ["name"] = null, ["timestamp"] = history.Now().ToString("o", CultureInfo.InvariantCulture), ["data"] = null, ["test"] = true,
+        }, Json);
+        var timestamp = new DateTimeOffset(DateTime.SpecifyKind(history.Now(), DateTimeKind.Utc)).ToUnixTimeSeconds();
+        try
+        {
+            return await sender.SendAsync(hook.Url, BuildHeaders(hook, "ping", "test-" + Guid.NewGuid().ToString("N")[..12], body, timestamp), body, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return new WebhookResult(0, new string(ex.Message.Select(c => char.IsControl(c) ? ' ' : c).Take(300).ToArray()));
+        }
+    }
+
     /// <summary>Sends what is due. Safe to run on several servers at once.</summary>
     public async Task<(int Sent, int Failed)> DeliverPendingAsync(CancellationToken ct = default)
     {
@@ -531,12 +648,7 @@ public sealed class WebhookService(
             {
                 var body = (string)row["payload"]!;
                 var timestamp = new DateTimeOffset(DateTime.SpecifyKind(history.Now(), DateTimeKind.Utc)).ToUnixTimeSeconds();
-                var headers = new Dictionary<string, string>
-                {
-                    ["X-Qahwa-Event"] = (string)row["event"]!,
-                    ["X-Qahwa-Delivery"] = (string)row["name"]!,
-                    ["X-Qahwa-Signature"] = $"t={timestamp},v1={Sign(hook.Secret, timestamp, body)}",
-                };
+                var headers = BuildHeaders(hook, (string)row["event"]!, (string)row["name"]!, body, timestamp);
                 try
                 {
                     result = await sender.SendAsync(hook.Url, headers, body, ct);

@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useParams } from 'react-router-dom'
 import { ApiError, api } from '../api/client.ts'
-import type { Webhook, WebhookEvent, WebhookSet, WebhookView } from '../api/types.ts'
+import type { Webhook, WebhookEvent, WebhookSet, WebhookTestResult, WebhookView } from '../api/types.ts'
 import { Icon, IconButton } from '../controls/Icon.tsx'
 import { ConfirmDialog } from '../controls/Modal.tsx'
 import { useToast } from '../controls/Toast.tsx'
@@ -86,6 +86,13 @@ function Body({ view }: { view: WebhookView }) {
     onSuccess: async () => { setRemoving(false); toast('Webhooks removed'); await queryClient.invalidateQueries({ queryKey: ['webhooks'] }) },
     onError: () => setRemoving(false),
   })
+  const [tested, setTested] = useState<Record<string, WebhookTestResult | string>>({})
+  const test = useMutation({
+    mutationFn: (hook: string) => api.webhooks.test(view.docType, hook),
+    onSuccess: (result, hook) => setTested((t) => ({ ...t, [hook]: result })),
+    onError: (error, hook) => setTested((t) => ({ ...t, [hook]: error instanceof ApiError ? (error.details[0]?.message ?? error.message) : 'Could not send the test.' })),
+  })
+  const dirty = JSON.stringify(toSet(draft)) !== JSON.stringify(toSet(structuredClone(view.set)))
   const update = (i: number, patch: Partial<Webhook>) => setDraft({ ...draft, hooks: draft.hooks.map((h, j) => (j === i ? { ...h, ...patch } : h)) })
 
   return (
@@ -135,6 +142,39 @@ function Body({ view }: { view: WebhookView }) {
                   <small className="muted">Each post carries <code>X-Qahwa-Signature: t=…,v1=…</code>, the HMAC-SHA256 of the timestamp, a dot and the body. After saving the secret cannot be shown again. A secret you generated is visible only until you save: copy it first.</small>
                   {hook.secret && <input aria-label={`${label} secret (to copy)`} readOnly className="mono" value={hook.secret} onFocus={(ev) => ev.currentTarget.select()} />}
                   {e.secret && <small className="error-text" role="alert">{e.secret}</small>}
+                </div>
+                <fieldset className="field full">
+                  <legend>Extra headers <span className="muted">(optional, for example an Authorization token the receiver wants)</span></legend>
+                  {hook.headers.map((h, n) => {
+                    const he = rowErrors(e, 'headers', n)
+                    return (
+                      <div key={n} className="filter-row preview-row">
+                        <input aria-label={`${label} header ${n + 1} name`} placeholder="Header-Name" value={h.name} disabled={readOnly} aria-invalid={Boolean(he.name)}
+                          onChange={(ev) => update(i, { headers: hook.headers.map((x, j) => (j === n ? { ...x, name: ev.target.value } : x)) })} />
+                        <input aria-label={`${label} header ${n + 1} value`} type="password" autoComplete="new-password" disabled={readOnly} aria-invalid={Boolean(he.value)}
+                          placeholder={h.valueSet ? 'Set. Leave blank to keep it.' : 'Value'} value={h.value ?? ''}
+                          onChange={(ev) => update(i, { headers: hook.headers.map((x, j) => (j === n ? { ...x, value: ev.target.value } : x)) })} />
+                        {!readOnly && <IconButton icon="trash" label={`Remove header ${h.name || n + 1}`} tone="danger" onClick={() => update(i, { headers: hook.headers.filter((_, j) => j !== n) })} />}
+                        {(he.name ?? he.value) && <small className="error-text" role="alert">{he.name ?? he.value}</small>}
+                      </div>
+                    )
+                  })}
+                  {e.headers && <small className="error-text" role="alert">{e.headers}</small>}
+                  {!readOnly && <button type="button" className="btn small" onClick={() => update(i, { headers: [...hook.headers, { name: '', value: '', valueSet: false }] })}><Icon name="plus" /> Add header</button>}
+                  <small className="muted">Values are never shown again after saving. Host, Content-Type and the <code>X-Qahwa-…</code> headers belong to Qahwa and cannot be set.</small>
+                </fieldset>
+                <div className="field full">
+                  <div className="filter-row preview-row">
+                    <button type="button" className="btn small" disabled={!view.exists || dirty || test.isPending || !view.set.hooks.some((x) => x.name === hook.name)} onClick={() => test.mutate(hook.name)}>
+                      {test.isPending && test.variables === hook.name ? 'Sending…' : 'Send a test'}
+                    </button>
+                    {tested[hook.name] !== undefined && (typeof tested[hook.name] === 'string'
+                      ? <small className="error-text" role="alert">{tested[hook.name] as string}</small>
+                      : (tested[hook.name] as WebhookTestResult).ok
+                        ? <small role="status">The receiver answered {(tested[hook.name] as WebhookTestResult).statusCode}: it works.</small>
+                        : <small className="error-text" role="alert">{(tested[hook.name] as WebhookTestResult).error ?? `The receiver answered ${(tested[hook.name] as WebhookTestResult).statusCode}.`}</small>)}
+                  </div>
+                  <small className="muted">Sends one signed sample message (<code>event: ping</code>, no document data) to the saved address, even if the webhook is switched off. {dirty ? 'Save your changes first.' : ''}</small>
                 </div>
                 <fieldset className="field full check-group">
                   <legend>Fields to send <span className="muted">(none ticked = all fields most people can see)</span></legend>

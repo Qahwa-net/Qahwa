@@ -649,11 +649,15 @@ public sealed partial class DocumentService(
         if (access == AccessLevel.None && sharedNames.Count == 0)
             permissions.Require(meta, user, PermAction.Read); // throws
         var labels = request.Filters.Where(LabelService.IsLabelFilter).ToList();
-        if (labels.Count > 0)
-            request = request with { Filters = request.Filters.Where(f => !LabelService.IsLabelFilter(f)).ToList() };
-        var query = Normalize(meta, request, permissions.FieldAccessFor(meta, user, documentOwner: null, creating: false), user);
+        var fieldAccess = permissions.FieldAccessFor(meta, user, documentOwner: null, creating: false);
+        var childFilters = request.Filters.Where(f => !LabelService.IsLabelFilter(f) && IsChildFilter(meta, f)).ToList();
+        if (labels.Count > 0 || childFilters.Count > 0)
+            request = request with { Filters = request.Filters.Where(f => !LabelService.IsLabelFilter(f) && !childFilters.Contains(f)).ToList() };
+        var query = Normalize(meta, request, fieldAccess, user);
         if (labels.Count > 0)
             query = query with { Filters = [.. query.Filters, .. labels.Select(f => LabelService.ToQueryFilter(registry, meta.Name, f, user))] };
+        if (childFilters.Count > 0)
+            query = query with { Filters = [.. query.Filters, .. ChildMatchFilters(meta, childFilters, fieldAccess, user)] };
 
         if (access == AccessLevel.None)
             query = query with { Filters = [.. query.Filters, new QueryFilter("name", FilterOp.In, sharedNames.Cast<object?>().ToList())] };
@@ -672,6 +676,33 @@ public sealed partial class DocumentService(
         }
 
         return query;
+    }
+
+    /// <summary>A filter on a field of a child table, written <c>table_field.child_field</c> (for example <c>lines.item</c>).</summary>
+    private static bool IsChildFilter(DocTypeMeta meta, RawFilter filter)
+    {
+        var dot = filter.Field.IndexOf('.', StringComparison.Ordinal);
+        return dot > 0 && TableFields(meta).Any(t => t.Name == filter.Field[..dot]);
+    }
+
+    /// <summary>
+    /// Turns <c>lines.item = Pen</c> filters into "has a row of <c>lines</c> where item is Pen". Several filters on the same table must hold
+    /// on the same row. The table field must be readable by the person, and the row's fields are checked like any filter (unknown fields,
+    /// passwords and fields above their permission level are refused).
+    /// </summary>
+    private IEnumerable<QueryFilter> ChildMatchFilters(DocTypeMeta meta, List<RawFilter> raws, FieldAccess access, IUserContext user)
+    {
+        foreach (var group in raws.GroupBy(f => f.Field[..f.Field.IndexOf('.', StringComparison.Ordinal)], StringComparer.Ordinal))
+        {
+            var table = TableFields(meta).First(t => t.Name == group.Key);
+            if (!access.CanRead(table))
+                throw new DocumentValidationException([new FieldError(group.Key, "You do not have permission to filter on this field.")]);
+
+            var child = registry.Get(table.Options!);
+            var childAccess = permissions.IsAdministrator(user) ? FieldAccess.Everything : new FieldAccess(new HashSet<int> { 0 }, new HashSet<int> { 0 });
+            var inner = Normalize(child, new ListRequest { Filters = group.Select(f => f with { Field = f.Field[(group.Key.Length + 1)..] }).ToList() }, childAccess, user);
+            yield return new QueryFilter("name", FilterOp.ChildMatches, new ChildMatch(child, meta.Name, table.Name, inner.Filters));
+        }
     }
 
     /// <summary>

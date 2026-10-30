@@ -873,6 +873,19 @@ export interface ApiKeyCreated {
 
 export type WebhookEvent = 'New' | 'Update' | 'Submit' | 'Cancel' | 'Delete'
 
+/** An extra header sent with every delivery. The value is write-only: blank keeps the stored one. */
+export interface WebhookHeader {
+  name: string
+  value?: string | null
+  valueSet: boolean
+}
+
+export interface WebhookTestResult {
+  ok: boolean
+  statusCode: number
+  error?: string | null
+}
+
 export interface Webhook {
   name: string
   active: boolean
@@ -883,6 +896,7 @@ export interface Webhook {
   secret?: string | null
   secretSet: boolean
   fields: string[]
+  headers: WebhookHeader[]
 }
 
 export interface WebhookSet {

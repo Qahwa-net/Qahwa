@@ -42,6 +42,84 @@ public class WebhookTests
     private async Task<List<Dictionary<string, object?>>> DeliveriesAsync() =>
         (await _engine.Documents.ListAsync("Webhook Delivery", new ListRequest { Fields = ["webhook", "event", "status", "attempts", "last_error", "response_code", "reference_name"], OrderBy = "creation", Descending = false, Limit = 100 }, TestUsers.Admin)).Data.ToList();
 
+    // ---- extra headers and the test button ----
+
+    private static Webhook WithHeaders(params (string Name, string? Value)[] headers) =>
+        Hook() with { Headers = headers.Select(h => new WebhookHeader { Name = h.Name, Value = h.Value }).ToList() };
+
+    [Fact]
+    public async Task Extra_headers_are_sent_but_never_shown_again_and_a_blank_value_keeps_the_stored_one()
+    {
+        var saved = await SaveAsync(WithHeaders(("Authorization", "Bearer s3cret-token"), ("X-Tenant", "acme")));
+
+        var shown = saved.Set.Hooks.Single().Headers;
+        Assert.Equal(["Authorization", "X-Tenant"], shown.Select(h => h.Name));
+        Assert.All(shown, h => { Assert.Null(h.Value); Assert.True(h.ValueSet); });
+
+        // Saving again with the values left blank keeps them; changing one replaces only that one.
+        await _engine.WebhookManager.SaveAsync("Shipment", new WebhookSet { DocType = "Shipment", Hooks = [WithHeaders(("Authorization", ""), ("X-Tenant", "globex")) with { Secret = null }] }, saved.Modified, TestUsers.SystemManager);
+        await ShipmentAsync();
+        await _engine.Webhooks.DeliverPendingAsync();
+
+        var headers = Assert.Single(_engine.WebhookSender.Sent).Headers;
+        Assert.Equal("Bearer s3cret-token", headers["Authorization"]);
+        Assert.Equal("globex", headers["X-Tenant"]);
+        Assert.StartsWith("t=", headers["X-Qahwa-Signature"]); // Qahwa's own headers are still there
+    }
+
+    [Fact]
+    public async Task Headers_that_belong_to_the_connection_or_to_Qahwa_are_refused_with_the_reason()
+    {
+        async Task<DocumentValidationException> Fails(params (string, string?)[] headers) =>
+            await Assert.ThrowsAsync<DocumentValidationException>(() => SaveAsync(WithHeaders(headers)));
+
+        Assert.Contains((await Fails(("Host", "evil.example"))).Errors, e => e.Field == "hooks[0].headers[0].name");
+        Assert.Contains((await Fails(("X-Qahwa-Signature", "forged"))).Errors, e => e.Field == "hooks[0].headers[0].name");
+        Assert.Contains((await Fails(("Content-Length", "1"))).Errors, e => e.Field == "hooks[0].headers[0].name");
+        Assert.Contains((await Fails(("Bad Name", "x"))).Errors, e => e.Field == "hooks[0].headers[0].name");
+        Assert.Contains((await Fails(("X-A", "x"), ("x-a", "y"))).Errors, e => e.Message.Contains("already used"));
+        Assert.Contains((await Fails(("X-A", "line one\r\nX-Injected: yes"))).Errors, e => e.Field == "hooks[0].headers[0].value");
+        Assert.Contains((await Fails(("X-A", ""))).Errors, e => e.Field == "hooks[0].headers[0].value");
+        Assert.Contains((await Fails(Enumerable.Range(0, 11).Select(i => ($"X-H{i}", (string?)"v")).ToArray())).Errors, e => e.Field == "hooks[0].headers");
+    }
+
+    [Fact]
+    public async Task The_test_button_sends_a_signed_ping_with_no_document_data_and_reports_the_answer()
+    {
+        await SaveAsync(WithHeaders(("X-Tenant", "acme")) with { Active = false }); // works even when switched off
+
+        var result = await _engine.Webhooks.TestAsync("Shipment", "Notify", TestUsers.SystemManager);
+
+        Assert.True(result.Ok);
+        var sent = Assert.Single(_engine.WebhookSender.Sent);
+        var body = JsonDocument.Parse(sent.Body).RootElement;
+        Assert.Equal("ping", body.GetProperty("event").GetString());
+        Assert.True(body.GetProperty("test").GetBoolean());
+        Assert.Equal(JsonValueKind.Null, body.GetProperty("data").ValueKind);
+        Assert.Equal("acme", sent.Headers["X-Tenant"]);
+        var parts = sent.Headers["X-Qahwa-Signature"].Split(',');
+        Assert.Equal(WebhookService.Sign(Secret, long.Parse(parts[0]["t=".Length..]), sent.Body), parts[1]["v1=".Length..]);
+        Assert.Empty(await DeliveriesAsync()); // a test is not a delivery
+
+        await Assert.ThrowsAsync<ConflictException>(() => _engine.Webhooks.TestAsync("Shipment", "Notify", TestUsers.SystemManager)); // too soon
+        _engine.Clock.Advance(TimeSpan.FromSeconds(6));
+        Assert.True((await _engine.Webhooks.TestAsync("Shipment", "Notify", TestUsers.SystemManager)).Ok);
+    }
+
+    [Fact]
+    public async Task The_test_button_needs_a_saved_webhook_a_manager_and_shows_a_failing_receiver()
+    {
+        await Assert.ThrowsAsync<NotFoundException>(() => _engine.Webhooks.TestAsync("Shipment", "Notify", TestUsers.SystemManager));
+        await SaveAsync(Hook());
+        await Assert.ThrowsAsync<PermissionDeniedException>(() => _engine.Webhooks.TestAsync("Shipment", "Notify", Ann));
+        await Assert.ThrowsAsync<NotFoundException>(() => _engine.Webhooks.TestAsync("Shipment", "Other", TestUsers.SystemManager));
+
+        _engine.WebhookSender.Status = 500;
+        var result = await _engine.Webhooks.TestAsync("Shipment", "Notify", TestUsers.SystemManager);
+        Assert.False(result.Ok);
+        Assert.Equal(500, result.StatusCode);
+    }
+
     // ---- events become signed deliveries ----
 
     [Fact]

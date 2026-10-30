@@ -295,6 +295,40 @@ public class FieldLogicTests
     }
 
     [Fact]
+    public async Task A_list_can_be_filtered_by_a_field_of_a_child_table_on_the_same_row()
+    {
+        Task Make(string title, params Dictionary<string, object?>[] lines) =>
+            _engine.Documents.InsertAsync("Sales Doc", Values(("title", title), ("approver", "boss"), ("lines", lines)), TestUsers.Manager);
+        await Make("A", Row("Pen", 2, 1m), Row("Book", 10, 1m));
+        await Make("B", Row("Pen", 10, 1m));
+        await Make("C", Row("Ink", 1, 1m));
+        await Make("D");
+
+        async Task<string[]> Titles(params RawFilter[] filters)
+        {
+            var result = await _engine.Documents.ListAsync("Sales Doc", new ListRequest { Filters = filters, Fields = ["title"], OrderBy = "title", Descending = false }, TestUsers.Manager);
+            return result.Data.Select(r => (string)r["title"]!).ToArray();
+        }
+
+        Assert.Equal(["A", "B"], await Titles(new RawFilter("lines.item", "=", "Pen")));
+        Assert.Equal(["B"], await Titles(new RawFilter("lines.item", "=", "Pen"), new RawFilter("lines.qty", ">", 5))); // one row must satisfy both
+        Assert.Equal(["A", "B"], await Titles(new RawFilter("lines.qty", ">=", 10)));
+        Assert.Equal(["C"], await Titles(new RawFilter("lines.item", "like", "In%")));
+        Assert.Equal(["A"], await Titles(new RawFilter("lines.item", "=", "Book"), new RawFilter("title", "=", "A"))); // with an ordinary filter
+        Assert.Equal(2, (await _engine.Documents.ListAsync("Sales Doc", new ListRequest { Filters = [new RawFilter("lines.item", "=", "Pen")] }, TestUsers.Manager)).Total);
+    }
+
+    [Fact]
+    public async Task A_filter_on_a_child_field_that_is_not_there_is_refused()
+    {
+        async Task<DocumentValidationException> Fails(string field) =>
+            await Assert.ThrowsAsync<DocumentValidationException>(() => _engine.Documents.ListAsync("Sales Doc", new ListRequest { Filters = [new RawFilter(field, "=", "x")] }, TestUsers.Manager));
+
+        Assert.Contains((await Fails("lines.nope")).Errors, e => e.Message.Contains("unknown field"));
+        Assert.Contains((await Fails("title.item")).Errors, e => e.Message.Contains("unknown field")); // not a table
+    }
+
+    [Fact]
     public async Task A_rule_can_look_across_the_rows_of_a_table()
     {
         _engine.Registry.Add(DocTypeLoader.Parse("""

@@ -151,12 +151,42 @@ public sealed class SqlBuilder(ISqlDialect dialect)
     {
         for (var i = 0; i < filters.Count; i++)
         {
-            var filter = filters[i];
-            var column = dialect.Quote(Require(columns, filter.Field));
             sql.Append(i == 0 ? " WHERE " : " AND ");
+            AppendCondition(sql, columns, filters[i], parameters);
+        }
+
+        CheckParameterCount(parameters.Count);
+    }
+
+    /// <summary>One filter as a SQL condition. Identifiers come from the DocType's columns, every value is a parameter.</summary>
+    private void AppendCondition(
+        StringBuilder sql,
+        IReadOnlyDictionary<string, FieldType> columns,
+        QueryFilter filter,
+        List<object?> parameters)
+    {
+        {
+            var column = dialect.Quote(Require(columns, filter.Field));
 
             switch (filter.Op)
             {
+                case FilterOp.ChildMatches:
+                    var child = (ChildMatch)filter.Value!;
+                    var childColumns = child.Child.ColumnTypes();
+                    sql.Append(column).Append(" IN (SELECT ").Append(dialect.Quote(Require(childColumns, "parent"))).Append(" FROM ")
+                        .Append(dialect.TableName(child.Child.Name)).Append(" WHERE ").Append(dialect.Quote(Require(childColumns, "parenttype"))).Append(" = ")
+                        .Append(dialect.Parameter(parameters.Count)).Append(" AND ").Append(dialect.Quote(Require(childColumns, "parentfield"))).Append(" = ")
+                        .Append(dialect.Parameter(parameters.Count + 1));
+                    parameters.Add(child.ParentDocType);
+                    parameters.Add(child.ParentField);
+                    foreach (var inner in child.Inner)
+                    {
+                        sql.Append(" AND ");
+                        AppendCondition(sql, childColumns, inner, parameters);
+                    }
+
+                    sql.Append(')');
+                    break;
                 case FilterOp.IsNull:
                     sql.Append(column).Append(" IS NULL");
                     break;
@@ -256,8 +286,6 @@ public sealed class SqlBuilder(ISqlDialect dialect)
                     break;
             }
         }
-
-        CheckParameterCount(parameters.Count);
     }
 
     private void CheckParameterCount(int count)
