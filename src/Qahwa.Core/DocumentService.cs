@@ -124,17 +124,17 @@ public sealed partial class DocumentService(
 
         // Expression defaults, "fetch from" values and formulas, then validation of the finished document.
         var changed = values.Keys.ToHashSet(StringComparer.Ordinal);
-        await _logic.RunAsync(meta, values, changed, tables, user, isNew: true, errors, ct);
+        await _logic.RunAsync(meta, values, changed, tables, user, isNew: true, errors, ct, ReadLinkedAsync);
         foreach (var key in await RunScriptsAsync(meta, values, null, isNew: true, user, errors, ct))
             changed.Add(key);
         foreach (var key in await RunAppHooksAsync(meta, values, null, isNew: true, user, errors, ct, null))
             changed.Add(key);
-        var context = _logic.Context(meta, values, tables, null, user, isNew: true);
+        var context = _logic.Context(meta, values, tables, null, user, isNew: true, await _logic.LinkedAsync(meta, values, user, ReadLinkedAsync, ct));
         await ValidateAsync(meta, values, values.Keys, errors, string.Empty, context, fieldAccess, ct);
         foreach (var table in tables)
             await ValidateTableAsync(table, null, errors, values, user, isNew: true, ct);
         CheckRequiredTables(meta, tables, errors, onlyIfProvided: false);
-        ValidateRules(meta, tables, values, context, user, isNew: true, errors);
+        await ValidateRulesAsync(meta, tables, values, context, user, isNew: true, errors, ct);
         await ValidateTreeAsync(meta, null, values, null, errors, ct);
         if (errors.Count > 0)
             throw new DocumentValidationException(errors);
@@ -246,11 +246,48 @@ public sealed partial class DocumentService(
         return changed;
     }
 
-    public async Task<Dictionary<string, object?>> GetAsync(
+    public Task<Dictionary<string, object?>> GetAsync(
         string doctype,
         string name,
         IUserContext user,
-        CancellationToken ct = default)
+        CancellationToken ct = default) => GetCoreAsync(doctype, name, user, recordView: true, ct);
+
+    /// <summary>
+    /// Reads a linked document for <c>lookup()</c>: the same permission layers as <see cref="GetAsync"/> (so what the person may not read,
+    /// they cannot read through a formula either) but it is not a view, so it leaves no "seen by" trace. Null when they may not read it.
+    /// </summary>
+    /// <summary>
+    /// A linked document as <c>lookup()</c> sees it, for the Desk's live formulas: read with every permission layer, no "seen by" trace,
+    /// passwords left out. Not found when the person may not read it (the same answer as a missing one).
+    /// </summary>
+    public async Task<Dictionary<string, object?>> LookupAsync(string doctype, string name, IUserContext user, CancellationToken ct = default)
+    {
+        var meta = registry.Get(doctype);
+        var doc = await ReadLinkedAsync(meta, name, user, ct) ?? throw new NotFoundException($"{doctype} '{name}' was not found.");
+        var passwords = meta.Fields.Where(f => f.Type == FieldType.Password).Select(f => f.Name).ToHashSet(StringComparer.Ordinal);
+        return doc.Where(kv => !passwords.Contains(kv.Key)).ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.Ordinal);
+    }
+
+    private async Task<Dictionary<string, object?>?> ReadLinkedAsync(DocTypeMeta target, string name, IUserContext user, CancellationToken ct)
+    {
+        if (target.IsChildTable)
+            return null;
+        try
+        {
+            return await GetCoreAsync(target.Name, name, user, recordView: false, ct);
+        }
+        catch (Exception ex) when (ex is PermissionDeniedException or NotFoundException or UnauthenticatedException)
+        {
+            return null;
+        }
+    }
+
+    private async Task<Dictionary<string, object?>> GetCoreAsync(
+        string doctype,
+        string name,
+        IUserContext user,
+        bool recordView,
+        CancellationToken ct)
     {
         var meta = RequireTopLevel(registry.Get(doctype));
         var (level, share) = await PreAuthorizeAsync(meta, user, PermAction.Read, name, ct);
@@ -259,7 +296,7 @@ public sealed partial class DocumentService(
         var viaShare = Settle(level, share, PermAction.Read, doc, user);
         RequireRestrictions(await RestrictionsAsync(meta, user, ct), doc, meta);
         await RequireAppPermissionAsync(meta, PermAction.Read, doc, user, ct);
-        if (viewLog is not null)
+        if (recordView && viewLog is not null)
             await viewLog.RecordAsync(meta, name, user, ct);
         return Strip(meta, doc, SharedAccess(permissions.FieldAccessFor(meta, user, doc.GetValueOrDefault("owner") as string, creating: false), viaShare, share));
     }
@@ -460,7 +497,7 @@ public sealed partial class DocumentService(
         }
 
         var changed = changes.Keys.ToHashSet(StringComparer.Ordinal);
-        await _logic.RunAsync(meta, merged, changed, tables, user, isNew: false, errors, ct);
+        await _logic.RunAsync(meta, merged, changed, tables, user, isNew: false, errors, ct, ReadLinkedAsync);
         foreach (var key in await RunScriptsAsync(meta, merged, existing, isNew: false, user, errors, ct, transition))
             changed.Add(key);
         foreach (var key in await RunAppHooksAsync(meta, merged, existing, isNew: false, user, errors, ct, transition))
@@ -468,7 +505,7 @@ public sealed partial class DocumentService(
         foreach (var key in changed)
             changes[key] = merged[key]; // calculated, fetched and script-set values are saved too
 
-        var context = _logic.Context(meta, merged, tables, null, user, isNew: false);
+        var context = _logic.Context(meta, merged, tables, null, user, isNew: false, await _logic.LinkedAsync(meta, merged, user, ReadLinkedAsync, ct));
         await ValidateAsync(meta, merged, changed, errors, string.Empty, context, fieldAccess, ct);
         foreach (var table in tables.Where(t => t.Provided))
             await ValidateTableAsync(table, currentRows[table.Field.Name], errors, merged, user, isNew: false, ct);
@@ -490,7 +527,7 @@ public sealed partial class DocumentService(
         }
 
         CheckRequiredTables(meta, tables.Where(t => t.Provided).ToList(), errors, onlyIfProvided: true);
-        ValidateRules(meta, tables, merged, context, user, isNew: false, errors);
+        await ValidateRulesAsync(meta, tables, merged, context, user, isNew: false, errors, ct);
         await ValidateTreeAsync(meta, name, merged, existing, errors, ct);
         if (transition == 2)
             errors.Clear(); // an old document that no longer passes today's rules can still be cancelled
@@ -1207,7 +1244,7 @@ public sealed partial class DocumentService(
             }
 
             var merged = row.Merged();
-            var context = _logic.Context(table.Child, merged, [], parentValues, user, isNew);
+            var context = _logic.Context(table.Child, merged, [], parentValues, user, isNew, await _logic.LinkedAsync(table.Child, merged, user, ReadLinkedAsync, ct));
             await ValidateAsync(table.Child, merged, row.Values.Keys, errors, prefix, context, null, ct);
         }
     }
@@ -1227,14 +1264,15 @@ public sealed partial class DocumentService(
     /// Runs the DocType's validation rules, and those of its child tables for each row. Rules read the finished
     /// document, so they only run once nothing more basic is wrong.
     /// </summary>
-    private void ValidateRules(
+    private async Task ValidateRulesAsync(
         DocTypeMeta meta,
         List<TableInput> tables,
         IReadOnlyDictionary<string, object?> values,
         ExpressionContext context,
         IUserContext user,
         bool isNew,
-        List<FieldError> errors)
+        List<FieldError> errors,
+        CancellationToken ct)
     {
         if (errors.Count > 0)
             return;
@@ -1244,7 +1282,8 @@ public sealed partial class DocumentService(
         {
             for (var i = 0; i < table.Rows.Count; i++)
             {
-                var rowContext = _logic.Context(table.Child, table.Rows[i].Merged(), [], values, user, isNew);
+                var rowRecord = table.Rows[i].Merged();
+                var rowContext = _logic.Context(table.Child, rowRecord, [], values, user, isNew, await _logic.LinkedAsync(table.Child, rowRecord, user, ReadLinkedAsync, ct));
                 DocumentLogic.ValidateRules(table.Child, rowContext, errors, $"{table.Field.Name}[{i}].", $"{table.Field.Name}[{i}]");
             }
         }

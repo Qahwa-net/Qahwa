@@ -8,6 +8,8 @@ export interface Session {
   user: string
   roles: string[]
   isNew: boolean
+  /** For lookup(): the linked documents of a record (fetched by the form), by Link field name. */
+  linked?: (meta: DocTypeMeta, values: Values) => Record<string, Record<string, Value>> | null
 }
 
 export interface FieldState {
@@ -76,7 +78,7 @@ export function documentContext(
     const child = field.options ? children[field.options] : undefined
     if (child) fields[field.name] = (tables[field.name] ?? []).map((row) => recordValues(child.fields, row.values))
   }
-  return { fields, parent: null, user: session.user, roles: session.roles, isNew: session.isNew, ...clock() }
+  return { fields, parent: null, user: session.user, roles: session.roles, isNew: session.isNew, linked: session.linked?.(meta, values) ?? null, ...clock() }
 }
 
 /** The expression context for one row of a child table: the row's fields, with the document as `parent`. */
@@ -87,6 +89,7 @@ export function rowContext(child: DocTypeMeta, row: Values, parentValues: Values
     user: session.user,
     roles: session.roles,
     isNew: session.isNew,
+    linked: session.linked?.(child, row) ?? null,
     ...clock(),
   }
 }
@@ -253,4 +256,40 @@ export function failingRules(meta: DocTypeMeta, context: ExprContext): Validatio
       return false // a broken rule is reported when the DocType is saved
     }
   })
+}
+
+const lookupCache = new WeakMap<DocTypeMeta, string[]>()
+
+/** The Link fields this DocType's expressions read through lookup() (none for most DocTypes). */
+export function lookupLinks(meta: DocTypeMeta): string[] {
+  const known = lookupCache.get(meta)
+  if (known) return known
+  const sources: string[] = []
+  for (const f of meta.fields) {
+    for (const source of [f.formula, f.dependsOn, f.mandatoryDependsOn, f.readOnlyDependsOn]) if (source) sources.push(source)
+    if (f.default && f.default.length > 1 && f.default.startsWith('=')) sources.push(f.default.slice(1))
+  }
+  for (const rule of meta.validations ?? []) sources.push(rule.expression)
+  const links = new Set<string>()
+  for (const source of sources) {
+    try {
+      for (const [link] of Expression.parse(source).analysis.lookups) links.add(link)
+    } catch {
+      // a broken expression is reported when the DocType is saved
+    }
+  }
+  const result = [...links]
+  lookupCache.set(meta, result)
+  return result
+}
+
+/** The documents to fetch for lookup(): the target of each lookup Link field of the record, as [DocType, name]. */
+export function linkTargets(meta: DocTypeMeta, values: Values): Array<[string, string]> {
+  const targets: Array<[string, string]> = []
+  for (const name of lookupLinks(meta)) {
+    const field = meta.fields.find((f) => f.name === name && f.type === 'Link')
+    const value = values[name]
+    if (field?.options && typeof value === 'string' && value !== '') targets.push([field.options, value])
+  }
+  return targets
 }

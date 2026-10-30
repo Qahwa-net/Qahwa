@@ -97,6 +97,9 @@ internal sealed class Evaluator(ExpressionContext context)
 
     private object? Invoke(Call call)
     {
+        if (call is { Name: "lookup", Args: [Ident link, Literal { Value: string field }] })
+            return context.Linked is not null && context.Linked.TryGetValue(link.Name, out var linked) ? linked.GetValueOrDefault(field) : null;
+
         var args = call.Args.Select(Eval).ToList();
         object? Arg(int i) => i < args.Count ? args[i] : null;
 
@@ -159,6 +162,62 @@ internal sealed class Evaluator(ExpressionContext context)
 
                 return total;
             case "count": return Arg(0) is IReadOnlyList<object?> counted ? (double)counted.Count : 0d;
+            case "avg" or "minOf" or "maxOf":
+            {
+                if (Arg(0) is not IReadOnlyList<object?> table || Arg(1) is not string column)
+                    return null;
+                var seen = 0;
+                double sum = 0, low = 0, high = 0;
+                foreach (var row in table)
+                {
+                    if ((row as IReadOnlyDictionary<string, object?>)?.GetValueOrDefault(column) is not double value)
+                        continue;
+                    low = seen == 0 ? value : Math.Min(low, value);
+                    high = seen == 0 ? value : Math.Max(high, value);
+                    sum += value;
+                    seen++;
+                }
+
+                return seen == 0 ? null : call.Name == "avg" ? sum / seen : call.Name == "minOf" ? low : high;
+            }
+            case "countIf":
+            {
+                if (Arg(0) is not IReadOnlyList<object?> table || Arg(1) is not string column)
+                    return null;
+                var matching = 0d;
+                foreach (var row in table)
+                    if (Values.AreEqual((row as IReadOnlyDictionary<string, object?>)?.GetValueOrDefault(column), Arg(2)))
+                        matching++;
+                return matching;
+            }
+            case "sumIf":
+            {
+                if (Arg(0) is not IReadOnlyList<object?> table || Arg(1) is not string valueColumn || Arg(2) is not string by)
+                    return null;
+                var added = 0d;
+                foreach (var row in table)
+                {
+                    var fields = row as IReadOnlyDictionary<string, object?>;
+                    if (Values.AreEqual(fields?.GetValueOrDefault(by), Arg(3)) && fields?.GetValueOrDefault(valueColumn) is double amount)
+                        added += amount;
+                }
+
+                return added;
+            }
+            case "distinct":
+            {
+                if (Arg(0) is not IReadOnlyList<object?> source)
+                    return null;
+                var unique = new List<object?>();
+                foreach (var row in source)
+                {
+                    var item = Arg(1) is string key ? (row as IReadOnlyDictionary<string, object?>)?.GetValueOrDefault(key) : row;
+                    if (item is not null && !unique.Any(u => Values.AreEqual(u, item)))
+                        unique.Add(item);
+                }
+
+                return unique;
+            }
             case "today": return context.Today;
             case "now": return context.Now;
             case "user": return context.User;

@@ -24,6 +24,11 @@ public static class ActivityEndpoints
 
     public static IEndpointRouteBuilder MapQahwaActivity(this IEndpointRouteBuilder app)
     {
+        // The linked document behind lookup(link_field, 'field'), for formulas the Desk works out while a form is edited.
+        app.MapGet("/api/lookup/{doctype}/{name}", async (
+            string doctype, string name, HttpContext http, IUserContextResolver users, DocumentService documents, CancellationToken ct) =>
+            Results.Ok(new { data = await documents.LookupAsync(doctype, name, await users.ResolveAsync(http, ct), ct) }));
+
         var group = app.MapGroup("/api/resource/{doctype}/{name}");
 
         group.MapGet("/timeline", async (

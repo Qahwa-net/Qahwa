@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { DocField, DocTypeMeta } from '../api/types.ts'
 import {
-  applyLogic, documentContext, expressionDefaults, fetchTargets, fieldState, formulaOrder, fromValue, rowContext, toValue,
+  applyLogic, documentContext, expressionDefaults, fetchTargets, fieldState, formulaOrder, fromValue, linkTargets, lookupLinks, rowContext, toValue,
   type Session,
 } from './logic.ts'
 import type { TableRow } from './tables.ts'
@@ -155,5 +155,36 @@ describe('defaults and fetch', () => {
     const ctx = rowContext(line, { qty: '3' }, { discount: '5' }, doc, session)
     expect(ctx.fields.qty).toBe(3)
     expect(ctx.parent).toMatchObject({ discount: 5 })
+  })
+})
+
+describe('lookup() in the form', () => {
+  const purchase: DocTypeMeta = {
+    name: 'Purchase', isChildTable: false, isSubmittable: false, trackChanges: false,
+    fields: [
+      field('buyer', 'Link', { options: 'Buyer' }),
+      field('total', 'Currency'),
+      field('buyer_limit', 'Currency', { formula: "lookup(buyer, 'credit_limit')" }),
+      field('room', 'Currency', { formula: "lookup(buyer, 'credit_limit') - total" }),
+    ],
+  }
+
+  it('finds the Link fields a DocType reads and the documents to fetch for a record', () => {
+    expect(lookupLinks(purchase)).toEqual(['buyer'])
+    expect(linkTargets(purchase, { buyer: 'B-1' })).toEqual([['Buyer', 'B-1']])
+    expect(linkTargets(purchase, { buyer: '' })).toEqual([])
+    expect(lookupLinks(line)).toEqual([])
+  })
+
+  it('works formulas out from the linked document, and leaves them empty until it arrives', () => {
+    const base = { buyer: 'B-1', total: '120' }
+    const waiting = applyLogic(purchase, {}, base, {}, session)
+    expect(waiting.values.buyer_limit).toBe('')
+
+    const withLinked: Session = { ...session, linked: () => ({ buyer: { credit_limit: 500 } }) }
+    const done = applyLogic(purchase, {}, base, {}, withLinked)
+    expect(done.values.buyer_limit).toBe('500')
+    expect(done.values.room).toBe('380')
+    expect(documentContext(purchase, {}, done.values, {}, withLinked).linked).toEqual({ buyer: { credit_limit: 500 } })
   })
 })

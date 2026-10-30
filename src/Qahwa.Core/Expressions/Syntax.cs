@@ -309,6 +309,10 @@ internal sealed class Parser
             throw new ExpressionException($"{name.Text}() takes {expected} argument(s), not {args.Count}.", name.Position);
         }
 
+        // lookup(link_field, 'field') reads a field of the linked document: it names a field and a literal, never a computed value.
+        if (name.Text == "lookup" && !(args[0] is Ident { Name: not "parent" } && args[1] is Literal { Value: string }))
+            throw new ExpressionException("lookup() needs a Link field and the name of a field, as in lookup(customer, 'credit_limit').", name.Position);
+
         return Count(new Call(name.Text, args));
     }
 

@@ -25,6 +25,9 @@ internal sealed class RowInput(string? name, Dictionary<string, object?> values,
     }
 }
 
+/// <summary>Reads a document for <c>lookup()</c> exactly as the person could read it themselves (all permission layers), or null when they cannot.</summary>
+internal delegate Task<Dictionary<string, object?>?> LinkReader(DocTypeMeta target, string name, IUserContext user, CancellationToken ct);
+
 /// <summary>One child table of a document: the field, its DocType and the rows being saved.</summary>
 internal sealed record TableInput(DocFieldMeta Field, DocTypeMeta Child, List<RowInput> Rows, bool Provided = true);
 
@@ -41,13 +44,73 @@ internal sealed class DocumentLogic(
 {
     private const int MaxPasses = 3;
 
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<DocTypeMeta, string[]> LookupCache = new();
+
+    /// <summary>The Link fields this DocType's expressions read through <c>lookup()</c> (none for most DocTypes).</summary>
+    internal static string[] LookupLinks(DocTypeMeta meta) => LookupCache.GetValue(meta, m =>
+    {
+        var sources = new List<string>();
+        foreach (var f in m.Fields)
+        {
+            if (f.Formula is not null) sources.Add(f.Formula);
+            if (f.Default is { Length: > 1 } d && d.StartsWith('=')) sources.Add(d[1..]);
+            if (f.DependsOn is not null) sources.Add(f.DependsOn);
+            if (f.MandatoryDependsOn is not null) sources.Add(f.MandatoryDependsOn);
+            if (f.ReadOnlyDependsOn is not null) sources.Add(f.ReadOnlyDependsOn);
+        }
+
+        sources.AddRange(m.Validations.Select(v => v.Expression));
+        var links = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var source in sources)
+        {
+            try
+            {
+                foreach (var (link, _) in Expression.Parse(source).Lookups)
+                    links.Add(link);
+            }
+            catch (ExpressionException)
+            {
+                // a broken expression is reported when the DocType is saved
+            }
+        }
+
+        return links.ToArray();
+    });
+
+    /// <summary>
+    /// The documents the Link fields of <paramref name="record"/> point at, for <c>lookup()</c>. Read through <paramref name="read"/>, so
+    /// every permission layer applies and a document the person cannot open (or a field they cannot see) is simply not there.
+    /// </summary>
+    public async Task<IReadOnlyDictionary<string, IReadOnlyDictionary<string, object?>>?> LinkedAsync(
+        DocTypeMeta meta, IReadOnlyDictionary<string, object?> record, IUserContext user, LinkReader read, CancellationToken ct)
+    {
+        var links = LookupLinks(meta);
+        if (links.Length == 0)
+            return null;
+
+        var result = new Dictionary<string, IReadOnlyDictionary<string, object?>>(StringComparer.Ordinal);
+        foreach (var name in links)
+        {
+            var field = meta.Fields.FirstOrDefault(f => f.Name == name && f.Type == FieldType.Link);
+            if (field?.Options is null || record.GetValueOrDefault(name) is not string { Length: > 0 } value || !registry.TryGet(field.Options, out var target))
+                continue;
+            if (await read(target, value, user, ct) is not { } doc)
+                continue;
+            result[name] = doc.Where(kv => target.Fields.FirstOrDefault(f => f.Name == kv.Key)?.Type != FieldType.Password)
+                .ToDictionary(kv => kv.Key, kv => Values.FromStorage(kv.Value), StringComparer.Ordinal);
+        }
+
+        return result;
+    }
+
     public ExpressionContext Context(
         DocTypeMeta meta,
         IReadOnlyDictionary<string, object?> values,
         IReadOnlyList<TableInput> tables,
         IReadOnlyDictionary<string, object?>? parent,
         IUserContext user,
-        bool isNew)
+        bool isNew,
+        IReadOnlyDictionary<string, IReadOnlyDictionary<string, object?>>? linked = null)
     {
         var fields = new Dictionary<string, object?>(StringComparer.Ordinal);
         foreach (var (key, value) in values)
@@ -68,6 +131,7 @@ internal sealed class DocumentLogic(
             User = user.User,
             Roles = user.Roles,
             IsNew = isNew,
+            Linked = linked,
             Today = now.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
             Now = now.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", System.Globalization.CultureInfo.InvariantCulture),
         };
@@ -101,19 +165,36 @@ internal sealed class DocumentLogic(
         IUserContext user,
         bool isNew,
         List<FieldError> errors,
-        CancellationToken ct)
+        CancellationToken ct,
+        LinkReader? read = null)
     {
         if (!meta.HasLogic() && tables.All(t => !t.Child.HasLogic()))
             return;
 
+        // What lookup() can see: the linked documents of the record and of each row (empty unless an expression uses lookup).
+        IReadOnlyDictionary<string, IReadOnlyDictionary<string, object?>>? docLinked = null;
+        var rowLinked = new Dictionary<RowInput, IReadOnlyDictionary<string, IReadOnlyDictionary<string, object?>>?>();
+        async Task ResolveAsync()
+        {
+            if (read is null)
+                return;
+            docLinked = await LinkedAsync(meta, values, user, read, ct);
+            foreach (var table in tables)
+                foreach (var row in table.Rows)
+                    rowLinked[row] = await LinkedAsync(table.Child, row.Merged(), user, read, ct);
+        }
+
+        await ResolveAsync();
+        IReadOnlyDictionary<string, IReadOnlyDictionary<string, object?>>? RowLinks(RowInput row) => rowLinked.GetValueOrDefault(row);
+
         if (isNew)
         {
-            ApplyExpressionDefaults(meta, values, changed, Context(meta, values, tables, null, user, isNew), errors, string.Empty);
+            ApplyExpressionDefaults(meta, values, changed, Context(meta, values, tables, null, user, isNew, docLinked), errors, string.Empty);
             foreach (var table in tables)
             {
                 foreach (var row in table.Rows.Where(r => r.Existing is null))
                 {
-                    var rowContext = Context(table.Child, row.Merged(), [], values, user, isNew);
+                    var rowContext = Context(table.Child, row.Merged(), [], values, user, isNew, RowLinks(row));
                     ApplyExpressionDefaults(table.Child, row.Values, [], rowContext, errors, $"{table.Field.Name}[{table.Rows.IndexOf(row)}].");
                 }
             }
@@ -134,6 +215,8 @@ internal sealed class DocumentLogic(
             }
         }
 
+        await ResolveAsync(); // a fetched value may have changed a link
+
         for (var pass = 0; pass < MaxPasses; pass++)
         {
             var any = false;
@@ -146,7 +229,7 @@ internal sealed class DocumentLogic(
                     var row = table.Rows[i];
                     foreach (var field in table.Child.FormulaFields())
                     {
-                        var context = Context(table.Child, row.Merged(), [], values, user, isNew);
+                        var context = Context(table.Child, row.Merged(), [], values, user, isNew, RowLinks(row));
                         any |= Compute(field, row.Merged(), row.Values, context, errors, $"{table.Field.Name}[{i}].", null);
                     }
                 }
@@ -154,7 +237,7 @@ internal sealed class DocumentLogic(
 
             foreach (var field in meta.FormulaFields())
             {
-                var context = Context(meta, values, tables, null, user, isNew);
+                var context = Context(meta, values, tables, null, user, isNew, docLinked);
                 any |= Compute(field, values, values, context, errors, string.Empty, changed);
             }
 
