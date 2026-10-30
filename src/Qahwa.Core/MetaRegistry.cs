@@ -1,3 +1,4 @@
+using Qahwa.Core.Expressions;
 using System.Collections.Immutable;
 using Qahwa.Abstractions;
 
@@ -179,6 +180,55 @@ public sealed class MetaRegistry : IMutableMetaRegistry
             else if (type != field.Type && !(FieldTypes.IsTextual(type) && FieldTypes.IsTextual(field.Type)))
                 errors.Add(new FieldError($"fields[{i}].fetchFrom", $"'{parts[1]}' is a {type} field and cannot be copied into a {field.Type} field."));
         }
+
+        // lookup(link_field, 'field') reads a field of the linked document: the Link field and that field must exist.
+        void CheckLookups(string? source, string path)
+        {
+            if (string.IsNullOrWhiteSpace(source))
+                return;
+            IReadOnlyList<(string Link, string Field)> lookups;
+            try
+            {
+                lookups = Expression.Parse(source).Lookups;
+            }
+            catch (ExpressionException)
+            {
+                return; // reported as a syntax problem elsewhere
+            }
+
+            foreach (var (linkName, targetField) in lookups)
+            {
+                var link = meta.Fields.FirstOrDefault(f => f.Name == linkName);
+                if (link is null || link.Type != FieldType.Link || link.Options is null || link.Options == DocumentService.DocTypeTarget)
+                {
+                    errors.Add(new FieldError(path, $"lookup() needs a Link field to a DocType; '{linkName}' is not one."));
+                    continue;
+                }
+
+                var target = string.Equals(link.Options, meta.Name, StringComparison.OrdinalIgnoreCase) ? meta : TryGet(link.Options, out var found) ? found : null;
+                if (target is null)
+                    continue; // the missing target is reported above
+                var field = target.Fields.FirstOrDefault(f => f.Name == targetField);
+                if (field is null && !StandardFields.Columns.ContainsKey(targetField))
+                    errors.Add(new FieldError(path, $"{target.Name} has no field '{targetField}'."));
+                else if (field?.Type == FieldType.Password)
+                    errors.Add(new FieldError(path, "lookup() cannot read a Password field."));
+            }
+        }
+
+        for (var i = 0; i < meta.Fields.Count; i++)
+        {
+            var f = meta.Fields[i];
+            CheckLookups(f.Formula, $"fields[{i}].formula");
+            if (f.Default is { Length: > 1 } d && d.StartsWith('='))
+                CheckLookups(d[1..], $"fields[{i}].default");
+            CheckLookups(f.DependsOn, $"fields[{i}].dependsOn");
+            CheckLookups(f.MandatoryDependsOn, $"fields[{i}].mandatoryDependsOn");
+            CheckLookups(f.ReadOnlyDependsOn, $"fields[{i}].readOnlyDependsOn");
+        }
+
+        for (var i = 0; i < meta.Validations.Count; i++)
+            CheckLookups(meta.Validations[i].Expression, $"validations[{i}].expression");
 
         return errors;
     }

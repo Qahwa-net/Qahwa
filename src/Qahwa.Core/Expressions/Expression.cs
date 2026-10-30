@@ -24,6 +24,12 @@ public sealed class ExpressionContext
 
     /// <summary>The current instant as an ISO 8601 UTC string.</summary>
     public string Now { get; init; } = "1970-01-01T00:00:00Z";
+
+    /// <summary>
+    /// For <c>lookup(link_field, 'field')</c>: the fields of the document each Link field of the record points at, by Link field name.
+    /// A link with no value, a missing document or one the person may not read is simply absent.
+    /// </summary>
+    public IReadOnlyDictionary<string, IReadOnlyDictionary<string, object?>>? Linked { get; init; }
 }
 
 /// <summary>
@@ -51,6 +57,9 @@ public sealed class Expression
         Functions = functions;
         ParentMembers = parentMembers;
         UsesParent = usesParent;
+        var lookups = new List<(string, string)>();
+        CollectLookups(root, lookups);
+        Lookups = lookups.Distinct().ToList();
     }
 
     public string Source { get; }
@@ -64,6 +73,32 @@ public sealed class Expression
     public bool UsesParent { get; }
 
     public IReadOnlySet<string> Functions { get; }
+
+    /// <summary>Every <c>lookup(link_field, 'field')</c> in the expression, as (link field, field of the linked document).</summary>
+    public IReadOnlyList<(string Link, string Field)> Lookups { get; private set; } = [];
+
+    private static void CollectLookups(Node node, List<(string, string)> found)
+    {
+        switch (node)
+        {
+            case Call { Name: "lookup", Args: [Ident link, Literal { Value: string field }] }:
+                found.Add((link.Name, field));
+                break;
+            case Call call:
+                foreach (var arg in call.Args)
+                    CollectLookups(arg, found);
+                break;
+            case Member member: CollectLookups(member.Target, found); break;
+            case Unary unary: CollectLookups(unary.Operand, found); break;
+            case Binary binary: CollectLookups(binary.Left, found); CollectLookups(binary.Right, found); break;
+            case Logical logical: CollectLookups(logical.Left, found); CollectLookups(logical.Right, found); break;
+            case Ternary ternary: CollectLookups(ternary.Condition, found); CollectLookups(ternary.Then, found); CollectLookups(ternary.Else, found); break;
+            case ListLiteral list:
+                foreach (var item in list.Items)
+                    CollectLookups(item, found);
+                break;
+        }
+    }
 
     /// <exception cref="ExpressionException">The source is not a valid expression.</exception>
     public static Expression Parse(string source)
@@ -201,7 +236,7 @@ internal static partial class Builtins
         ["contains"] = (2, 2), ["startsWith"] = (2, 2), ["endsWith"] = (2, 2),
         ["round"] = (1, 2), ["abs"] = (1, 1), ["floor"] = (1, 1), ["ceil"] = (1, 1), ["min"] = (1, 8), ["max"] = (1, 8),
         ["sum"] = (1, 2), ["count"] = (1, 1),
-        ["avg"] = (2, 2), ["minOf"] = (2, 2), ["maxOf"] = (2, 2), ["countIf"] = (3, 3), ["sumIf"] = (4, 4), ["distinct"] = (1, 2),
+        ["lookup"] = (2, 2), ["avg"] = (2, 2), ["minOf"] = (2, 2), ["maxOf"] = (2, 2), ["countIf"] = (3, 3), ["sumIf"] = (4, 4), ["distinct"] = (1, 2),
         ["today"] = (0, 0), ["now"] = (0, 0), ["user"] = (0, 0), ["hasRole"] = (1, 1), ["isNew"] = (0, 0),
         ["text"] = (1, 1), ["number"] = (1, 1),
         ["addDays"] = (2, 2), ["daysBetween"] = (2, 2),

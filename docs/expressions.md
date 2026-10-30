@@ -18,6 +18,8 @@ Conditions, formulas, defaults and rules in the designer are written in one smal
 
 `null` (no value), `true`/`false`, numbers, text (`'single'` or `"double"` quotes, with `\\ \' \" \n \t \r` escapes), lists (`[1, 2, 3]`) and, for table fields, lists of rows. An empty input is `null`. Numbers are always 64-bit floating point, in the Desk and on the server, so results match exactly.
 
+`lookup(customer, 'credit_limit')` reads a field of another document: the first argument is a Link field of this DocType (or of the row), written as a bare name, and the second is the field's name as text. It is read with **your own permissions**, as if you opened that document: if you may not read it, or the field's permission level is above yours, you get no value. Passwords cannot be read. It works in formulas, defaults, conditions and rules, on the server and live in the form, but not in workflow conditions.
+
 A name such as `qty` reads that field of the current document (or row). In a **child table**, `parent.rate` reads a field of the document the row belongs to. A table field such as `items` is a list of its rows.
 
 ## Operators (lowest precedence first)
@@ -48,6 +50,7 @@ Arithmetic never fails: wrong kinds of value give no value, so a rule can be che
 | `avg(table, 'field')` `minOf(table, 'field')` `maxOf(table, 'field')` | average, smallest and largest number of a field over the rows (rows with no number are skipped; no value if there are none) |
 | `countIf(table, 'field', value)` | how many rows have exactly this value in the field |
 | `sumIf(table, 'field', 'matchField', value)` | adds a field over the rows where another field has the value |
+| `lookup(link_field, 'field')` | a field of the document a Link field points at: `lookup(customer, 'credit_limit')`. Nothing when the link is empty, the document is missing or you may not read it (or that field) |
 | `distinct(table, 'field')` | the different values of a field over the rows, without empty ones; `distinct(list)` for a plain list. Count them with `len()` |
 | `today()` `now()` | current date (`yyyy-MM-dd`) and instant, in UTC |
 | `user()` `hasRole('Role')` `isNew()` | the person and whether the document is new |
@@ -72,6 +75,8 @@ count(items) > 0                           Rule: "Add at least one line"
 len(distinct(items, 'item')) == count(items)   Rule: "Each item only once"
 sumIf(items, 'amount', 'kind', 'Tax') < 1000      Rule: "Tax lines add up to under 1000"
 countIf(approvers, 'role', 'Manager') >= 1        Rule: "At least one manager"
+lookup(customer, 'credit_limit') - total      Calculate as (credit left)
+empty(lookup(customer, 'credit_limit')) || total <= lookup(customer, 'credit_limit')   Rule: "Over the credit limit"
 empty(qty) || qty > 0                      Rule on a child table: "Quantity must be positive"
 ```
 

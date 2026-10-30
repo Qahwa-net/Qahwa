@@ -23,6 +23,7 @@ export const FUNCTION_HELP: FunctionHelp[] = [
   { name: 'max', signature: 'max(a, b, ...)', description: 'The largest number.', example: "max(0, balance)" },
   { name: 'sum', signature: "sum(table, 'field')", description: "Adds up a field over the rows of a table. Without the field, adds a list of numbers.", example: "sum(items, 'amount')" },
   { name: 'count', signature: 'count(table)', description: 'Number of rows in a table.', example: "count(items) > 0" },
+  { name: 'lookup', signature: "lookup(link_field, 'field')", description: "A field of the document a Link field points at (nothing when the link is empty or you may not read that document).", example: "lookup(customer, 'credit_limit') - total >= 0" },
   { name: 'avg', signature: "avg(table, 'field')", description: "The average of a field over the rows of a table (rows with no number are skipped; nothing if there are none).", example: "avg(items, 'rating') >= 3" },
   { name: 'minOf', signature: "minOf(table, 'field')", description: "The smallest value of a field over the rows of a table.", example: "minOf(items, 'qty') > 0" },
   { name: 'maxOf', signature: "maxOf(table, 'field')", description: "The largest value of a field over the rows of a table.", example: "maxOf(items, 'discount') <= 20" },

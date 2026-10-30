@@ -42,6 +42,9 @@ public class ExpressionTests
             User = Pick("user").GetString()!,
             Roles = Pick("roles").EnumerateArray().Select(r => r.GetString()!).ToList(),
             IsNew = Pick("isNew").ValueKind == JsonValueKind.True,
+            Linked = test.TryGetProperty("linked", out var l)
+                ? ((IReadOnlyDictionary<string, object?>)ToValue(l)!).ToDictionary(kv => kv.Key, kv => (IReadOnlyDictionary<string, object?>)kv.Value!)
+                : null,
         };
     }
 

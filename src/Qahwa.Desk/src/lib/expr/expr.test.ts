@@ -6,6 +6,7 @@ interface Case {
   expr: string
   fields?: Record<string, Value>
   parent?: Record<string, Value>
+  linked?: Record<string, Record<string, Value>>
   user?: string
   roles?: string[]
   isNew?: boolean
@@ -19,6 +20,7 @@ function context(test: Case): ExprContext {
   return {
     fields: test.fields ?? {},
     parent: test.parent ?? null,
+    linked: test.linked ?? null,
     user: test.user ?? vectors.env.user,
     roles: test.roles ?? vectors.env.roles,
     isNew: test.isNew ?? vectors.env.isNew,

@@ -3,6 +3,7 @@ import { DocumentActionFields } from './DocumentActionFields.tsx'
 import { WorkflowBar } from './WorkflowBar.tsx'
 import { DocRail } from './DocRail.tsx'
 import { buildLayout } from '../lib/layout.ts'
+import { useLinkedDocs } from '../lib/useLinkedDocs.ts'
 import { useToast } from '../controls/Toast.tsx'
 import { FormSkeleton } from '../controls/Skeleton.tsx'
 import { Icon, IconButton } from '../controls/Icon.tsx'
@@ -158,8 +159,11 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({})
   const [banner, setBanner] = useState<{ text: string; conflict: boolean } | null>(null)
 
-  const view = useMemo(() => applyLogic(meta, childMetas, values, tables, session), [meta, childMetas, values, tables, session])
-  const docContext = documentContext(meta, childMetas, view.values, view.tables, session)
+  // lookup(): the linked documents formulas and rules read, fetched as a Link field is chosen.
+  const linked = useLinkedDocs(meta, childMetas, values, tables)
+  const liveSession = useMemo<Session>(() => ({ ...session, linked }), [session, linked])
+  const view = useMemo(() => applyLogic(meta, childMetas, values, tables, liveSession), [meta, childMetas, values, tables, liveSession])
+  const docContext = documentContext(meta, childMetas, view.values, view.tables, liveSession)
   const latestValues = useRef(view.values)
   latestValues.current = view.values
   const scripts = useClientScripts({
@@ -408,10 +412,10 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
             if (!state.active) return null
 
             const rowState = (row: TableRow, f: DocField): FieldState =>
-              hasLogic(f) ? fieldState(f, rowContext(def.child, row.values, view.values, meta, session)) : staticState(f)
+              hasLogic(f) ? fieldState(f, rowContext(def.child, row.values, view.values, meta, liveSession)) : staticState(f)
             const makeRow = (): TableRow => {
               const row = emptyRow(def.child)
-              return { ...row, values: rowExpressionDefaults(def.child, row.values, view.values, meta, session) }
+              return { ...row, values: rowExpressionDefaults(def.child, row.values, view.values, meta, liveSession) }
             }
 
             return (

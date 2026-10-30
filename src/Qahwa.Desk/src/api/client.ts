@@ -341,6 +341,9 @@ export const api = {
     remove: (id: string) => request<unknown>('DELETE', `/api/assignments/${encodeURIComponent(id)}`),
   },
 
+  lookup: async (doctype: string, name: string) =>
+    (await request<{ data: Record<string, unknown> }>('GET', `/api/lookup/${encodeURIComponent(doctype)}/${encodeURIComponent(name)}`)).data,
+
   activity: {
     timeline: async (doctype: string, name: string, before?: string) => {
       const query = new URLSearchParams({ limit: '30' })

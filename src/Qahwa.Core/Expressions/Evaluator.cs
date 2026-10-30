@@ -97,6 +97,9 @@ internal sealed class Evaluator(ExpressionContext context)
 
     private object? Invoke(Call call)
     {
+        if (call is { Name: "lookup", Args: [Ident link, Literal { Value: string field }] })
+            return context.Linked is not null && context.Linked.TryGetValue(link.Name, out var linked) ? linked.GetValueOrDefault(field) : null;
+
         var args = call.Args.Select(Eval).ToList();
         object? Arg(int i) => i < args.Count ? args[i] : null;
 
