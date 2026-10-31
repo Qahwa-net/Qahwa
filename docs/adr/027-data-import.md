@@ -17,5 +17,5 @@ Moving to a new system or loading a spreadsheet of customers should not need a d
 Importing needs read and create rights (read and write to update); single DocTypes and child tables cannot be imported. Cell values are never interpreted (they go through the same coercion and parameterised writes as typed values, so SQL-shaped and markup-shaped text is stored as plain data), the file's size, row and cell counts are limited before any work is done, and nothing in a file can set ownership, timestamps, passwords or calculated values. Tests cover hostile cells, unknown and duplicate columns, permissions for each mode, limits, partial failures and stop-on-error.
 
 ## Consequences
-- Not yet: child table rows (a file per table), importing from Excel, a background import for very large files with progress, mapping columns by hand, and "insert or update" in one pass.
+- Child table rows in the same file are now built (ADR-128). Not yet: a background import for very large files with progress, mapping columns by hand, and "insert or update" in one pass.
 - Import is not atomic: a file is processed row by row, so a half-imported file is possible; the report says exactly which rows were done.

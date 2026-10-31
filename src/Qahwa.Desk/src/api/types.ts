@@ -829,6 +829,8 @@ export interface ImportColumn {
   header: string
   field?: string | null
   label?: string | null
+  /** For a column of a child table (written table.field): the Table field it belongs to. */
+  table?: string | null
 }
 
 export interface ImportRowError {

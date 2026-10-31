@@ -88,6 +88,7 @@ export function ImportDialog({ doctype, canUpdate, onClose }: { doctype: string;
           <small className="muted">
             <a href={api.import.templateUrl(doctype, mode)}>Download a template</a> with the right columns.
             {mode === 'Update' && ' Updating needs a column named name with each document’s ID.'}
+            {' '}Rows of a table go in columns like <code>lines.item</code>: a row that leaves the document’s own columns blank adds another row to the document above it.
           </small>
         </div>
       </div>

@@ -48,6 +48,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **Gallery, map and timeline views**: pictures as tiles, places on a plain grid (no outside map service), documents as bars between two dates ([ADR-049](docs/adr/049-gallery-map-and-timeline-views.md))
 - **Light, dark and automatic themes and a brand**: per-person theme, organisation name, logo, colours and default theme, all checked as plain data, readable colours guaranteed ([ADR-056](docs/adr/056-brand-and-theme.md))
 - **App dependencies**: apps name the apps they need; installed in order, bad graphs stop start-up ([ADR-085](docs/adr/085-app-dependencies.md))
+- **Import with table rows**: `lines.item` columns add rows to the document above; one file for an order and its lines ([ADR-128](docs/adr/128-import-child-rows.md))
 - **Sign-in codes by email**: a second step for people without an authenticator app; codes are never stored, work once for ten minutes ([ADR-127](docs/adr/127-email-sign-in-codes.md))
 - **Role network limits**: a role can be limited to some addresses; people holding it are refused from anywhere else, and Administrator and System Manager can never be limited ([ADR-126](docs/adr/126-role-networks.md))
 - **API key limits**: a key can be limited to chosen DocTypes (everything else is closed to it) and to a number of requests per minute ([ADR-125](docs/adr/125-api-key-scopes-and-rate-limits.md))
