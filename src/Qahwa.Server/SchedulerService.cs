@@ -120,7 +120,7 @@ public sealed class SchedulerService(
                 lastBackup = DateTime.UtcNow;
                 await StepAsync("backup", async () =>
                 {
-                    var written = await backup.RunScheduledAsync(backupOptions.Path, backupOptions.Keep, new UserContext("system@qahwa", [UserContext.AdministratorRole]), stoppingToken);
+                    var written = await backup.RunScheduledAsync(backupOptions.Path, backupOptions.Keep, new UserContext("system@qahwa", [UserContext.AdministratorRole]), stoppingToken, backupOptions.Password);
                     return written is null ? null : $"Backup written to {Path.GetFileName(written)}.";
                 }, stoppingToken);
             }

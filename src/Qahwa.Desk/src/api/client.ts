@@ -118,8 +118,18 @@ export const api = {
 
   backup: {
     /** The file is sent as it is (application/zip), so it never has to be read into the page. */
-    restore: async (file: File, dryRun: boolean): Promise<RestoreReport> => {
-      const response = await fetch(`/api/backup/restore?dryRun=${dryRun}`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/zip' }, body: file })
+    /** A protected backup: the password goes in the body, never in the address; the file comes back sealed. */
+    downloadProtected: async (password: string): Promise<{ blob: Blob; fileName: string }> => {
+      const response = await fetch('/api/backup/download-protected', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password }) })
+      if (!response.ok) {
+        const json = (await response.json().catch(() => null)) as { code?: string; message?: string; details?: FieldError[] } | null
+        throw new ApiError(response.status, json?.code ?? 'error', json?.message ?? response.statusText, json?.details ?? [])
+      }
+      const named = /filename="?([^";]+)"?/.exec(response.headers.get('Content-Disposition') ?? '')?.[1]
+      return { blob: await response.blob(), fileName: named ?? 'qahwa-backup.qbk' }
+    },
+    restore: async (file: File, dryRun: boolean, password?: string): Promise<RestoreReport> => {
+      const response = await fetch(`/api/backup/restore?dryRun=${dryRun}`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/zip', ...(password ? { 'X-Backup-Password': password } : {}) }, body: file })
       const json = (await response.json().catch(() => null)) as { data?: RestoreReport; code?: string; message?: string; details?: FieldError[] } | null
       if (!response.ok) throw new ApiError(response.status, json?.code ?? 'error', json?.message ?? response.statusText, json?.details ?? [])
       return json!.data!

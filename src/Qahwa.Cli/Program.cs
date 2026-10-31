@@ -18,8 +18,8 @@ const string usage = """
     qahwa list-apps    (--connection <cs> | --site <name> --sites <dir>)
     qahwa install-app  <app> (--connection <cs> | --site <name> --sites <dir>)
     qahwa uninstall-app <app> (--connection <cs> | --site <name> --sites <dir>)
-    qahwa backup       (--connection <cs> | --site <name> --sites <dir>) --out <file.zip> [--doctypes <dir> ...]
-    qahwa restore      <file.zip> (--connection <cs> | --site <name> --sites <dir>) [--dry-run] [--doctypes <dir> ...]
+    qahwa backup       (--connection <cs> | --site <name> --sites <dir>) --out <file.zip|file.qbk> [--password-stdin] [--doctypes <dir> ...]
+    qahwa restore      <file> (--connection <cs> | --site <name> --sites <dir>) [--dry-run] [--password-stdin] [--doctypes <dir> ...]
 
     migrate       Creates or updates database tables for the framework and every DocType found in the directories.
                   --plan   print the SQL that would run without executing it
@@ -44,6 +44,9 @@ const string usage = """
     backup        Writes the documents and definitions of the site to a zip (never passwords, sessions or secrets). The file must not exist yet.
     restore       Adds what is in a backup zip to the site: rows that already exist are left alone. --dry-run only reports what would be added.
                   Both need the same --doctypes the server uses, so the app DocTypes are known.
+
+    --password-stdin  (backup, restore) seals the backup with a password read from the first line of stdin (12 or more characters), or opens a
+                  protected one. The password is never taken as a command-line argument.
 
     --connection (or QAHWA_CONNECTION) names the database directly; --site names a site made by new-site.
     --provider chooses the database product: postgres (the default) or sqlserver (also QAHWA_PROVIDER). For an existing site
@@ -93,7 +96,7 @@ for (var i = 1; i < args.Length; i++)
         case "--full-name" when hasValue && command is "create-admin" or "new-site":
             fullName = args[++i];
             break;
-        case "--password-stdin" when command is "create-admin" or "new-site":
+        case "--password-stdin" when command is "create-admin" or "new-site" or "backup" or "restore":
             passwordFromStdin = true;
             break;
         case "--out" when hasValue && command == "backup":
@@ -218,6 +221,14 @@ try
         _ => await CreateAdminAsync(provider),
     };
 }
+catch (Qahwa.Core.DocumentValidationException e)
+{
+    return Fail(e.Errors.Count > 0 ? e.Errors[0].Message : e.Message);
+}
+catch (Qahwa.Core.QahwaException e)
+{
+    return Fail(e.Message);
+}
 catch (IOException e)
 {
     return Fail(e.Message);
@@ -341,7 +352,13 @@ async Task<int> BackupAsync(ServiceProvider provider)
     {
         // CreateNew: an existing file is never overwritten.
         await using (var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None))
-            await provider.GetRequiredService<Qahwa.Core.BackupService>().WriteAsync(stream, admin);
+        {
+            var service = provider.GetRequiredService<Qahwa.Core.BackupService>();
+            if (passwordFromStdin)
+                await service.WriteProtectedAsync(stream, admin, Console.In.ReadLine() ?? string.Empty);
+            else
+                await service.WriteAsync(stream, admin);
+        }
     }
     catch
     {
@@ -350,7 +367,7 @@ async Task<int> BackupAsync(ServiceProvider provider)
         throw;
     }
 
-    Console.WriteLine($"Backup written to {path} ({new FileInfo(path).Length} bytes). It holds business data: keep it private.");
+    Console.WriteLine($"Backup written to {path} ({new FileInfo(path).Length} bytes). {(passwordFromStdin ? "It is password protected: keep the password safe, it cannot be recovered." : "It holds business data and is NOT encrypted: keep it private (or make it again with --password-stdin).")}");
     return 0;
 }
 
@@ -361,7 +378,7 @@ async Task<int> RestoreAsync(ServiceProvider provider)
         return Fail($"There is no file {path}.");
     var admin = new Qahwa.Core.UserContext(Qahwa.Core.UserContext.AdministratorRole, [Qahwa.Core.UserContext.AdministratorRole]);
     await using var stream = File.OpenRead(path);
-    var report = await provider.GetRequiredService<Qahwa.Core.BackupService>().RestoreAsync(stream, dryRun, admin);
+    var report = await provider.GetRequiredService<Qahwa.Core.BackupService>().RestoreAsync(stream, dryRun, admin, password: passwordFromStdin ? Console.In.ReadLine() : null);
     Console.WriteLine(report.DryRun ? "Dry run: nothing was changed." : "Restored.");
     foreach (var table in report.Tables)
         Console.WriteLine($"  {table}");
