@@ -13,6 +13,8 @@ const string usage = """
                        [--provider postgres|sqlserver] [--connection-env <VARIABLE>] [--doctypes <dir> ...] [--email <email> [--full-name <name>] [--password-stdin]]
     qahwa list-sites   --sites <dir>
     qahwa schema
+    qahwa list-patches (--connection <cs> | --site <name> --sites <dir>)
+    qahwa run-patch    <name> [--force] (--connection <cs> | --site <name> --sites <dir>)
     qahwa list-apps    (--connection <cs> | --site <name> --sites <dir>)
     qahwa install-app  <app> (--connection <cs> | --site <name> --sites <dir>)
     qahwa uninstall-app <app> (--connection <cs> | --site <name> --sites <dir>)
@@ -29,6 +31,9 @@ const string usage = """
                   --connection-env the file holds only the name of an environment variable for the connection string,
                   which you must set when the server runs. Run the server with Qahwa:Sites:Path set to <sites>.
     list-sites    Shows the sites found in the directory.
+    list-patches  Shows the data patches the command line knows (the framework's own) and whether each has run.
+    run-patch     Runs one of them now. One that already ran needs --force (it runs again, so it must be safe to repeat).
+                  Patches that belong to apps run from the server: use the Patch Log page in the Desk for those.
     schema        Prints the JSON Schema of a DocType file (for editor completion, hover help and typo warnings).
                   Save it as doctype.schema.json and add "$schema": "./doctype.schema.json" to a DocType file.
     list-apps     Shows the apps the server has recorded for the site and whether each is installed or uninstalled.
@@ -52,7 +57,7 @@ if (args.Length == 0 || args[0] is "-h" or "--help")
 }
 
 var command = args[0];
-if (command is not ("migrate" or "create-admin" or "new-site" or "list-sites" or "schema" or "list-apps" or "install-app" or "uninstall-app" or "backup" or "restore"))
+if (command is not ("migrate" or "create-admin" or "new-site" or "list-sites" or "schema" or "list-patches" or "run-patch" or "list-apps" or "install-app" or "uninstall-app" or "backup" or "restore"))
 {
     Console.Error.WriteLine($"Unknown command '{command}'.\n\n{usage}");
     return 1;
@@ -65,6 +70,8 @@ var product = (Environment.GetEnvironmentVariable("QAHWA_PROVIDER") ?? "postgres
 string? email = null, fullName = null, site = null, sitesDir = null, adminConnection = null, connectionEnv = null, siteName = null, appName = null;
 var planOnly = false;
 var dryRun = false;
+var force = false;
+string? patchName = null;
 string? outFile = null, restoreFile = null;
 var passwordFromStdin = false;
 
@@ -74,7 +81,7 @@ for (var i = 1; i < args.Length; i++)
     var hasValue = i + 1 < args.Length;
     switch (arg)
     {
-        case "--connection" when hasValue && command is "migrate" or "create-admin" or "list-apps" or "install-app" or "uninstall-app" or "backup" or "restore" or "backup" or "restore":
+        case "--connection" when hasValue && command is "migrate" or "create-admin" or "list-apps" or "install-app" or "uninstall-app" or "backup" or "restore" or "list-patches" or "run-patch":
             connection = args[++i];
             break;
         case "--doctypes" when hasValue && command != "list-sites":
@@ -98,7 +105,10 @@ for (var i = 1; i < args.Length; i++)
         case "--plan" when command == "migrate":
             planOnly = true;
             break;
-        case "--site" when hasValue && command is "migrate" or "create-admin" or "list-apps" or "install-app" or "uninstall-app" or "backup" or "restore" or "backup" or "restore":
+        case "--force" when command == "run-patch":
+            force = true;
+            break;
+        case "--site" when hasValue && command is "migrate" or "create-admin" or "list-apps" or "install-app" or "uninstall-app" or "backup" or "restore" or "list-patches" or "run-patch":
             site = args[++i];
             break;
         case "--provider" when hasValue && command is "migrate" or "create-admin" or "new-site":
@@ -120,6 +130,12 @@ for (var i = 1; i < args.Length; i++)
             if (command == "new-site" && siteName is null && !arg.StartsWith('-'))
             {
                 siteName = arg;
+                break;
+            }
+
+            if (command == "run-patch" && patchName is null && !arg.StartsWith('-'))
+            {
+                patchName = arg;
                 break;
             }
 
@@ -188,6 +204,8 @@ try
         return Fail("--out is required.");
     if (command == "restore" && string.IsNullOrWhiteSpace(restoreFile))
         return Fail("The backup file is required.");
+    if (command == "run-patch" && string.IsNullOrWhiteSpace(patchName))
+        return Fail("The name of the patch is required.");
 
     await using var provider = Build(connection);
     return command switch
@@ -196,6 +214,7 @@ try
         "list-apps" or "install-app" or "uninstall-app" => await AppsAsync(provider),
         "backup" => await BackupAsync(provider),
         "restore" => await RestoreAsync(provider),
+        "list-patches" or "run-patch" => await PatchesAsync(provider),
         _ => await CreateAdminAsync(provider),
     };
 }
@@ -247,6 +266,36 @@ async Task<int> MigrateAsync(ServiceProvider provider)
     }
 
     return 0;
+}
+
+async Task<int> PatchesAsync(ServiceProvider provider)
+{
+    // The command line carries the framework's own patches; those of apps run in the server (see the Patch Log page in the Desk).
+    var runner = provider.GetRequiredService<Qahwa.Core.PatchRunner>();
+    await provider.GetRequiredService<QahwaMigrator>().MigrateAsync(planOnly: false); // the Patch Log table must exist
+    if (command == "list-patches")
+    {
+        var all = await runner.ListAsync();
+        foreach (var p in all)
+            Console.WriteLine($"{p.Name}: {p.Status.ToLowerInvariant()}{(p.Error is null ? string.Empty : " (" + p.Error.Split('\n')[0] + ")")}");
+        Console.WriteLine(all.Count == 0 ? "No patches." : $"{all.Count} patch(es).");
+        return 0;
+    }
+
+    try
+    {
+        var done = await runner.RunOneAsync(patchName!, force);
+        Console.WriteLine($"{done.Name}: {done.Status.ToLowerInvariant()}.");
+        return 0;
+    }
+    catch (Qahwa.Core.QahwaException e)
+    {
+        return Fail(e.Message);
+    }
+    catch (Qahwa.Core.PatchFailedException e)
+    {
+        return Fail($"The patch '{patchName}' failed: {e.InnerException?.Message}");
+    }
 }
 
 async Task<int> AppsAsync(ServiceProvider provider)

@@ -24,6 +24,63 @@ public class PatchTests
         (await _engine.Documents.GetAsync("Patch Log", name, TestUsers.Admin));
 
     [Fact]
+    public async Task The_list_shows_each_registered_patch_with_its_state_and_logged_ones_that_are_gone()
+    {
+        var log = new List<string>();
+        await RunnerFor(new Recording("old_one", log), new Recording("kept", log)).RunPendingAsync();
+        var runner = RunnerFor(new Recording("kept", log), new Recording("new_one", log));
+
+        var list = await runner.ListAsync();
+
+        Assert.Equal([("kept", "Done"), ("new_one", "Pending"), ("old_one", "Done")], list.Select(p => (p.Name, p.Status)));
+        Assert.Null(list.Single(p => p.Name == "new_one").Started);
+        Assert.NotNull(list.Single(p => p.Name == "kept").Finished);
+    }
+
+    [Fact]
+    public async Task One_patch_can_be_run_by_name_and_a_done_one_only_when_forced()
+    {
+        var log = new List<string>();
+        var runner = RunnerFor(new Recording("a", log), new Recording("b", log));
+
+        var ran = await runner.RunOneAsync("b", force: false);
+        Assert.Equal(("b", "Done"), (ran.Name, ran.Status));
+        Assert.Equal(["b"], log); // only that one
+
+        await Assert.ThrowsAsync<ConflictException>(() => runner.RunOneAsync("b", force: false));
+        await runner.RunOneAsync("b", force: true);
+        Assert.Equal(["b", "b"], log);
+        await Assert.ThrowsAsync<NotFoundException>(() => runner.RunOneAsync("nope", force: true));
+        Assert.Equal("Pending", (await runner.ListAsync()).Single(p => p.Name == "a").Status);
+    }
+
+    [Fact]
+    public async Task A_failing_patch_run_by_name_is_recorded_and_can_be_run_again_without_force()
+    {
+        var attempts = 0;
+        var runner = RunnerFor(new Recording("flaky", [], () => ++attempts == 1 ? throw new InvalidOperationException("broken") : Task.CompletedTask));
+
+        await Assert.ThrowsAsync<PatchFailedException>(() => runner.RunOneAsync("flaky", force: false));
+        var failed = (await runner.ListAsync()).Single();
+        Assert.Equal("Failed", failed.Status);
+        Assert.Contains("broken", failed.Error);
+
+        Assert.Equal("Done", (await runner.RunOneAsync("flaky", force: false)).Status); // a failed one needs no force
+    }
+
+    [Fact]
+    public async Task A_patch_another_server_is_running_is_refused_even_when_forced()
+    {
+        var runner = RunnerFor(new Recording("busy", []));
+        await runner.RunOneAsync("busy", force: false);
+        var row = (await _engine.Repository.GetAsync(_engine.Registry.Get("Patch Log"), "busy"))!;
+        await _engine.Repository.UpdateAsync(_engine.Registry.Get("Patch Log"), "busy", new Dictionary<string, object?> { ["status"] = "Running", ["started"] = _engine.Clock.GetUtcNow().UtcDateTime }, null);
+        Assert.NotNull(row);
+
+        await Assert.ThrowsAsync<ConflictException>(() => runner.RunOneAsync("busy", force: true));
+    }
+
+    [Fact]
     public async Task Patches_run_once_in_name_order_and_are_recorded()
     {
         var log = new List<string>();

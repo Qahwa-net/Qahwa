@@ -439,6 +439,11 @@ export const api = {
       (await request<{ data: ImportResult }>('POST', `/api/import/${encodeURIComponent(doctype)}`, { ...source, mode, stopOnError })).data,
   },
 
+  patches: {
+    list: async () => (await request<{ data: { name: string; status: string; error?: string | null }[] }>('GET', '/api/patches')).data,
+    run: async (name: string, force: boolean) => { await request<unknown>('POST', `/api/patches/${encodeURIComponent(name)}/run`, { force }) },
+  },
+
   workspaces: {
     mine: async () => (await request<{ data: WorkspaceView[] }>('GET', '/api/workspaces/mine')).data,
     list: async () => (await request<{ data: WorkspaceInfo[] }>('GET', '/api/workspaces')).data,

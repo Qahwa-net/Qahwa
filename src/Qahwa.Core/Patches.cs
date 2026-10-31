@@ -14,6 +14,9 @@ public interface IPatch
     Task RunAsync(IServiceProvider services, CancellationToken ct = default);
 }
 
+/// <summary>A registered patch and what the Patch Log says about it (<c>Pending</c> when it has never run).</summary>
+public sealed record PatchInfo(string Name, string Status, DateTime? Started, DateTime? Finished, string? Error);
+
 public sealed record PatchResult(IReadOnlyList<string> Ran, IReadOnlyList<string> Skipped);
 
 public sealed class PatchFailedException(string patch, Exception inner)
@@ -82,8 +85,50 @@ public sealed partial class PatchRunner(IMetaRegistry registry, IDocumentReposit
         return new PatchResult(ran, skipped);
     }
 
-    /// <summary>True when this server now owns the run: the patch never ran, failed earlier, or was claimed long ago and never finished.</summary>
-    private async Task<bool> TryClaimAsync(string name, CancellationToken ct)
+    /// <summary>Every registered patch in the order they run, with its state from the Patch Log (and logged patches that are no longer registered).</summary>
+    public async Task<IReadOnlyList<PatchInfo>> ListAsync(CancellationToken ct = default)
+    {
+        Validate();
+        var rows = (await repository.ListAsync(Log, new ListQuery { OrderBy = "name", Descending = false, Limit = 2000 }, ct))
+            .ToDictionary(r => (string)r["name"]!, StringComparer.Ordinal);
+        PatchInfo Info(string name) => rows.TryGetValue(name, out var r)
+            ? new PatchInfo(name, r["status"] as string ?? "Pending", r["started"] as DateTime?, r["finished"] as DateTime?, r["error"] as string)
+            : new PatchInfo(name, "Pending", null, null, null);
+        var registered = patches.Select(p => p.Name).OrderBy(n => n, StringComparer.Ordinal).ToList();
+        return registered.Select(Info).Concat(rows.Keys.Except(registered, StringComparer.Ordinal).OrderBy(n => n, StringComparer.Ordinal).Select(Info)).ToList();
+    }
+
+    /// <summary>
+    /// Runs one patch by name, now. A patch that is pending or failed just runs; one that is Done needs <paramref name="force"/> (it runs
+    /// again, so it must be safe to repeat). A patch that another server is running right now is refused. A failure is recorded and thrown.
+    /// </summary>
+    public async Task<PatchInfo> RunOneAsync(string name, bool force, CancellationToken ct = default)
+    {
+        Validate();
+        var patch = patches.FirstOrDefault(p => string.Equals(p.Name, name, StringComparison.Ordinal))
+            ?? throw new NotFoundException($"There is no patch named '{name}'.");
+        var existing = await repository.GetAsync(Log, patch.Name, ct);
+        if (existing is not null && existing["status"] as string == "Done" && !force)
+            throw new ConflictException($"'{patch.Name}' has already run. Run it again only if it is safe to repeat.");
+        if (!await TryClaimAsync(patch.Name, ct, force))
+            throw new ConflictException($"'{patch.Name}' is being run by another server right now.");
+
+        try
+        {
+            await patch.RunAsync(services, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            await FinishAsync(patch.Name, "Failed", Cut(ex.ToString(), 4000), ct);
+            throw new PatchFailedException(patch.Name, ex);
+        }
+
+        await FinishAsync(patch.Name, "Done", null, ct);
+        return (await ListAsync(ct)).First(p => p.Name == patch.Name);
+    }
+
+    /// <summary>True when this server now owns the run: the patch never ran, failed earlier, or was claimed long ago and never finished. With <paramref name="force"/> a Done patch is taken again too.</summary>
+    private async Task<bool> TryClaimAsync(string name, CancellationToken ct, bool force = false)
     {
         var now = Now();
         var row = await repository.GetAsync(Log, name, ct);
@@ -107,7 +152,7 @@ public sealed partial class PatchRunner(IMetaRegistry registry, IDocumentReposit
 
         var status = row["status"] as string;
         var started = row["started"] as DateTime? ?? DateTime.MinValue;
-        if (status == "Done" || (status == "Running" && now - started < StaleAfter))
+        if ((status == "Done" && !force) || (status == "Running" && now - started < StaleAfter))
             return false;
 
         // Failed before, or abandoned: take it over, but only if nobody else changed the row meanwhile.
