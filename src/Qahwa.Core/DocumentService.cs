@@ -129,6 +129,8 @@ public sealed partial class DocumentService(
             changed.Add(key);
         foreach (var key in await RunAppHooksAsync(meta, values, null, isNew: true, user, errors, ct, null))
             changed.Add(key);
+        if (meta.Name == "Role")
+            RoleNetworkService.Validate(values, errors);
         var context = _logic.Context(meta, values, tables, null, user, isNew: true, await _logic.LinkedAsync(meta, values, user, ReadLinkedAsync, ct));
         await ValidateAsync(meta, values, values.Keys, errors, string.Empty, context, fieldAccess, ct);
         foreach (var table in tables)
@@ -502,6 +504,8 @@ public sealed partial class DocumentService(
             changed.Add(key);
         foreach (var key in await RunAppHooksAsync(meta, merged, existing, isNew: false, user, errors, ct, transition))
             changed.Add(key);
+        if (meta.Name == "Role")
+            RoleNetworkService.Validate(merged, errors);
         foreach (var key in changed)
             changes[key] = merged[key]; // calculated, fetched and script-set values are saved too
 

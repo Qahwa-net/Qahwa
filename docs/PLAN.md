@@ -630,7 +630,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | OAuth 2 provider, social login (Google, GitHub, Microsoft, Keycloak), OpenID Connect | done: OpenID Connect sign-in (code + PKCE, state, nonce, full token checks, identity linking, domain allow-list, auto-create) with any provider; Qahwa is also an OAuth 2.0 provider for other programs (code + PKCE, rotating refresh tokens, revocation, user info; ADR-094); optional group-to-role map in configuration that can never name Administrator or System Manager (ADR-113); without it roles never come from the token | ✅ | L10 |
 | LDAP, SAML single sign-on | done: LDAP / Active Directory sign-in (ADR-054) and SAML 2.0 sign-in (ADR-058), both tested against stand-in providers | ✅ (v1) | L12 |
 | Session management (list/revoke, expiry), login as user (impersonation) | done: list, revoke, admin sign-out-everywhere, absolute limit (ADR-040); impersonation deliberately not built | ✅ (v1) | L10 |
-| IP restrictions, system settings (security) | done: IP allow-list in configuration, System Settings (display) (ADR-042); not per-role IP rules | ✅ (v1) | L10 |
+| IP restrictions, system settings (security) | done: IP allow-list in configuration, System Settings (display) (ADR-042); per-role network limits (ADR-126) | ✅ (v1) | L10 |
 | Encrypted fields (Password type) | done: encrypted at rest, masked on read, never listed (ADR-066) | ✅ | L3 |
 | CSRF, security headers | | ✅ | done |
 

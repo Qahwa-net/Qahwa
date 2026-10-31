@@ -33,6 +33,7 @@ internal sealed class CookieUserContextResolver(
     ApiKeyService apiKeys,
     OAuthService oauth,
     SessionService sessions,
+    RoleNetworkService roleNetworks,
     IMemoryCache cache,
     IOptions<AuthOptions> options) : IUserContextResolver
 {
@@ -45,6 +46,8 @@ internal sealed class CookieUserContextResolver(
             return (IUserContext)cached!;
 
         var resolved = await ResolveCoreAsync(context, ct);
+        if (resolved.IsAuthenticated && await roleNetworks.BlockedByAsync(resolved, context.Connection.RemoteIpAddress, ct) is { } role)
+            throw new PermissionDeniedException($"The role '{role}' can only be used from certain networks, and this is not one of them.");
         context.Items[ItemKey] = resolved;
         return resolved;
     }

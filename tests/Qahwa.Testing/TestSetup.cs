@@ -158,6 +158,7 @@ public sealed class TestEngine
         AuthStore = new InMemoryAuthStore();
         AuthOptions = new AuthOptions { HashIterations = 1000 };
         SecurityPolicy = new SecurityPolicyService(Registry, Repository, Options.Create(AuthOptions));
+        RoleNetworks = new RoleNetworkService(Registry, Repository, Clock);
         WorkflowLinks = new WorkflowLinkService(Registry, Repository, Documents, WorkflowCatalog, Notifications, Email, EmailAccounts, Options.Create(AuthOptions), History);
         Auth = new AuthService(
             Registry,
@@ -212,6 +213,7 @@ public sealed class TestEngine
     public WorkflowStateFieldService WorkflowStateFields { get; }
     public WorkflowEscalationService WorkflowEscalations { get; }
     public WorkflowLinkService WorkflowLinks { get; }
+    public RoleNetworkService RoleNetworks { get; }
     public AutoRepeatService AutoRepeat { get; }
     public AssignmentRuleCatalog AssignmentRuleCatalog { get; }
     public InMemoryAssignmentRuleStore AssignmentRuleStore { get; }
