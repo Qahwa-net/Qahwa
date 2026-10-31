@@ -4,6 +4,7 @@ import { ApiError, api } from '../api/client.ts'
 import type { ImportPreview, ImportResult } from '../api/types.ts'
 import { Icon } from '../controls/Icon.tsx'
 import { Modal } from '../controls/Modal.tsx'
+import { useT } from '../i18n.tsx'
 import { useToast } from '../controls/Toast.tsx'
 import { checkImportFile, isSpreadsheet, needsBackground, percentDone, summarise, toBase64, type ImportSource } from '../lib/importFile.ts'
 
@@ -11,6 +12,7 @@ import { checkImportFile, isSpreadsheet, needsBackground, percentDone, summarise
 export function ImportDialog({ doctype, canUpdate, onClose }: { doctype: string; canUpdate: boolean; onClose: () => void }) {
   const queryClient = useQueryClient()
   const toast = useToast()
+  const t = useT()
   const [mode, setMode] = useState<'Insert' | 'Update'>('Insert')
   const [csv, setCsv] = useState<ImportSource | null>(null)
   const [fileName, setFileName] = useState('')
@@ -115,7 +117,7 @@ export function ImportDialog({ doctype, canUpdate, onClose }: { doctype: string;
       {check.isPending && <p className="muted" role="status">Checking {fileName}…</p>}
       {preview && !result && (
         <>
-          <h3 className="modal-section">{fileName}: {preview.rows} row{preview.rows === 1 ? '' : 's'}</h3>
+          <h3 className="modal-section">{fileName}: {t('one: {count} row | other: {count} rows', { count: preview.rows })}</h3>
           <div className="table-wrap">
             <table aria-label="Columns and sample rows">
               <thead>

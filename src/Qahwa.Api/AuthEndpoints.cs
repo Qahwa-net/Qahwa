@@ -35,6 +35,8 @@ public sealed record TwoFactorLoginRequest(string? Token, string? Code);
 
 public sealed record EmailCodeSendRequest(string? Purpose);
 
+public sealed record LanguageRequest(string? Language);
+
 public sealed record EmailCodeConfirmRequest(string? Token, string? Code, string? Password);
 
 public sealed record TwoFactorCodeRequest(string? Code, string? Password);
@@ -85,7 +87,7 @@ public static class AuthEndpoints
 
             var session = await service.CompleteLoginAsync(key, ct) ?? throw new InvalidCredentialsException();
             await SignInAsync(http, session, await StartSessionAsync(http, sessions, session.User.User, ct));
-            return Results.Ok(new { data = Describe(session) });
+            return Results.Ok(new { data = Describe(session, await service.LanguageOfAsync(session.User.User, ct)) });
         }).RequireRateLimiting(AuthClaims.LoginRateLimit);
 
         auth.MapPost("/login/2fa", async (TwoFactorLoginRequest body, HttpContext http, AuthService service, TwoFactorService twoFactor, EmailCodeService emailCodes, SessionService sessions, CancellationToken ct) =>
@@ -102,7 +104,7 @@ public static class AuthEndpoints
 
             var session = await service.CompleteLoginAsync(key, ct) ?? throw new InvalidCredentialsException();
             await SignInAsync(http, session, await StartSessionAsync(http, sessions, session.User.User, ct));
-            return Results.Ok(new { data = Describe(session) });
+            return Results.Ok(new { data = Describe(session, await service.LanguageOfAsync(session.User.User, ct)) });
         }).RequireRateLimiting(AuthClaims.LoginRateLimit);
 
         auth.MapPost("/expired-password", async (ExpiredPasswordRequest body, PasswordResetService reset, CancellationToken ct) =>
@@ -285,6 +287,14 @@ public static class AuthEndpoints
             return Results.Ok(new { message = "ok" });
         });
 
+        // The person's own choice of language, kept on their account so it follows them to every device. Not for API keys.
+        auth.MapPut("/language", async (LanguageRequest body, HttpContext http, IUserContextResolver users, AuthService service, CancellationToken ct) =>
+        {
+            var user = await PersonAsync(http, users, ct);
+            await service.SetLanguageAsync(user.User, body.Language, ct);
+            return Results.Ok(new { message = "ok" });
+        });
+
         auth.MapPost("/logout", async (HttpContext http) =>
         {
             await http.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
@@ -298,7 +308,7 @@ public static class AuthEndpoints
                 throw new UnauthenticatedException();
 
             var session = await service.LoadSessionAsync(user.User, ct) ?? throw new UnauthenticatedException();
-            return Results.Ok(new { data = Describe(session) });
+            return Results.Ok(new { data = Describe(session, await service.LanguageOfAsync(session.User.User, ct)) });
         });
 
         auth.MapPost("/change-password", async (
@@ -331,8 +341,8 @@ public static class AuthEndpoints
         return user.IsAuthenticated ? user : throw new UnauthenticatedException();
     }
 
-    private static object Describe(SessionInfo session) =>
-        new { user = session.User.User, full_name = session.FullName, roles = session.User.Roles };
+    private static object Describe(SessionInfo session, string? language = null) =>
+        new { user = session.User.User, full_name = session.FullName, roles = session.User.Roles, language };
 
     private static Task<string> StartSessionAsync(HttpContext http, SessionService sessions, string user, CancellationToken ct) =>
         sessions.StartAsync(user, http.Connection.RemoteIpAddress?.ToString(), http.Request.Headers.UserAgent.ToString(), ct);

@@ -48,6 +48,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **Gallery, map and timeline views**: pictures as tiles, places on a plain grid (no outside map service), documents as bars between two dates ([ADR-049](docs/adr/049-gallery-map-and-timeline-views.md))
 - **Light, dark and automatic themes and a brand**: per-person theme, organisation name, logo, colours and default theme, all checked as plain data, readable colours guaranteed ([ADR-056](docs/adr/056-brand-and-theme.md))
 - **App dependencies**: apps name the apps they need; installed in order, bad graphs stop start-up ([ADR-085](docs/adr/085-app-dependencies.md))
+- **Plurals and a language on your account**: messages with `{count}` pick the right plural form (six in Arabic), and your language follows you to every device ([ADR-133](docs/adr/133-plurals-and-account-language.md))
 - **Password-protected backups**: AES-256-GCM in pieces, a password that cannot be recovered, in the Desk, the API, the CLI and the daily folder ([ADR-132](docs/adr/132-protected-backups.md))
 - **Patches you can see and re-run**: `qahwa list-patches` / `run-patch`, `GET /api/patches`, and a Run again button on the Patch Log ([ADR-043](docs/adr/043-patches.md))
 - **JSON Schema for DocType files**: `qahwa schema` / `docs/schema/doctype.schema.json` gives editors completion, hover help and typo warnings, kept in step with the model by a test ([ADR-131](docs/adr/131-doctype-json-schema.md))

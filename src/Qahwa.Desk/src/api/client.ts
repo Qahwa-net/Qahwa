@@ -181,6 +181,11 @@ export const api = {
     },
   },
 
+  account: {
+    /** The person's own choice of language, kept on their account so it follows them to every device. */
+    setLanguage: (language: string | null) => request<unknown>('PUT', '/api/auth/language', { language }),
+  },
+
   logout: () => request<unknown>('POST', '/api/auth/logout'),
 
   changePassword: (oldPassword: string, newPassword: string) =>

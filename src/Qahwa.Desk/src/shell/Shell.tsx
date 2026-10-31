@@ -30,12 +30,17 @@ function groupByModule(metas: MetaSummary[]): [string, MetaSummary[]][] {
 
 export function Shell() {
   const { user, logout } = useAuth()
-  const { t, applyDefault } = useI18n()
+  const { t, applyDefault, applyUser } = useI18n()
   const { brand } = useTheme()
   const settings = useQuery({ queryKey: ['display-settings'], queryFn: api.settings, staleTime: 60_000, retry: false })
   if (settings.data) setDisplaySettings(settings.data) // before the page below renders, so dates follow the settings
   const defaultLanguage = settings.data?.defaultLanguage
   useEffect(() => { if (defaultLanguage) applyDefault(defaultLanguage) }, [defaultLanguage, applyDefault])
+  const savedLanguage = user?.language
+  // Only when the account's language arrives or changes: switching language in the top bar must not be undone by the older saved value.
+  const applyUserRef = useRef(applyUser)
+  applyUserRef.current = applyUser
+  useEffect(() => { if (savedLanguage) applyUserRef.current(savedLanguage) }, [savedLanguage])
   const [open, setOpen] = useState(false)
   const [searching, setSearching] = useState(false)
   const desk = useDeskSettings()

@@ -42,7 +42,8 @@ public class BackupCryptoTests
 
         Assert.Equal(plain, await OpenAsync(sealedBytes));
         Assert.StartsWith("QBK1", Encoding.ASCII.GetString(sealedBytes, 0, 4));
-        Assert.DoesNotContain(plain.Take(32).ToArray().ToHex(), sealedBytes.ToHex()); // not stored readable
+        if (length >= 16) // a few bytes could match by chance; a long run of them cannot
+            Assert.DoesNotContain(plain.Take(16).ToArray().ToHex(), sealedBytes.ToHex()); // not stored readable
     }
 
     [Fact]

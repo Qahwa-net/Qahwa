@@ -25,6 +25,27 @@ public sealed class AuthApiTests : IAsyncDisposable
         client.PostAsJsonAsync("/api/auth/login", new { email, password });
 
     [Fact]
+    public async Task The_language_a_person_chooses_is_kept_on_their_account_and_comes_back_on_sign_in_and_me()
+    {
+        await SeedAsync();
+        var client = _factory.CreateClient();
+        var first = await JsonOf(await LoginAsync(client));
+        Assert.Equal(JsonValueKind.Null, first.GetProperty("data").GetProperty("language").ValueKind);
+
+        Assert.Equal(HttpStatusCode.OK, (await client.PutAsJsonAsync("/api/auth/language", new { language = "ar" })).StatusCode);
+        Assert.Equal("ar", (await JsonOf(await client.GetAsync("/api/auth/me"))).GetProperty("data").GetProperty("language").GetString());
+
+        // On another device the sign-in itself carries it.
+        var other = _factory.CreateClient();
+        Assert.Equal("ar", (await JsonOf(await LoginAsync(other))).GetProperty("data").GetProperty("language").GetString());
+
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PutAsJsonAsync("/api/auth/language", new { language = "<b>" })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.PutAsJsonAsync("/api/auth/language", new { language = (string?)null })).StatusCode);
+        Assert.Equal(JsonValueKind.Null, (await JsonOf(await client.GetAsync("/api/auth/me"))).GetProperty("data").GetProperty("language").ValueKind);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateClient().PutAsJsonAsync("/api/auth/language", new { language = "ar" })).StatusCode);
+    }
+
+    [Fact]
     public async Task Login_sets_a_hardened_session_cookie_and_me_returns_the_user()
     {
         await SeedAsync();

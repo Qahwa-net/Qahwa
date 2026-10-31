@@ -655,7 +655,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Awesomebar (global search, create, commands), global search index | done: Ctrl+K search box with pages, DocTypes, "new …" and permission-checked document search by name, title and each DocType's search fields (ADR-061, ADR-105); no database full-text index, deliberately (ADR-107) | ✅ | L9 |
 | Notification bell, toasts, dialogs | done (ADR-015) | ✅ (v1) | L8 |
 | Themes (light, dark, automatic), RTL layout | RTL done (logical CSS, dir follows the language); light, dark and automatic themes with organisation brand default done | ✅ | L12 |
-| Translations (Translation DocType, language switch) | done: Translation DocType, catalog API, language switch, built-in Arabic chrome; not yet every message, plurals, per-user language | ✅ (v1) | L12 |
+| Translations (Translation DocType, language switch) | done: Translation DocType, catalog API, language switch, built-in Arabic chrome, plural forms and placeholders, language kept on the account (ADR-133); not yet every message | ✅ (v1) | L12 |
 | User settings: language, time zone, date/number/currency formats | language and time zone/date formats done (ADR-033, ADR-042); light/dark/auto theme per person and organisation brand done (ADR-056); number and currency format is a site setting (ADR-106) | ✅ | L7 |
 | Page Builder / Custom HTML Block | | 🔽 | L11 |
 

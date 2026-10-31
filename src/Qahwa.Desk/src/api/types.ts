@@ -490,6 +490,8 @@ export interface SessionUser {
   user: string
   full_name: string
   roles: string[]
+  /** The language of the Desk the person chose on their account, if any. */
+  language?: string | null
 }
 
 /** One state of a workflow. docStatus: 0 draft, 1 submitted, 2 cancelled. */
