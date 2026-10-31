@@ -137,3 +137,12 @@ Set `Qahwa:Developer:Enabled` to `true` and `Qahwa:Developer:AppPath` to your ap
 ## Testing an app
 
 `TestEngine` (in `Qahwa.Testing`) has `AppCatalog`: `engine.AppCatalog.Add(new CrmApp())` activates the hooks and methods for the engine's `Documents` and `Methods`; `AppInstaller.InstallAllAsync()` records the app and makes fixtures; `AppJobs.RunDueAsync()` runs due jobs. See `tests/Qahwa.Core.Tests/AppTests.cs`.
+
+## Building the documentation site
+The markdown under `docs/` can be built into a static website with a page list, a filter box and checked links:
+
+```bash
+cd docs/site && npm ci && npm run build   # writes docs/site/dist; open dist/index.html
+```
+
+`npm run check` only checks the links. CI builds the site on every change, so a link to a page that does not exist fails the build ([ADR-135](../../adr/135-docs-site.md)).

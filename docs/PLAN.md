@@ -414,7 +414,7 @@ Timeline assumes **1–2 full-time developers**. Scale it up or down accordingly
 - Visual DocType designer in Desk
 - Kanban/calendar/tree views, webhooks, OAuth2/OIDC provider support
 - Marketplace-style app distribution (NuGet feed), upgrade tooling
-- Docs site, tutorials, templates (`dotnet new qahwa-app`)
+- Docs site (done: `docs/site`, ADR-135), tutorials, templates (`dotnet new qahwa-app`)
 - First flagship app (e.g., **Qahwa CRM**, to dogfood the framework)
 
 ---
