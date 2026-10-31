@@ -176,6 +176,7 @@ public sealed class TestEngine
         SsoOptions = new SsoOptions { Providers = { ["idp"] = new SsoProvider { DisplayName = "Company login", Authority = FakeIdentityProvider.Authority, ClientId = FakeIdentityProvider.ClientId, ClientSecret = "s3cret" } } };
         Sso = new SsoService(Options.Create(SsoOptions), IdentityProvider, IdentityStore, Auth, protector, Clock);
         TwoFactor = new TwoFactorService(TotpStore, protector, AuthStore, Options.Create(AuthOptions), Clock);
+        EmailCodes = new EmailCodeService(Registry, Repository, EmailSender, protector, AuthStore, Options.Create(AuthOptions), Clock);
         Sessions = new SessionService(new InMemorySessionStore(), Options.Create(AuthOptions), Clock, SecurityPolicy);
         GlobalSearch = new GlobalSearchService(Documents, Permissions, new HitCounter(Clock));
         SamlIdp = new FakeSamlIdp();
@@ -299,6 +300,7 @@ public sealed class TestEngine
     public IAuthStore AuthStore { get; }
     public InMemoryTotpStore TotpStore { get; }
     public TwoFactorService TwoFactor { get; }
+    public EmailCodeService EmailCodes { get; }
     public SessionService Sessions { get; }
     public PasswordResetService PasswordReset { get; }
     public AuthOptions AuthOptions { get; }

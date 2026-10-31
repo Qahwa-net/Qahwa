@@ -980,6 +980,8 @@ export interface PublicForm {
 export interface TwoFactorChallenge {
   two_factor: true
   token: string
+  /** How the code reaches the person: an authenticator app (the default) or an email. */
+  method?: 'app' | 'email'
 }
 
 export interface ExpiredPasswordChallenge {

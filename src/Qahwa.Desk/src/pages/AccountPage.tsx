@@ -8,6 +8,7 @@ import { ConnectedAppsSection } from './ConnectedAppsSection.tsx'
 import { EmailDigestSection } from './EmailDigestSection.tsx'
 import { SessionsSection } from './SessionsSection.tsx'
 import { TwoFactorSection } from './TwoFactorSection.tsx'
+import { EmailCodeSection } from './EmailCodeSection.tsx'
 import { Select } from '../controls/Select.tsx'
 
 export function AccountPage() {
@@ -81,6 +82,7 @@ export function AccountPage() {
       <ConnectedAppsSection />
       <SessionsSection />
       <TwoFactorSection />
+      <EmailCodeSection />
       <ApiKeysSection />
     </>
   )

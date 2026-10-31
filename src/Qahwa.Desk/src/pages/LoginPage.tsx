@@ -20,6 +20,7 @@ export function LoginPage() {
   const [busy, setBusy] = useState(false)
   const [challenge, setChallenge] = useState<string | null>(null)
   const [expired, setExpired] = useState(false)
+  const [method, setMethod] = useState<'app' | 'email'>('app')
   const [code, setCode] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [repeat, setRepeat] = useState('')
@@ -57,6 +58,7 @@ export function LoginPage() {
         if (next) {
           setChallenge(next.token)
           setExpired(next.kind === 'expired')
+          setMethod(next.method ?? 'app')
           if (next.kind === 'code') setPassword('')
         }
       }
@@ -71,7 +73,7 @@ export function LoginPage() {
         : e instanceof ApiError && e.status === 429
           ? 'Too many attempts. Please wait a minute and try again.'
           : e instanceof ApiError && e.code === 'invalid_code'
-            ? 'That code is not right. Try the next one, or use a recovery code.'
+            ? (method === 'email' ? 'That code is not right. Check the latest email, or sign in again to get a new code.' : 'That code is not right. Try the next one, or use a recovery code.')
           : e instanceof ApiError && e.status === 401
             ? challenge ? 'This sign-in took too long. Start again.' : 'Invalid email or password.'
             : 'Could not sign in. Please try again.',
@@ -87,7 +89,7 @@ export function LoginPage() {
         {brand.logo && <img src={brand.logo} alt="" className="login-logo" />}
         <h1>{brand.name}</h1>
         {brand.login_message && <p className="login-message">{brand.login_message}</p>}
-        <p className="muted">{challenge && expired ? 'Your password has expired. Choose a new one to continue.' : challenge ? 'Enter the code from your authenticator app' : 'Sign in to continue'}</p>
+        <p className="muted">{challenge && expired ? 'Your password has expired. Choose a new one to continue.' : challenge ? (method === 'email' ? 'We emailed you a code. Enter it to sign in.' : 'Enter the code from your authenticator app') : 'Sign in to continue'}</p>
         {notice && !challenge && <div className="banner info" role="status">{notice}</div>}
 
         {(error ?? ssoErrorText(params.get('sso_error'))) && <div className="banner error" role="alert">{error ?? ssoErrorText(params.get('sso_error'))}</div>}
@@ -105,7 +107,7 @@ export function LoginPage() {
             <span>Code</span>
             <input inputMode="text" autoComplete="one-time-code" required autoFocus maxLength={20} value={code}
               onChange={(e) => setCode(e.target.value)} />
-            <small className="muted">The 6 digits from the app, or one of your recovery codes.</small>
+            <small className="muted">{method === 'email' ? 'The 6 digits from the email. It works once, for 10 minutes.' : 'The 6 digits from the app, or one of your recovery codes.'}</small>
           </label>
         ) : (<>
         <label className="field">

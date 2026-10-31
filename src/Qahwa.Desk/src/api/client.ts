@@ -163,6 +163,12 @@ export const api = {
     enable: async (code: string) => (await request<{ data: { recovery_codes: string[] } }>('POST', '/api/auth/2fa/enable', { code })).data.recovery_codes,
     disable: (password: string, code: string) => request<unknown>('POST', '/api/auth/2fa/disable', { password, code }),
     reset: (user: string) => request<unknown>('POST', '/api/auth/2fa/reset', { user }),
+    email: {
+      status: async () => (await request<{ data: { enabled: boolean } }>('GET', '/api/auth/2fa/email')).data,
+      send: async (purpose: 'enable' | 'disable') => (await request<{ data: { token: string } }>('POST', '/api/auth/2fa/email/send', { purpose })).data.token,
+      enable: (token: string, code: string) => request<unknown>('POST', '/api/auth/2fa/email/enable', { token, code }),
+      disable: (token: string, code: string, password: string) => request<unknown>('POST', '/api/auth/2fa/email/disable', { token, code, password }),
+    },
   },
 
   logout: () => request<unknown>('POST', '/api/auth/logout'),

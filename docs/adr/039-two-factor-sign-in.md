@@ -16,4 +16,4 @@ A password alone can be guessed, phished or reused from another breach. Two-fact
 - A re-created account (same email, new User document) does not inherit the old secret.
 
 ## Consequences
-- Not yet: making two-factor mandatory for a role, SMS or email codes, WebAuthn/passkeys, remembering a trusted device, logging two-factor events.
+- Email codes are now built (ADR-127). Not yet: making two-factor mandatory for a role, SMS codes, WebAuthn/passkeys, remembering a trusted device, logging two-factor events.
