@@ -14,4 +14,4 @@ The list view can filter and sort, and a single summary can be made on the fly, 
 - **Builder** in the Desk: pick the DocType (a searchable list), the kind, columns or group and numbers, filters, order; **Preview** runs the unsaved definition with your own rights; **Save**. Saving uses the `modified` value, so two people editing the same report get a conflict instead of overwriting each other.
 
 ## Consequences
-- Not yet: reports across several DocTypes (joins), calculated columns, grouping by two fields, charts from a report (dashboards have charts), scheduled email of a report, printing a report as PDF.
+- Calculated columns are now built (ADR-130). Not yet: reports across several DocTypes (joins), grouping by two fields, charts from a report (dashboards have charts), scheduled email of a report, printing a report as PDF.

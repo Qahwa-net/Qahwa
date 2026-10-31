@@ -42,6 +42,64 @@ public class ReportTests
 
     private static ReportDefinition Summary(string groupBy, params ReportAggregate[] aggregates) => new() { DocType = "Sale", GroupBy = groupBy, Aggregates = aggregates };
 
+    // ---- calculated columns ----
+
+    private static ReportDefinition WithCalc(params (string Label, string Expression)[] calc) =>
+        Listing("customer", "amount") with { OrderBy = "creation", Descending = false, Calculated = calc.Select(c => new ReportCalculation(c.Label, c.Expression)).ToList() };
+
+    [Fact]
+    public async Task A_list_report_can_show_columns_worked_out_from_the_documents_fields()
+    {
+        await SalesAsync();
+
+        var run = await _engine.Reports.RunAsync(WithCalc(("Line total", "amount * qty"), ("Size", "amount >= 100 ? 'Big' : 'Small'"), ("Name length", "len(customer)")), Ann);
+
+        Assert.Equal(["customer", "amount", "calc_1", "calc_2", "calc_3"], run.Columns.Select(c => c.Key));
+        Assert.Equal(["Customer", "Amount", "Line total", "Size", "Name length"], run.Columns.Select(c => c.Label));
+        Assert.Equal(["Float", "Data", "Float"], run.Columns.Skip(2).Select(c => c.Type));
+        Assert.Equal([100d, 100d, 900d, 40d], run.Rows.Select(r => (double)r["calc_1"]!));
+        Assert.Equal(["Big", "Small", "Big", "Small"], run.Rows.Select(r => (string)r["calc_2"]!));
+        Assert.DoesNotContain(run.Rows, r => r.ContainsKey("qty")); // a field only the formula needed is not shown
+    }
+
+    [Fact]
+    public async Task A_calculation_over_a_field_the_viewer_may_not_read_is_refused_not_shown()
+    {
+        await SalesAsync();
+        var viewer = await Assert.ThrowsAsync<DocumentValidationException>(() => _engine.Reports.RunAsync(WithCalc(("Margin x2", "margin * 2")), Viewer));
+        Assert.Contains(viewer.Errors, e => e.Field == "margin");
+
+        var boss = new UserContext("boss@example.com", ["Boss", "Clerk"]);
+        Assert.NotEmpty((await _engine.Reports.RunAsync(WithCalc(("Margin x2", "margin * 2")), boss)).Rows);
+    }
+
+    [Fact]
+    public async Task Calculated_columns_are_checked_when_the_report_is_saved()
+    {
+        async Task<DocumentValidationException> Fails(ReportDefinition d) => await Assert.ThrowsAsync<DocumentValidationException>(() => _engine.Reports.CreateAsync(new ReportRequest("R", false, d), Ann));
+
+        Assert.Contains((await Fails(WithCalc(("X", "nope + 1")))).Errors, e => e.Field == "calculated[0].expression" && e.Message.Contains("not a field"));
+        Assert.Contains((await Fails(WithCalc(("X", "pin")))).Errors, e => e.Field == "calculated[0].expression"); // passwords cannot be read
+        Assert.Contains((await Fails(WithCalc(("X", "amount +")))).Errors, e => e.Field == "calculated[0].expression");
+        Assert.Contains((await Fails(WithCalc(("X", "lookup(customer, 'x')")))).Errors, e => e.Field == "calculated[0].expression");
+        Assert.Contains((await Fails(WithCalc(("", "amount")))).Errors, e => e.Field == "calculated[0].label");
+        Assert.Contains((await Fails(WithCalc(("Amount", "amount")))).Errors, e => e.Field == "calculated[0].label"); // the label of a shown column
+        Assert.Contains((await Fails(WithCalc(Enumerable.Range(1, 6).Select(i => ($"C{i}", "amount")).ToArray()))).Errors, e => e.Field == "calculated");
+        Assert.Contains((await Fails(Summary("region", A("count")) with { Calculated = [new ReportCalculation("X", "1")] })).Errors, e => e.Field == "calculated");
+    }
+
+    [Fact]
+    public async Task A_saved_report_keeps_its_calculated_columns_and_the_download_has_them()
+    {
+        await SalesAsync();
+        var info = await _engine.Reports.CreateAsync(new ReportRequest("With totals", false, WithCalc(("Line total", "amount * qty"))), Ann);
+
+        Assert.Equal("Line total", (await _engine.Reports.GetAsync(info.Id, Ann)).Definition.Calculated.Single().Label);
+        var export = await _engine.Reports.ExportAsync(info.Id, Ann);
+        Assert.Equal(["Customer", "Amount", "Line total"], export.Columns);
+        Assert.Equal([100d, 100d, 900d, 40d], export.Rows.Select(r => (double)r["Line total"]!));
+    }
+
     [Fact]
     public async Task A_list_report_shows_the_chosen_columns_filtered_and_ordered()
     {

@@ -57,3 +57,28 @@ describe('report builder helpers', () => {
     expect(list).toEqual(['a'])
   })
 })
+
+describe('calculated columns', () => {
+  const list = { ...newDraft('Sale'), columns: ['amount'] }
+
+  it('are sent with their label and formula, blank ones dropped, and only for lists', () => {
+    const draft = { ...list, calculated: [{ label: ' Total ', expression: ' amount * qty ' }, { label: '', expression: '' }] }
+    expect((toDefinition(draft) as { calculated: unknown }).calculated).toEqual([{ label: 'Total', expression: 'amount * qty' }])
+    const summary = { ...draft, mode: 'summary' as const, groupBy: 'region', aggregates: [{ function: 'count', field: '' }] }
+    expect(toDefinition(summary)).not.toHaveProperty('calculated')
+  })
+
+  it('round trip through a saved definition', () => {
+    const back = fromDefinition('R', false, { docType: 'Sale', columns: ['amount'], calculated: [{ label: 'Double', expression: 'amount * 2' }] })
+    expect(back.calculated).toEqual([{ label: 'Double', expression: 'amount * 2' }])
+    expect(fromDefinition('R', false, { docType: 'Sale', columns: ['amount'] }).calculated).toEqual([])
+  })
+
+  it('are checked while typing: a name is needed and the formula must be valid', () => {
+    expect(draftProblem({ ...list, calculated: [{ label: 'T', expression: 'amount * 2' }] })).toBeNull()
+    expect(draftProblem({ ...list, calculated: [{ label: '', expression: 'amount' }] })).toBe('Name each calculated column.')
+    expect(draftProblem({ ...list, calculated: [{ label: 'T', expression: 'amount *' }] })).toMatch(/Calculated column "T"/)
+    expect(draftProblem({ ...list, calculated: [{ label: '', expression: '' }] })).toBeNull() // an empty row is ignored
+  })
+})
+
