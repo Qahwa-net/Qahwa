@@ -7,7 +7,7 @@ import type { SsoProviderInfo } from '../lib/sso.ts'
 import type { DisplaySettings } from '../lib/display.ts'
 import type {
   DesignerDetail, DocPerm, DesignerItem, DesignerPreview, Doc, DocTypeDefinition, FieldError, FieldTypeInfo,
-  ListResponse, ReportDetail, ReportInfo, ReportRun, RestoreReport, SignIn, ExpiredPasswordChallenge, TwoFactorChallenge, TwoFactorSetup, TwoFactorStatus, PublicForm, BundleReport, TranslationCatalog, AttachedFile, WebhookItem, WebhookSet, WebhookTestResult, WebhookView, ApiKeyCreated, ApiKeyInfo, ImportPreview, ImportResult, WorkspaceBlock, WorkspaceDetail, WorkspaceInfo, WorkspaceView, LetterHeadDetail, PrintChoices, PrintFormatDetail, PrintFormatInfo, DashboardDetail, DashboardInfo, DashboardItem, DashboardResult, EmailPreview, EmailTemplateInfo, NotificationRuleItem, NotificationRuleSet, NotificationRuleView, AutoRepeatInfo, AutoRepeatRequest, AssignmentRuleItem, AssignmentRuleSet, AssignmentRuleView, PendingAction, WorkflowDefinition, WorkflowItem, WorkflowStatus, WorkflowView, MetaResponse, MetaSummary, PermissionItem, ActivityItem, WorkflowLinkInfo, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, AppInfo, OAuthAuthorizeParams, OAuthConsent, OAuthClientInfo, OAuthConnected, EmailDigest, ScriptReportInfo, ScriptReportResult, Viewer, FollowState, LikeState, TagCount, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
+  ListResponse, ReportDetail, ReportInfo, ReportRun, RestoreReport, SignIn, ExpiredPasswordChallenge, TwoFactorChallenge, TwoFactorSetup, TwoFactorStatus, PublicForm, BundleReport, TranslationCatalog, AttachedFile, WebhookItem, WebhookSet, WebhookTestResult, WebhookView, ApiKeyCreated, ApiKeyInfo, ImportPreview, ImportResult, ImportRun, WorkspaceBlock, WorkspaceDetail, WorkspaceInfo, WorkspaceView, LetterHeadDetail, PrintChoices, PrintFormatDetail, PrintFormatInfo, DashboardDetail, DashboardInfo, DashboardItem, DashboardResult, EmailPreview, EmailTemplateInfo, NotificationRuleItem, NotificationRuleSet, NotificationRuleView, AutoRepeatInfo, AutoRepeatRequest, AssignmentRuleItem, AssignmentRuleSet, AssignmentRuleView, PendingAction, WorkflowDefinition, WorkflowItem, WorkflowStatus, WorkflowView, MetaResponse, MetaSummary, PermissionItem, ActivityItem, WorkflowLinkInfo, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, AppInfo, OAuthAuthorizeParams, OAuthConsent, OAuthClientInfo, OAuthConnected, EmailDigest, ScriptReportInfo, ScriptReportResult, Viewer, FollowState, LikeState, TagCount, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
 } from './types.ts'
 import type { Filter } from '../lib/filters.ts'
 import { toApiFilters } from '../lib/filters.ts'
@@ -429,8 +429,12 @@ export const api = {
 
   import: {
     templateUrl: (doctype: string, mode: string) => `/api/import/${encodeURIComponent(doctype)}/template?mode=${encodeURIComponent(mode)}`,
-    preview: async (doctype: string, source: ImportSource, mode: string) =>
-      (await request<{ data: ImportPreview }>('POST', `/api/import/${encodeURIComponent(doctype)}/preview`, { ...source, mode })).data,
+    preview: async (doctype: string, source: ImportSource, mode: string, background = false) =>
+      (await request<{ data: ImportPreview }>('POST', `/api/import/${encodeURIComponent(doctype)}/preview`, { ...source, mode, background })).data,
+    background: async (doctype: string, source: ImportSource, mode: string, stopOnError: boolean) =>
+      (await request<{ data: ImportRun }>('POST', `/api/import/${encodeURIComponent(doctype)}/background`, { ...source, mode, stopOnError })).data,
+    runStatus: async (id: string) => (await request<{ data: ImportRun }>('GET', `/api/import-runs/${encodeURIComponent(id)}`)).data,
+    cancelRun: async (id: string) => { await request<unknown>('POST', `/api/import-runs/${encodeURIComponent(id)}/cancel`) },
     run: async (doctype: string, source: ImportSource, mode: string, stopOnError: boolean) =>
       (await request<{ data: ImportResult }>('POST', `/api/import/${encodeURIComponent(doctype)}`, { ...source, mode, stopOnError })).data,
   },

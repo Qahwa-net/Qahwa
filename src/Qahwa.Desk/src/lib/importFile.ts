@@ -1,4 +1,6 @@
+/** Up to this a file is imported while you wait; bigger ones (to the background limit) run in the background. */
 export const MAX_IMPORT_BYTES = 5 * 1024 * 1024
+export const MAX_BACKGROUND_BYTES = 25 * 1024 * 1024
 export const MAX_XLSX_BYTES = 10 * 1024 * 1024
 
 /** What the server is sent: the text of a CSV file, or a spreadsheet as base64. */
@@ -10,10 +12,10 @@ export interface ImportSource {
 export const isSpreadsheet = (file: { name: string; type?: string }): boolean =>
   /\.xlsx$/i.test(file.name) || /spreadsheetml\.sheet/i.test(file.type ?? '')
 
-/** Whether a file can be offered for import (a CSV, text or Excel file within the size limit), and if not why. */
+/** Whether a file can be offered for import (a CSV, text or Excel file within the size limit), and if not why. Big CSV files are imported in the background. */
 export function checkImportFile(file: { name: string; size: number; type?: string }): string | null {
   if (isSpreadsheet(file)) return file.size > MAX_XLSX_BYTES ? `The file is larger than ${MAX_XLSX_BYTES / (1024 * 1024)} MB.` : null
-  if (file.size > MAX_IMPORT_BYTES) return `The file is larger than ${MAX_IMPORT_BYTES / (1024 * 1024)} MB.`
+  if (file.size > MAX_BACKGROUND_BYTES) return `The file is larger than ${MAX_BACKGROUND_BYTES / (1024 * 1024)} MB.`
   if (!/\.(csv|txt)$/i.test(file.name) && !/(csv|text\/plain)/i.test(file.type ?? '')) return 'Choose an Excel (.xlsx) or CSV file.'
   return null
 }
@@ -34,3 +36,9 @@ export function summarise(result: { created: number; updated: number; failed: nu
   ].filter(Boolean)
   return parts.length > 0 ? parts.join(', ') : 'Nothing was imported'
 }
+
+/** A file too big to import while the person waits (it goes to the background instead). */
+export const needsBackground = (file: { size: number }): boolean => file.size > MAX_IMPORT_BYTES
+
+/** Share of a background import done, 0 to 100. */
+export const percentDone = (processed: number, rows: number): number => (rows <= 0 ? 0 : Math.min(100, Math.round((processed / rows) * 100)))

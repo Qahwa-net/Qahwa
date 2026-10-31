@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_IMPORT_BYTES, MAX_XLSX_BYTES, checkImportFile, isSpreadsheet, summarise, toBase64 } from './importFile.ts'
+import { MAX_BACKGROUND_BYTES, MAX_IMPORT_BYTES, MAX_XLSX_BYTES, checkImportFile, isSpreadsheet, needsBackground, percentDone, summarise, toBase64 } from './importFile.ts'
 
 describe('import file helpers', () => {
   it('accepts CSV and text files within the limit', () => {
@@ -11,7 +11,7 @@ describe('import file helpers', () => {
   it('refuses other files and big ones', () => {
     expect(checkImportFile({ name: 'x.pdf', size: 100, type: 'application/pdf' })).toMatch(/CSV/)
     expect(checkImportFile({ name: 'x.xls', size: 100, type: 'application/vnd.ms-excel' })).toMatch(/.xlsx/)
-    expect(checkImportFile({ name: 'x.csv', size: MAX_IMPORT_BYTES + 1 })).toMatch(/larger/)
+    expect(checkImportFile({ name: 'x.csv', size: MAX_BACKGROUND_BYTES + 1 })).toMatch(/larger/)
   })
 
   it('accepts Excel files up to their own limit', () => {
@@ -31,5 +31,20 @@ describe('import file helpers', () => {
     expect(summarise({ created: 3, updated: 0, failed: 1 })).toBe('3 created, 1 failed')
     expect(summarise({ created: 0, updated: 2, failed: 0 })).toBe('2 updated')
     expect(summarise({ created: 0, updated: 0, failed: 0 })).toBe('Nothing was imported')
+  })
+})
+
+describe('big files and background progress', () => {
+  it('lets a big CSV through (it goes to the background) up to the background limit', () => {
+    expect(checkImportFile({ name: 'big.csv', size: MAX_IMPORT_BYTES + 1 })).toBeNull()
+    expect(needsBackground({ size: MAX_IMPORT_BYTES })).toBe(false)
+    expect(needsBackground({ size: MAX_IMPORT_BYTES + 1 })).toBe(true)
+  })
+
+  it('works out how far an import is', () => {
+    expect(percentDone(0, 0)).toBe(0)
+    expect(percentDone(25, 100)).toBe(25)
+    expect(percentDone(1, 3)).toBe(33)
+    expect(percentDone(120, 100)).toBe(100)
   })
 })

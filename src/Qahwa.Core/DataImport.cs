@@ -11,7 +11,7 @@ public static class CsvReader
     public const int MaxCells = 500_000;
 
     /// <exception cref="FormatException">A quote is never closed, or there are too many cells.</exception>
-    public static List<List<string>> Read(string text)
+    public static List<List<string>> Read(string text, int maxCells = MaxCells)
     {
         var rows = new List<List<string>>();
         if (text.Length > 0 && text[0] == '﻿')
@@ -25,8 +25,8 @@ public static class CsvReader
         {
             row.Add(cell.ToString());
             cell.Clear();
-            if (++cells > MaxCells)
-                throw new FormatException($"The file has more than {MaxCells:N0} cells.");
+            if (++cells > maxCells)
+                throw new FormatException($"The file has more than {maxCells:N0} cells.");
         }
 
         for (var i = 0; i < text.Length; i++)
@@ -72,6 +72,9 @@ public sealed record ImportRowError(int Row, string? Field, string Message);
 public sealed record ImportPreview(
     IReadOnlyList<ImportColumn> Columns, int Rows, IReadOnlyList<IReadOnlyList<string>> Sample, IReadOnlyList<ImportRowError> Errors, bool MoreErrors);
 
+/// <summary>How far a background import is: documents seen so far out of all, and what happened to them.</summary>
+public sealed record ImportProgress(int Total, int Processed, int Created, int Updated, int Failed);
+
 public sealed record ImportResult(int Created, int Updated, int Failed, IReadOnlyList<ImportRowError> Errors, bool Stopped, bool MoreErrors);
 
 /// <summary>
@@ -83,9 +86,15 @@ public sealed class DataImportService(IMetaRegistry registry, DocumentService do
 {
     public const int MaxRows = 5000;
     public const int MaxBytes = 5 * 1024 * 1024;
+
+    /// <summary>What a background import may take (it runs without anyone waiting, one document at a time, as the person).</summary>
+    public const int LargeMaxRows = 50_000;
+    public const int LargeMaxBytes = 25 * 1024 * 1024;
+    public const int LargeMaxCells = 2_000_000;
     public const int MaxErrors = 100;
     public const int PreviewRows = 200;
     public const int SampleRows = 5;
+    public const int ProgressEvery = 25;
 
     public static readonly string[] Modes = ["Insert", "Update"];
 
@@ -113,6 +122,16 @@ public sealed class DataImportService(IMetaRegistry registry, DocumentService do
         return meta;
     }
 
+    /// <summary>Checks that the person may import into this DocType in this mode (read, create or write, and the import right). Throws when not.</summary>
+    public void Authorize(string doctype, string mode, IUserContext user) => Require(doctype, mode, user);
+
+    /// <summary>Reads and checks a file for a background import and says how many rows it has (the caller stores the text).</summary>
+    public int CheckLarge(string doctype, string csv, string mode, IUserContext user)
+    {
+        var meta = Require(doctype, mode, user);
+        return Parse(meta, csv, mode, large: true).Rows.Count;
+    }
+
     /// <summary>A file with just the header row, for a person to fill in.</summary>
     public string Template(string doctype, string mode, IUserContext user)
     {
@@ -123,14 +142,16 @@ public sealed class DataImportService(IMetaRegistry registry, DocumentService do
         return string.Join(',', mode == "Update" ? names.Prepend("name") : names) + "\r\n";
     }
 
-    private (List<ImportColumn> Columns, List<List<string>> Rows) Parse(DocTypeMeta meta, string csv, string mode)
+    private (List<ImportColumn> Columns, List<List<string>> Rows) Parse(DocTypeMeta meta, string csv, string mode, bool large = false)
     {
-        if (csv.Length > MaxBytes)
-            throw Invalid("csv", $"The file is larger than {MaxBytes / (1024 * 1024)} MB.");
+        var maxBytes = large ? LargeMaxBytes : MaxBytes;
+        var maxRows = large ? LargeMaxRows : MaxRows;
+        if (csv.Length > maxBytes)
+            throw Invalid("csv", $"The file is larger than {maxBytes / (1024 * 1024)} MB.");
         List<List<string>> all;
         try
         {
-            all = CsvReader.Read(csv);
+            all = CsvReader.Read(csv, large ? LargeMaxCells : CsvReader.MaxCells);
         }
         catch (FormatException ex)
         {
@@ -139,8 +160,8 @@ public sealed class DataImportService(IMetaRegistry registry, DocumentService do
 
         if (all.Count == 0)
             throw Invalid("csv", "The file is empty. The first row must name the columns.");
-        if (all.Count - 1 > MaxRows)
-            throw Invalid("csv", $"At most {MaxRows:N0} rows per file.");
+        if (all.Count - 1 > maxRows)
+            throw Invalid("csv", $"At most {maxRows:N0} rows per file{(large ? string.Empty : ", or up to " + LargeMaxRows.ToString("N0", CultureInfo.InvariantCulture) + " when imported in the background")}.");
 
         var fields = ImportableFields(meta);
         var columns = new List<ImportColumn>();
@@ -302,10 +323,10 @@ public sealed class DataImportService(IMetaRegistry registry, DocumentService do
     }
 
     /// <summary>Checks a file without importing anything: which columns match, a sample of rows, and the problems found in the first rows.</summary>
-    public Task<ImportPreview> PreviewAsync(string doctype, string csv, string mode, IUserContext user, CancellationToken ct = default)
+    public Task<ImportPreview> PreviewAsync(string doctype, string csv, string mode, IUserContext user, CancellationToken ct = default, bool large = false)
     {
         var meta = Require(doctype, mode, user);
-        var (columns, rows) = Parse(meta, csv, mode);
+        var (columns, rows) = Parse(meta, csv, mode, large);
         var errors = new List<ImportRowError>();
         var more = false;
         var lastLine = Math.Min(rows.Count, PreviewRows) + 1;
@@ -341,11 +362,16 @@ public sealed class DataImportService(IMetaRegistry registry, DocumentService do
 
     private static string Trim(string cell) => cell.Length > 80 ? cell[..80] + "…" : cell;
 
-    /// <summary>Imports the file, one document at a time, as the person. A permission problem on the first document stops at once.</summary>
-    public async Task<ImportResult> RunAsync(string doctype, string csv, string mode, bool stopOnError, IUserContext user, CancellationToken ct = default)
+    /// <summary>
+/// Imports the file, one document at a time, as the person. A permission problem on the first document stops at once. With
+/// <paramref name="progress"/> (background imports) it is told how far the import is every few documents and can stop it by returning false.
+/// </summary>
+    public async Task<ImportResult> RunAsync(
+        string doctype, string csv, string mode, bool stopOnError, IUserContext user, CancellationToken ct = default,
+        bool large = false, Func<ImportProgress, Task<bool>>? progress = null)
     {
         var meta = Require(doctype, mode, user);
-        var (columns, rows) = Parse(meta, csv, mode);
+        var (columns, rows) = Parse(meta, csv, mode, large);
         var errors = new List<ImportRowError>();
         int created = 0, updated = 0, failed = 0;
         var more = false;
@@ -358,10 +384,20 @@ public sealed class DataImportService(IMetaRegistry registry, DocumentService do
             else more = true;
         }
 
-        foreach (var document in Documents(meta, columns, rows, mode))
+        var all = Documents(meta, columns, rows, mode);
+        var done = 0;
+        foreach (var document in all)
         {
             if (ct.IsCancellationRequested)
                 break;
+            if (progress is not null && done > 0 && done % ProgressEvery == 0
+                && !await progress(new ImportProgress(all.Count, done, created, updated, failed)))
+            {
+                stopped = true;
+                break;
+            }
+
+            done++;
             if (document.Problems.Count > 0)
             {
                 Fail(document.Problems[0]);

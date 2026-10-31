@@ -856,6 +856,23 @@ export interface ImportResult {
   moreErrors: boolean
 }
 
+/** A background import: how far it is and, when it ends, what happened. */
+export interface ImportRun {
+  id: string
+  docType: string
+  mode: string
+  status: 'Queued' | 'Running' | 'Done' | 'Failed' | 'Cancelled'
+  rows: number
+  processed: number
+  created: number
+  updated: number
+  failed: number
+  errors: ImportRowError[]
+  moreErrors: boolean
+  message?: string | null
+  cancelRequested: boolean
+}
+
 export interface ApiKeyInfo {
   id: string
   keyId: string
