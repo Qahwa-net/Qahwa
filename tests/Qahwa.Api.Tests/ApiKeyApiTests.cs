@@ -58,6 +58,42 @@ public sealed class ApiKeyApiTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task A_key_limited_to_a_DocType_can_use_only_that_DocType()
+    {
+        var me = await SignedInAsync();
+        var (_, token) = await MakeKeyAsync(me, new { description = "customers only", docTypes = new[] { "Customer" } });
+        var script = WithKey(token);
+
+        Assert.Equal(HttpStatusCode.Created, (await script.PostAsJsonAsync("/api/resource/Customer", new { customer_name = "Scoped" })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await script.GetAsync("/api/resource/Customer")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await script.GetAsync("/api/v1/resource/Customer")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await script.GetAsync("/api/meta/Customer")).StatusCode);
+
+        // Everything else is closed to it, even what its person may do.
+        Assert.Equal(HttpStatusCode.Forbidden, (await script.GetAsync("/api/resource/Territory")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await script.GetAsync("/api/auth/me")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await script.GetAsync("/api/api-keys")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await me.GetAsync("/api/resource/Territory")).StatusCode); // the person, signed in, still can
+    }
+
+    [Fact]
+    public async Task A_key_over_its_limit_gets_429_with_Retry_After()
+    {
+        var me = await SignedInAsync();
+        var (_, token) = await MakeKeyAsync(me, new { description = "slow", ratePerMinute = 3 });
+        var script = WithKey(token);
+
+        for (var i = 0; i < 3; i++)
+            Assert.Equal(HttpStatusCode.OK, (await script.GetAsync("/api/resource/Customer")).StatusCode);
+        var refused = await script.GetAsync("/api/resource/Customer");
+
+        Assert.Equal(HttpStatusCode.TooManyRequests, refused.StatusCode);
+        Assert.True(refused.Headers.RetryAfter?.Delta is { } wait && wait > TimeSpan.Zero && wait <= TimeSpan.FromSeconds(60));
+        Assert.Equal("rate_limited", (await JsonOf(refused)).GetProperty("code").GetString());
+        Assert.Equal(HttpStatusCode.OK, (await me.GetAsync("/api/resource/Customer")).StatusCode); // the person is not limited by their key
+    }
+
+    [Fact]
     public async Task A_read_only_key_can_look_but_not_change()
     {
         var me = await SignedInAsync();

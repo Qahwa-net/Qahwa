@@ -19,6 +19,94 @@ public class ApiKeyTests
     private async Task<ApiKeyCreated> KeyAsync(UserContext user, ApiKeyRequest? request = null) =>
         await _engine.ApiKeys.CreateAsync(request ?? new ApiKeyRequest("Reporting script"), user);
 
+    // ---- limiting a key to some DocTypes, and how many requests it may make ----
+
+    private void DocTypes()
+    {
+        _engine.Registry.Add(DocTypeLoader.Parse("""{ "name": "Deal Line", "isChildTable": true, "fields": [ { "name": "item", "type": "Data" } ] }"""));
+        _engine.Registry.Add(DocTypeLoader.Parse("""{ "name": "Deal", "fields": [ { "name": "title", "type": "Data" }, { "name": "lines", "type": "Table", "options": "Deal Line" } ] }"""));
+        _engine.Registry.Add(DocTypeLoader.Parse("""{ "name": "Contract", "fields": [ { "name": "title", "type": "Data" } ] }"""));
+    }
+
+    [Fact]
+    public async Task A_key_can_be_limited_to_some_DocTypes_which_must_be_real_top_level_ones()
+    {
+        await PeopleAsync();
+        DocTypes();
+
+        var key = await KeyAsync(Ann, new ApiKeyRequest("Deals only", DocTypes: ["deal", " Contract ", "DEAL"]));
+
+        Assert.Equal(["Deal", "Contract"], key.Info.DocTypes); // the registry's spelling, each once
+        Assert.Equal(["Deal", "Contract"], (await _engine.ApiKeys.AuthenticateAsync(key.Token))!.DocTypes);
+        Assert.Empty((await KeyAsync(Ann)).Info.DocTypes); // no limit by default
+
+        async Task<DocumentValidationException> Fails(params string[] names) =>
+            await Assert.ThrowsAsync<DocumentValidationException>(() => KeyAsync(Ann, new ApiKeyRequest("x", DocTypes: names)));
+        Assert.Contains((await Fails("Nope")).Errors, e => e.Field == "docTypes");
+        Assert.Contains((await Fails("Deal Line")).Errors, e => e.Field == "docTypes"); // a child table is reached through its parent
+        Assert.Contains((await Fails(Enumerable.Range(0, 21).Select(i => $"D{i}").ToArray())).Errors, e => e.Field == "docTypes");
+    }
+
+    [Theory]
+    [InlineData("/api/resource/Deal", true)]
+    [InlineData("/api/resource/Deal/D-0001", true)]
+    [InlineData("/api/resource/Deal/D-0001/comments", true)]
+    [InlineData("/api/v1/resource/deal", true)]
+    [InlineData("/api/resource/Contract", true)]
+    [InlineData("/api/meta/Deal", true)]
+    [InlineData("/api/resource/Deal%20Line", false)]
+    [InlineData("/api/resource/User", false)]
+    [InlineData("/api/resource/Dealer", false)]
+    [InlineData("/api/meta/User", false)]
+    [InlineData("/api/method/anything", false)]
+    [InlineData("/api/share/Deal/D-1", false)]
+    [InlineData("/api/api-keys", false)]
+    [InlineData("/api/backup", false)]
+    [InlineData("/api/resource", false)]
+    [InlineData("/api/auth/me", false)]
+    [InlineData("/resource/Deal", false)]
+    public void A_limited_key_can_only_use_the_resource_and_metadata_of_its_DocTypes(string path, bool allowed) =>
+        Assert.Equal(allowed, ApiKeyService.Allows(["Deal", "Contract"], path));
+
+    [Fact]
+    public void A_key_with_no_limit_can_use_every_address() => Assert.True(ApiKeyService.Allows([], "/api/anything/at/all"));
+
+    [Fact]
+    public async Task A_key_can_be_limited_in_requests_per_minute_and_each_key_counts_on_its_own()
+    {
+        await PeopleAsync();
+        var slow = await KeyAsync(Ann, new ApiKeyRequest("Slow", RatePerMinute: 3));
+        var other = await KeyAsync(Ann, new ApiKeyRequest("Other", RatePerMinute: 3));
+        var free = await KeyAsync(Ann);
+
+        for (var i = 0; i < 3; i++)
+            Assert.NotNull(await _engine.ApiKeys.AuthenticateAsync(slow.Token));
+        var ex = await Assert.ThrowsAsync<ApiKeyRateLimitedException>(() => _engine.ApiKeys.AuthenticateAsync(slow.Token));
+        Assert.InRange(ex.RetryAfterSeconds, 1, 60);
+        Assert.Equal(429, ex.StatusCode);
+
+        Assert.NotNull(await _engine.ApiKeys.AuthenticateAsync(other.Token)); // another key has its own count
+        for (var i = 0; i < 20; i++)
+            Assert.NotNull(await _engine.ApiKeys.AuthenticateAsync(free.Token)); // no limit set
+
+        _engine.Clock.Advance(TimeSpan.FromSeconds(61)); // a new minute
+        Assert.NotNull(await _engine.ApiKeys.AuthenticateAsync(slow.Token));
+    }
+
+    [Fact]
+    public async Task The_rate_must_be_a_sensible_number()
+    {
+        await PeopleAsync();
+        foreach (var bad in new[] { 0, -5, ApiKeyService.MaxRate + 1 })
+        {
+            var ex = await Assert.ThrowsAsync<DocumentValidationException>(() => KeyAsync(Ann, new ApiKeyRequest("x", RatePerMinute: bad)));
+            Assert.Contains(ex.Errors, e => e.Field == "ratePerMinute");
+        }
+
+        Assert.Equal(60, (await KeyAsync(Ann, new ApiKeyRequest("x", RatePerMinute: 60))).Info.RatePerMinute);
+        Assert.Null((await KeyAsync(Ann)).Info.RatePerMinute);
+    }
+
     // ---- making and using keys ----
 
     [Fact]

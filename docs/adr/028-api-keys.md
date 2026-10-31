@@ -17,5 +17,5 @@ Scripts, integrations and other systems need to call the API without a person's 
 Keys are high-entropy random values, never logged or listed, shown once, stored only as a hash in a hidden field, compared in constant time, and limited by the owner's permissions; malformed tokens (wrong prefix, lengths, characters, SQL-shaped text) are refused before any lookup that could be abused. CSRF does not apply because a key is a header, not a cookie. Tests cover wrong, truncated, swapped and malformed tokens, expiry, revocation, disabling the owner, role changes, read-only keys, keys making keys, and the real HTTP pipeline.
 
 ## Consequences
-- Not yet: scopes per DocType, IP allow-lists, rate limits per key, key rotation reminders, an admin page of all keys, secrets shown as a pair (key and secret) for OAuth-style clients, and OAuth itself.
+- Scopes per DocType and rate limits per key are now built (ADR-125). Not yet: IP allow-lists, key rotation reminders, an admin page of all keys, secrets shown as a pair (key and secret) for OAuth-style clients, and OAuth itself.
 - Webhooks (outgoing) and attachments are the next L10 parts.

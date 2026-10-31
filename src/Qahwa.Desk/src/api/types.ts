@@ -864,6 +864,10 @@ export interface ApiKeyInfo {
   created: string
   lastUsed?: string | null
   expired: boolean
+  /** The DocTypes the key is limited to; empty means every DocType its owner may use. */
+  docTypes: string[]
+  /** The most requests per minute; null means no limit of its own. */
+  ratePerMinute?: number | null
 }
 
 export interface ApiKeyCreated {

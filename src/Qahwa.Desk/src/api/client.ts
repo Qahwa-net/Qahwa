@@ -415,7 +415,7 @@ export const api = {
 
   apiKeys: {
     list: async () => (await request<{ data: ApiKeyInfo[] }>('GET', '/api/api-keys')).data,
-    create: async (body: { description: string; readOnly: boolean; expiresOn?: string }) =>
+    create: async (body: { description: string; readOnly: boolean; expiresOn?: string; docTypes?: string[]; ratePerMinute?: number }) =>
       (await request<{ data: ApiKeyCreated }>('POST', '/api/api-keys', body)).data,
     revoke: async (id: string) => { await request<unknown>('DELETE', `/api/api-keys/${encodeURIComponent(id)}`) },
   },

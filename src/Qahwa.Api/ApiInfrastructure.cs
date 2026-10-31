@@ -59,6 +59,8 @@ internal sealed class CookieUserContextResolver(
                 return UserContext.Anonymous;
             if (identity.ReadOnly && !HttpMethods.IsGet(context.Request.Method) && !HttpMethods.IsHead(context.Request.Method) && !HttpMethods.IsOptions(context.Request.Method))
                 throw new PermissionDeniedException("This API key is read-only.");
+            if (!ApiKeyService.Allows(identity.DocTypes, context.Request.Path.Value ?? string.Empty))
+                throw new PermissionDeniedException("This API key is limited to certain DocTypes and cannot be used for this.");
             context.Items[ViaApiKey] = true;
             return identity.User;
         }
@@ -247,6 +249,8 @@ public static class ApplicationBuilderExtensions
 
                 context.Response.Clear();
                 context.Response.StatusCode = status;
+                if (ex is ApiKeyRateLimitedException limited)
+                    context.Response.Headers.RetryAfter = limited.RetryAfterSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 await context.Response.WriteAsJsonAsync(body);
             }
         });
