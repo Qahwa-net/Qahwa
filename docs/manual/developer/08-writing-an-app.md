@@ -2,6 +2,18 @@
 
 An **app** is a .NET class library with an `IQahwaApp` class. It can bring DocTypes (JSON files), hooks on documents, server functions, scheduled jobs, fixtures and patches. Several apps can be installed together, and on a server with several sites each site records the apps it has.
 
+## Start from the template
+
+The repository has a `dotnet new` template that makes a working app, with a DocType, a hook, a server function and a test project:
+
+```bash
+dotnet new install ./templates/qahwa-app
+dotnet new qahwa-app -n Acme.Crm --FrameworkPath /path/to/Qahwa -o Acme.Crm
+dotnet test Acme.Crm/Acme.Crm.Tests
+```
+
+`--FrameworkPath` is the folder of the Qahwa repository (the one with `src` and `tests`); it defaults to `../Qahwa`. The app's name (`acme_crm`), its DocType (`Acme Crm Item`) and its namespace are made from the name you give, with anything that is not a letter or digit made safe. Register the generated `QahwaAppModule` in your host as shown below. Uninstall it with `dotnet new uninstall ./templates/qahwa-app`.
+
 ## The smallest app
 
 ```csharp

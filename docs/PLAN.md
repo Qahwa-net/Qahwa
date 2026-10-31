@@ -457,7 +457,7 @@ Rule: every bug in the schema engine or permission system gets a regression test
 - `qahwa init my-bench` → `qahwa new-site dev.local` → `qahwa new-app my_app` → `qahwa start`
 - Hot reload of DocType JSON in development (auto-migrate on file change)
 - JSON Schema for DocType files (IDE autocomplete and validation): done, `qahwa schema` and `docs/schema/doctype.schema.json` (ADR-131)
-- `dotnet new qahwa-app` template; clear error messages that point to the DocType and field
+- `dotnet new qahwa-app` template (done: `templates/qahwa-app`, ADR-134); clear error messages that point to the DocType and field
 - Documentation: Getting Started (10 min), Concepts, DocType reference, API reference, Cookbook, Architecture
 
 ---

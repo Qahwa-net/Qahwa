@@ -1,0 +1,106 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Qahwa",
+  "classifications": [
+    "Qahwa",
+    "App",
+    "Library"
+  ],
+  "identity": "Qahwa.App.CSharp",
+  "name": "Qahwa app",
+  "shortName": "qahwa-app",
+  "description": "A Qahwa app: a class library with an IQahwaApp, a DocType, a hook, a server function and a test project.",
+  "tags": {
+    "language": "C#",
+    "type": "solution"
+  },
+  "sourceName": "MyApp",
+  "preferNameDirectory": true,
+  "symbols": {
+    "FrameworkPath": {
+      "type": "parameter",
+      "datatype": "text",
+      "defaultValue": "../Qahwa",
+      "replaces": "QAHWA_FRAMEWORK_PATH",
+      "description": "The folder of the Qahwa repository (the one that holds src and tests), relative to the new project or absolute."
+    },
+    "appIdRaw": {
+      "type": "generated",
+      "generator": "casing",
+      "parameters": {
+        "source": "name",
+        "toLower": true
+      }
+    },
+    "appId": {
+      "type": "generated",
+      "generator": "regex",
+      "dataType": "string",
+      "parameters": {
+        "source": "appIdRaw",
+        "steps": [
+          {
+            "regex": "[^a-z0-9]+",
+            "replacement": "_"
+          },
+          {
+            "regex": "^[^a-z]+",
+            "replacement": "app_"
+          },
+          {
+            "regex": "_+$",
+            "replacement": ""
+          }
+        ]
+      },
+      "replaces": "qahwa_app_id"
+    },
+    "docPrefix": {
+      "type": "generated",
+      "generator": "regex",
+      "dataType": "string",
+      "parameters": {
+        "source": "name",
+        "steps": [
+          {
+            "regex": "[^A-Za-z0-9]+",
+            "replacement": " "
+          },
+          {
+            "regex": "^[^A-Za-z]+",
+            "replacement": "App "
+          },
+          {
+            "regex": " +$",
+            "replacement": ""
+          }
+        ]
+      },
+      "replaces": "DOCTYPE_PREFIX"
+    },
+    "projectName": {
+      "type": "generated",
+      "generator": "regex",
+      "dataType": "string",
+      "parameters": {
+        "source": "name",
+        "steps": [
+          {
+            "regex": "\\u0000",
+            "replacement": ""
+          }
+        ]
+      },
+      "replaces": "MYAPP_PROJECT"
+    }
+  },
+  "primaryOutputs": [
+    {
+      "path": "MyApp/MyApp.csproj"
+    },
+    {
+      "path": "MyApp.Tests/MyApp.Tests.csproj"
+    }
+  ],
+  "postActions": []
+}
