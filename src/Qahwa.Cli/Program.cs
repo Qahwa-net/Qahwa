@@ -12,6 +12,7 @@ const string usage = """
     qahwa new-site     <name> --sites <dir> --host <host> [--host <host> ...] --admin-connection <cs>
                        [--provider postgres|sqlserver] [--connection-env <VARIABLE>] [--doctypes <dir> ...] [--email <email> [--full-name <name>] [--password-stdin]]
     qahwa list-sites   --sites <dir>
+    qahwa schema
     qahwa list-apps    (--connection <cs> | --site <name> --sites <dir>)
     qahwa install-app  <app> (--connection <cs> | --site <name> --sites <dir>)
     qahwa uninstall-app <app> (--connection <cs> | --site <name> --sites <dir>)
@@ -28,6 +29,8 @@ const string usage = """
                   --connection-env the file holds only the name of an environment variable for the connection string,
                   which you must set when the server runs. Run the server with Qahwa:Sites:Path set to <sites>.
     list-sites    Shows the sites found in the directory.
+    schema        Prints the JSON Schema of a DocType file (for editor completion, hover help and typo warnings).
+                  Save it as doctype.schema.json and add "$schema": "./doctype.schema.json" to a DocType file.
     list-apps     Shows the apps the server has recorded for the site and whether each is installed or uninstalled.
     install-app   Switches an app back on for the site. The app must have been recorded by a server start.
     uninstall-app Switches an app off for the site (its hooks, methods, jobs and reports stop; its data and DocTypes stay).
@@ -49,7 +52,7 @@ if (args.Length == 0 || args[0] is "-h" or "--help")
 }
 
 var command = args[0];
-if (command is not ("migrate" or "create-admin" or "new-site" or "list-sites" or "list-apps" or "install-app" or "uninstall-app" or "backup" or "restore"))
+if (command is not ("migrate" or "create-admin" or "new-site" or "list-sites" or "schema" or "list-apps" or "install-app" or "uninstall-app" or "backup" or "restore"))
 {
     Console.Error.WriteLine($"Unknown command '{command}'.\n\n{usage}");
     return 1;
@@ -135,6 +138,12 @@ for (var i = 1; i < args.Length; i++)
             Console.Error.WriteLine($"Unexpected argument '{arg}'.\n\n{usage}");
             return 1;
     }
+}
+
+if (command == "schema")
+{
+    Console.Write(Qahwa.Core.DocTypeSchema.Generate());
+    return 0;
 }
 
 try
