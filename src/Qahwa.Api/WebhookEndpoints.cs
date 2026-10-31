@@ -39,6 +39,13 @@ public static class WebhookEndpoints
             return Results.Ok(new { data = new { ok = result.Ok, statusCode = result.StatusCode, error = result.Error } });
         });
 
+        // Sends a failed delivery again.
+        group.MapPost("/deliveries/{id}/retry", async (string id, HttpContext http, IUserContextResolver users, WebhookService service, CancellationToken ct) =>
+        {
+            await service.RetryAsync(id, await users.ResolveAsync(http, ct), ct);
+            return Results.Ok(new { message = "ok" });
+        });
+
         return app;
     }
 }

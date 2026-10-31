@@ -464,6 +464,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
         <div className="doc-actions">
           {!isNew && doc && user?.roles.some(r => r === 'Administrator' || r === 'System Manager') && meta.name === 'User' && <UserPasswordActions key={doc.name} email={doc.name} />}
           {!isNew && user?.roles.some(r => r === 'Administrator' || r === 'System Manager') && meta.name === 'Email Account' && <TestEmailAction disabled={dirty} />}
+          {!isNew && doc && doc.status === 'Failed' && user?.roles.some(r => r === 'Administrator' || r === 'System Manager') && meta.name === 'Webhook Delivery' && <IconButton icon="repeat" label="Send again" disabled={dirty} onClick={() => api.webhooks.retryDelivery(doc.name).then(() => { toast('Queued to be sent again'); void queryClient.invalidateQueries({ queryKey: ['doc', meta.name, doc.name] }) }, () => toast('Could not queue it again'))} />}
           {!isNew && user?.roles.some(r => r === 'Administrator' || r === 'System Manager') && meta.name === 'Email Account' && <TestIncomingEmailAction disabled={dirty} />}
           {!isNew && doc && meta.module !== 'Core' && !meta.isSingle && <LikeButton doctype={meta.name} name={doc.name} />}
           {!isNew && doc && <FollowButton doctype={meta.name} name={doc.name} />}

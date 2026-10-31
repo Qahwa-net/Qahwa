@@ -409,6 +409,7 @@ export const api = {
     save: async (name: string, hooks: WebhookSet, modified: string | null | undefined) =>
       (await request<{ data: WebhookView }>('PUT', `/api/webhooks/doctypes/${encodeURIComponent(name)}`, { hooks, modified })).data,
     remove: async (name: string) => { await request<unknown>('DELETE', `/api/webhooks/doctypes/${encodeURIComponent(name)}`) },
+    retryDelivery: async (id: string) => { await request<unknown>('POST', `/api/webhooks/deliveries/${encodeURIComponent(id)}/retry`) },
     test: async (name: string, hook: string) =>
       (await request<{ data: WebhookTestResult }>('POST', `/api/webhooks/doctypes/${encodeURIComponent(name)}/test`, { hook })).data,
   },
