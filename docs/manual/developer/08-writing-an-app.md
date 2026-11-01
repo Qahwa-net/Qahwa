@@ -146,3 +146,24 @@ cd docs/site && npm ci && npm run build   # writes docs/site/dist; open dist/ind
 ```
 
 `npm run check` only checks the links. CI builds the site on every change, so a link to a page that does not exist fails the build ([ADR-135](../../adr/135-docs-site.md)).
+
+## Typed documents
+To get IntelliSense and compile-time field names, list the DocType files in the project and reference the generator:
+
+```xml
+<ItemGroup>
+  <ProjectReference Include="..\Qahwa\src\Qahwa.SourceGenerators\Qahwa.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  <AdditionalFiles Include="DocTypes\*.json" />
+</ItemGroup>
+```
+
+Each DocType then has a class in `Qahwa.Typed`:
+
+```csharp
+var invoice = new SalesInvoice { Customer = "Acme", PostingDate = new DateOnly(2026, 3, 1) };
+invoice.AddItems().Qty = 3;
+var saved = await documents.InsertAsync(SalesInvoice.DocType, invoice.Values, user);
+var loaded = new SalesInvoice(await documents.GetAsync(SalesInvoice.DocType, (string)saved["name"]!, user));
+```
+
+The class only wraps the dictionary; see [ADR-136](../../adr/136-typed-documents.md) for the type mapping and limits.

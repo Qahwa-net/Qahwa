@@ -405,7 +405,7 @@ Timeline assumes **1–2 full-time developers**. Scale it up or down accordingly
 - Background jobs (Hangfire) + scheduler + job DocTypes; SignalR realtime
 - Workflow engine, notifications, email queue, print formats (PDF)
 - Data import/export, global search, custom fields and property setters
-- Source generator for typed documents
+- Source generator for typed documents (done: `src/Qahwa.SourceGenerators`, ADR-136)
 - Reports (query/report builder), dashboard charts and number cards
 - Localization and RTL (Arabic) in Desk
 

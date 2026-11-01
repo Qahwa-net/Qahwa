@@ -1,0 +1,11 @@
+{ "name": "Typed Bill",
+  "fields": [
+    { "name": "customer", "type": "Data", "required": true },
+    { "name": "bill_date", "type": "Date" },
+    { "name": "paid", "type": "Check" },
+    { "name": "total", "type": "Currency" },
+    { "name": "values", "type": "Data", "label": "Clashes with the built-in Values" },
+    { "name": "section", "type": "SectionBreak" },
+    { "name": "lines", "type": "Table", "options": "Typed Bill Line" }
+  ],
+  "permissions": [ { "role": "Clerk", "read": true, "write": true, "create": true } ] }
