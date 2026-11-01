@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { DesignerDetail, FieldTypeInfo } from '../api/types.ts'
 import {
-  buildAutoname, emptyDraft, errorMap, fromDetail, moveItem, newField, parseAutoname, slugify, toDefinition, uniqueName,
+  buildAutoname, emptyDraft, errorMap, followRename, fromDetail, moveItem, newField, parseAutoname, slugify, toDefinition, uniqueName,
 } from './designer.ts'
 
 const info = (type: FieldTypeInfo['type'], label = type as string): FieldTypeInfo => ({
@@ -259,5 +259,34 @@ describe('naming by expression', () => {
     const parsed = parseAutoname('expression:upper(a) + "-" + b')
     expect(parsed.autonameKind).toBe('expression')
     expect(parsed.autonameField).toBe('upper(a) + "-" + b')
+  })
+})
+
+describe('renaming and retyping a saved field', () => {
+  const detail = {
+    editable: true,
+    modified: '2026-01-01T00:00:00Z',
+    definition: { name: 'Supplier', isChildTable: false, titleField: 'supplier_name', fields: [{ name: 'supplier_name', type: 'Data', required: false, unique: false, inListView: false, lowercase: false }], permissions: [] },
+  } as unknown as Parameters<typeof fromDetail>[0]
+
+  it('sends renamedFrom only for a saved field whose name changed', () => {
+    const draft = fromDetail(detail)
+    expect(toDefinition(draft).fields[0]!.renamedFrom).toBeUndefined()
+    draft.fields[0] = { ...draft.fields[0]!, name: 'vendor_name' }
+    expect(toDefinition(draft).fields[0]!.renamedFrom).toBe('supplier_name')
+    draft.fields[0] = { ...draft.fields[0]!, name: 'supplier_name' }
+    expect(toDefinition(draft).fields[0]!.renamedFrom).toBeUndefined()
+  })
+
+  it('never sends renamedFrom for a field that is not saved yet', () => {
+    const draft = fromDetail(detail)
+    draft.fields.push(newField(info('Data', 'Data'), ['supplier_name']))
+    expect(toDefinition(draft).fields[1]!.renamedFrom).toBeUndefined()
+  })
+
+  it('makes the settings that name a field follow it', () => {
+    const draft = fromDetail(detail)
+    expect(followRename(draft, 'supplier_name', 'vendor_name').titleField).toBe('vendor_name')
+    expect(followRename(draft, 'other', 'x').titleField).toBe('supplier_name')
   })
 })

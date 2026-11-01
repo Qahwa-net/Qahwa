@@ -42,6 +42,12 @@ public sealed class PostgresDialect : ISqlDialect
 
     public string AddColumnSql(string quotedTable, string columnDefinition) => $"ALTER TABLE {quotedTable} ADD COLUMN {columnDefinition}";
 
+    public string RenameColumnSql(string quotedTable, string column, string newColumn) =>
+        $"ALTER TABLE {quotedTable} RENAME COLUMN {Quote(column)} TO {Quote(newColumn)}";
+
+    public string AlterColumnTypeSql(string quotedTable, string column, FieldType type) =>
+        $"ALTER TABLE {quotedTable} ALTER COLUMN {Quote(column)} TYPE {ColumnType(type)} USING {Quote(column)}::{ColumnType(type)}";
+
     public string DropTableSql(string quotedTable) => $"DROP TABLE IF EXISTS {quotedTable}";
 
     public string CreateDocTypeTableSql =>

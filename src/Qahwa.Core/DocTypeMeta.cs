@@ -160,6 +160,12 @@ public sealed record DocFieldMeta
     /// (several documents of one DocType, each at most once) instead of a grid.
     /// </summary>
     public bool MultiSelect { get; init; }
+
+    /// <summary>
+    /// Designer only: the name this field had before. When the DocType is saved the saved column (and its data) is renamed to
+    /// <see cref="Name"/> instead of a new empty column being added. It is never kept in the stored definition.
+    /// </summary>
+    public string? RenamedFrom { get; init; }
 }
 
 /// <summary>A rule on a whole document (or table row): while the expression is false, saving is refused with the message.</summary>

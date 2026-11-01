@@ -1,4 +1,5 @@
 using Qahwa.Core;
+using Qahwa.Core.Designer;
 
 namespace Qahwa.Data;
 
@@ -10,10 +11,12 @@ public sealed class SchemaSync(
 {
     private readonly SchemaPlanner _planner = new(dialect);
 
-    public async Task<SchemaPlan> PlanAsync(DocTypeMeta meta, CancellationToken ct = default)
+    public async Task<SchemaPlan> PlanAsync(DocTypeMeta meta, CancellationToken ct = default) => await PlanAsync(meta, null, ct);
+
+    public async Task<SchemaPlan> PlanAsync(DocTypeMeta meta, SchemaChanges? changes, CancellationToken ct = default)
     {
         var current = await inspector.GetTableAsync("tab" + meta.Name, ct);
-        return _planner.Plan(meta, current);
+        return _planner.Plan(meta, current, changes);
     }
 
     /// <summary>Creates framework tables that are not DocTypes (naming series counters, credentials).</summary>

@@ -50,6 +50,8 @@ export interface DocField {
   maxLength?: number | null
   /** Table fields only: shown as a list of chips to pick from (the child table has one Link field). */
   multiSelect?: boolean
+  /** Sent when a saved field is renamed: the name it had, so its column and data move to the new name. */
+  renamedFrom?: string | null
 }
 
 export interface ValidationRule {

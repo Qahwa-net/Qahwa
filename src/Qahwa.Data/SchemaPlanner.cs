@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using Qahwa.Core;
+using Qahwa.Core.Designer;
 
 namespace Qahwa.Data;
 
@@ -22,7 +23,7 @@ public sealed record SchemaPlan(
 /// </summary>
 public sealed class SchemaPlanner(ISqlDialect dialect)
 {
-    public SchemaPlan Plan(DocTypeMeta meta, TableSchema? current)
+    public SchemaPlan Plan(DocTypeMeta meta, TableSchema? current, SchemaChanges? changes = null)
     {
         var table = "tab" + meta.Name;
         var quotedTable = dialect.TableName(meta.Name);
@@ -39,6 +40,23 @@ public sealed class SchemaPlanner(ISqlDialect dialect)
         }
         else
         {
+            var existingColumns = current.Columns;
+            var indexesNow = new HashSet<string>(current.Indexes);
+            // Renames come first, so the type and index checks below see the column under its new name.
+            foreach (var (from, to) in changes?.Renames ?? [])
+            {
+                if (!existingColumns.TryGetValue(from, out var renamedType) || existingColumns.ContainsKey(to))
+                    continue;
+                statements.Add(new SchemaStatement($"Rename column {table}.{from} to {to}", dialect.RenameColumnSql(quotedTable, from, to)));
+                existingColumns = existingColumns.Where(c => c.Key != from).Append(new(to, renamedType)).ToDictionary(c => c.Key, c => c.Value);
+                // The index names are made from the column name; the new column gets its own below.
+                foreach (var unique in new[] { true, false })
+                    if (indexesNow.Remove(IndexName(table, from, unique)))
+                        statements.Add(new SchemaStatement($"Drop index on {table}.{from}", dialect.DropIndexSql(IndexName(table, from, unique), quotedTable)));
+            }
+
+            current = current with { Columns = existingColumns, Indexes = indexesNow };
+
             foreach (var (name, type) in columns)
             {
                 if (!current.Columns.TryGetValue(name, out var actual))
@@ -46,6 +64,16 @@ public sealed class SchemaPlanner(ISqlDialect dialect)
                     statements.Add(new SchemaStatement(
                         $"Add column {table}.{name}",
                         dialect.AddColumnSql(quotedTable, ColumnDefinition(name, type))));
+                }
+                else if (!string.Equals(actual, dialect.CatalogType(type), StringComparison.OrdinalIgnoreCase) && changes?.Retypes.Contains(name) == true)
+                {
+                    // An index on the column is dropped first (some databases refuse to change an indexed column) and made again below.
+                    foreach (var unique in new[] { true, false })
+                        if (indexesNow.Remove(IndexName(table, name, unique)))
+                            statements.Add(new SchemaStatement($"Drop index on {table}.{name}", dialect.DropIndexSql(IndexName(table, name, unique), quotedTable)));
+                    statements.Add(new SchemaStatement(
+                        $"Change column {table}.{name} from {actual} to {dialect.CatalogType(type)}",
+                        dialect.AlterColumnTypeSql(quotedTable, name, type)));
                 }
                 else if (!string.Equals(actual, dialect.CatalogType(type), StringComparison.OrdinalIgnoreCase))
                 {
@@ -56,7 +84,7 @@ public sealed class SchemaPlanner(ISqlDialect dialect)
             }
         }
 
-        var existingIndexes = current?.Indexes ?? new HashSet<string>();
+        IReadOnlySet<string> existingIndexes = current?.Indexes ?? new HashSet<string>();
         AddIndex(statements, existingIndexes, quotedTable, table, "modified", unique: false);
         if (meta.IsChildTable)
             AddIndex(statements, existingIndexes, quotedTable, table, "parent", unique: false);

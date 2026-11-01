@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client.ts'
-import type { DocPerm, FieldTypeInfo } from '../api/types.ts'
+import type { DocPerm, FieldType, FieldTypeInfo } from '../api/types.ts'
 import { localExpressionError } from '../lib/expr/check.ts'
 import { ExpressionInput } from './ExpressionInput.tsx'
 import { isLayoutType, isTextType, slugify, uniqueName, type DraftField } from '../lib/designer.ts'
@@ -12,6 +12,8 @@ interface Props {
   total: number
   expanded: boolean
   info: FieldTypeInfo | undefined
+  /** Types a saved field may be changed to (the server refuses the ones that would lose data). */
+  typeChoices: FieldTypeInfo[]
   otherNames: string[]
   /** DocTypes a Link field may point at. */
   doctypes: string[]
@@ -89,7 +91,7 @@ function Err({ message }: { message?: string }) {
 }
 
 export function FieldCard({
-  field, index, total, expanded, info, otherNames, doctypes, childTables, inChildTable, submittable, fieldNames, linkFields, errors, disabled,
+  field, index, total, expanded, info, typeChoices, otherNames, doctypes, childTables, inChildTable, submittable, fieldNames, linkFields, errors, disabled,
   onToggle, onChange, onMove, onRemove,
 }: Props) {
   const path = `fields[${index}]`
@@ -138,13 +140,32 @@ export function FieldCard({
 
           <label className="field">
             <span>Field name</span>
-            <input value={field.name} disabled={disabled || field.locked} className="mono"
+            <input value={field.name} disabled={disabled || (field.locked && (layout || isTable))} className="mono"
               onChange={(e) => onChange({ name: e.target.value.toLowerCase().replace(/\s+/g, '_'), nameFollowsLabel: false })} />
             <small className="muted">
-              {field.locked ? 'The name and type of a saved field cannot change.' : 'Used by the database and the API. Lowercase letters, digits and underscores.'}
+              {field.locked && !layout && !isTable
+                ? (field.savedName !== field.name
+                  ? `Renamed from "${field.savedName}": its saved values move to the new name. Conditions and formulas that use the old name must be changed too.`
+                  : 'Changing the name of a saved field renames its column; its saved values stay.')
+                : 'Used by the database and the API. Lowercase letters, digits and underscores.'}
             </small>
             <Err message={errors[`${path}.name`]} />
           </label>
+
+          {field.locked && !layout && !isTable && (
+            <label className="field">
+              <span>Type</span>
+              <Select value={field.type} disabled={disabled} onChange={(e) => onChange({ type: e.target.value as FieldType })}>
+                {typeChoices.map((t) => <option key={t.type} value={t.type}>{t.label}</option>)}
+              </Select>
+              <small className="muted">
+                {field.savedType !== field.type
+                  ? `Changes from ${field.savedType}: every saved value is converted, and the change is refused if one does not fit.`
+                  : 'Saved values are converted when the type changes.'}
+              </small>
+              <Err message={errors[`${path}.type`]} />
+            </label>
+          )}
 
           {info?.options === 'Choices' && (
             <label className="field full">

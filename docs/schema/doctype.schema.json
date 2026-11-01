@@ -179,6 +179,10 @@
             "type": "string",
             "description": "Expression: UI hint, the field cannot be edited while this is true."
           },
+          "renamedFrom": {
+            "type": "string",
+            "description": "Designer only: the name this field had before. When the DocType is saved the saved column (and its data) is renamed to Name instead of a new empty column being added. It is never kept in the stored definition."
+          },
           "required": {
             "type": "boolean"
           },

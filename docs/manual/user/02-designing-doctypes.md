@@ -31,4 +31,13 @@ Create a DocType marked as a child table with the columns you need, then add a *
 
 ## Limits
 
-The type of a saved field cannot change; a DocType that has documents cannot be deleted; DocTypes cannot be renamed yet. Two people editing at once: the second save is refused with a message so nothing is overwritten.
+A DocType that has documents cannot be deleted, and a DocType cannot be renamed yet. Two people editing at once: the second save is refused with a message so nothing is overwritten.
+
+## Renaming a field and changing its type
+Open a saved field and change its **Field name** or its **Type**. The preview on the right says what will happen before you save.
+
+- **Rename:** the saved values move to the new name, and the title field, status field, sort field, image field, naming field and search fields follow. Conditions, formulas and rules that still use the old name are not changed for you; the preview warns when it finds one.
+- **Change the type:** every saved value is converted. Allowed: between text types (Data, Text, Email, Select, Link and so on), a number to text or to a wider number (Int to Decimal), text to a number, date or time, a Date to a Datetime, and a Check to or from an Int. Not allowed: anything that would lose part of a value (a Decimal to an Int, a Datetime to a Date), and Password, Table and layout fields.
+- If one saved value cannot be converted (for example "abc" in a field that becomes a number), the whole change is refused and nothing is changed. Fix those values first.
+
+Take a backup before changing the type of a field that holds many documents.

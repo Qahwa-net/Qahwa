@@ -160,20 +160,102 @@ public class DesignerTests
     }
 
     [Fact]
-    public async Task Existing_field_types_and_names_cannot_change()
+    public async Task A_doctype_itself_cannot_be_renamed()
     {
         var created = await _engine.Designer.CreateAsync(Supplier(), TestUsers.SystemManager);
 
-        var typeChange = Supplier(m => m with
-        {
-            Fields = [m.Fields[0] with { Type = FieldType.Text }, m.Fields[1]],
-        });
-        var ex = await Assert.ThrowsAsync<DocumentValidationException>(() =>
-            _engine.Designer.UpdateAsync("Supplier", typeChange, created.Modified, TestUsers.SystemManager));
-        Assert.Contains(ex.Errors, e => e.Field == "fields[0].type");
-
         await Assert.ThrowsAsync<DocumentValidationException>(() =>
             _engine.Designer.UpdateAsync("Supplier", Supplier(m => m with { Name = "Vendor" }), created.Modified, TestUsers.SystemManager));
+    }
+
+    [Fact]
+    public async Task A_saved_field_can_change_to_a_type_that_keeps_every_value()
+    {
+        var created = await _engine.Designer.CreateAsync(Supplier(), TestUsers.SystemManager);
+        var longer = Supplier(m => m with { Fields = [m.Fields[0] with { Type = FieldType.Text }, m.Fields[1]] });
+
+        var preview = await _engine.Designer.PreviewAsync(longer, "Supplier", TestUsers.SystemManager);
+        Assert.Empty(preview.Errors);
+        Assert.Contains(preview.Notes, n => n.Contains("supplier_name") && n.Contains("Data to Text"));
+
+        await _engine.Designer.UpdateAsync("Supplier", longer, created.Modified, TestUsers.SystemManager);
+        Assert.Equal(FieldType.Text, _engine.Registry.Get("Supplier").Fields[0].Type);
+        Assert.Contains("supplier_name", _engine.Schema.LastChanges!.Retypes);
+    }
+
+    [Theory]
+    [InlineData(FieldType.Decimal, FieldType.Int)]
+    [InlineData(FieldType.Datetime, FieldType.Date)]
+    [InlineData(FieldType.Data, FieldType.Check)]
+    [InlineData(FieldType.Password, FieldType.Data)]
+    [InlineData(FieldType.Data, FieldType.SectionBreak)]
+    public void A_type_change_that_could_lose_values_is_refused(FieldType from, FieldType to) =>
+        Assert.NotNull(FieldTypeChanges.Check(from, to));
+
+    [Theory]
+    [InlineData(FieldType.Int, FieldType.Decimal)]
+    [InlineData(FieldType.Data, FieldType.Text)]
+    [InlineData(FieldType.Decimal, FieldType.Data)]
+    [InlineData(FieldType.Text, FieldType.Date)]
+    [InlineData(FieldType.Date, FieldType.Datetime)]
+    [InlineData(FieldType.Check, FieldType.Int)]
+    public void A_type_change_that_keeps_values_is_allowed(FieldType from, FieldType to) =>
+        Assert.Null(FieldTypeChanges.Check(from, to));
+
+    [Fact]
+    public async Task An_unsupported_type_change_is_an_error_on_that_field()
+    {
+        var created = await _engine.Designer.CreateAsync(Supplier(), TestUsers.SystemManager);
+        var bad = Supplier(m => m with { Fields = [m.Fields[0] with { Type = FieldType.Check }, m.Fields[1]] });
+
+        var ex = await Assert.ThrowsAsync<DocumentValidationException>(() =>
+            _engine.Designer.UpdateAsync("Supplier", bad, created.Modified, TestUsers.SystemManager));
+
+        Assert.Contains(ex.Errors, e => e.Field == "fields[0].type");
+    }
+
+    [Fact]
+    public async Task A_saved_field_can_be_renamed_and_the_settings_that_name_it_follow()
+    {
+        var created = await _engine.Designer.CreateAsync(Supplier(), TestUsers.SystemManager);
+        var renamed = Supplier(m => m with { Fields = [m.Fields[0] with { Name = "vendor_name", RenamedFrom = "supplier_name" }, m.Fields[1]] });
+
+        var preview = await _engine.Designer.PreviewAsync(renamed, "Supplier", TestUsers.SystemManager);
+        Assert.Empty(preview.Errors);
+        Assert.Contains(preview.Notes, n => n.Contains("renamed to 'vendor_name'"));
+        Assert.Contains(preview.Schema!.Changes, c => c.Description.Contains("Rename column"));
+
+        await _engine.Designer.UpdateAsync("Supplier", renamed, created.Modified, TestUsers.SystemManager);
+
+        var saved = _engine.Registry.Get("Supplier");
+        Assert.Equal("vendor_name", saved.TitleField);
+        Assert.Equal("vendor_name", saved.Fields[0].Name);
+        Assert.Null(saved.Fields[0].RenamedFrom);
+        Assert.DoesNotContain("renamedFrom", (await _engine.DocTypeStore.GetAsync("Supplier"))!.Definition);
+        Assert.Equal([("supplier_name", "vendor_name")], _engine.Schema.LastChanges!.Renames);
+
+        // Saving again must not ask for the rename a second time.
+        _engine.Clock.Advance(TimeSpan.FromMinutes(1));
+        var again = await _engine.Designer.GetAsync("Supplier", TestUsers.SystemManager);
+        await _engine.Designer.UpdateAsync("Supplier", saved, again.Modified, TestUsers.SystemManager);
+        Assert.Null(_engine.Schema.LastChanges);
+    }
+
+    [Fact]
+    public async Task A_rename_that_makes_no_sense_is_refused()
+    {
+        var created = await _engine.Designer.CreateAsync(Supplier(), TestUsers.SystemManager);
+
+        DocumentValidationException Fail(DocTypeMeta definition) =>
+            Assert.ThrowsAsync<DocumentValidationException>(() =>
+                _engine.Designer.UpdateAsync("Supplier", definition, created.Modified, TestUsers.SystemManager)).GetAwaiter().GetResult();
+
+        // from a field that does not exist
+        Assert.Contains(Fail(Supplier(m => m with { Fields = [m.Fields[0] with { Name = "a", RenamedFrom = "nope" }, m.Fields[1]] })).Errors,
+            e => e.Field == "fields[0].renamedFrom");
+        // onto the name of another saved field
+        Assert.Contains(Fail(Supplier(m => m with { Fields = [m.Fields[0] with { Name = "supplier_type", RenamedFrom = "supplier_name" }, m.Fields[1] with { Name = "other" }] })).Errors,
+            e => e.Field == "fields[0].name");
     }
 
     [Fact]
