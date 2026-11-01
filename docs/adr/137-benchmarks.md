@@ -11,4 +11,5 @@ The plan asks for performance checks. A database-backed load test needs a server
 - The project runs from the command line (see `benchmarks/README.md`). It is not part of CI, because shared runners give noisy timings; the numbers are for comparing two runs on one machine.
 
 ## Consequences
-- Not yet: k6 or similar load scripts against a running server with a large table (list with a million rows, bulk insert), and a stored baseline to compare against.
+- `benchmarks/k6` holds a k6 load test of a running server (lists, a filter, a deep page, reads and inserts of Notes) with a script that seeds a million rows and one that removes them; a first run is recorded in `benchmarks/README.md`. It needs an API key (a sign-in per virtual user trips the sign-in throttle).
+- Not yet: running either set in CI, a stored baseline to compare against, bulk insert, and a larger or separate load generator (the first run shared one laptop with the server and the database).

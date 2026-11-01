@@ -428,7 +428,7 @@ Timeline assumes **1–2 full-time developers**. Scale it up or down accordingly
 | Contract/API | WebApplicationFactory | Endpoints, error envelopes, authz matrix |
 | Security | Custom suites | SQL injection payloads, IDOR, permission bypass attempts |
 | E2E | Playwright | Create DocType → use list/form, and key user flows |
-| Performance | k6/BenchmarkDotNet | List with 1M rows, meta cache hit rate, bulk insert (BenchmarkDotNet engine benchmarks done: `benchmarks/`, ADR-137; k6 load tests open) |
+| Performance | k6/BenchmarkDotNet | List with 1M rows, meta cache hit rate, bulk insert (BenchmarkDotNet engine benchmarks and a k6 load test with a million rows done: `benchmarks/`, ADR-137; not in CI) |
 | Migration | Snapshot tests | Schema diff output stays stable |
 
 Rule: every bug in the schema engine or permission system gets a regression test before the fix.
