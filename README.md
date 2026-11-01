@@ -51,6 +51,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **`dotnet new qahwa-app`**: a template that makes an app (DocType, hook, server function, tests) from a name ([ADR-134](docs/adr/134-app-template.md))
 - **Documentation website**: the markdown docs built into a navigable static site, with link checking (`docs/site`, [ADR-135](docs/adr/135-docs-site.md))
 - **Typed documents**: a source generator writes C# classes from DocType files, over the same dictionary the engine uses ([ADR-136](docs/adr/136-typed-documents.md))
+- **Benchmarks**: BenchmarkDotNet checks of expression evaluation and document insert, read, update and list ([ADR-137](docs/adr/137-benchmarks.md))
 - **Plurals and a language on your account**: messages with `{count}` pick the right plural form (six in Arabic), and your language follows you to every device ([ADR-133](docs/adr/133-plurals-and-account-language.md))
 - **Password-protected backups**: AES-256-GCM in pieces, a password that cannot be recovered, in the Desk, the API, the CLI and the daily folder ([ADR-132](docs/adr/132-protected-backups.md))
 - **Patches you can see and re-run**: `qahwa list-patches` / `run-patch`, `GET /api/patches`, and a Run again button on the Patch Log ([ADR-043](docs/adr/043-patches.md))
