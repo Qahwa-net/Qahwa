@@ -415,7 +415,7 @@ Timeline assumes **1–2 full-time developers**. Scale it up or down accordingly
 - Kanban/calendar/tree views, webhooks, OAuth2/OIDC provider support
 - Marketplace-style app distribution (NuGet feed), upgrade tooling
 - Docs site (done: `docs/site`, ADR-135), tutorials, templates (`dotnet new qahwa-app`)
-- First flagship app (e.g., **Qahwa CRM**, to dogfood the framework)
+- First flagship app (e.g., **Qahwa CRM**, to dogfood the framework): CRM-lite done (`apps/Qahwa.Crm`, ADR-146); quotations, contacts sync and email-to-lead are later
 
 ---
 

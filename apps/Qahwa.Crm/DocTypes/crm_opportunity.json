@@ -1,0 +1,35 @@
+{
+  "$schema": "../../../docs/schema/doctype.schema.json",
+  "name": "Crm Opportunity",
+  "module": "CRM",
+  "autoname": "OPP-.#####",
+  "titleField": "title",
+  "defaultView": "board",
+  "sortField": "expected_close",
+  "sortDescending": false,
+  "fields": [
+    { "name": "title", "type": "Data", "label": "Title", "required": true, "inListView": true },
+    { "name": "lead", "type": "Link", "options": "Crm Lead", "label": "Lead", "inListView": true },
+    { "name": "company", "type": "Data", "label": "Company", "fetchFrom": "lead.company", "fetchIfEmpty": true },
+    { "name": "stage", "type": "Select", "label": "Stage", "options": "Prospecting\nProposal\nNegotiation\nWon\nLost", "default": "Prospecting", "inListView": true, "inStandardFilter": true },
+    { "name": "amount", "type": "Currency", "label": "Amount", "inListView": true, "nonNegative": true },
+    { "name": "probability", "type": "Percent", "label": "Probability (%)", "precision": 0 },
+    { "name": "weighted_amount", "type": "Currency", "label": "Weighted amount", "readOnly": true, "formula": "round(amount * probability / 100, 2)" },
+    { "name": "expected_close", "type": "Date", "label": "Expected close", "inListView": true },
+    { "name": "next_step", "type": "Data", "label": "Next step" },
+    { "name": "lost_reason", "type": "Data", "label": "Why it was lost", "dependsOn": "stage == 'Lost'", "mandatoryDependsOn": "stage == 'Lost'" },
+    { "name": "notes", "type": "TextEditor", "label": "Notes" }
+  ],
+  "statusField": "stage",
+  "indicators": [
+    { "value": "Prospecting", "color": "blue" }, { "value": "Proposal", "color": "orange" }, { "value": "Negotiation", "color": "purple" },
+    { "value": "Won", "color": "green" }, { "value": "Lost", "color": "gray" }
+  ],
+  "validations": [
+    { "expression": "probability == null || (probability >= 0 && probability <= 100)", "message": "The probability is between 0 and 100.", "field": "probability" }
+  ],
+  "permissions": [
+    { "role": "CRM User", "read": true, "write": true, "create": true, "ifOwner": true, "export": true },
+    { "role": "CRM Manager", "read": true, "write": true, "create": true, "delete": true, "export": true, "report": true }
+  ]
+}

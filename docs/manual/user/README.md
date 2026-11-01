@@ -99,6 +99,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 95. [Events: your calendar](95-events.md)
 96. [Milestones: how a status moved](96-milestones.md)
 97. [Prepared reports: big reports built in the background](97-prepared-reports.md)
+98. [CRM: leads and opportunities](98-crm.md)
 
 **Words used**
 

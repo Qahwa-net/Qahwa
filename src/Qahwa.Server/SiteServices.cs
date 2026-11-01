@@ -61,6 +61,9 @@ public static class QahwaSiteServices
             services.AddSingleton<IFileStorage>(new S3FileStorage(config.GetSection("Qahwa:Files:S3").Get<S3Options>() ?? new S3Options()));
         else
             services.AddSingleton<IFileStorage>(new DiskFileStorage(config["Qahwa:Files:Path"] ?? Path.Combine(env.ContentRootPath, "data", "files")));
+        // Apps shipped with Qahwa are off until a site's own settings turn them on (Qahwa:Apps:Crm = true).
+        if (config.GetValue<bool>("Qahwa:Apps:Crm"))
+            services.AddQahwaApp<Qahwa.Crm.CrmApp>();
         services.Configure<SsoOptions>(config.GetSection("Qahwa:Auth:Sso"));
         services.Configure<SignUpOptions>(config.GetSection("Qahwa:Auth:SignUp"));
         services.Configure<LdapOptions>(config.GetSection("Qahwa:Auth:Ldap"));
