@@ -53,6 +53,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **Typed documents**: a source generator writes C# classes from DocType files, over the same dictionary the engine uses ([ADR-136](docs/adr/136-typed-documents.md))
 - **Benchmarks**: BenchmarkDotNet checks of expression evaluation and document insert, read, update and list ([ADR-137](docs/adr/137-benchmarks.md))
 - **Rename and retype saved fields**: in the designer, a saved field can get a new name or a new type, with its values converted in one transaction ([ADR-138](docs/adr/138-rename-and-retype-fields.md))
+- **Reminders**: be told about a document at a time you choose, from the form's bell ([ADR-139](docs/adr/139-reminders.md))
 - **Plurals and a language on your account**: messages with `{count}` pick the right plural form (six in Arabic), and your language follows you to every device ([ADR-133](docs/adr/133-plurals-and-account-language.md))
 - **Password-protected backups**: AES-256-GCM in pieces, a password that cannot be recovered, in the Desk, the API, the CLI and the daily folder ([ADR-132](docs/adr/132-protected-backups.md))
 - **Patches you can see and re-run**: `qahwa list-patches` / `run-patch`, `GET /api/patches`, and a Run again button on the Patch Log ([ADR-043](docs/adr/043-patches.md))

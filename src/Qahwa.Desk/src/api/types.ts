@@ -1075,3 +1075,20 @@ export interface ReportRun {
   truncated: boolean
   grouped: boolean
 }
+
+/** A reminder to be told about a document at a time. */
+export interface ReminderInfo {
+  id: string
+  docType: string
+  name: string
+  remindAt: string
+  message?: string | null
+  status: 'Pending' | 'Sent' | 'Cancelled'
+  sentAt?: string | null
+}
+
+export interface ReminderRequest {
+  /** ISO 8601 date and time with an offset, e.g. 2026-12-01T09:00:00+03:00. */
+  remindAt: string
+  message?: string
+}

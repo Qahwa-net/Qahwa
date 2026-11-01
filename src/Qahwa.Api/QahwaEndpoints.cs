@@ -121,6 +121,7 @@ public static class QahwaEndpoints
         app.MapQahwaWorkflows();
         app.MapQahwaAssignmentRules();
         app.MapQahwaAutoRepeat();
+        app.MapQahwaReminders();
         app.MapQahwaNotificationRules();
         app.MapQahwaEmail();
         app.MapQahwaDashboards();

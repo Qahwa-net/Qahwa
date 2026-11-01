@@ -95,6 +95,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 91. [Roles from your company sign-in](91-roles-from-sign-in.md)
 92. [Stricter sign-in and password rules](92-stricter-security.md)
 93. [Background jobs](93-background-jobs.md)
+94. [Reminders: be told about a document later](94-reminders.md)
 
 **Words used**
 

@@ -4,7 +4,7 @@
   "trackChanges": false,
   "fields": [
     { "name": "for_user", "type": "Data", "label": "For", "required": true, "indexed": true, "inListView": true },
-    { "name": "notification_type", "type": "Select", "options": "Mention\nAssignment\nComment\nUpdate\nShare\nAlert", "label": "Type", "inListView": true },
+    { "name": "notification_type", "type": "Select", "options": "Mention\nAssignment\nComment\nUpdate\nShare\nAlert\nReminder", "label": "Type", "inListView": true },
     { "name": "document_type", "type": "Data", "label": "DocType" },
     { "name": "document_name", "type": "Data", "label": "Document" },
     { "name": "from_user", "type": "Data", "label": "From" },

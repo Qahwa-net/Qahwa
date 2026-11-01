@@ -171,6 +171,7 @@ public sealed class PgStack : IAsyncDisposable
         Activity = new ActivityService(Registry, Repository, Documents, permissions, History, Collaboration);
         Assignments = new AssignmentService(Registry, Repository, Documents, permissions, ShareManager, Notifications, Follows, History);
         AutoRepeat = new AutoRepeatService(Registry, Repository, Documents, permissions, Notifications, History);
+        Reminders = new ReminderService(Registry, Repository, Notifications, History);
         ListSettings = new ListSettingsService(Registry, Repository, Documents, permissions, History);
         Bulk = new BulkService(Registry, Documents);
         DocTypeStore = new DocTypeStore(_connections, Dialect, flavor.Inspector(_connections));
@@ -226,6 +227,7 @@ public sealed class PgStack : IAsyncDisposable
     public WorkflowStore WorkflowStore { get; }
     public WorkflowManager Workflows { get; }
     public AutoRepeatService AutoRepeat { get; }
+    public ReminderService Reminders { get; }
     public AssignmentRuleCatalog AssignmentRuleCatalog { get; }
     public AssignmentRuleStore AssignmentRuleStore { get; }
     public AssignmentRuleEngine AssignmentRules { get; }

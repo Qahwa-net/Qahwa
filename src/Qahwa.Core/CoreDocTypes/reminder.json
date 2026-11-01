@@ -1,0 +1,18 @@
+{
+  "name": "Reminder",
+  "module": "Core",
+  "trackChanges": false,
+  "fields": [
+    { "name": "reference_doctype", "type": "Data", "label": "DocType", "required": true, "indexed": true, "inListView": true },
+    { "name": "reference_name", "type": "Data", "label": "Document", "required": true, "indexed": true, "inListView": true },
+    { "name": "remind_at", "type": "Datetime", "label": "Remind at", "required": true, "indexed": true, "inListView": true },
+    { "name": "message", "type": "Text", "label": "Note" },
+    { "name": "status", "type": "Select", "label": "Status", "options": "Pending\nSent\nCancelled", "default": "Pending", "indexed": true, "inListView": true },
+    { "name": "sent_at", "type": "Datetime", "label": "Sent at" }
+  ],
+  "statusField": "status",
+  "indicators": [ { "value": "Pending", "color": "orange" }, { "value": "Sent", "color": "green" }, { "value": "Cancelled", "color": "gray" } ],
+  "permissions": [
+    { "role": "System Manager", "read": true }
+  ]
+}

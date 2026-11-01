@@ -111,6 +111,7 @@ public sealed class TestEngine
         Activity = new ActivityService(Registry, Repository, Documents, Permissions, History, Collaboration);
         Assignments = new AssignmentService(Registry, Repository, Documents, Permissions, ShareManager, Notifications, Follows, History);
         AutoRepeat = new AutoRepeatService(Registry, Repository, Documents, Permissions, Notifications, History);
+        Reminders = new ReminderService(Registry, Repository, Notifications, History);
         ListSettings = new ListSettingsService(Registry, Repository, Documents, Permissions, History);
         Bulk = new BulkService(Registry, Documents);
         DocTypeStore = new InMemoryDocTypeStore();
@@ -218,6 +219,7 @@ public sealed class TestEngine
     public RoleNetworkService RoleNetworks { get; }
     public ImportRunService ImportRuns { get; }
     public AutoRepeatService AutoRepeat { get; }
+    public ReminderService Reminders { get; }
     public AssignmentRuleCatalog AssignmentRuleCatalog { get; }
     public InMemoryAssignmentRuleStore AssignmentRuleStore { get; }
     public AssignmentRuleEngine AssignmentRules { get; }

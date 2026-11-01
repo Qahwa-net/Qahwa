@@ -11,6 +11,7 @@ import { ConfirmDialog } from '../controls/Modal.tsx'
 import { ActivityPanel } from './ActivityPanel.tsx'
 import { AssignDialog } from './AssignPanel.tsx'
 import { RepeatDialog } from './RepeatDialog.tsx'
+import { ReminderDialog } from './ReminderDialog.tsx'
 import { EmailDialog } from './EmailDialog.tsx'
 import { PrintDialog } from './PrintDialog.tsx'
 import { FollowButton } from './FollowButton.tsx'
@@ -150,6 +151,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
   const [renaming, setRenaming] = useState(false)
   const [assigning, setAssigning] = useState(false)
   const [repeating, setRepeating] = useState(false)
+  const [reminding, setReminding] = useState(false)
   const [emailing, setEmailing] = useState(false)
   const [printing, setPrinting] = useState(false)
   const [activeTab, setActiveTab] = useState(0)
@@ -474,6 +476,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
           {!isNew && !meta.isSingle && perms.write && perms.share !== false && docstatus !== 2 && <IconButton icon="share" label="Share" onClick={() => setSharing(true)} />}
           {!isNew && perms.read && perms.print !== false && <IconButton icon="printer" label="Print" onClick={() => setPrinting(true)} />}
           {!isNew && !meta.isSingle && perms.write && perms.email !== false && docstatus !== 2 && <IconButton icon="mail" label="Email" onClick={() => setEmailing(true)} />}
+ {!isNew && !meta.isSingle && meta.module !== 'Core' && perms.read && <IconButton icon="bell" label="Remind me" onClick={() => setReminding(true)} />}
           {!isNew && !meta.isSingle && perms.create && meta.module !== 'Core' && meta.autoname !== 'prompt' && <IconButton icon="repeat" label="Repeat" onClick={() => setRepeating(true)} />}
           {!isNew && meta.allowRename && perms.write && docstatus !== 1 && <IconButton icon="pencil" label="Rename" onClick={() => setRenaming(true)} />}
           {!isNew && meta.name === 'Deleted Document' && perms.delete && <IconButton icon="undo" label="Restore" tone="primary" disabled={restore.isPending} onClick={() => restore.mutate()} />}
@@ -505,6 +508,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
       {printing && doc && <PrintDialog doctype={meta.name} name={doc.name} onClose={() => setPrinting(false)} />}
       {emailing && doc && <EmailDialog doctype={meta.name} name={doc.name} onClose={() => setEmailing(false)} />}
       {repeating && doc && <RepeatDialog meta={meta} name={doc.name} onClose={() => setRepeating(false)} />}
+      {reminding && doc && <ReminderDialog meta={meta} name={doc.name} onClose={() => setReminding(false)} />}
       {assigning && doc && <AssignDialog doctype={meta.name} name={doc.name} canAssign={perms.write} onClose={() => setAssigning(false)} />}
       {confirm && doc && (
         <ConfirmDialog
