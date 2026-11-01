@@ -21,6 +21,11 @@ public static class ReminderEndpoints
             return Results.Created($"/api/reminders/{created.Id}", new { data = created });
         });
 
+        // Milestones (how a tracked field moved) live beside reminders: both are small per-document views.
+        app.MapGet("/api/resource/{doctype}/{name}/milestones", async (
+            string doctype, string name, HttpContext http, IUserContextResolver users, MilestoneService milestones, CancellationToken ct) =>
+            Results.Ok(new { data = await milestones.ForDocumentAsync(doctype, name, await users.ResolveAsync(http, ct), ct) }));
+
         var group = app.MapGroup("/api/reminders");
 
         group.MapGet("", async (HttpContext http, IUserContextResolver users, ReminderService reminders, CancellationToken ct) =>

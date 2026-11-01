@@ -1092,3 +1092,17 @@ export interface ReminderRequest {
   remindAt: string
   message?: string
 }
+
+/** How a tracked field moved: every value it held, when it got it and who changed it. */
+export interface MilestoneItem {
+  value: string
+  at: string
+  by: string
+  afterSeconds?: number | null
+}
+
+export interface MilestoneView {
+  field: string
+  label: string
+  items: MilestoneItem[]
+}

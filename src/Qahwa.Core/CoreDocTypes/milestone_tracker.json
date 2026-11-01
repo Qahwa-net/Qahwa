@@ -1,0 +1,14 @@
+{
+  "name": "Milestone Tracker",
+  "module": "Core",
+  "autoname": "field:document_type",
+  "titleField": "document_type",
+  "trackChanges": true,
+  "fields": [
+    { "name": "document_type", "type": "Link", "options": "DocType", "label": "DocType", "required": true, "unique": true, "inListView": true },
+    { "name": "track_field", "type": "Data", "label": "Field to track", "required": true, "inListView": true, "description": "The field whose changes are shown as milestones on each document, such as status." }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "write": true, "create": true, "delete": true }
+  ]
+}

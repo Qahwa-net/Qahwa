@@ -55,6 +55,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **Rename and retype saved fields**: in the designer, a saved field can get a new name or a new type, with its values converted in one transaction ([ADR-138](docs/adr/138-rename-and-retype-fields.md))
 - **Reminders**: be told about a document at a time you choose, from the form's bell ([ADR-139](docs/adr/139-reminders.md))
 - **Events**: a private, shareable calendar DocType that opens in the calendar view ([ADR-140](docs/adr/140-events.md))
+- **Milestones**: choose a field of a DocType and every document shows how it moved, read from the history ([ADR-142](docs/adr/142-milestones.md))
 - **Patch order per app**: an app's patches run after those of the apps it depends on ([ADR-141](docs/adr/141-patch-order-per-app.md))
 - **Plurals and a language on your account**: messages with `{count}` pick the right plural form (six in Arabic), and your language follows you to every device ([ADR-133](docs/adr/133-plurals-and-account-language.md))
 - **Password-protected backups**: AES-256-GCM in pieces, a password that cannot be recovered, in the Desk, the API, the CLI and the daily folder ([ADR-132](docs/adr/132-protected-backups.md))

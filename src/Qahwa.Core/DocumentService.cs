@@ -131,6 +131,8 @@ public sealed partial class DocumentService(
             changed.Add(key);
         if (meta.Name == "Role")
             RoleNetworkService.Validate(values, errors);
+        if (meta.Name == MilestoneService.DocTypeName)
+            MilestoneService.Validate(registry, values, errors);
         var context = _logic.Context(meta, values, tables, null, user, isNew: true, await _logic.LinkedAsync(meta, values, user, ReadLinkedAsync, ct));
         await ValidateAsync(meta, values, values.Keys, errors, string.Empty, context, fieldAccess, ct);
         foreach (var table in tables)
@@ -506,6 +508,8 @@ public sealed partial class DocumentService(
             changed.Add(key);
         if (meta.Name == "Role")
             RoleNetworkService.Validate(merged, errors);
+        if (meta.Name == MilestoneService.DocTypeName)
+            MilestoneService.Validate(registry, merged, errors);
         foreach (var key in changed)
             changes[key] = merged[key]; // calculated, fetched and script-set values are saved too
 
