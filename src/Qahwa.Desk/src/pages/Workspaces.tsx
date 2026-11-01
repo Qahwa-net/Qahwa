@@ -9,6 +9,7 @@ import { useToast } from '../controls/Toast.tsx'
 import { PAGES, moveBlock, newBlock, newShortcut, toRequest } from '../lib/workspaces.ts'
 import { rowErrors } from '../lib/workflow.ts'
 import { Select } from '../controls/Select.tsx'
+import { RichTextInput } from '../controls/RichTextInput.tsx'
 
 /** Workspaces: arrange the pages people start from, and choose which roles see each. */
 export function WorkspacesPage() {
@@ -108,7 +109,7 @@ function Body({ initial, onDone }: { initial: WorkspaceDetail | null; onDone: ()
               <header className="rule-head">
                 <span className="rule-no" aria-hidden="true">{i + 1}</span>
                 <Select aria-label={`Block ${i + 1} type`} value={block.type} onChange={(ev) => update(i, newBlock(ev.target.value as WorkspaceBlock['type']))}>
-                  <option value="Heading">Heading</option><option value="Shortcuts">Shortcuts</option><option value="Dashboard">Dashboard</option>
+                  <option value="Heading">Heading</option><option value="Shortcuts">Shortcuts</option><option value="Dashboard">Dashboard</option><option value="Text">Text</option>
                 </Select>
                 <span className="spacer" />
                 <IconButton icon="arrowLeft" label="Move up" className="rot-up" disabled={i === 0} onClick={() => setBlocks(moveBlock(blocks, i, -1))} />
@@ -118,6 +119,12 @@ function Body({ initial, onDone }: { initial: WorkspaceDetail | null; onDone: ()
               {block.type === 'Heading' && (
                 <div className="field">
                   <input aria-label={`Block ${i + 1} heading`} maxLength={100} value={block.text ?? ''} aria-invalid={Boolean(e.text)} onChange={(ev) => update(i, { text: ev.target.value })} />
+                  {e.text && <small className="error-text" role="alert">{e.text}</small>}
+                </div>
+              )}
+              {block.type === 'Text' && (
+                <div className="field">
+                  <RichTextInput id={`block-${i}-text`} ariaLabel={`Block ${i + 1} text`} value={block.text ?? ''} invalid={Boolean(e.text)} onChange={(html) => update(i, { text: html })} />
                   {e.text && <small className="error-text" role="alert">{e.text}</small>}
                 </div>
               )}

@@ -796,7 +796,7 @@ export interface WorkspaceShortcut {
 }
 
 export interface WorkspaceBlock {
-  type: 'Heading' | 'Shortcuts' | 'Dashboard'
+  type: 'Heading' | 'Shortcuts' | 'Dashboard' | 'Text'
   text?: string | null
   items: WorkspaceShortcut[]
   dashboardId?: string | null
@@ -816,7 +816,7 @@ export interface WorkspaceDetail {
 }
 
 export interface WorkspaceBlockView {
-  type: 'Heading' | 'Shortcuts' | 'Dashboard'
+  type: 'Heading' | 'Shortcuts' | 'Dashboard' | 'Text'
   text?: string | null
   shortcuts?: { label: string; kind: string; path: string }[] | null
   dashboardId?: string | null
