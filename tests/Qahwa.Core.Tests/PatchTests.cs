@@ -195,4 +195,53 @@ public class PatchTests
         await Assert.ThrowsAsync<PermissionDeniedException>(() => _engine.Documents.InsertAsync("Patch Log", TestEngine.Values(("patch", "fake")), TestUsers.SystemManager));
         await Assert.ThrowsAsync<PermissionDeniedException>(() => _engine.Documents.UpdateAsync("Patch Log", "p1", TestEngine.Values(("status", "Failed")), TestUsers.SystemManager));
     }
+
+    private sealed class PatchedApp(string name, string[] needs, params IPatch[] patches) : IQahwaApp
+    {
+        public string Name => name;
+        public string Version => "1.0.0";
+        public IReadOnlyList<string> Dependencies => needs;
+        public IReadOnlyList<IPatch> Patches => patches;
+        public void Configure(IAppBuilder app) { }
+    }
+
+    [Fact]
+    public void An_apps_patches_run_after_those_of_the_apps_it_needs_and_host_patches_run_first()
+    {
+        var log = new List<string>();
+        IPatch P(string name) => new Recording(name, log);
+        var core = new PatchedApp("core_pack", [], P("core_pack_2026_03"), P("core_pack_2026_01"));
+        var shop = new PatchedApp("shop", ["core_pack"], P("shop_2026_01"));
+        var host = P("zz_host_patch");
+        var all = new[] { shop.Patches[0], core.Patches[0], host, core.Patches[1] };
+
+        var order = PatchOrder.Sort(all, [shop, core]).Select(p => p.Name);
+
+        // The shop's patch is named first alphabetically but needs core_pack's, so it comes after both of them.
+        Assert.Equal(["zz_host_patch", "core_pack_2026_01", "core_pack_2026_03", "shop_2026_01"], order);
+    }
+
+    [Fact]
+    public void Ordering_never_fails_on_apps_that_cannot_be_ordered()
+    {
+        var log = new List<string>();
+        var a = new PatchedApp("aa", ["missing"], new Recording("aa_1", log));
+        var b = new PatchedApp("bb", [], new Recording("bb_1", log));
+
+        Assert.Equal(["aa_1", "bb_1"], PatchOrder.Sort([b.Patches[0], a.Patches[0]], [b, a]).Select(p => p.Name));
+    }
+
+    [Fact]
+    public async Task The_runner_runs_app_patches_in_that_order()
+    {
+        var log = new List<string>();
+        var core = new PatchedApp("core_pack", [], new Recording("core_pack_1", log));
+        var shop = new PatchedApp("shop", ["core_pack"], new Recording("a_shop_first", log));
+        var runner = new PatchRunner(_engine.Registry, _engine.Repository, [shop.Patches[0], core.Patches[0]], new EmptyServices(), _engine.Clock, [shop, core]);
+
+        await runner.RunPendingAsync();
+
+        Assert.Equal(["core_pack_1", "a_shop_first"], log);
+        Assert.Equal(["core_pack_1", "a_shop_first"], (await runner.ListAsync()).Select(p => p.Name));
+    }
 }

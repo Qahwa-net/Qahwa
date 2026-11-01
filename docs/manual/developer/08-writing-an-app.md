@@ -126,7 +126,7 @@ curl -b jar.txt -X POST localhost:5101/api/method/qahwa.get_count -H "Content-Ty
 
 ## Patches, fixtures and jobs
 
-- `Patches` are ordinary `IPatch` objects (see ADR-043): one-time, named with a date prefix, run once per site in name order.
+- `Patches` are ordinary `IPatch` objects (see ADR-043): one-time, named with a date prefix, run once per site. Patches of the host run first, then those of each app in install order (an app after the apps it depends on), each in name order, so a patch can rely on its dependencies' data being up to date ([ADR-141](../../adr/141-patch-order-per-app.md)).
 - A `Fixture` with a `name` is skipped when that document already exists, and fixtures are made only the first time an app is installed on a site.
 - A job runs at most about once per `every` (a minimum of one minute) on each server's scheduler tick; failures go to the Error Log and never stop other jobs.
 

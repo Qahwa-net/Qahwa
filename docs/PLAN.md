@@ -690,7 +690,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Feature | Notes | Status | Step |
 |---|---|---|---|
 | Schema migration (additive), dry run | | ✅ | done |
-| Patches / data migrations (patch log) | done (ADR-043), listing and running one patch from the Desk, the API and the CLI; not per-app ordering | ✅ (v1) | L12 |
+| Patches / data migrations (patch log) | done (ADR-043), listing and running one patch from the Desk, the API and the CLI; per-app ordering (ADR-141) | ✅ (v1) | L12 |
 | **Data Import** (CSV/Excel template, validate, preview, background, update existing) | done: CSV and Excel, template, preview, row results, update existing, child table rows in the same file (ADR-128) and background import of big files with progress (ADR-129) | ✅ (v1) | L10 |
 | Data Export, bulk update, bulk rename | export to CSV and Excel (ADR-064), import from CSV and Excel (ADR-027, ADR-064), bulk edit (ADR-016) and bulk rename (ADR-065) done | ✅ | L10 |
 | Backups (download, scheduled, restore) | done: download, daily folder, additive restore (ADR-044), password-protected backups (ADR-132); not file contents, cloud storage | ✅ (v1) | L12 |
