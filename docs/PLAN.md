@@ -666,7 +666,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | **Report Builder** (pick fields, filters, group by, sort, save, share) | done: lists and multi-number summaries, run with the viewer's rights, CSV (ADR-045), calculated columns (ADR-130); not joins, PDF | ✅ (v1) | L9 |
 | Query Report (SQL), Script Report | Script Reports written by apps done (ADR-088); a SQL box in the Desk is deliberately not offered (it bypasses permissions) | ✅ (by design) | L11 |
 | Dashboard Charts (count, sum, average, group by, time series), Number Cards, Dashboards | done: number, chart and list tiles, per day/month/year, filters, private or shared | ✅ (v1) | L9 |
-| Prepared Reports (background) | | 🔽 | L9 |
+| Prepared Reports (background) | done (ADR-144): built by the scheduler as the person, all rows, kept 7 days, open or download from the report page | ✅ (v1) | L9 |
 | Export to CSV / Excel / PDF | done: CSV and Excel (lists, reports, ADR-064), PDF of printouts (ADR-050) | ✅ (v1) | L9 |
 | **Print Format Builder** (drag and drop), Print Settings, Letter Head, custom HTML/Jinja-style formats | done: HTML templates with placeholders, if/each, default layout, letter heads, preview; not yet drag and drop, print settings, server PDF | ✅ (v1) | L9 |
 | PDF generation | done: headless Chrome, Chromium or Edge, inert page, no network, strict limits (ADR-050) | ✅ (v1) | L9 |

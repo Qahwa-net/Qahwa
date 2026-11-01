@@ -98,6 +98,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 94. [Reminders: be told about a document later](94-reminders.md)
 95. [Events: your calendar](95-events.md)
 96. [Milestones: how a status moved](96-milestones.md)
+97. [Prepared reports: big reports built in the background](97-prepared-reports.md)
 
 **Words used**
 

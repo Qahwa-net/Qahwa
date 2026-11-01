@@ -1,0 +1,21 @@
+{
+  "name": "Prepared Report",
+  "module": "Core",
+  "trackChanges": false,
+  "fields": [
+    { "name": "report", "type": "Data", "label": "Report", "required": true, "indexed": true, "inListView": true },
+    { "name": "report_title", "type": "Data", "label": "Title", "inListView": true },
+    { "name": "status", "type": "Select", "options": "Queued\nRunning\nDone\nFailed", "default": "Queued", "label": "Status", "inListView": true, "indexed": true },
+    { "name": "started_at", "type": "Datetime", "label": "Started" },
+    { "name": "finished_at", "type": "Datetime", "label": "Finished" },
+    { "name": "row_count", "type": "Int", "label": "Rows" },
+    { "name": "truncated", "type": "Check", "label": "Cut short" },
+    { "name": "message", "type": "Text", "label": "Message" },
+    { "name": "result", "type": "LongText", "label": "Result", "permLevel": 9 }
+  ],
+  "statusField": "status",
+  "indicators": [ { "value": "Queued", "color": "gray" }, { "value": "Running", "color": "blue" }, { "value": "Done", "color": "green" }, { "value": "Failed", "color": "red" } ],
+  "permissions": [
+    { "role": "System Manager", "read": true }
+  ]
+}

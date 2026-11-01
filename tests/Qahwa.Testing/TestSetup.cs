@@ -123,6 +123,7 @@ public sealed class TestEngine
         Print = new PrintService(Registry, Repository, Documents, Permissions, History, AccessLog);
         Dashboards = new DashboardService(Registry, Repository, Documents, Permissions, Notifications, History);
         Reports = new ReportService(Registry, Repository, Documents, Permissions, Notifications, History);
+        PreparedReports = new PreparedReportService(Registry, Repository, Reports, Notifications, History, Permissions);
         DataImport = new DataImportService(Registry, Documents, Permissions);
         DocumentActions = new DocumentActionEngine(Registry, Repository, Documents, Clock);
         ServerScripts = new ServerScriptEngine(Registry, Repository, new ScriptSandbox(Documents, Clock), Clock);
@@ -222,6 +223,7 @@ public sealed class TestEngine
     public AutoRepeatService AutoRepeat { get; }
     public ReminderService Reminders { get; }
     public MilestoneService Milestones { get; }
+    public PreparedReportService PreparedReports { get; }
     public AssignmentRuleCatalog AssignmentRuleCatalog { get; }
     public InMemoryAssignmentRuleStore AssignmentRuleStore { get; }
     public AssignmentRuleEngine AssignmentRules { get; }

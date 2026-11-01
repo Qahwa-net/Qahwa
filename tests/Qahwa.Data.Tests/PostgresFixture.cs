@@ -207,6 +207,7 @@ public sealed class PgStack : IAsyncDisposable
         Backup = new BackupService(Registry, Repository, Bundle, permissions, Clock);
         DeletedDocuments = new DeletedDocumentService(Registry, Repository, permissions, History, Clock);
         Reports = new ReportService(Registry, Repository, Documents, permissions, Notifications, History);
+        PreparedReports = new PreparedReportService(Registry, Repository, Reports, Notifications, History, permissions);
         DocumentActions = new DocumentActionEngine(Registry, Repository, Documents, Clock);
         AppCatalog = new AppCatalog([]);
         var lazyDocs2 = new Lazy<DocumentService>(() => Documents);
@@ -230,6 +231,7 @@ public sealed class PgStack : IAsyncDisposable
     public AutoRepeatService AutoRepeat { get; }
     public ReminderService Reminders { get; }
     public MilestoneService Milestones { get; }
+    public PreparedReportService PreparedReports { get; }
     public AssignmentRuleCatalog AssignmentRuleCatalog { get; }
     public AssignmentRuleStore AssignmentRuleStore { get; }
     public AssignmentRuleEngine AssignmentRules { get; }

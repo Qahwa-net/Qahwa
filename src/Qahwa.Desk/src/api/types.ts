@@ -1106,3 +1106,23 @@ export interface MilestoneView {
   label: string
   items: MilestoneItem[]
 }
+
+/** A report built in the background and kept for a week. */
+export interface PreparedReportInfo {
+  id: string
+  report: string
+  title?: string | null
+  status: 'Queued' | 'Running' | 'Done' | 'Failed'
+  rows: number
+  truncated: boolean
+  message?: string | null
+  requested: string
+  started?: string | null
+  finished?: string | null
+}
+
+export interface PreparedReportResult {
+  info: PreparedReportInfo
+  columns: string[]
+  rows: Record<string, string | number | boolean | null>[]
+}

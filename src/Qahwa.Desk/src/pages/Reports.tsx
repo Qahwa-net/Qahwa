@@ -11,6 +11,7 @@ import {
   FUNCTIONS, OPERATORS, draftProblem, fromDefinition, isNumeric, newDraft, reportFields, toDefinition, toggle, type ReportDraft,
 } from '../lib/reports.ts'
 import { Select } from '../controls/Select.tsx'
+import { PreparedReports } from './PreparedReports.tsx'
 import { checkExpression } from '../lib/expr/expr.ts'
 
 const messageOf = (e: unknown): string =>
@@ -107,6 +108,7 @@ export function ReportViewPage() {
       {run.isError && <div className="banner error" role="alert">{run.error instanceof ApiError && run.error.status === 403 ? 'You do not have access to the documents in this report.' : messageOf(run.error)}</div>}
       {run.isPending && <p className="muted" role="status">Loading…</p>}
       {run.data && <ReportTable run={run.data} />}
+      <PreparedReports reportId={id} />
     </>
   )
 }

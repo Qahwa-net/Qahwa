@@ -8,7 +8,7 @@ using Qahwa.Core;
 /// with <c>Qahwa:Scheduler:Enabled = false</c>; change the pace with <c>Qahwa:Scheduler:IntervalSeconds</c> (10 to 3600, default 300).
 /// </summary>
 public sealed class SchedulerService(
-    AutoRepeatService autoRepeat, ReminderService reminders, WorkflowEscalationService escalations, ImportRunService importRuns, NotificationRuleEngine notificationRules, EmailService email, WebhookService webhooks, ErrorLogService errorLog,
+    AutoRepeatService autoRepeat, ReminderService reminders, PreparedReportService preparedReports, WorkflowEscalationService escalations, ImportRunService importRuns, NotificationRuleEngine notificationRules, EmailService email, WebhookService webhooks, ErrorLogService errorLog,
     BackupService backup, BackupOptions backupOptions, AppJobRunner appJobs, DeletedDocumentService deletedDocuments, AccessLogService accessLog, AutoEmailReportService emailedReports,
     EmailDigestService digests, AppInstaller installer, OAuthService oauth, IncomingMailService incomingMail, BackgroundJobService backgroundJobs, ServerScriptEngine serverScripts, NotificationService notifications, JobLogService jobLog, IConfiguration configuration, ILogger<SchedulerService> logger) : BackgroundService
 {
@@ -64,6 +64,12 @@ public sealed class SchedulerService(
             {
                 var (sent, dropped) = await reminders.RunDueAsync(stoppingToken);
                 return sent + dropped > 0 ? $"{sent} sent, {dropped} dropped (nobody to tell)." : null;
+            }, stoppingToken);
+
+            await StepAsync("prepared reports", async () =>
+            {
+                var (built, failed) = await preparedReports.RunDueAsync(stoppingToken);
+                return built + failed > 0 ? $"{built} built, {failed} failed." : null;
             }, stoppingToken);
 
             await StepAsync("workflow escalation", async () =>

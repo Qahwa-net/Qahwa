@@ -134,6 +134,7 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<AutoRepeatService>();
         services.TryAddSingleton<ReminderService>();
         services.TryAddSingleton<MilestoneService>();
+        services.TryAddSingleton<PreparedReportService>();
         services.TryAddSingleton<AutoEmailReportService>();
         services.TryAddSingleton<EmailDigestService>();
         services.TryAddSingleton<JobLogService>();
