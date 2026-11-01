@@ -592,7 +592,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Attachments, File manager (folders, private/public, thumbnails) | done: attachments on documents (private, permission-checked, picture thumbnails); not yet folders, public files, a File Manager page | ✅ (v1) | L10 |
 | Deleted Documents (restore), View Log, Access Log, Activity Log | Deleted Documents (ADR-067), View Log (ADR-080) and Access Log (ADR-081) done | ✅ | L7 |
 | Auto Repeat (recurring documents) | daily, weekly, monthly, quarterly, yearly; date fields; pause, run now, end date | ✅ (v1) | L8 |
-| Reminders, Events (calendar), Milestones | Reminders done (ADR-139): a notification about a document at a chosen time; Events and Milestones open | ✅ (v1) | L8 |
+| Reminders, Events (calendar), Milestones | Reminders (ADR-139) and Events (ADR-140) done; Milestones open | ✅ (v1) | L8 |
 
 ### A3. Workflow, automation and messaging
 

@@ -1,0 +1,27 @@
+{
+  "name": "Event",
+  "module": "Calendar",
+  "autoname": "EVENT-.#####",
+  "titleField": "subject",
+  "defaultView": "calendar",
+  "sortField": "starts_on",
+  "sortDescending": false,
+  "fields": [
+    { "name": "subject", "type": "Data", "label": "Subject", "required": true, "inListView": true },
+    { "name": "starts_on", "type": "Datetime", "label": "Starts on", "required": true, "inListView": true, "indexed": true },
+    { "name": "ends_on", "type": "Datetime", "label": "Ends on", "inListView": true },
+    { "name": "all_day", "type": "Check", "label": "All day" },
+    { "name": "status", "type": "Select", "label": "Status", "options": "Open\nCompleted\nCancelled", "default": "Open", "inListView": true, "inStandardFilter": true },
+    { "name": "location", "type": "Data", "label": "Location" },
+    { "name": "description", "type": "TextEditor", "label": "Description" }
+  ],
+  "statusField": "status",
+  "indicators": [ { "value": "Open", "color": "blue" }, { "value": "Completed", "color": "green" }, { "value": "Cancelled", "color": "gray" } ],
+  "validations": [
+    { "expression": "!ends_on || ends_on >= starts_on", "message": "An event cannot end before it starts.", "field": "ends_on" }
+  ],
+  "permissions": [
+    { "role": "All", "read": true, "write": true, "create": true, "delete": true, "ifOwner": true },
+    { "role": "System Manager", "read": true, "write": true, "create": true, "delete": true }
+  ]
+}

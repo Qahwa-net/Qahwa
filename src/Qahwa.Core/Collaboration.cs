@@ -61,7 +61,8 @@ public sealed class NotificationService(
                 Limit = 1000,
             }, ct)).Select(r => (string)r["role"]!).ToList()
             : [];
-        return new UserContext(email, roles);
+        // Like a signed-in session, the person also has the role every signed-in person has.
+        return new UserContext(email, [.. roles, UserContext.AllRole]);
     }
 
     /// <summary>Whether this person may open the document, judged by exactly the rules that apply when they ask for it.</summary>

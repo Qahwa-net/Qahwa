@@ -96,6 +96,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 92. [Stricter sign-in and password rules](92-stricter-security.md)
 93. [Background jobs](93-background-jobs.md)
 94. [Reminders: be told about a document later](94-reminders.md)
+95. [Events: your calendar](95-events.md)
 
 **Words used**
 
