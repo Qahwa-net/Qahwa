@@ -37,7 +37,8 @@ A child table can hold a table of its own: an assembly has lines, and each line 
 - A total over the inner rows works where you write it: `sum(parts, 'qty')` in the line's formula, and `sum(lines, 'part_count')` in the document's. In a part's formula, `parent` is its line.
 - A **required** inner table needs at least one row in every new line.
 - The history shows a change inside as `lines › parts: row changed (Qty: 6 → 8)`. The default print shows each line's parts under it.
-- Not yet: filters, reports and imports on the inner rows, and conditions ("show when") inside inner rows are only enforced when you save, not live on the form.
+- **Filter a list** by the inner rows too: in **+ Filter** pick *Lines › Parts › Qty* (or write `lines.parts.qty` in the address). The document must have a line that has a matching part; conditions on the line and on its parts must hold for the same line, and conditions on the parts for the same part.
+- Not yet: reports and imports on the inner rows, and conditions ("show when") inside inner rows are only enforced when you save, not live on the form.
 
 ## Limits
 

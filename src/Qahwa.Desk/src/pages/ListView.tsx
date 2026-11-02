@@ -57,15 +57,20 @@ export function ListView() {
     [meta],
   )
 
-  // Filters can also look into the rows of a table ("Lines › Item"): the document must have a row that matches.
+  // Filters can also look into the rows of a table ("Lines › Item") and, one level further, the rows inside those ("Lines › Parts › Qty"):
+  // the document must have a row that matches.
   const childMetas = metaQuery.data?.children
   const filterFields = useMemo<DocField[]>(() => {
     if (!meta) return allFields
+    const rowFields = (table: DocField, prefix: string, label: string, depth: number): DocField[] =>
+      (childMetas?.[table.options ?? '']?.fields ?? []).flatMap((c) => {
+        if ((c.permLevel ?? 0) !== 0) return []
+        if (c.type === 'Table' && c.options) return depth < 1 ? rowFields(c, `${prefix}${c.name}.`, `${label} › ${labelOf(c)}`, depth + 1) : []
+        return hasColumn(c.type) && c.type !== 'Password' ? [{ ...c, name: `${prefix}${c.name}`, label: `${label} › ${labelOf(c)}` }] : []
+      })
     const nested = meta.fields
       .filter((f) => f.type === 'Table' && f.options && childMetas?.[f.options] && (f.permLevel ?? 0) === 0)
-      .flatMap((table) => childMetas![table.options!]!.fields
-        .filter((c) => hasColumn(c.type) && c.type !== 'Password' && (c.permLevel ?? 0) === 0)
-        .map((c) => ({ ...c, name: `${table.name}.${c.name}`, label: `${labelOf(table)} › ${labelOf(c)}` })))
+      .flatMap((table) => rowFields(table, `${table.name}.`, labelOf(table), 0))
     return [...allFields, ...nested]
   }, [meta, allFields, childMetas])
 

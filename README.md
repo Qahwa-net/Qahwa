@@ -75,7 +75,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **Role network limits**: a role can be limited to some addresses; people holding it are refused from anywhere else, and Administrator and System Manager can never be limited ([ADR-126](docs/adr/126-role-networks.md))
 - **API key limits**: a key can be limited to chosen DocTypes (everything else is closed to it) and to a number of requests per minute ([ADR-125](docs/adr/125-api-key-scopes-and-rate-limits.md))
 - **Webhook headers and test**: extra write-only headers per webhook and a "Send a test" button that sends a signed ping ([ADR-124](docs/adr/124-webhook-headers-and-test.md))
-- **Filter by a child table's field**: "Lines › Item contains Pen" finds documents with a matching row, with several conditions on the same row ([ADR-123](docs/adr/123-child-table-filters.md))
+- **Filter by a child table's field**: "Lines › Item contains Pen" finds documents with a matching row, with several conditions on the same row ([ADR-123](docs/adr/123-child-table-filters.md)), also through a table inside a table: "Lines › Parts › Qty" ([ADR-151](docs/adr/151-nested-row-filters.md))
 - **Approve or reject from an email**: a state can email the people who can act with one link per action; a link opens a sign-in-and-confirm page, works once, for that person only ([ADR-120](docs/adr/120-workflow-email-links.md))
 - **Escalation**: a workflow state that sits untouched for N hours tells some roles and/or moves the document on ([ADR-119](docs/adr/119-workflow-escalation.md))
 - **Approvals by several people**: a workflow step can need 2 to 10 different people before a document moves ([ADR-118](docs/adr/118-parallel-approvals.md))

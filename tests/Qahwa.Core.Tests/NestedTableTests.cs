@@ -63,6 +63,52 @@ public class NestedTableTests
     private async Task<long> CountAsync(string doctype) =>
         await _engine.Repository.CountAsync(_engine.Registry.Get(doctype), new ListQuery());
 
+    // ---- filtering a list by rows inside rows ----
+
+    private async Task<string[]> NamesAsync(params (string Field, string Op, object? Value)[] filters) =>
+        (await _engine.Documents.ListAsync("Assembly", new ListRequest
+        {
+            Filters = filters.Select(f => new RawFilter(f.Field, f.Op, f.Value)).ToList(), Fields = ["name_text"], OrderBy = "name_text", Descending = false, Limit = 100,
+        }, TestUsers.Manager)).Data.Select(r => (string)r["name_text"]!).ToArray();
+
+    private Task AddAssemblyAsync(string name, params Dictionary<string, object?>[] lines) =>
+        _engine.Documents.InsertAsync("Assembly", Values(("name_text", name), ("lines", lines)), TestUsers.Manager);
+
+    [Fact]
+    public async Task A_list_can_be_filtered_by_a_field_of_the_rows_inside_a_row()
+    {
+        await AddAssemblyAsync("A", L("Side", P("bolt", 4)), L("Top", P("panel", 1)));
+        await AddAssemblyAsync("B", L("Side", P("nut", 9)));
+        await AddAssemblyAsync("C", L("Base"));
+
+        Assert.Equal(["A"], await NamesAsync(("lines.parts.part_name", "=", "bolt")));
+        Assert.Equal(["B"], await NamesAsync(("lines.parts.qty", ">", 5)));
+        Assert.Equal(["A", "B"], await NamesAsync(("lines.parts.qty", ">", 0)));
+        Assert.Empty(await NamesAsync(("lines.parts.part_name", "=", "washer")));
+    }
+
+    [Fact]
+    public async Task Filters_on_a_line_and_on_its_parts_must_hold_for_the_same_line_and_the_same_part()
+    {
+        await AddAssemblyAsync("A", L("Side", P("bolt", 4)), L("Top", P("nut", 9)));
+        await AddAssemblyAsync("B", L("Top", P("bolt", 4)));
+
+        // A has a Side line and (on another line) a nut of 9; no single line has both.
+        Assert.Equal(["A"], await NamesAsync(("lines.title", "=", "Side"), ("lines.parts.part_name", "=", "bolt")));
+        Assert.Empty(await NamesAsync(("lines.title", "=", "Side"), ("lines.parts.part_name", "=", "nut")));
+        // The same part must satisfy both conditions on parts: a bolt of 4 (B), not a bolt and, elsewhere, a big nut (A).
+        Assert.Equal(["A", "B"], await NamesAsync(("lines.parts.part_name", "=", "bolt"), ("lines.parts.qty", "=", 4)));
+        Assert.Empty(await NamesAsync(("lines.parts.part_name", "=", "bolt"), ("lines.parts.qty", "=", 9)));
+    }
+
+    [Fact]
+    public async Task A_filter_on_a_field_that_does_not_exist_inside_the_rows_is_refused()
+    {
+        await AddAssemblyAsync("A", L("Side", P("bolt", 4)));
+
+        await Assert.ThrowsAsync<DocumentValidationException>(() => NamesAsync(("lines.parts.nothing", "=", "x")));
+    }
+
     // ---- saving and reading ----
 
     [Fact]

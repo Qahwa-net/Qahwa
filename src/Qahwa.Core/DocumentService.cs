@@ -751,8 +751,11 @@ public sealed partial class DocumentService(
 
             var child = registry.Get(table.Options!);
             var childAccess = permissions.IsAdministrator(user) ? FieldAccess.Everything : new FieldAccess(new HashSet<int> { 0 }, new HashSet<int> { 0 });
-            var inner = Normalize(child, new ListRequest { Filters = group.Select(f => f with { Field = f.Field[(group.Key.Length + 1)..] }).ToList() }, childAccess, user);
-            yield return new QueryFilter("name", FilterOp.ChildMatches, new ChildMatch(child, meta.Name, table.Name, inner.Filters));
+            // Filters may go one level deeper (lines.parts.qty): those on the table inside the row hold for the same row as the others.
+            var rows = group.Select(f => f with { Field = f.Field[(group.Key.Length + 1)..] }).ToList();
+            var deeper = rows.Where(f => IsChildFilter(child, f)).ToList();
+            var inner = Normalize(child, new ListRequest { Filters = rows.Except(deeper).ToList() }, childAccess, user);
+            yield return new QueryFilter("name", FilterOp.ChildMatches, new ChildMatch(child, meta.Name, table.Name, [.. inner.Filters, .. ChildMatchFilters(child, deeper, childAccess, user)]));
         }
     }
 

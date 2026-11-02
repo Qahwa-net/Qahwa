@@ -80,4 +80,23 @@ public class PostgresNestedTableTests(PostgresFixture postgres) : IClassFixture<
         Assert.Equal(1, await db.ScalarAsync("SELECT COUNT(*) FROM \"tabAssembly Line\""));
         Assert.Equal(1, await db.ScalarAsync("SELECT COUNT(*) FROM \"tabAssembly Part\""));
     }
+
+    [SkippableFact]
+    public async Task A_list_can_be_filtered_by_the_parts_inside_the_lines_on_postgres()
+    {
+        await using var db = await StackAsync();
+        await db.Documents.InsertAsync("Assembly", Values(("label", "A"), ("lines", new[] { L("Side", P("bolt", 4)), L("Top", P("nut", 9)) })), TestUsers.Admin);
+        await db.Documents.InsertAsync("Assembly", Values(("label", "B"), ("lines", new[] { L("Top", P("bolt", 4)) })), TestUsers.Admin);
+        async Task<string[]> LabelsAsync(params (string Field, string Op, object? Value)[] filters) =>
+            (await db.Documents.ListAsync("Assembly", new ListRequest
+            {
+                Filters = filters.Select(f => new RawFilter(f.Field, f.Op, f.Value)).ToList(), Fields = ["label"], OrderBy = "label", Descending = false, Limit = 100,
+            }, TestUsers.Admin)).Data.Select(r => (string)r["label"]!).ToArray();
+
+        Assert.Equal(["A"], await LabelsAsync(("lines.parts.qty", ">", 5)));
+        Assert.Equal(["A"], await LabelsAsync(("lines.title", "=", "Side"), ("lines.parts.part_name", "=", "bolt")));
+        Assert.Empty(await LabelsAsync(("lines.title", "=", "Side"), ("lines.parts.part_name", "=", "nut"))); // same line
+        Assert.Equal(["A", "B"], await LabelsAsync(("lines.parts.part_name", "=", "bolt"), ("lines.parts.qty", "=", 4)));
+        Assert.Empty(await LabelsAsync(("lines.parts.part_name", "=", "bolt"), ("lines.parts.qty", "=", 9))); // same part
+    }
 }

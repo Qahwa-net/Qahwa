@@ -16,5 +16,5 @@ A child table's rows could not hold a table of their own ("a child table cannot 
 
 ## Consequences
 - A form with many rows that each hold a table loads one query per row for the inner rows (and the same on a save that has to compare them): acceptable at the sizes forms have (1,000 rows per table at most), but not for bulk loads.
-- Not yet: filters, reports, imports and exports on the inner rows; conditions ("show when") and rules of inner rows are enforced on save but not live on the form; Customize Form on child tables; three levels.
+- Filtering a list by inner rows arrived with [ADR-151](151-nested-row-filters.md). Not yet: reports, imports and exports on the inner rows; conditions ("show when") and rules of inner rows are enforced on save but not live on the form; Customize Form on child tables; three levels.
 - Found by running it in a browser: the form's own live formulas must know the new row shape too, or they overwrite the saved totals and mark the form unsaved; the Desk logic engine now walks the inner rows the same way the server does.
