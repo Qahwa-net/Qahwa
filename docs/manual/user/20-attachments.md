@@ -26,7 +26,7 @@ Click the bin next to it. You can remove files you added, and files on documents
 
 ## For administrators
 
-Files are stored on the server's disk (`Qahwa:Files:Path`, by default a `data/files` folder next to the server) or, if your administrator set it up, in an S3-compatible bucket (see below). **Include that folder (or the bucket) in your backups** together with the database. The **File** list in the sidebar (Core) shows every attachment, its size and which document it belongs to.
+Files are stored on the server's disk (`Qahwa:Files:Path`, by default a `data/files` folder next to the server) or, if your administrator set it up, in an S3-compatible bucket or an Azure Blob container (see below). **Include that folder (or the bucket) in your backups** together with the database. The **File** list in the sidebar (Core) shows every attachment, its size and which document it belongs to.
 
 ## Keeping files in a bucket (S3)
 Instead of the server's disk, files can live in an **S3-compatible bucket**: Amazon S3, MinIO, Cloudflare R2, Wasabi, Contabo Object Storage and the like. This helps when the server is replaced often, runs on several machines, or the disk is small. An administrator sets it in the server's configuration (not in the Desk):
@@ -43,4 +43,17 @@ Qahwa:Files:S3:PathStyle  = true            (the default; false puts the bucket 
 ```
 
 Put the keys in environment variables (`Qahwa__Files__S3__SecretKey`) or a secret store, not in a file that is kept in source control. The bucket must already exist, and the keys need permission to read, write and delete objects in it. A wrong setting stops the server at start-up with a message saying which one. The files are served to people through Qahwa as before (permission checked on every request); the bucket should be **private**, because anyone with a link into a public bucket would bypass those checks. Switching an existing site from disk to a bucket does not move the files already saved: copy the `data/files` folder into the bucket first (keep the same names, in sub-folders by the first two characters of each name), or keep the old folder until you have.
+
+## Keeping files in Azure Blob Storage
+On Azure, files can live in a **Blob Storage container** instead:
+
+```
+Qahwa:Files:Provider = azure
+Qahwa:Files:Azure:Account   = mystorageaccount
+Qahwa:Files:Azure:Key       = ...               (an access key of the account)
+Qahwa:Files:Azure:Container = qahwa-files
+Qahwa:Files:Azure:Prefix    = prod              (optional folder inside the container)
+Qahwa:Files:Azure:ServiceUrl =                  (optional: only for Azurite or a sovereign cloud)
+```
+The same advice applies as for a bucket: keep the key in an environment variable (`Qahwa__Files__Azure__Key`), make the container **private**, create it first, and copy existing files across before switching. A wrong setting stops the server at start-up.
 

@@ -210,7 +210,7 @@ public sealed partial class S3FileStorage : IFileStorage
     }
 
     /// <summary>A response body that lets go of the response (and request) when the reader is done with it.</summary>
-    private sealed class OwnedStream(Stream inner, IDisposable response, IDisposable request) : Stream
+    internal sealed class OwnedStream(Stream inner, IDisposable response, IDisposable request) : Stream
     {
         public override bool CanRead => true;
 

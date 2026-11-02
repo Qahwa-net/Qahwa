@@ -59,6 +59,8 @@ public static class QahwaSiteServices
         services.AddSingleton(files);
         if (string.Equals(config["Qahwa:Files:Provider"], "s3", StringComparison.OrdinalIgnoreCase))
             services.AddSingleton<IFileStorage>(new S3FileStorage(config.GetSection("Qahwa:Files:S3").Get<S3Options>() ?? new S3Options()));
+        else if (string.Equals(config["Qahwa:Files:Provider"], "azure", StringComparison.OrdinalIgnoreCase))
+            services.AddSingleton<IFileStorage>(new AzureBlobStorage(config.GetSection("Qahwa:Files:Azure").Get<AzureBlobOptions>() ?? new AzureBlobOptions()));
         else
             services.AddSingleton<IFileStorage>(new DiskFileStorage(config["Qahwa:Files:Path"] ?? Path.Combine(env.ContentRootPath, "data", "files")));
         // Apps shipped with Qahwa are off until a site's own settings turn them on (Qahwa:Apps:Crm = true).
