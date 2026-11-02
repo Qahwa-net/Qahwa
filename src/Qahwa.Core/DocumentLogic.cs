@@ -15,6 +15,9 @@ internal sealed class RowInput(string? name, Dictionary<string, object?> values,
     /// <summary>What is saved for this row now (null for a new row).</summary>
     public Dictionary<string, object?>? Existing { get; set; } = existing;
 
+    /// <summary>The tables inside this row, when its DocType has Table fields (one level deep).</summary>
+    public List<TableInput> Tables { get; } = [];
+
     /// <summary>The row as it will be after the save: saved values overlaid with the new ones.</summary>
     public Dictionary<string, object?> Merged()
     {
@@ -29,7 +32,28 @@ internal sealed class RowInput(string? name, Dictionary<string, object?> values,
 internal delegate Task<Dictionary<string, object?>?> LinkReader(DocTypeMeta target, string name, IUserContext user, CancellationToken ct);
 
 /// <summary>One child table of a document: the field, its DocType and the rows being saved.</summary>
-internal sealed record TableInput(DocFieldMeta Field, DocTypeMeta Child, List<RowInput> Rows, bool Provided = true);
+internal sealed record TableInput(DocFieldMeta Field, DocTypeMeta Child, List<RowInput> Rows, bool Provided = true)
+{
+    /// <summary>
+    /// Every row of these tables, each row followed by the rows nested inside it, with the path its errors are reported under
+    /// (<c>lines[0].parts[1].</c>) and the row that holds it (null for a row of the document itself).
+    /// </summary>
+    public static IEnumerable<(TableInput Table, RowInput Row, int Index, string Prefix, RowInput? Holder)> AllRows(
+        IEnumerable<TableInput> tables, string prefix = "", RowInput? holder = null)
+    {
+        foreach (var table in tables)
+        {
+            for (var i = 0; i < table.Rows.Count; i++)
+            {
+                var row = table.Rows[i];
+                var path = $"{prefix}{table.Field.Name}[{i}].";
+                yield return (table, row, i, path, holder);
+                foreach (var inner in AllRows(row.Tables, path, row))
+                    yield return inner;
+            }
+        }
+    }
+}
 
 /// <summary>
 /// Field logic that needs no code: default expressions, "fetch from", calculated fields, show/require conditions and
@@ -119,7 +143,7 @@ internal sealed class DocumentLogic(
         foreach (var table in tables)
         {
             fields[table.Field.Name] = table.Rows
-                .Select(row => (object?)Normalize(row.Merged()))
+                .Select(row => (object?)RowRecord(row))
                 .ToList();
         }
 
@@ -135,6 +159,15 @@ internal sealed class DocumentLogic(
             Today = now.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
             Now = now.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", System.Globalization.CultureInfo.InvariantCulture),
         };
+    }
+
+    /// <summary>A row as an expression sees it: its values and, under their field names, the rows nested inside it.</summary>
+    private static Dictionary<string, object?> RowRecord(RowInput row)
+    {
+        var record = Normalize(row.Merged());
+        foreach (var nested in row.Tables)
+            record[nested.Field.Name] = nested.Rows.Select(r => (object?)Normalize(r.Merged())).ToList();
+        return record;
     }
 
     private static Dictionary<string, object?> Normalize(IReadOnlyDictionary<string, object?> record) =>
@@ -168,7 +201,7 @@ internal sealed class DocumentLogic(
         CancellationToken ct,
         LinkReader? read = null)
     {
-        if (!meta.HasLogic() && tables.All(t => !t.Child.HasLogic()))
+        if (!meta.HasLogic() && TableInput.AllRows(tables).All(e => !e.Table.Child.HasLogic()))
             return;
 
         // What lookup() can see: the linked documents of the record and of each row (empty unless an expression uses lookup).
@@ -179,9 +212,8 @@ internal sealed class DocumentLogic(
             if (read is null)
                 return;
             docLinked = await LinkedAsync(meta, values, user, read, ct);
-            foreach (var table in tables)
-                foreach (var row in table.Rows)
-                    rowLinked[row] = await LinkedAsync(table.Child, row.Merged(), user, read, ct);
+            foreach (var entry in TableInput.AllRows(tables))
+                rowLinked[entry.Row] = await LinkedAsync(entry.Table.Child, entry.Row.Merged(), user, read, ct);
         }
 
         await ResolveAsync();
@@ -190,29 +222,23 @@ internal sealed class DocumentLogic(
         if (isNew)
         {
             ApplyExpressionDefaults(meta, values, changed, Context(meta, values, tables, null, user, isNew, docLinked), errors, string.Empty);
-            foreach (var table in tables)
+            foreach (var entry in TableInput.AllRows(tables).Where(e => e.Row.Existing is null))
             {
-                foreach (var row in table.Rows.Where(r => r.Existing is null))
-                {
-                    var rowContext = Context(table.Child, row.Merged(), [], values, user, isNew, RowLinks(row));
-                    ApplyExpressionDefaults(table.Child, row.Values, [], rowContext, errors, $"{table.Field.Name}[{table.Rows.IndexOf(row)}].");
-                }
+                var rowContext = Context(entry.Table.Child, entry.Row.Merged(), entry.Row.Tables, entry.Holder?.Merged() ?? values, user, isNew, RowLinks(entry.Row));
+                ApplyExpressionDefaults(entry.Table.Child, entry.Row.Values, [], rowContext, errors, entry.Prefix);
             }
         }
 
         await ApplyFetchesAsync(meta, values, changed, isNew, user, errors, string.Empty, ct);
-        foreach (var table in tables)
+        foreach (var entry in TableInput.AllRows(tables))
         {
-            foreach (var row in table.Rows)
-            {
-                // For a saved row only the values that differ from what is saved count as changed.
-                var rowChanged = row.Values
-                    .Where(kv => row.Existing is null || !Equals(row.Existing.GetValueOrDefault(kv.Key), kv.Value))
-                    .Select(kv => kv.Key)
-                    .ToHashSet(StringComparer.Ordinal);
-                await ApplyFetchesAsync(table.Child, row.Values, rowChanged, row.Existing is null, user, errors,
-                    $"{table.Field.Name}[{table.Rows.IndexOf(row)}].", ct, row.Existing);
-            }
+            var row = entry.Row;
+            // For a saved row only the values that differ from what is saved count as changed.
+            var rowChanged = row.Values
+                .Where(kv => row.Existing is null || !Equals(row.Existing.GetValueOrDefault(kv.Key), kv.Value))
+                .Select(kv => kv.Key)
+                .ToHashSet(StringComparer.Ordinal);
+            await ApplyFetchesAsync(entry.Table.Child, row.Values, rowChanged, row.Existing is null, user, errors, entry.Prefix, ct, row.Existing);
         }
 
         await ResolveAsync(); // a fetched value may have changed a link
@@ -221,17 +247,14 @@ internal sealed class DocumentLogic(
         {
             var any = false;
 
-            // Rows first (a total reads them), then the document (a row may read a document value).
-            foreach (var table in tables.Where(t => t.Child.FormulaFields().Count > 0))
+            // Rows first (a total reads them), then the document (a row may read a document value). A row holding nested rows
+            // is passed over after them, so a total over its own nested rows is current; the passes settle anything still moving.
+            foreach (var entry in TableInput.AllRows(tables).Where(e => e.Table.Child.FormulaFields().Count > 0).Reverse())
             {
-                for (var i = 0; i < table.Rows.Count; i++)
+                foreach (var field in entry.Table.Child.FormulaFields())
                 {
-                    var row = table.Rows[i];
-                    foreach (var field in table.Child.FormulaFields())
-                    {
-                        var context = Context(table.Child, row.Merged(), [], values, user, isNew, RowLinks(row));
-                        any |= Compute(field, row.Merged(), row.Values, context, errors, $"{table.Field.Name}[{i}].", null);
-                    }
+                    var context = Context(entry.Table.Child, entry.Row.Merged(), entry.Row.Tables, entry.Holder?.Merged() ?? values, user, isNew, RowLinks(entry.Row));
+                    any |= Compute(field, entry.Row.Merged(), entry.Row.Values, context, errors, entry.Prefix, null);
                 }
             }
 

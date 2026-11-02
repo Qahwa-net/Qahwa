@@ -59,6 +59,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **Prepared reports**: big reports built in the background as you, with every row, kept for a week ([ADR-144](docs/adr/144-prepared-reports.md))
 - **S3 file storage**: attachments in any S3-compatible bucket, signed with SigV4 and no SDK ([ADR-145](docs/adr/145-s3-file-storage.md))
 - **Qahwa CRM-lite**: leads, opportunities, lead conversion and a pipeline report, as an app a site turns on (`apps/Qahwa.Crm`, [ADR-146](docs/adr/146-crm-app.md))
+- **Tables inside tables**: a child table can hold a table of its own, one level deep (an assembly's lines and each line's parts), saved, calculated, copied, restored and printed with its row ([ADR-147](docs/adr/147-nested-child-tables.md))
 - **Text blocks on workspaces**: formatted, cleaned text on a workspace page ([ADR-143](docs/adr/143-workspace-text-block.md))
 - **Patch order per app**: an app's patches run after those of the apps it depends on ([ADR-141](docs/adr/141-patch-order-per-app.md))
 - **Plurals and a language on your account**: messages with `{count}` pick the right plural form (six in Arabic), and your language follows you to every device ([ADR-133](docs/adr/133-plurals-and-account-language.md))

@@ -70,13 +70,23 @@ public sealed partial class DocumentService(
         return meta;
     }
 
-    /// <summary>The child DocTypes used by the Table fields of a DocType, keyed by name (the Desk needs them to draw grids).</summary>
-    public IReadOnlyDictionary<string, DocTypeMeta> GetChildMetas(DocTypeMeta meta) =>
-        meta.Fields
-            .Where(f => f.Type == FieldType.Table && f.Options is not null && registry.TryGet(f.Options, out _))
-            .Select(f => registry.Get(f.Options!))
-            .DistinctBy(c => c.Name)
-            .ToDictionary(c => c.Name, c => c, StringComparer.Ordinal);
+    /// <summary>The child DocTypes used by the Table fields of a DocType, and by the tables inside their rows, keyed by name (the Desk needs them to draw grids).</summary>
+    public IReadOnlyDictionary<string, DocTypeMeta> GetChildMetas(DocTypeMeta meta)
+    {
+        var found = new Dictionary<string, DocTypeMeta>(StringComparer.Ordinal);
+        void Collect(DocTypeMeta holder)
+        {
+            foreach (var field in holder.Fields.Where(f => f.Type == FieldType.Table && f.Options is not null))
+            {
+                if (!registry.TryGet(field.Options!, out var child) || !found.TryAdd(child.Name, child))
+                    continue;
+                Collect(child); // a child's own tables (the registry keeps these one level deep, and found stops any loop)
+            }
+        }
+
+        Collect(meta);
+        return found;
+    }
 
     /// <summary>What the user may do with this DocType in general (owner-only rules count as allowed).</summary>
     public EffectivePermissions GetPermissions(DocTypeMeta meta, IUserContext user) => new(
@@ -109,14 +119,12 @@ public sealed partial class DocumentService(
         await RequireAppPermissionAsync(meta, PermAction.Create, values, user, ct);
         CheckProfileAssignment(meta, values, user, errors);
         var tables = ReadTables(meta, input, errors);
+        CheckTotalRows(tables, errors);
         foreach (var table in tables.Where(t => t.Rows.Count > 0 && !fieldAccess.CanWrite(t.Field)))
             errors.Add(new FieldError(table.Field.Name, "You do not have permission to fill in this table."));
         ApplyDefaults(meta, values, errors);
-        foreach (var table in tables)
-        {
-            for (var i = 0; i < table.Rows.Count; i++)
-                ApplyDefaults(table.Child, table.Rows[i].Values, errors, $"{table.Field.Name}[{i}].");
-        }
+        foreach (var entry in TableInput.AllRows(tables))
+            ApplyDefaults(entry.Table.Child, entry.Row.Values, errors, entry.Prefix);
 
         // A new document starts in the workflow's first state, whatever was sent.
         if (WorkflowOf(meta) is { } initialWorkflow)
@@ -153,10 +161,15 @@ public sealed partial class DocumentService(
         values["docstatus"] = 0;
         values["idx"] = 0;
 
-        var children = tables
-            .Select(t => BuildChanges(t, meta, name, new Dictionary<string, Dictionary<string, object?>>(), now, user))
-            .Where(c => !c.IsEmpty)
-            .ToList();
+        var children = new List<ChildChanges>();
+        foreach (var table in tables)
+        {
+            var nested = new List<(DocFieldMeta Field, DocTypeMeta Child, ChildChanges Change)>();
+            children.Add(BuildChanges(table, meta, name, new Dictionary<string, Dictionary<string, object?>>(), now, user, null, nested));
+            children.AddRange(nested.Select(n => n.Change));
+        }
+
+        children = children.Where(c => !c.IsEmpty).ToList();
         if (history?.Version(meta, name, "Insert", null, user.User, now) is { } created)
             children.Add(created);
         ProtectPasswords(meta, values);
@@ -406,6 +419,7 @@ public sealed partial class DocumentService(
         var errors = new List<FieldError>();
         var changes = Coerce(meta, input, errors, allowName: false, out _);
         var tables = ReadTables(meta, input, errors);
+        CheckTotalRows(tables, errors);
 
         // Only what really differs from the saved document counts as a change.
         foreach (var key in changes.Keys.ToList())
@@ -488,6 +502,12 @@ public sealed partial class DocumentService(
                 row.Existing = currentRows[table.Field.Name][row.Name!];
         }
 
+        // The rows inside the saved rows (for a child DocType that holds tables).
+        var nestedCurrent = new Dictionary<string, Dictionary<string, Dictionary<string, object?>>>(StringComparer.Ordinal);
+        foreach (var table in tables.Where(t => TableFields(t.Child).Any()))
+            foreach (var row in table.Rows.Where(r => r.Existing is not null))
+                await LoadNestedAsync(table.Child, row, nestedCurrent, ct);
+
         // Formulas and rules may read tables the client did not send: bring their saved rows into play unchanged.
         if (meta.HasLogic() || TableFields(meta).Any(f => registry.Get(f.Options!).HasLogic()))
         {
@@ -496,7 +516,10 @@ public sealed partial class DocumentService(
                 var child = registry.Get(field.Options!);
                 var rows = await repository.GetChildrenAsync(child, meta.Name, name, field.Name, ct);
                 currentRows[field.Name] = rows.ToDictionary(r => (string)r["name"]!, r => r, StringComparer.Ordinal);
-                tables.Add(new TableInput(field, child, rows.Select(r => new RowInput((string)r["name"]!, [], r)).ToList(), Provided: false));
+                var unsent = new TableInput(field, child, rows.Select(r => new RowInput((string)r["name"]!, [], r)).ToList(), Provided: false);
+                tables.Add(unsent);
+                foreach (var row in unsent.Rows)
+                    await LoadNestedAsync(child, row, nestedCurrent, ct);
             }
         }
 
@@ -516,12 +539,19 @@ public sealed partial class DocumentService(
         var context = _logic.Context(meta, merged, tables, null, user, isNew: false, await _logic.LinkedAsync(meta, merged, user, ReadLinkedAsync, ct));
         await ValidateAsync(meta, merged, changed, errors, string.Empty, context, fieldAccess, ct);
         foreach (var table in tables.Where(t => t.Provided))
-            await ValidateTableAsync(table, currentRows[table.Field.Name], errors, merged, user, isNew: false, ct);
+            await ValidateTableAsync(table, currentRows[table.Field.Name], errors, merged, user, isNew: false, ct, nestedCurrent);
+
+        // Whether a table (or a table inside one of its rows) would change.
+        bool Changes(TableInput table)
+        {
+            var inner = new List<(DocFieldMeta Field, DocTypeMeta Child, ChildChanges Change)>();
+            var top = BuildChanges(table, meta, name, currentRows[table.Field.Name], Now(), user, nestedCurrent, inner);
+            return !top.IsEmpty || inner.Any(n => !n.Change.IsEmpty);
+        }
 
         foreach (var table in tables.Where(t => t.Provided && !fieldAccess.CanWrite(t.Field)))
         {
-            var attempted = BuildChanges(table, meta, name, currentRows[table.Field.Name], Now(), user);
-            if (!attempted.IsEmpty)
+            if (Changes(table))
                 errors.Add(new FieldError(table.Field.Name, "You do not have permission to change this table."));
         }
 
@@ -529,7 +559,7 @@ public sealed partial class DocumentService(
         {
             foreach (var table in tables.Where(t => t.Provided && !t.Field.AllowOnSubmit))
             {
-                if (!BuildChanges(table, meta, name, currentRows[table.Field.Name], Now(), user).IsEmpty)
+                if (Changes(table))
                     errors.Add(new FieldError(table.Field.Name, "This table cannot be changed after the document is submitted."));
             }
         }
@@ -543,10 +573,23 @@ public sealed partial class DocumentService(
             throw new DocumentValidationException(errors);
 
         var now = Now();
-        var built = tables
-            .Select(t => (Table: t, Change: BuildChanges(t, meta, name, currentRows[t.Field.Name], now, user)))
-            .Where(x => !x.Change.IsEmpty)
-            .ToList();
+        // Every table's changes, then those of the tables inside its rows (named "table › inner table" in the log).
+        var built = new List<(DocFieldMeta Field, DocTypeMeta Child, ChildChanges Change)>();
+        var historyRows = new Dictionary<string, Dictionary<string, Dictionary<string, object?>>>(currentRows, StringComparer.Ordinal);
+        foreach (var table in tables)
+        {
+            var inner = new List<(DocFieldMeta Field, DocTypeMeta Child, ChildChanges Change)>();
+            built.Add((table.Field, table.Child, BuildChanges(table, meta, name, currentRows[table.Field.Name], now, user, nestedCurrent, inner)));
+            built.AddRange(inner);
+            foreach (var (field, _, _) in inner)
+            {
+                var innerName = field.Name[(field.Name.IndexOf(" › ", StringComparison.Ordinal) + 3)..];
+                historyRows[field.Name] = nestedCurrent.Where(kv => kv.Key.EndsWith("\u0001" + innerName, StringComparison.Ordinal))
+                    .SelectMany(kv => kv.Value).ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.Ordinal);
+            }
+        }
+
+        built = built.Where(x => !x.Change.IsEmpty).ToList();
         var children = built.Select(x => x.Change).ToList();
         if (transition is not null)
             changes["docstatus"] = transition.Value;
@@ -558,7 +601,7 @@ public sealed partial class DocumentService(
         if (history is not null)
         {
             var eventName = transition switch { 1 => "Submit", 2 => "Cancel", _ => "Update" };
-            var data = history.UpdateData(meta, existing, changes, built.Select(x => (x.Table.Field, x.Table.Child, x.Change)).ToList(), currentRows);
+            var data = history.UpdateData(meta, existing, changes, built, historyRows);
             if (history.Version(meta, name, eventName, data, user.User, now) is { } logged)
                 children.Add(logged);
         }
@@ -842,13 +885,26 @@ public sealed partial class DocumentService(
             return null;
 
         foreach (var field in TableFields(meta))
-        {
-            var child = registry.Get(field.Options!);
-            var rows = await repository.GetChildrenAsync(child, meta.Name, name, field.Name, ct);
-            doc[field.Name] = rows.Select(r => ShapeRow(child, r)).ToList();
-        }
+            doc[field.Name] = await ShapeRowsAsync(registry.Get(field.Options!), meta.Name, name, field.Name, ct);
 
         return doc;
+    }
+
+    /// <summary>The rows of one table, each with the rows nested inside it (a child DocType may hold tables one level deep).</summary>
+    private async Task<List<Dictionary<string, object?>>> ShapeRowsAsync(
+        DocTypeMeta child, string parentType, string parent, string parentField, CancellationToken ct)
+    {
+        var shaped = new List<Dictionary<string, object?>>();
+        foreach (var row in await repository.GetChildrenAsync(child, parentType, parent, parentField, ct))
+        {
+            var one = ShapeRow(child, row);
+            foreach (var nested in TableFields(child))
+                one[nested.Name] = (await repository.GetChildrenAsync(registry.Get(nested.Options!), child.Name, (string)row["name"]!, nested.Name, ct))
+                    .Select(r => ShapeRow(registry.Get(nested.Options!), r)).ToList();
+            shaped.Add(one);
+        }
+
+        return shaped;
     }
 
     /// <summary>A child row as the API shows it: its id, position and the DocType's own fields.</summary>
@@ -1075,7 +1131,7 @@ public sealed partial class DocumentService(
     }
 
     /// <summary>Reads the rows the client sent for each Table field it mentioned (a missing field means "unchanged").</summary>
-    private List<TableInput> ReadTables(DocTypeMeta meta, IReadOnlyDictionary<string, object?> input, List<FieldError> errors)
+    private List<TableInput> ReadTables(DocTypeMeta meta, IReadOnlyDictionary<string, object?> input, List<FieldError> errors, string pathPrefix = "")
     {
         var tables = new List<TableInput>();
         foreach (var field in TableFields(meta))
@@ -1085,28 +1141,40 @@ public sealed partial class DocumentService(
 
             if (!registry.TryGet(field.Options!, out var child))
             {
-                errors.Add(new FieldError(field.Name, $"The child DocType '{field.Options}' does not exist."));
+                errors.Add(new FieldError(pathPrefix + field.Name, $"The child DocType '{field.Options}' does not exist."));
                 continue;
             }
 
-            var rawRows = ReadRows(raw, field.Name, errors);
+            var rawRows = ReadRows(raw, pathPrefix + field.Name, errors);
             if (rawRows.Count > MaxRows)
             {
-                errors.Add(new FieldError(field.Name, $"A table can hold at most {MaxRows} rows."));
+                errors.Add(new FieldError(pathPrefix + field.Name, $"A table can hold at most {MaxRows} rows."));
                 continue;
             }
 
             var rows = new List<RowInput>();
             for (var i = 0; i < rawRows.Count; i++)
             {
-                var values = Coerce(child, rawRows[i], errors, allowName: true, out var rowName, $"{field.Name}[{i}].");
-                rows.Add(new RowInput(rowName, values));
+                var path = $"{pathPrefix}{field.Name}[{i}].";
+                var values = Coerce(child, rawRows[i], errors, allowName: true, out var rowName, path);
+                var row = new RowInput(rowName, values);
+                row.Tables.AddRange(ReadTables(child, rawRows[i], errors, path)); // tables inside the row, if its DocType has any
+                rows.Add(row);
             }
 
             tables.Add(new TableInput(field, child, rows));
         }
 
         return tables;
+    }
+
+    /// <summary>The most rows one save may carry across every table and every table nested inside a row.</summary>
+    public const int MaxTotalRows = 10_000;
+
+    private static void CheckTotalRows(List<TableInput> tables, List<FieldError> errors)
+    {
+        if (TableInput.AllRows(tables).Count() > MaxTotalRows)
+            errors.Add(new FieldError(string.Empty, $"A document can carry at most {MaxTotalRows} rows in all its tables together."));
     }
 
     private static List<Dictionary<string, object?>> ReadRows(object? raw, string path, List<FieldError> errors)
@@ -1255,7 +1323,9 @@ public sealed partial class DocumentService(
         IReadOnlyDictionary<string, object?> parentValues,
         IUserContext user,
         bool isNew,
-        CancellationToken ct)
+        CancellationToken ct,
+        IReadOnlyDictionary<string, Dictionary<string, Dictionary<string, object?>>>? nestedCurrent = null,
+        string pathPrefix = "")
     {
         var seen = new HashSet<string>(StringComparer.Ordinal);
         var multiLink = table.Field.MultiSelect ? DocTypeMetaExtensions.MultiSelectLink(table.Child) : null;
@@ -1263,7 +1333,7 @@ public sealed partial class DocumentService(
         for (var i = 0; i < table.Rows.Count; i++)
         {
             var row = table.Rows[i];
-            var prefix = $"{table.Field.Name}[{i}].";
+            var prefix = $"{pathPrefix}{table.Field.Name}[{i}].";
             if (multiLink is not null && FieldValueConverter.Unwrap(row.Merged().GetValueOrDefault(multiLink.Name)) is string chosen && chosen.Length > 0 && !picked.Add(chosen))
                 errors.Add(new FieldError(prefix + multiLink.Name, "This value is chosen twice."));
 
@@ -1285,8 +1355,20 @@ public sealed partial class DocumentService(
             var merged = row.Merged();
             var context = _logic.Context(table.Child, merged, [], parentValues, user, isNew, await _logic.LinkedAsync(table.Child, merged, user, ReadLinkedAsync, ct));
             await ValidateAsync(table.Child, merged, row.Values.Keys, errors, prefix, context, null, ct);
+
+            // The tables inside this row: a saved row's own saved rows are the ones the client may name; a new row has none.
+            foreach (var inner in row.Tables.Where(t => t.Provided))
+            {
+                var innerCurrent = row.Existing is not null
+                    ? nestedCurrent?.GetValueOrDefault(NestedKey((string)row.Existing["name"]!, inner.Field.Name)) ?? []
+                    : null;
+                await ValidateTableAsync(inner, innerCurrent, errors, merged, user, isNew, ct, nestedCurrent, prefix);
+            }
         }
     }
+
+    /// <summary>The key under which the saved rows of one nested table of one row are kept while a save is worked out.</summary>
+    private static string NestedKey(string rowName, string field) => rowName + "\u0001" + field;
 
     private static void CheckRequiredTables(
         DocTypeMeta meta, List<TableInput> tables, List<FieldError> errors, bool onlyIfProvided)
@@ -1296,6 +1378,18 @@ public sealed partial class DocumentService(
             var provided = tables.FirstOrDefault(t => t.Field.Name == field.Name);
             if (provided is null ? !onlyIfProvided : provided.Rows.Count == 0)
                 errors.Add(new FieldError(field.Name, "Add at least one row."));
+        }
+
+        // A table inside a row that is required needs a row too: always in a new row, and in a saved row once it is sent.
+        foreach (var entry in TableInput.AllRows(tables.Where(t => t.Provided)))
+        {
+            foreach (var field in TableFields(entry.Table.Child).Where(f => f.Required))
+            {
+                var inner = entry.Row.Tables.FirstOrDefault(t => t.Field.Name == field.Name);
+                var isNewRow = entry.Row.Existing is null;
+                if (inner is null ? isNewRow : inner.Rows.Count == 0)
+                    errors.Add(new FieldError(entry.Prefix + field.Name, "Add at least one row."));
+            }
         }
     }
 
@@ -1317,25 +1411,28 @@ public sealed partial class DocumentService(
             return;
 
         DocumentLogic.ValidateRules(meta, context, errors, string.Empty, string.Empty);
-        foreach (var table in tables.Where(t => t.Provided && t.Child.Validations.Count > 0))
+        foreach (var entry in TableInput.AllRows(tables.Where(t => t.Provided)).Where(e => e.Table.Provided && e.Table.Child.Validations.Count > 0))
         {
-            for (var i = 0; i < table.Rows.Count; i++)
-            {
-                var rowRecord = table.Rows[i].Merged();
-                var rowContext = _logic.Context(table.Child, rowRecord, [], values, user, isNew, await _logic.LinkedAsync(table.Child, rowRecord, user, ReadLinkedAsync, ct));
-                DocumentLogic.ValidateRules(table.Child, rowContext, errors, $"{table.Field.Name}[{i}].", $"{table.Field.Name}[{i}]");
-            }
+            var rowRecord = entry.Row.Merged();
+            var rowContext = _logic.Context(entry.Table.Child, rowRecord, entry.Row.Tables, entry.Holder?.Merged() ?? values, user, isNew,
+                await _logic.LinkedAsync(entry.Table.Child, rowRecord, user, ReadLinkedAsync, ct));
+            DocumentLogic.ValidateRules(entry.Table.Child, rowContext, errors, entry.Prefix, entry.Prefix.TrimEnd('.'));
         }
     }
 
-    /// <summary>Works out which rows to add, change and remove so the table matches what the client sent.</summary>
+    /// <summary>
+    /// Works out which rows to add, change and remove so the table matches what the client sent. The tables inside its rows are worked out
+    /// too, against the rows they hold now, and added to <paramref name="nested"/> under the name "table › inner table".
+    /// </summary>
     private static ChildChanges BuildChanges(
         TableInput table,
         DocTypeMeta parent,
         string parentName,
         Dictionary<string, Dictionary<string, object?>> current,
         DateTime now,
-        IUserContext user)
+        IUserContext user,
+        IReadOnlyDictionary<string, Dictionary<string, Dictionary<string, object?>>>? nestedCurrent = null,
+        List<(DocFieldMeta Field, DocTypeMeta Child, ChildChanges Change)>? nested = null)
     {
         var inserts = new List<IReadOnlyDictionary<string, object?>>();
         var updates = new List<ChildUpdate>();
@@ -1345,10 +1442,13 @@ public sealed partial class DocumentService(
         {
             var row = table.Rows[i];
             var idx = i + 1;
+            string rowName;
+            var isSaved = row.Name is not null && current.ContainsKey(row.Name);
 
-            if (row.Name is not null && current.TryGetValue(row.Name, out var existing))
+            if (isSaved && current.TryGetValue(row.Name!, out var existing))
             {
-                kept.Add(row.Name);
+                rowName = row.Name!;
+                kept.Add(rowName);
                 var changed = row.Values
                     .Where(kv => !Equals(existing.GetValueOrDefault(kv.Key), kv.Value))
                     .ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.Ordinal);
@@ -1359,29 +1459,65 @@ public sealed partial class DocumentService(
                 {
                     changed["modified"] = now;
                     changed["modified_by"] = user.User;
-                    updates.Add(new ChildUpdate(row.Name, changed));
+                    updates.Add(new ChildUpdate(rowName, changed));
                 }
-
-                continue;
+            }
+            else
+            {
+                rowName = Guid.NewGuid().ToString("N")[..10];
+                inserts.Add(new Dictionary<string, object?>(row.Values, StringComparer.Ordinal)
+                {
+                    ["name"] = rowName,
+                    ["parent"] = parentName,
+                    ["parenttype"] = parent.Name,
+                    ["parentfield"] = table.Field.Name,
+                    ["idx"] = idx,
+                    ["creation"] = now,
+                    ["modified"] = now,
+                    ["modified_by"] = user.User,
+                    ["owner"] = user.User,
+                    ["docstatus"] = 0,
+                });
             }
 
-            inserts.Add(new Dictionary<string, object?>(row.Values, StringComparer.Ordinal)
+            // The tables inside this row ride along: a new row's are all inserts, a saved row's are compared with what it holds.
+            foreach (var inner in row.Tables)
             {
-                ["name"] = Guid.NewGuid().ToString("N")[..10],
-                ["parent"] = parentName,
-                ["parenttype"] = parent.Name,
-                ["parentfield"] = table.Field.Name,
-                ["idx"] = idx,
-                ["creation"] = now,
-                ["modified"] = now,
-                ["modified_by"] = user.User,
-                ["owner"] = user.User,
-                ["docstatus"] = 0,
-            });
+                var held = isSaved ? nestedCurrent?.GetValueOrDefault(NestedKey(rowName, inner.Field.Name)) ?? [] : [];
+                var change = BuildChanges(inner, table.Child, rowName, held, now, user, nestedCurrent, null);
+                nested?.Add((inner.Field with { Name = $"{table.Field.Name} › {inner.Field.Name}" }, inner.Child, change));
+            }
         }
 
         var deletes = current.Keys.Where(name => !kept.Contains(name)).ToList();
         return new ChildChanges(table.Child, inserts, updates, deletes);
+    }
+
+    /// <summary>
+    /// Brings the saved rows of the tables inside a saved row into play: they are what the client may name, and a formula or rule that reads
+    /// them (when the client did not send them) sees them unchanged.
+    /// </summary>
+    private async Task LoadNestedAsync(
+        DocTypeMeta child, RowInput row, Dictionary<string, Dictionary<string, Dictionary<string, object?>>> nestedCurrent, CancellationToken ct)
+    {
+        if (row.Existing is null)
+            return;
+        var rowName = (string)row.Existing["name"]!;
+        foreach (var field in TableFields(child))
+        {
+            var inner = registry.Get(field.Options!);
+            var sent = row.Tables.FirstOrDefault(t => t.Field.Name == field.Name);
+            if (sent is null && !child.HasLogic() && !inner.HasLogic())
+                continue; // nothing reads it and nothing changes it
+            var rows = await repository.GetChildrenAsync(inner, child.Name, rowName, field.Name, ct);
+            var byName = rows.ToDictionary(r => (string)r["name"]!, r => r, StringComparer.Ordinal);
+            nestedCurrent[NestedKey(rowName, field.Name)] = byName;
+            if (sent is null)
+                row.Tables.Add(new TableInput(field, inner, rows.Select(r => new RowInput((string)r["name"]!, [], r)).ToList(), Provided: false));
+            else
+                foreach (var innerRow in sent.Rows.Where(r => r.Name is not null && byName.ContainsKey(r.Name)))
+                    innerRow.Existing = byName[innerRow.Name!];
+        }
     }
 
     private DateTime Now()

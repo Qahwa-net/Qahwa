@@ -185,7 +185,8 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
 
   const modules = [...new Set((doctypes.data ?? []).map((d) => d.module).filter((m): m is string => Boolean(m)))]
   const linkable = (doctypes.data ?? []).filter((d) => !d.isChildTable).map((d) => d.name)
-  const childTargets = (doctypes.data ?? []).filter((d) => d.isChildTable).map((d) => d.name)
+  // A child table can hold a table too, but only of child DocTypes that hold no table themselves: tables nest one level deep.
+  const childTargets = (doctypes.data ?? []).filter((d) => d.isChildTable && !(draft.isChildTable && d.hasTables)).map((d) => d.name)
   const dataFields = draft.fields.filter((f) => isEditable(f.type))
 
   return (
@@ -420,8 +421,8 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
                     <h3>{group}</h3>
                     <div className="type-grid">
                       {items.map((t) => (
-                        <button key={t.type} type="button" role="menuitem" className="type-option" disabled={!t.supported || (t.type === 'Table' && draft.isChildTable)}
-                          title={!t.supported ? (t.unsupportedReason ?? 'Not supported yet') : t.type === 'Table' && draft.isChildTable ? 'A child table cannot contain another table' : t.hint} onClick={() => addField(t)}>
+                        <button key={t.type} type="button" role="menuitem" className="type-option" disabled={!t.supported}
+                          title={!t.supported ? (t.unsupportedReason ?? 'Not supported yet') : t.type === 'Table' && draft.isChildTable ? 'A table inside this table: its rows belong to each row (one level deep)' : t.hint} onClick={() => addField(t)}>
                           <strong>{t.label}</strong>
                           <small className="muted">{t.supported ? t.hint : 'Coming soon'}</small>
                         </button>

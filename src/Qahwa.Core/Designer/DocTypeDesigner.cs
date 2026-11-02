@@ -3,7 +3,7 @@ using Qahwa.Abstractions;
 namespace Qahwa.Core.Designer;
 
 public sealed record DesignerItem(
-    string Name, string? Module, DocTypeSource Source, bool Editable, int FieldCount, bool IsChildTable);
+    string Name, string? Module, DocTypeSource Source, bool Editable, int FieldCount, bool IsChildTable, bool HasTables = false);
 
 public sealed record DesignerDetail(
     DocTypeMeta Definition,
@@ -54,7 +54,7 @@ public sealed class DocTypeDesigner(
             .Select(m =>
             {
                 var source = registry.SourceOf(m.Name) ?? DocTypeSource.App;
-                return new DesignerItem(m.Name, m.Module, source, source == DocTypeSource.Custom, m.Fields.Count, m.IsChildTable);
+                return new DesignerItem(m.Name, m.Module, source, source == DocTypeSource.Custom, m.Fields.Count, m.IsChildTable, m.Fields.Any(f => f.Type == FieldType.Table));
             })
             .ToList();
     }

@@ -41,3 +41,21 @@ describe('duplicating a document', () => {
     expect(noChild.lines).toEqual([{ item: 'Tea', sku: 'S1', qty: 3 }]) // without the child's definition only the system keys are known
   })
 })
+
+describe('duplicating rows that hold rows', () => {
+  const part = { name: 'Part', fields: [field('part_name'), field('serial', 'Data', { noCopy: true })] } as unknown as DocTypeMeta
+  const holder = { name: 'Holder', fields: [field('item'), field('parts', 'Table', { options: 'Part' })] } as unknown as DocTypeMeta
+  const parent = { name: 'Kit', fields: [field('label'), field('lines', 'Table', { options: 'Holder' })] } as unknown as DocTypeMeta
+
+  it('copies the inner rows as new rows too, without ids, parents or no-copy columns', () => {
+    const doc = {
+      name: 'K1', label: 'Frame',
+      lines: [{ name: 'l1', parent: 'K1', idx: 1, item: 'Side', parts: [{ name: 'p1', parent: 'l1', parenttype: 'Holder', idx: 1, part_name: 'bolt', serial: 'X1' }] }],
+    } as unknown as Doc
+
+    const copy = copyOf(parent, { Holder: holder, Part: part }, doc)
+
+    expect(copy.lines).toEqual([{ item: 'Side', parts: [{ part_name: 'bolt' }] }])
+  })
+})
+

@@ -147,6 +147,8 @@ export interface DesignerItem {
   editable: boolean
   fieldCount: number
   isChildTable: boolean
+  /** The DocType holds a Table field itself (so it cannot be the rows of a table inside another child table). */
+  hasTables?: boolean
 }
 
 export interface DesignerDetail {

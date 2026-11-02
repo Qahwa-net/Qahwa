@@ -161,6 +161,16 @@ public sealed class MetaRegistry : IMutableMetaRegistry
                 errors.Add(new FieldError($"fields[{i}].options", $"'{target.Name}' must be a child table."));
             else if (field.Type == FieldType.Table && field.MultiSelect && DocTypeMetaExtensions.MultiSelectLink(target) is null)
                 errors.Add(new FieldError($"fields[{i}].multiSelect", $"'{target.Name}' must have exactly one Link field and nothing else that is required to be used as a multi-select."));
+            else if (field.Type == FieldType.Table && meta.IsChildTable && target.Fields.Any(f => f.Type == FieldType.Table))
+                errors.Add(new FieldError($"fields[{i}].options", $"'{target.Name}' contains a table itself. Tables nest one level deep: a document, its rows, and the rows' own rows."));
+        }
+
+        // A child table that is itself the rows of another child's table is already one level down: it cannot hold a table too.
+        if (meta.IsChildTable && meta.Fields.Any(f => f.Type == FieldType.Table))
+        {
+            foreach (var holder in All.Where(m => m.IsChildTable && !string.Equals(m.Name, meta.Name, StringComparison.OrdinalIgnoreCase)
+                         && m.Fields.Any(f => f.Type == FieldType.Table && string.Equals(f.Options, meta.Name, StringComparison.OrdinalIgnoreCase))))
+                errors.Add(new FieldError("fields", $"'{meta.Name}' is used as a table inside '{holder.Name}', so it cannot contain a table itself (tables nest one level deep)."));
         }
 
         // "fetch from" copies a value out of the linked document, so that field must exist there and fit this one.

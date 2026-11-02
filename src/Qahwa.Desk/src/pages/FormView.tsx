@@ -59,7 +59,7 @@ function initialValues(meta: DocTypeMeta, doc: Doc | null): Values {
 
 function initialTables(meta: DocTypeMeta, children: Record<string, DocTypeMeta>, doc: Doc | null): Tables {
   const tables: Tables = {}
-  for (const { field, child } of tableFieldsOf(meta, children)) tables[field.name] = rowsFromDoc(child, doc?.[field.name])
+  for (const { field, child } of tableFieldsOf(meta, children)) tables[field.name] = rowsFromDoc(child, doc?.[field.name], children)
   return tables
 }
 
@@ -288,7 +288,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
           .filter((n) => canWriteField(meta.fields.find((f) => f.name === n)!))
           .map((n) => [n, fromInput(meta.fields.find((f) => f.name === n)!, view.values[n]!)]))
       const sendTables = (defs: typeof tableDefs) =>
-        Object.fromEntries(defs.filter(({ field }) => canWriteField(field)).map(({ field, child }) => [field.name, rowsToPayload(child, view.tables[field.name] ?? [])]))
+        Object.fromEntries(defs.filter(({ field }) => canWriteField(field)).map(({ field, child }) => [field.name, rowsToPayload(child, view.tables[field.name] ?? [], childMetas)]))
 
       if (isNew) {
         const filled = Object.keys(view.values).filter((n) => view.values[n] !== '')
@@ -415,14 +415,14 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
             if (!state.active) return null
 
             const rowState = (row: TableRow, f: DocField): FieldState =>
-              hasLogic(f) ? fieldState(f, rowContext(def.child, row.values, view.values, meta, liveSession)) : staticState(f)
+              hasLogic(f) ? fieldState(f, rowContext(def.child, row.values, view.values, meta, liveSession, { tables: row.tables, children: childMetas })) : staticState(f)
             const makeRow = (): TableRow => {
               const row = emptyRow(def.child)
               return { ...row, values: rowExpressionDefaults(def.child, row.values, view.values, meta, liveSession) }
             }
 
             return (
-              <TableControl key={field.name} field={field} child={def.child} rows={view.tables[field.name] ?? []}
+              <TableControl key={field.name} field={field} child={def.child} childMetas={childMetas} rows={view.tables[field.name] ?? []}
                 readOnly={!canWriteField(field) || state.readOnly} errors={fieldErrors} rowState={rowState} makeRow={makeRow}
                 onChange={(rows) => { setTables({ ...tables, [field.name]: rows }); clearErrorsFor(field.name) }}
                 onCellEdited={(index, name, value) => {

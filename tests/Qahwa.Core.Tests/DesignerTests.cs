@@ -103,8 +103,7 @@ public class DesignerTests
         var paths = ex.Errors.Select(e => e.Field).ToHashSet();
         Assert.Contains("fields[0].name", paths);
         Assert.Contains("fields[2].name", paths);   // duplicate
-        Assert.Contains("fields[3].type", paths);   // a child table cannot hold another table
-        Assert.Contains("fields[3].options", paths); // and Customer is not a child table
+        Assert.Contains("fields[3].options", paths); // Customer is not a child table
         Assert.Contains("fields[4].options", paths); // select without options
         Assert.Contains("fields[5].name", paths);   // reserved
         Assert.Contains("fields[6].options", paths); // link target missing

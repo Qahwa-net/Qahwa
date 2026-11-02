@@ -192,6 +192,31 @@ public sealed partial class PrintService(
                 foreach (var column in columns)
                     html.Append("<td>").Append(E(PrintTemplate.Show(column, row.GetValueOrDefault(column.Name)))).Append("</td>");
                 html.Append("</tr>");
+
+                // The rows nested inside this row, under it.
+                foreach (var inner in child.Fields.Where(f => f.Type == FieldType.Table && !f.Hidden))
+                {
+                    if (!registry.TryGet(inner.Options ?? string.Empty, out var innerMeta) || row.GetValueOrDefault(inner.Name) is not IEnumerable<object?> innerRows)
+                        continue;
+                    var innerData = innerRows.OfType<IReadOnlyDictionary<string, object?>>().Take(DocumentService.MaxRows).ToList();
+                    if (innerData.Count == 0)
+                        continue;
+                    var innerColumns = innerMeta.Fields.Where(f => FieldTypes.HasColumn(f.Type) && f.Type is not (FieldType.Password or FieldType.Attach or FieldType.AttachImage) && !f.Hidden).ToList();
+                    html.Append("<tr><td></td><td colspan=\"").Append(Math.Max(columns.Count, 1)).Append("\"><strong>").Append(E(inner.Label ?? inner.Name)).Append("</strong>")
+                        .Append("<table class=\"rows\"><thead><tr>");
+                    foreach (var column in innerColumns)
+                        html.Append("<th>").Append(E(column.Label ?? column.Name)).Append("</th>");
+                    html.Append("</tr></thead><tbody>");
+                    foreach (var innerRow in innerData)
+                    {
+                        html.Append("<tr>");
+                        foreach (var column in innerColumns)
+                            html.Append("<td>").Append(E(PrintTemplate.Show(column, innerRow.GetValueOrDefault(column.Name)))).Append("</td>");
+                        html.Append("</tr>");
+                    }
+
+                    html.Append("</tbody></table></td></tr>");
+                }
             }
 
             html.Append("</tbody></table>");

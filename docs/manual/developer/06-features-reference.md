@@ -8,6 +8,8 @@ Create and edit DocTypes in the Desk (Tools → DocType Designer): fields and al
 ## Child tables ([ADR-004](../../adr/004-child-tables.md))
 Add a `Table` field whose `options` is a child DocType. Rows are written with the parent in one transaction, keyed by row name (insert, update, delete), shown as an editable grid, and cannot be reached except through the parent.
 
+A child DocType may itself hold `Table` fields, one level deep ([ADR-147](../../adr/147-nested-child-tables.md)): the inner rows store the row that holds them as `parent` (and its DocType as `parenttype`). The API takes and returns them nested (`lines[].parts[]`), error paths are full (`lines[0].parts[1].qty`), `GET /api/meta/{doctype}` lists every child DocType in `children`, and `MetaRegistry.CheckReferences` enforces the depth rule.
+
 ## Field logic and expressions ([ADR-005](../../adr/005-expression-language.md), [expressions](../../expressions.md))
 `dependsOn`, `mandatoryDependsOn`, `readOnlyDependsOn`, `formula`, expression defaults, `fetchFrom` and validation rules, in one safe language evaluated identically on server and in the Desk. Formulas are recalculated on every save and override what a client sends.
 

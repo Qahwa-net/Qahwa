@@ -101,7 +101,12 @@ public sealed class DocumentRepository(
         try
         {
             foreach (var child in (childTables ?? []).DistinctBy(c => c.Name))
+            {
+                // Rows nested inside these rows go first: they are found through the rows that hold them.
+                foreach (var nested in child.Fields.Where(f => f.Type == FieldType.Table && f.Options is not null).Select(f => f.Options!).Distinct(StringComparer.Ordinal))
+                    await ExecuteAsync(connection, transaction, sql.DeleteNestedOfDocument(nested, child.Name, meta.Name, name), ct);
                 await ExecuteAsync(connection, transaction, sql.DeleteChildren(child, meta.Name, name), ct);
+            }
 
             var deleted = await ExecuteAsync(connection, transaction, sql.Delete(meta, name), ct) > 0;
             if (deleted)
@@ -186,7 +191,12 @@ public sealed class DocumentRepository(
                 if (merge)
                 {
                     foreach (var child in childTables.DistinctBy(c => c.Name))
+                    {
+                        foreach (var nested in child.Fields.Where(f => f.Type == FieldType.Table && f.Options is not null).Select(f => f.Options!).Distinct(StringComparer.Ordinal))
+                            await ExecuteAsync(connection, transaction, sql.DeleteNestedOfDocument(nested, child.Name, meta.Name, oldName), ct);
                         await ExecuteAsync(connection, transaction, sql.DeleteChildren(child, meta.Name, oldName), ct);
+                    }
+
                     await ExecuteAsync(connection, transaction, sql.Delete(meta, oldName), ct);
                 }
                 else
@@ -217,7 +227,13 @@ public sealed class DocumentRepository(
         foreach (var change in children ?? [])
         {
             foreach (var name in change.Deletes)
+            {
+                // A removed row takes the rows nested inside it with it.
+                foreach (var nested in change.Meta.Fields.Where(f => f.Type == FieldType.Table && f.Options is not null).Select(f => f.Options!).Distinct(StringComparer.Ordinal))
+                    await ExecuteAsync(connection, transaction, sql.DeleteNestedOfRow(nested, change.Meta.Name, name), ct);
                 await ExecuteAsync(connection, transaction, sql.Delete(change.Meta, name), ct);
+            }
+
             foreach (var update in change.Updates)
                 await ExecuteAsync(connection, transaction, sql.Update(change.Meta, update.Name, update.Values, null), ct);
             foreach (var row in change.Inserts)

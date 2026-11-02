@@ -3,6 +3,21 @@ import type { Doc, DocTypeMeta } from '../api/types.ts'
 const SYSTEM = new Set(['name', 'creation', 'modified', 'modified_by', 'owner', 'docstatus', 'idx'])
 const NEVER = new Set(['Password', 'SectionBreak', 'ColumnBreak', 'TabBreak', 'Heading', 'Html'])
 
+/** Rows copied as new rows: no ids or parents, no unique or no-copy columns, and the rows inside them copied the same way. */
+function freshRows(child: DocTypeMeta | undefined, value: unknown, children: Record<string, DocTypeMeta>): Record<string, unknown>[] {
+  const rows = Array.isArray(value) ? value : []
+  return rows.map((row) => {
+    const fresh: Record<string, unknown> = {}
+    for (const [key, v] of Object.entries(row as Record<string, unknown>)) {
+      if (SYSTEM.has(key) || key.startsWith('parent')) continue
+      const column = child?.fields.find((f) => f.name === key)
+      if (column && (column.unique || column.noCopy || NEVER.has(column.type))) continue
+      fresh[key] = column?.type === 'Table' ? freshRows(column.options ? children[column.options] : undefined, v, children) : v
+    }
+    return fresh
+  })
+}
+
 /**
  * A new document made from an existing one: every field copied except those that must stay unique, passwords and the system
  * fields; table rows are copied as new rows (without the old ones' names). Nothing is saved: it is the starting point of a new form.
@@ -13,18 +28,7 @@ export function copyOf(meta: DocTypeMeta, children: Record<string, DocTypeMeta>,
     if (SYSTEM.has(field.name) || NEVER.has(field.type) || field.unique || field.noCopy) continue
     const value = doc[field.name]
     if (field.type === 'Table') {
-      const child = field.options ? children[field.options] : undefined
-      const rows = Array.isArray(value) ? value : []
-      copy[field.name] = rows.map((row) => {
-        const fresh: Record<string, unknown> = {}
-        for (const [key, v] of Object.entries(row as Record<string, unknown>)) {
-          if (SYSTEM.has(key) || key.startsWith('parent')) continue
-          const column = child?.fields.find((f) => f.name === key)
-          if (column && (column.unique || column.noCopy || NEVER.has(column.type))) continue
-          fresh[key] = v
-        }
-        return fresh
-      })
+      copy[field.name] = freshRows(field.options ? children[field.options] : undefined, value, children)
     } else if (value !== undefined) {
       copy[field.name] = value
     }

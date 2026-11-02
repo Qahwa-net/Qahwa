@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { DocField, DocTypeMeta } from '../api/types.ts'
 import {
-  emptyRow, gridColumns, moveRow, rowErrorList, rowErrors, rowsChanged, rowsFromDoc, rowsToPayload, tableFieldsOf,
+  emptyRow, gridColumns, moveRow, nestedErrors, nestedFieldsOf, rowErrorList, rowErrors, rowsChanged, rowsFromDoc, rowsToPayload, tableFieldsOf, withNested,
 } from './tables.ts'
 
 const field = (name: string, type: DocField['type'], extra: Partial<DocField> = {}): DocField => ({
@@ -109,3 +109,64 @@ describe('table fields', () => {
     expect(result[0]?.child.name).toBe('Order Line')
   })
 })
+
+describe('tables inside rows', () => {
+  const part: DocTypeMeta = {
+    name: 'Line Part', isChildTable: true, isSubmittable: false, trackChanges: false,
+    fields: [field('part_name', 'Data', { required: true, inListView: true }), field('qty', 'Int', { inListView: true })],
+  }
+  const line: DocTypeMeta = {
+    name: 'Kit Line', isChildTable: true, isSubmittable: false, trackChanges: false,
+    fields: [field('title', 'Data', { inListView: true }), field('parts', 'Table', { options: 'Line Part' })],
+  }
+  const children = { 'Kit Line': line, 'Line Part': part }
+  const saved = [{ name: 'l1', idx: 1, title: 'Side', parts: [{ name: 'p1', idx: 1, part_name: 'bolt', qty: 4 }, { name: 'p2', idx: 2, part_name: 'nut', qty: 6 }] }]
+
+  it('finds the tables a child holds, only when the server sent their DocTypes', () => {
+    expect(nestedFieldsOf(line, children).map((n) => [n.field.name, n.child.name])).toEqual([['parts', 'Line Part']])
+    expect(nestedFieldsOf(line)).toEqual([])
+    expect(nestedFieldsOf(part, children)).toEqual([])
+  })
+
+  it('loads the inner rows with the row that holds them and does not show the table as a cell', () => {
+    const rows = rowsFromDoc(line, saved, children)
+
+    expect(rows[0]!.values).toEqual({ title: 'Side' })
+    expect(rows[0]!.tables!.parts!.map((r) => [r.name, r.values.part_name, r.values.qty])).toEqual([['p1', 'bolt', '4'], ['p2', 'nut', '6']])
+    expect(rowsFromDoc(line, saved)[0]!.tables).toBeUndefined(); // without the child DocTypes the row is as before
+  })
+
+  it('sends the inner rows inside their row, saved ones by name', () => {
+    const rows = rowsFromDoc(line, saved, children)
+    const edited = withNested(rows[0]!, 'parts', [...rows[0]!.tables!.parts!, { ...emptyRow(part), values: { part_name: 'washer', qty: '2' } }])
+
+    expect(rowsToPayload(line, [edited], children)).toEqual([
+      { name: 'l1', title: 'Side', parts: [
+        { name: 'p1', part_name: 'bolt', qty: '4' }, // numbers go as text, like every cell: the server converts them
+        { name: 'p2', part_name: 'nut', qty: '6' },
+        { part_name: 'washer', qty: '2' },
+      ] },
+    ])
+  })
+
+  it('does not send an inner table that was never loaded or built (a new row without parts)', () => {
+    expect(rowsToPayload(line, [{ ...emptyRow(line), values: { title: 'New' } }], children)).toEqual([{ title: 'New' }])
+  })
+
+  it('notices a change made only inside an inner table', () => {
+    const before = rowsFromDoc(line, saved, children)
+    expect(rowsChanged(before, rowsFromDoc(line, saved, children))).toBe(false)
+
+    const edited = [withNested(before[0]!, 'parts', before[0]!.tables!.parts!.map((r, i) => (i === 0 ? { ...r, values: { ...r.values, qty: '9' } } : r)))]
+    expect(rowsChanged(before, edited)).toBe(true)
+    expect(rowsChanged(before, [withNested(before[0]!, 'parts', before[0]!.tables!.parts!.slice(1))])).toBe(true) // a row removed
+  })
+
+  it('gives an inner table the errors for its own rows, with the outer path taken off', () => {
+    const errors = { 'lines[1].parts[0].qty': 'Too many', 'lines[1].parts': 'Add at least one row.', 'lines[0].title': 'Required', 'lines[10].parts[0].qty': 'other row' }
+
+    expect(nestedErrors(errors, 'lines', 1)).toEqual({ 'parts[0].qty': 'Too many', parts: 'Add at least one row.' })
+    expect(rowErrors(nestedErrors(errors, 'lines', 1), 'parts').rows.get(0)).toEqual({ qty: 'Too many' })
+  })
+})
+

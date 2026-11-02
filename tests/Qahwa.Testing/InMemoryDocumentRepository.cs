@@ -1,3 +1,4 @@
+using Qahwa.Abstractions;
 using System.Text.RegularExpressions;
 using Qahwa.Core;
 
@@ -103,7 +104,9 @@ public sealed class InMemoryDocumentRepository : IDocumentRepository
             foreach (var child in (childTables ?? []).DistinctBy(c => c.Name))
             {
                 var table = Table(child);
-                foreach (var key in table.Where(kv => Equals(kv.Value["parent"], name) && Equals(kv.Value["parenttype"], meta.Name)).Select(kv => kv.Key).ToList())
+                var held = table.Where(kv => Equals(kv.Value["parent"], name) && Equals(kv.Value["parenttype"], meta.Name)).Select(kv => kv.Key).ToList();
+                RemoveNested(child, held);
+                foreach (var key in held)
                     table.Remove(key);
             }
 
@@ -222,7 +225,9 @@ public sealed class InMemoryDocumentRepository : IDocumentRepository
                 foreach (var child in childTables)
                 {
                     var childTable = Table(child);
-                    foreach (var key in childTable.Where(kv => Equals(kv.Value["parent"], oldName) && Equals(kv.Value["parenttype"], meta.Name)).Select(kv => kv.Key).ToList())
+                    var held = childTable.Where(kv => Equals(kv.Value["parent"], oldName) && Equals(kv.Value["parenttype"], meta.Name)).Select(kv => kv.Key).ToList();
+                    RemoveNested(child, held);
+                    foreach (var key in held)
                         childTable.Remove(key);
                 }
 
@@ -252,6 +257,7 @@ public sealed class InMemoryDocumentRepository : IDocumentRepository
         foreach (var change in children ?? [])
         {
             var table = Table(change.Meta);
+            RemoveNested(change.Meta, change.Deletes);
             foreach (var name in change.Deletes)
                 table.Remove(name);
             foreach (var update in change.Updates)
@@ -264,6 +270,18 @@ public sealed class InMemoryDocumentRepository : IDocumentRepository
 
             foreach (var insert in change.Inserts)
                 table[(string)insert["name"]!] = Row(change.Meta, insert);
+        }
+    }
+
+    /// <summary>Removes the rows nested inside the given rows of a child table (they name the holding row as their parent).</summary>
+    private void RemoveNested(DocTypeMeta holder, IReadOnlyCollection<string> rowNames)
+    {
+        foreach (var nested in holder.Fields.Where(f => f.Type == FieldType.Table && f.Options is not null).Select(f => f.Options!).Distinct(StringComparer.Ordinal))
+        {
+            if (!_tables.TryGetValue(nested, out var table))
+                continue;
+            foreach (var key in table.Where(kv => Equals(kv.Value["parenttype"], holder.Name) && rowNames.Contains((string)kv.Value["parent"]!)).Select(kv => kv.Key).ToList())
+                table.Remove(key);
         }
     }
 

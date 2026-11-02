@@ -47,7 +47,7 @@ function QuickCreateForm({ doctype, response, initialText, onCreated, onClose, o
         const value = view.values[f.name]
         if (value !== undefined && value !== '') payload[f.name] = fromInput(f, value)
       }
-      for (const f of meta.fields.filter(f => f.type === 'Table' && f.options && children[f.options] && writable(f))) payload[f.name] = rowsToPayload(children[f.options!]!, view.tables[f.name] ?? [])
+      for (const f of meta.fields.filter(f => f.type === 'Table' && f.options && children[f.options] && writable(f))) payload[f.name] = rowsToPayload(children[f.options!]!, view.tables[f.name] ?? [], children)
       const doc = await api.create(doctype, payload)
       await Promise.all([queryClient.invalidateQueries({ queryKey: ['link', doctype] }), queryClient.invalidateQueries({ queryKey: ['list', doctype] })])
       onCreated(doc)
@@ -65,7 +65,7 @@ function QuickCreateForm({ doctype, response, initialText, onCreated, onClose, o
         if (f.type === 'Table') {
           const child = f.options ? children[f.options] : undefined
           if (!child || f.hidden) return null
-          return <TableControl key={f.name} field={f} child={child} rows={view.tables[f.name] ?? []} errors={errors} readOnly={!writable(f) || fieldState(f, context).readOnly} rowState={(row, cf) => fieldState(cf, rowContext(child, row.values, view.values, meta, session))} onChange={rows => setTables(t => ({ ...t, [f.name]: rows }))} />
+          return <TableControl key={f.name} field={f} child={child} childMetas={children} rows={view.tables[f.name] ?? []} errors={errors} readOnly={!writable(f) || fieldState(f, context).readOnly} rowState={(row, cf) => fieldState(cf, rowContext(child, row.values, view.values, meta, session))} onChange={rows => setTables(t => ({ ...t, [f.name]: rows }))} />
         }
         return <FieldControl key={f.name} field={f} value={view.values[f.name] ?? ''} siblings={view.values} state={fieldState(f, context)} readOnly={!writable(f)} error={errors[f.name]} onChange={v => setValues(current => ({ ...current, [f.name]: v }))} />
       })}</div>

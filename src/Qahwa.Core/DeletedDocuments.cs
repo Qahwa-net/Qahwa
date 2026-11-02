@@ -110,19 +110,46 @@ public sealed class DeletedDocumentService(IMetaRegistry registry, IDocumentRepo
                 if (!data.TryGetProperty(field.Name, out var rows) || rows.ValueKind != JsonValueKind.Array || !registry.TryGet(field.Options!, out var childMeta))
                     continue;
                 var inserts = new List<IReadOnlyDictionary<string, object?>>();
+                var nested = new Dictionary<string, List<IReadOnlyDictionary<string, object?>>>(StringComparer.Ordinal);
+                var innerFields = childMeta.Fields.Where(f => f.Type == FieldType.Table && f.Options is not null && registry.TryGet(f.Options, out _)).ToList();
                 foreach (var row in rows.EnumerateArray().Take(DocumentService.MaxRows))
                 {
                     if (row.ValueKind != JsonValueKind.Object)
                         throw new FormatException("A table row is not an object.");
-                    var line = row.EnumerateObject().Where(p => p.Name is not ("parent" or "parenttype" or "parentfield")).ToDictionary(p => p.Name, p => (object)p.Value);
+                    var line = row.EnumerateObject()
+                        .Where(p => p.Name is not ("parent" or "parenttype" or "parentfield") && innerFields.All(f => f.Name != p.Name))
+                        .ToDictionary(p => p.Name, p => (object)p.Value);
                     line["parent"] = name;
                     line["parenttype"] = meta.Name;
                     line["parentfield"] = field.Name;
                     inserts.Add(BackupService.RowFromJson(childMeta, JsonSerializer.Serialize(line)));
+
+                    // The rows nested inside this row follow it, keeping the name of the row that holds them.
+                    var rowName = row.TryGetProperty("name", out var nameElement) && nameElement.ValueKind == JsonValueKind.String ? nameElement.GetString() : null;
+                    foreach (var inner in innerFields)
+                    {
+                        if (rowName is null || !row.TryGetProperty(inner.Name, out var innerRows) || innerRows.ValueKind != JsonValueKind.Array)
+                            continue;
+                        var innerMeta = registry.Get(inner.Options!);
+                        foreach (var innerRow in innerRows.EnumerateArray().Take(DocumentService.MaxRows))
+                        {
+                            if (innerRow.ValueKind != JsonValueKind.Object)
+                                throw new FormatException("A table row is not an object.");
+                            var innerLine = innerRow.EnumerateObject().Where(p => p.Name is not ("parent" or "parenttype" or "parentfield")).ToDictionary(p => p.Name, p => (object)p.Value);
+                            innerLine["parent"] = rowName;
+                            innerLine["parenttype"] = childMeta.Name;
+                            innerLine["parentfield"] = inner.Name;
+                            if (!nested.TryGetValue(inner.Options!, out var list))
+                                nested[inner.Options!] = list = [];
+                            list.Add(BackupService.RowFromJson(innerMeta, JsonSerializer.Serialize(innerLine)));
+                        }
+                    }
                 }
 
                 if (inserts.Count > 0)
                     children.Add(new ChildChanges(childMeta, inserts, [], []));
+                foreach (var (innerName, innerInserts) in nested)
+                    children.Add(new ChildChanges(registry.Get(innerName), innerInserts, [], []));
             }
         }
         catch (Exception ex) when (ex is FormatException or JsonException or ArgumentException)

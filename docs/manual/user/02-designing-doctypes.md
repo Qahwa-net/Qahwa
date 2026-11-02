@@ -29,6 +29,16 @@ You can also pick a **status field** (a choice, text or link field) and give eac
 
 Create a DocType marked as a child table with the columns you need, then add a **Table** field in the parent DocType pointing at it.
 
+### A table inside a table
+A child table can hold a table of its own: an assembly has lines, and each line has parts. Create the inner child table first (the parts), then add a **Table** field to the line's DocType pointing at it, then the assembly's Table field pointing at the line's DocType. On the form, open a line's details (the pencil) and its parts table is there, with its own Add row, CSV and reorder buttons.
+
+- It goes **one level deep**: a document, its rows, and the rows' own rows. The Designer only offers child tables that hold no table themselves as the inner table, and refuses a third level with a message.
+- Rows inside a row follow it: removing the line removes its parts, deleting the document removes everything, and a copy, an amendment or an auto repeat carries the parts too.
+- A total over the inner rows works where you write it: `sum(parts, 'qty')` in the line's formula, and `sum(lines, 'part_count')` in the document's. In a part's formula, `parent` is its line.
+- A **required** inner table needs at least one row in every new line.
+- The history shows a change inside as `lines › parts: row changed (Qty: 6 → 8)`. The default print shows each line's parts under it.
+- Not yet: filters, reports and imports on the inner rows, and conditions ("show when") inside inner rows are only enforced when you save, not live on the form.
+
 ## Limits
 
 A DocType that has documents cannot be deleted, and a DocType cannot be renamed yet. Two people editing at once: the second save is refused with a message so nothing is overwritten.
