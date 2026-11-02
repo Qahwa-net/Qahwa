@@ -3,6 +3,7 @@ import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { ApiError, api } from '../api/client.ts'
 import { useAuth } from '../auth.tsx'
 import { useTheme } from '../theme.tsx'
+import { passkeyErrorText, passkeysSupported } from '../lib/passkeys.ts'
 import { samlLoginUrl, ssoErrorText, ssoStartUrl, type SsoProviderInfo } from '../lib/sso.ts'
 
 /** Only follow same-site relative paths after login, never an arbitrary URL. */
@@ -11,7 +12,7 @@ function safeNext(next: string | null): string {
 }
 
 export function LoginPage() {
-  const { user, login, loginWithCode } = useAuth()
+  const { user, login, loginWithCode, loginWithPasskey } = useAuth()
   const { brand } = useTheme()
   const [params] = useSearchParams()
   const [email, setEmail] = useState('')
@@ -28,11 +29,13 @@ export function LoginPage() {
   const [providers, setProviders] = useState<SsoProviderInfo[]>([])
   const [samlProviders, setSamlProviders] = useState<SsoProviderInfo[]>([])
   const [canSignUp, setCanSignUp] = useState(false)
+  const [canPasskey, setCanPasskey] = useState(false)
 
   useEffect(() => {
     api.sso.providers().then(setProviders, () => setProviders([]))
     api.sso.samlProviders().then(setSamlProviders, () => setSamlProviders([]))
     api.signUp.enabled().then(setCanSignUp, () => setCanSignUp(false))
+    if (passkeysSupported()) api.passkeys.enabled().then(setCanPasskey, () => setCanPasskey(false))
   }, [])
 
   if (user) return <Navigate to={safeNext(params.get('next'))} replace />
@@ -83,6 +86,18 @@ export function LoginPage() {
     }
   }
 
+  async function withPasskey() {
+    setBusy(true)
+    setError(null)
+    try {
+      await loginWithPasskey()
+    } catch (e) {
+      setError(e instanceof ApiError && e.status === 429 ? 'Too many attempts. Please wait a minute and try again.' : e instanceof ApiError && e.status === 401 ? 'That passkey was not accepted.' : passkeyErrorText(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <main className="center-screen">
       <form className="card login" onSubmit={submit}>
@@ -123,6 +138,7 @@ export function LoginPage() {
         </>)}
 
         <button className="btn primary" type="submit" disabled={busy}>{busy ? 'Working…' : challenge && expired ? 'Change password' : challenge ? 'Verify' : 'Sign in'}</button>
+        {!challenge && canPasskey && <button className="btn" type="button" disabled={busy} onClick={() => void withPasskey()}>Sign in with a passkey</button>}
         {!challenge && providers.map((p) => (
           <a key={p.name} className="btn" href={ssoStartUrl(p.name, params.get('next'))}>Sign in with {p.display_name}</a>
         ))}

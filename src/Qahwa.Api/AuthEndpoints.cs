@@ -43,6 +43,8 @@ public sealed record TwoFactorCodeRequest(string? Code, string? Password);
 
 public sealed record TwoFactorResetRequest(string? User);
 
+public sealed record PasskeyBeginRequest(string? Password);
+
 public static class AuthEndpoints
 {
     public static IEndpointRouteBuilder MapQahwaAuth(this IEndpointRouteBuilder app)
@@ -329,6 +331,66 @@ public static class AuthEndpoints
             await SignInAsync(http, session, current);
             return Results.Ok(new { message = "ok" });
         }).RequireRateLimiting(AuthClaims.LoginRateLimit);
+
+        // ---- passkeys (ADR-150) ----
+        RelyingParty PartyOf(HttpContext http, PasskeyService passkeys, IOptions<AuthOptions> authOptions) =>
+            passkeys.RelyingPartyFor(authOptions.Value.PublicUrl, $"{http.Request.Scheme}://{http.Request.Host}");
+        void RequireEnabled(PasskeyService passkeys)
+        {
+            if (!passkeys.Enabled)
+                throw new NotFoundException("Passkeys are not turned on.");
+        }
+
+        auth.MapGet("/passkey", (PasskeyService passkeys) => Results.Ok(new { data = new { enabled = passkeys.Enabled } }));
+
+        auth.MapPost("/passkey/login/begin", (HttpContext http, PasskeyService passkeys, IOptions<AuthOptions> authOptions) =>
+        {
+            RequireEnabled(passkeys);
+            return Results.Ok(new { data = passkeys.BeginAuthentication(PartyOf(http, passkeys, authOptions)) });
+        }).RequireRateLimiting(AuthClaims.LoginRateLimit);
+
+        auth.MapPost("/passkey/login", async (PasskeyAssertion body, HttpContext http, PasskeyService passkeys, IOptions<AuthOptions> authOptions, AuthService service, SessionService sessions, CancellationToken ct) =>
+        {
+            RequireEnabled(passkeys);
+            var key = await passkeys.FinishAuthenticationAsync(body, PartyOf(http, passkeys, authOptions), ct) ?? throw new InvalidCredentialsException();
+            var session = await service.CompleteLoginAsync(key, ct) ?? throw new InvalidCredentialsException();
+            await SignInAsync(http, session, await StartSessionAsync(http, sessions, session.User.User, ct));
+            return Results.Ok(new { data = Describe(session, await service.LanguageOfAsync(session.User.User, ct)) });
+        }).RequireRateLimiting(AuthClaims.LoginRateLimit);
+
+        var keys = app.MapGroup("/api/auth/passkeys");
+
+        keys.MapGet("", async (HttpContext http, IUserContextResolver users, PasskeyService passkeys, CancellationToken ct) =>
+        {
+            var user = await PersonAsync(http, users, ct);
+            return Results.Ok(new { data = await passkeys.ListAsync(user.User, ct) });
+        });
+
+        // Making a passkey needs the password again: a stolen session must not be able to leave a way back in.
+        keys.MapPost("/begin", async (PasskeyBeginRequest body, HttpContext http, IUserContextResolver users, PasskeyService passkeys, IOptions<AuthOptions> authOptions, AuthService service, CancellationToken ct) =>
+        {
+            RequireEnabled(passkeys);
+            var user = await PersonAsync(http, users, ct);
+            if (!await service.CheckPasswordAsync(user.User, body.Password, ct))
+                throw new InvalidCredentialsException();
+            var session = await service.LoadSessionAsync(user.User, ct) ?? throw new UnauthenticatedException();
+            return Results.Ok(new { data = await passkeys.BeginRegistrationAsync(user.User, session.FullName ?? user.User, PartyOf(http, passkeys, authOptions), ct) });
+        }).RequireRateLimiting(AuthClaims.LoginRateLimit);
+
+        keys.MapPost("", async (PasskeyRegistration body, HttpContext http, IUserContextResolver users, PasskeyService passkeys, IOptions<AuthOptions> authOptions, CancellationToken ct) =>
+        {
+            RequireEnabled(passkeys);
+            var user = await PersonAsync(http, users, ct);
+            var made = await passkeys.FinishRegistrationAsync(user.User, body, PartyOf(http, passkeys, authOptions), ct);
+            return Results.Created($"/api/auth/passkeys/{made.Id}", new { data = made });
+        }).RequireRateLimiting(AuthClaims.LoginRateLimit);
+
+        keys.MapDelete("/{id}", async (string id, HttpContext http, IUserContextResolver users, PasskeyService passkeys, CancellationToken ct) =>
+        {
+            var user = await PersonAsync(http, users, ct);
+            await passkeys.RemoveAsync(user.User, id, ct);
+            return Results.Ok(new { message = "ok" });
+        });
 
         return app;
     }

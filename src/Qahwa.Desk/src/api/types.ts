@@ -1141,3 +1141,10 @@ export interface NewSite {
   adminPassword: string
   adminName?: string
 }
+
+export interface PasskeyInfo {
+  id: string
+  label: string
+  created: string
+  lastUsed: string | null
+}

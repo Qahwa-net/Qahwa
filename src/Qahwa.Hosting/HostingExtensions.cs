@@ -86,6 +86,7 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<WorkflowEscalationService>();
         services.TryAddSingleton<RoleNetworkService>();
         services.TryAddSingleton<EmailCodeService>();
+        services.TryAddSingleton<PasskeyService>();
         services.TryAddSingleton<ImportRunService>();
         services.TryAddSingleton<WorkflowLinkService>();
         services.TryAddSingleton(sp => new Lazy<WorkflowLinkService>(() => sp.GetRequiredService<WorkflowLinkService>()));

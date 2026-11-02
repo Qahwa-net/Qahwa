@@ -5,9 +5,10 @@ import type { SearchResponse } from '../lib/search.ts'
 import type { ImportSource } from '../lib/importFile.ts'
 import type { SsoProviderInfo } from '../lib/sso.ts'
 import type { DisplaySettings } from '../lib/display.ts'
+import type { PasskeyCeremony } from '../lib/passkeys.ts'
 import type {
   DesignerDetail, DocPerm, DesignerItem, DesignerPreview, Doc, DocTypeDefinition, FieldError, FieldTypeInfo,
-  ListResponse, ReportDetail, ReportInfo, ReportRun, RestoreReport, SignIn, ExpiredPasswordChallenge, TwoFactorChallenge, TwoFactorSetup, TwoFactorStatus, PublicForm, BundleReport, TranslationCatalog, AttachedFile, WebhookItem, WebhookSet, WebhookTestResult, WebhookView, ApiKeyCreated, ApiKeyInfo, ImportPreview, ImportResult, ImportRun, WorkspaceBlock, WorkspaceDetail, WorkspaceInfo, WorkspaceView, LetterHeadDetail, PrintChoices, PrintFormatDetail, PrintFormatInfo, DashboardDetail, DashboardInfo, DashboardItem, DashboardResult, EmailPreview, EmailTemplateInfo, NotificationRuleItem, NotificationRuleSet, NotificationRuleView, AutoRepeatInfo, AutoRepeatRequest, ReminderInfo, ReminderRequest, MilestoneView, PreparedReportInfo, PreparedReportResult, AssignmentRuleItem, AssignmentRuleSet, AssignmentRuleView, PendingAction, WorkflowDefinition, WorkflowItem, WorkflowStatus, WorkflowView, MetaResponse, MetaSummary, PermissionItem, ActivityItem, WorkflowLinkInfo, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, AppInfo, OAuthAuthorizeParams, OAuthConsent, OAuthClientInfo, OAuthConnected, EmailDigest, ScriptReportInfo, ScriptReportResult, Viewer, FollowState, LikeState, TagCount, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode, SiteSummary, NewSite,
+  ListResponse, ReportDetail, ReportInfo, ReportRun, RestoreReport, SignIn, ExpiredPasswordChallenge, TwoFactorChallenge, TwoFactorSetup, TwoFactorStatus, PublicForm, BundleReport, TranslationCatalog, AttachedFile, WebhookItem, WebhookSet, WebhookTestResult, WebhookView, ApiKeyCreated, ApiKeyInfo, ImportPreview, ImportResult, ImportRun, WorkspaceBlock, WorkspaceDetail, WorkspaceInfo, WorkspaceView, LetterHeadDetail, PrintChoices, PrintFormatDetail, PrintFormatInfo, DashboardDetail, DashboardInfo, DashboardItem, DashboardResult, EmailPreview, EmailTemplateInfo, NotificationRuleItem, NotificationRuleSet, NotificationRuleView, AutoRepeatInfo, AutoRepeatRequest, ReminderInfo, ReminderRequest, MilestoneView, PreparedReportInfo, PreparedReportResult, AssignmentRuleItem, AssignmentRuleSet, AssignmentRuleView, PendingAction, WorkflowDefinition, WorkflowItem, WorkflowStatus, WorkflowView, MetaResponse, MetaSummary, PermissionItem, ActivityItem, WorkflowLinkInfo, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, AppInfo, OAuthAuthorizeParams, OAuthConsent, OAuthClientInfo, OAuthConnected, EmailDigest, ScriptReportInfo, ScriptReportResult, Viewer, FollowState, LikeState, TagCount, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode, SiteSummary, NewSite, PasskeyInfo,
 } from './types.ts'
 import type { Filter } from '../lib/filters.ts'
 import { toApiFilters } from '../lib/filters.ts'
@@ -114,6 +115,16 @@ export const api = {
     preview: async (definition: Record<string, unknown>) => (await request<{ data: ReportRun }>('POST', '/api/reports/preview', definition)).data,
     csvUrl: (id: string) => `/api/reports/${encodeURIComponent(id)}/csv`,
     xlsxUrl: (id: string) => `/api/reports/${encodeURIComponent(id)}/xlsx`,
+  },
+
+  passkeys: {
+    enabled: async () => (await request<{ data: { enabled: boolean } }>('GET', '/api/auth/passkey')).data.enabled,
+    loginBegin: async () => (await request<{ data: PasskeyCeremony }>('POST', '/api/auth/passkey/login/begin', {})).data,
+    login: async (answer: unknown): Promise<SessionUser> => (await request<{ data: SessionUser }>('POST', '/api/auth/passkey/login', answer)).data,
+    list: async () => (await request<{ data: PasskeyInfo[] }>('GET', '/api/auth/passkeys')).data,
+    begin: async (password: string) => (await request<{ data: PasskeyCeremony }>('POST', '/api/auth/passkeys/begin', { password })).data,
+    register: async (answer: unknown) => (await request<{ data: PasskeyInfo }>('POST', '/api/auth/passkeys', answer)).data,
+    remove: (id: string) => request('DELETE', `/api/auth/passkeys/${encodeURIComponent(id)}`),
   },
 
   sites: {

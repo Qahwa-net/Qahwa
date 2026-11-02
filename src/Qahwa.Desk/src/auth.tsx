@@ -2,6 +2,7 @@ import { createContext, useContext, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api } from './api/client.ts'
 import type { SessionUser } from './api/types.ts'
+import { proveWithPasskey } from './lib/passkeys.ts'
 
 interface AuthState {
   /** Undefined while the first check is in flight, null when signed out. */
@@ -9,6 +10,8 @@ interface AuthState {
   /** Resolves to a challenge when the account needs a code too (then call loginWithCode), or null once signed in. */
   login: (email: string, password: string) => Promise<{ token: string; kind: 'code' | 'expired'; method?: 'app' | 'email' } | null>
   loginWithCode: (token: string, code: string) => Promise<void>
+  /** Signs in with a passkey of this device (the browser asks for a fingerprint, face or PIN). */
+  loginWithPasskey: () => Promise<void>
   logout: () => Promise<void>
 }
 
@@ -33,6 +36,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onSuccess: signedIn,
   })
 
+  const loginWithPasskey = useMutation({
+    mutationFn: async () => api.passkeys.login(await proveWithPasskey(await api.passkeys.loginBegin())),
+    onSuccess: signedIn,
+  })
+
   const logout = useMutation({
     mutationFn: api.logout,
     onSettled: () => {
@@ -48,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return 'two_factor' in result ? { token: result.token, kind: 'code', method: result.method === 'email' ? 'email' : 'app' } : 'password_expired' in result ? { token: result.token, kind: 'expired' } : null
     },
     loginWithCode: async (token, code) => { await loginWithCode.mutateAsync({ token, code }) },
+    loginWithPasskey: async () => { await loginWithPasskey.mutateAsync() },
     logout: async () => { await logout.mutateAsync() },
   }
 

@@ -33,6 +33,7 @@ Settings (`appsettings.json`, section `Qahwa`):
 | `Qahwa:Scheduler:Enabled`, `IntervalSeconds` | The background scheduler (auto repeat): on by default, every 300 seconds (10 to 3600) |
 | `Auth:MinPasswordLength`, `MaxFailedAttempts`, `LockoutMinutes` | Password and lockout policy |
 | `Auth:LoginPermitsPerMinute` | Login rate limit |
+| `Auth:Passkeys:Enabled`, `RelyingPartyName`, `RpId`, `Origins` | Passkeys (ADR-150): on by default; the domain they are bound to and the page addresses allowed (default: `Auth:PublicUrl`, else the request) |
 | `Auth:SessionHours`, `SessionCacheSeconds` | Cookie lifetime; how long a session's roles are cached |
 
 ## Desk development
