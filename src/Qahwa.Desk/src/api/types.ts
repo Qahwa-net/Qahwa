@@ -1128,3 +1128,16 @@ export interface PreparedReportResult {
   columns: string[]
   rows: Record<string, string | number | boolean | null>[]
 }
+
+export interface SiteSummary {
+  name: string
+  hosts: string[]
+}
+
+export interface NewSite {
+  name: string
+  hosts: string[]
+  adminEmail: string
+  adminPassword: string
+  adminName?: string
+}

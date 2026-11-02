@@ -24,6 +24,13 @@ public interface IUserContextResolver
     ValueTask<IUserContext> ResolveAsync(HttpContext context, CancellationToken ct = default);
 }
 
+/// <summary>What a host outside this assembly may ask about who is calling.</summary>
+public static class RequestIdentity
+{
+    /// <summary>True when the request was authenticated by an API key rather than a signed-in session.</summary>
+    public static bool IsApiKey(HttpContext http) => http.Items.ContainsKey(CookieUserContextResolver.ViaApiKey);
+}
+
 /// <summary>
 /// Reads the signed session cookie, then re-checks the user against the database (briefly cached), so disabling a
 /// user, changing roles or changing the password takes effect on open sessions.

@@ -17,6 +17,8 @@ var mainSiteServes = siteDefinitions.Count == 0 || !string.IsNullOrWhiteSpace(bu
 builder.Services.AddSingleton(sp => new SiteHost(siteDefinitions, sp.GetRequiredService<IConfiguration>(), sp.GetRequiredService<IHostEnvironment>(), sp.GetRequiredService<ILoggerFactory>(),
     sp.GetServices<ISiteServicesCustomizer>(), mainSiteServes));
 builder.Services.AddHostedService(sp => sp.GetRequiredService<SiteHost>());
+builder.Services.AddSingleton<ISiteDatabases, SiteDatabases>();
+builder.Services.AddSingleton<SiteManager>();
 if (mainSiteServes)
 {
     builder.Services.AddHostedService<SchedulerService>();
@@ -52,6 +54,7 @@ app.UseQahwaSites();
 app.UseQahwa();
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok", framework = "Qahwa" }));
 app.MapQahwaApi();
+app.MapSiteManager();
 
 // Unknown API paths get the JSON error envelope; every other unknown path is a Desk route handled by the SPA.
 app.MapFallback(async context =>
