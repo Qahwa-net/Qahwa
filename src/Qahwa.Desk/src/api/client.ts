@@ -268,9 +268,10 @@ export const api = {
   },
 
   /** A link the browser can follow to download the matching documents as CSV. */
-  exportUrl(doctype: string, filters: Filter[], format: 'csv' | 'xlsx' = 'csv'): string {
+  exportUrl(doctype: string, filters: Filter[], format: 'csv' | 'xlsx' = 'csv', withRows = false): string {
     const query = new URLSearchParams()
     if (format === 'xlsx') query.set('format', 'xlsx')
+    if (withRows) query.set('rows', 'true')
     if (filters.length > 0) query.set('filters', JSON.stringify(toApiFilters(filters)))
     return `${resource(doctype)}/export${query.size > 0 ? `?${query}` : ''}`
   },

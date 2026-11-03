@@ -99,4 +99,17 @@ public class PostgresNestedTableTests(PostgresFixture postgres) : IClassFixture<
         Assert.Equal(["A", "B"], await LabelsAsync(("lines.parts.part_name", "=", "bolt"), ("lines.parts.qty", "=", 4)));
         Assert.Empty(await LabelsAsync(("lines.parts.part_name", "=", "bolt"), ("lines.parts.qty", "=", 9))); // same part
     }
+
+    [SkippableFact]
+    public async Task An_export_with_rows_reads_lines_and_parts_on_postgres()
+    {
+        await using var db = await StackAsync();
+        await db.Documents.InsertAsync("Assembly", Values(("label", "A"), ("lines", new[] { L("Side", P("bolt", 4), P("nut", 6)), L("Top", P("panel", 1)) })), TestUsers.Admin);
+        await db.Documents.InsertAsync("Assembly", Values(("label", "B"), ("lines", new[] { L("Leg", P("peg", 2)) })), TestUsers.Admin);
+
+        var export = await db.Documents.ExportAsync("Assembly", new ListRequest { Fields = ["label", "lines.title", "lines.parts.part_name", "lines.parts.qty"], OrderBy = "label", Descending = false }, TestUsers.Admin);
+
+        var cells = export.Rows.Select(r => export.Columns.Select(c => r.GetValueOrDefault(c)?.ToString() ?? string.Empty).ToArray()).ToList();
+        Assert.Equal([["A", "Side", "bolt", "4"], ["", "", "nut", "6"], ["", "Top", "panel", "1"], ["B", "Leg", "peg", "2"]], cells);
+    }
 }

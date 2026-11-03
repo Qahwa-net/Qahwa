@@ -178,6 +178,54 @@ public class NestedTableTests
         Assert.Contains(preview.Errors, e => e.Row == 2 && e.Message.Contains("no row above", StringComparison.Ordinal));
     }
 
+    // ---- exporting rows inside rows ----
+
+    [Fact]
+    public async Task An_export_with_rows_gives_one_output_row_per_part_and_imports_back_as_it_is()
+    {
+        await AddAssemblyAsync("Frame", L("Side", P("bolt", 4), P("nut", 6)), L("Top", P("panel", 1)));
+        await AddAssemblyAsync("Table", L("Leg", P("peg", 2)), L("Empty"));
+
+        var export = await _engine.Documents.ExportAsync("Assembly", new ListRequest { Fields = ["name_text", "lines.title", "lines.parts.part_name", "lines.parts.qty"] }, TestUsers.Admin);
+
+        Assert.Equal(["name_text", "lines.title", "lines.parts.part_name", "lines.parts.qty"], export.Columns);
+        var cells = export.Rows.Select(r => export.Columns.Select(c => r.GetValueOrDefault(c)?.ToString() ?? string.Empty).ToArray()).ToList();
+        Assert.Equal(
+            [
+                ["Frame", "Side", "bolt", "4"], ["", "", "nut", "6"], ["", "Top", "panel", "1"],
+                ["Table", "Leg", "peg", "2"], ["", "Empty", "", ""],
+            ],
+            cells);
+
+        // The file imports back into a fresh system exactly as it came out.
+        var csv = string.Join("\n", new[] { string.Join(",", export.Columns) }.Concat(cells.Select(c => string.Join(",", c))));
+        var other = new NestedTableTests();
+        var result = await other.Importer.RunAsync("Assembly", csv, "Insert", false, TestUsers.Admin);
+        Assert.Equal(2, result.Created);
+        Assert.Empty(result.Errors);
+        Assert.Equal(4, await other.CountAsync("Assembly Part"));
+        Assert.Equal(4, await other.CountAsync("Assembly Line"));
+    }
+
+    [Fact]
+    public async Task Asking_for_rows_includes_every_readable_column_of_the_tables_and_a_bad_column_is_refused()
+    {
+        await AddAssemblyAsync("Frame", L("Side", P("bolt", 4)));
+
+        var all = await _engine.Documents.ExportAsync("Assembly", new ListRequest(), TestUsers.Admin, withRows: true);
+        var plain = await _engine.Documents.ExportAsync("Assembly", new ListRequest(), TestUsers.Admin);
+
+        Assert.Contains("lines.title", all.Columns);
+        Assert.Contains("lines.parts.qty", all.Columns);
+        Assert.DoesNotContain("lines.parts", all.Columns);
+        Assert.DoesNotContain(plain.Columns, c => c.Contains('.', StringComparison.Ordinal));
+        Assert.Single(plain.Rows);
+        await Assert.ThrowsAsync<DocumentValidationException>(() =>
+            _engine.Documents.ExportAsync("Assembly", new ListRequest { Fields = ["lines.nothing"] }, TestUsers.Admin));
+        await Assert.ThrowsAsync<DocumentValidationException>(() =>
+            _engine.Documents.ExportAsync("Assembly", new ListRequest { Fields = ["lines.parts.nothing"] }, TestUsers.Admin));
+    }
+
     // ---- saving and reading ----
 
     [Fact]

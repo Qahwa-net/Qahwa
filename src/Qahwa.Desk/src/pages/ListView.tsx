@@ -215,6 +215,7 @@ export function ListView() {
         {listScripts.buttons.map((b) => <IconButton key={b.id} icon="play" label={b.label} onClick={() => listScripts.runButton(b.id)} />)}
         {perms?.report && <IconButton icon="chart" label="Report" aria-expanded={reporting} pressed={reporting} onClick={() => setReporting(!reporting)} />}
         {perms?.export && <a className="icon-btn" aria-label="Export CSV" data-tip="Export CSV" href={api.exportUrl(doctype, effectiveFilters)} download><Icon name="fileCsv" /></a>}
+        {perms?.export && meta.fields.some((f) => f.type === 'Table') && <a className="icon-btn" aria-label="Export CSV with table rows" data-tip="Export CSV with table rows" href={api.exportUrl(doctype, effectiveFilters, 'csv', true)} download><Icon name="fileCsv" /></a>}
         {perms?.export && <a className="icon-btn" aria-label="Export Excel" data-tip="Export Excel" href={api.exportUrl(doctype, effectiveFilters, 'xlsx')} download><Icon name="fileExcel" /></a>}
         {perms?.create && perms?.import !== false && !meta.isSingle && <IconButton icon="upload" label="Import" onClick={() => setImporting(true)} />}
         {perms?.create && <Link className="icon-btn primary" aria-label={`New ${doctype}`} data-tip={`New ${doctype}`} to={`${base}/new`}><Icon name="plus" /></Link>}

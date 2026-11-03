@@ -60,7 +60,8 @@ public static class SpecialEndpoints
         resource.MapGet("/export", async (
             string doctype, string? format, HttpContext http, DocumentService docs, IUserContextResolver users, CancellationToken ct) =>
         {
-            var result = await docs.ExportAsync(doctype, QahwaEndpoints.ParseListRequest(http.Request.Query), await users.ResolveAsync(http, ct), ct);
+            var result = await docs.ExportAsync(doctype, QahwaEndpoints.ParseListRequest(http.Request.Query), await users.ResolveAsync(http, ct), ct,
+                withRows: string.Equals(http.Request.Query["rows"].ToString(), "true", StringComparison.OrdinalIgnoreCase));
             var fileName = new string(doctype.Where(c => char.IsLetterOrDigit(c) || c is '-' or '_').ToArray());
             var xlsx = string.Equals(format, "xlsx", StringComparison.OrdinalIgnoreCase);
             http.Response.Headers["Content-Disposition"] = $"attachment; filename=\"{(fileName.Length == 0 ? "export" : fileName)}.{(xlsx ? "xlsx" : "csv")}\"";

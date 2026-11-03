@@ -32,7 +32,7 @@ Frame,Side,bolt,4
 ,Top,panel,1
 Table,Leg,peg,2
 ```
-Here *Frame* has a *Side* line with two parts (the second row has no line title, so *nut* joins *Side*) and a *Top* line with one part; *Table* is a second document. A row with parts but no line title and no earlier line to join is refused. A problem in a part is reported with the row of your file that holds it, as `lines.parts.qty`. Exporting rows of tables, inside rows or not, is not done yet.
+Here *Frame* has a *Side* line with two parts (the second row has no line title, so *nut* joins *Side*) and a *Top* line with one part; *Table* is a second document. A row with parts but no line title and no earlier line to join is refused. A problem in a part is reported with the row of your file that holds it, as `lines.parts.qty`. To get a file in this shape, use **Export CSV with table rows** on the list (it appears for DocTypes that have tables): each document takes one row per line (or per part), with the document's own columns filled on the first only, so the file imports back as it is. Through the API, add `rows=true` to the export address, or name the columns yourself with `fields=name,lines.item,lines.parts.qty`.
 
 ## Changing existing documents
 
