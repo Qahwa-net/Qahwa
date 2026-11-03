@@ -682,7 +682,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | API versioning, OpenAPI documentation | done: OpenAPI 3 per caller; URL versioning `/api/v1/` with a version header (ADR-097) | ✅ | L12 |
 | Webhooks, incoming API via server script | outgoing webhooks done (L10); incoming API via scripts not yet (L11) | 🔽 | L10, L11 |
 | Realtime updates (socket events, document updates), SignalR | done with Server-Sent Events instead of SignalR: live bell and live form updates (ADR-070); database backplane for several servers (ADR-086) | ✅ | L8 |
-| Payment gateways (Stripe, PayPal, Razorpay), SMS gateways, Google Calendar/Contacts/Drive, Dropbox, S3 backups, Slack, push notifications | S3-compatible (ADR-145) and Azure Blob (ADR-149) attachment storage done; the rest open | 🔽 (S3 and Azure files ✅) | L12 |
+| Payment gateways (Stripe, PayPal, Razorpay), SMS gateways, Google Calendar/Contacts/Drive, Dropbox, S3 backups, Slack, push notifications | S3-compatible (ADR-145) and Azure Blob (ADR-149) attachment storage done, Google Cloud Storage only through its S3 interoperability mode (documented, untested); the rest open | 🔽 (S3 and Azure files ✅) | L12 |
 | Event streaming / data sync between sites | | 🔽 | later |
 
 ### A8. Data tools and operations
