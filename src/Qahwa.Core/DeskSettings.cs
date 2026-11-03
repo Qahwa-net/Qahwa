@@ -61,6 +61,9 @@ public sealed class DeskSettingsService(IMetaRegistry registry, IDocumentReposit
             var group = manager && meta.Name is "Email Account" or "Scheduled Job Log" or "Error Log" or "Deleted Document" ? "Tools" : meta.Module ?? "Other";
             links.Add(new("doctype:" + meta.Name, meta.Name, "/app/" + Uri.EscapeDataString(meta.Name), group));
         }
+        // The workspaces made for this person are entries of the sidebar too (Frappe's left-hand workspace list), each opening its own page.
+        foreach (var space in await workspaces.MineAsync(user, ct))
+            links.Add(new("workspace:" + space.Id, space.Title, "/workspace/" + Uri.EscapeDataString(space.Id), "Workspaces"));
         foreach (var dashboard in await dashboards.ListAsync(user, ct)) links.Add(new("dashboard:" + dashboard.Id, dashboard.Title, "/dashboards/" + Uri.EscapeDataString(dashboard.Id), "Dashboards", false));
         foreach (var report in await reports.ListAsync(user, ct))
             if (metas.Any(m => m.Name == report.DocType)) links.Add(new("report:" + report.Id, report.Title, "/reports/" + Uri.EscapeDataString(report.Id), "Reports", false));

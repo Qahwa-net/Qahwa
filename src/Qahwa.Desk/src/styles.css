@@ -911,3 +911,15 @@ kbd { font: .75rem ui-monospace, Consolas, monospace; padding: .05rem .35rem; bo
 .conversation-item.sent { border-inline-start: 4px solid var(--accent, #7a5230); }
 .conversation-item.received { border-inline-start: 4px solid var(--border, #bbb); }
 .conversation-text { margin: .25rem 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* Sidebar: folding groups, module page links */
+.sidebar h2 { display: flex; align-items: center; }
+.sidebar .desk-group-toggle { flex: 1; }
+.sidebar .desk-group-toggle .count { margin-inline-start: auto; margin-inline-end: .35rem; font-size: .68rem; font-weight: 400; color: var(--muted); }
+.sidebar a.desk-module-link { display: inline-grid; padding: .2rem .45rem; margin-inline-end: .5rem; border-inline-start: 0; color: var(--muted); border-radius: 4px; }
+.sidebar a.desk-module-link:hover { color: var(--text); background: var(--surface-2); }
+.desk-fold-all { display: flex; justify-content: space-between; gap: .5rem; margin-block-start: .4rem; font-size: .75rem; }
+.link-btn { border: 0; background: transparent; color: var(--muted); cursor: pointer; padding: 0; font: inherit; text-decoration: underline; }
+.link-btn:hover:not(:disabled) { color: var(--text); }
+.breadcrumb { font-size: .85rem; color: var(--muted); margin-block-end: .25rem; }
+.breadcrumb a { color: inherit; }

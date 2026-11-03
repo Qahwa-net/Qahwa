@@ -69,4 +69,20 @@ public sealed class DeskSettingsApiTests : IAsyncDisposable
         Assert.DoesNotContain(noRole.Links, l => l.Id == "doctype:Desk Note");
         Assert.Empty(noRole.Layout.Pinned); Assert.Empty(noRole.Layout.HomeShortcuts);
     }
+
+    [Fact]
+    public async Task Workspaces_made_for_a_person_are_entries_of_their_sidebar_and_can_be_folded()
+    {
+        Assert.Equal(HttpStatusCode.Created, (await Admin.PostAsJsonAsync("/api/workspaces", new { title = "Operations", blocks = new[] { new { type = "Heading", text = "Daily" } } })).StatusCode);
+
+        var state = await State(Admin);
+
+        var link = Assert.Single(state.Links, l => l.Group == "Workspaces");
+        Assert.Equal("Operations", link.Label);
+        Assert.StartsWith("/workspace/", link.Path);
+        // The group can be folded and saved like any other (the server only accepts groups it knows).
+        var layout = new DeskLayout { CollapsedGroups = ["Workspaces"] };
+        Assert.Equal(HttpStatusCode.OK, (await Admin.PutAsJsonAsync("/api/desk-settings", new DeskSaveRequest(layout, state.Modified))).StatusCode);
+        Assert.Equal(["Workspaces"], (await State(Admin)).Layout.CollapsedGroups);
+    }
 }

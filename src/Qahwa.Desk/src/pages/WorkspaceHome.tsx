@@ -38,7 +38,7 @@ export function WorkspaceHome() {
   )
 }
 
-function Block({ block }: { block: WorkspaceBlockView }) {
+export function Block({ block }: { block: WorkspaceBlockView }) {
   if (block.type === 'Heading') return <h3 className="workspace-heading">{block.text}</h3>
   // The server cleaned this when it was saved and again when it was sent; the Desk cleans it a third time before showing it.
   if (block.type === 'Text') return <div className="form-html workspace-text" dangerouslySetInnerHTML={{ __html: sanitizeHtml(block.text) }} />

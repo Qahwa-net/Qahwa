@@ -53,11 +53,11 @@ public sealed partial class ConversationService(IMetaRegistry registry, IDocumen
             Filters = [new("reference_doctype", FilterOp.Eq, doctype), new("reference_name", FilterOp.Eq, name), new("thread_ref", FilterOp.IsNotNull)],
             OrderBy = "creation", Descending = false, Limit = 1000,
         }, ct);
-        // One send to several people is one message: the rows share the reference.
+        // One send to several people is one message: the rows share the reference (and a time, so recipients are listed alphabetically: their stored order is not reliable).
         foreach (var message in sent.GroupBy(r => (string)r["thread_ref"]!))
         {
             var first = message.First();
-            items.Add(new ConversationItem("sent", string.Join(", ", message.Select(r => (string)r["recipient"]!)), null, Plain(first["subject"] as string),
+            items.Add(new ConversationItem("sent", string.Join(", ", message.Select(r => (string)r["recipient"]!).Order(StringComparer.OrdinalIgnoreCase)), null, Plain(first["subject"] as string),
                 first["body"] as string ?? string.Empty, first["sent_at"] as DateTime? ?? (DateTime)first["creation"]!,
                 message.All(r => r["status"] as string == "Sent") ? "Sent" : message.Any(r => r["status"] as string == "Failed") ? "Failed" : "Waiting"));
         }

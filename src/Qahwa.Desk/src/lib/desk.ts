@@ -27,9 +27,40 @@ export function sidebarGroups(links: DeskLink[], layout: DeskLayout): [string, D
   const groups = new Map<string, DeskLink[]>()
   for (const link of visible.filter(l => l.defaultVisible && !layout.pinned.includes(l.id))) groups.set(link.group, [...(groups.get(link.group) ?? []), link])
   const names = [...groups.keys()].sort((a, b) => {
-    const rank = (g: string) => g === 'My work' ? 0 : g === 'Tools' ? 1 : 2
-    return rank(a) - rank(b) || a.localeCompare(b)
+    return groupRank(a) - groupRank(b) || a.localeCompare(b)
   })
   if (pinned.length) { names.unshift('Favorites'); groups.set('Favorites', pinned) }
   return ordered(names, layout.groupOrder, n => n).map(n => [n, groups.get(n)!])
+}
+
+/** Where a group sits when the person has not arranged the sidebar: their own work, then workspaces, then the business modules, then the tools, and the system's own DocTypes last. */
+export const groupRank = (group: string): number =>
+  group === 'My work' ? 0 : group === 'Workspaces' ? 1 : group === 'Tools' ? 98 : group === 'Core' ? 99 : 50
+
+/** Groups that are not business modules: they have no module page of their own. */
+export const NOT_A_MODULE = new Set(['Favorites', 'My work', 'Workspaces', 'Tools', 'Dashboards', 'Reports', 'Saved views'])
+
+/** Long groups start folded so the sidebar is short; the group holding the page being viewed always opens. */
+export const FOLDED_BY_DEFAULT_OVER = 12
+
+/**
+ * Whether a group is shown folded. A choice the person made (they folded it, saved with their desk) always wins; otherwise a group starts
+ * folded when it is Tools, the system's Core, or long, unless they unfolded it on this device or the page they are on is inside it.
+ */
+export function groupFolded(group: string, count: number, layout: DeskLayout, unfolded: ReadonlySet<string>, holdsCurrentPage: boolean): boolean {
+  if (layout.collapsedGroups.includes(group)) return true
+  const startsFolded = group === 'Tools' || group === 'Core' || count > FOLDED_BY_DEFAULT_OVER
+  return startsFolded && !unfolded.has(group) && !holdsCurrentPage
+}
+
+/** The unfolded groups remembered on this device (the folded ones are saved with the desk). */
+export function readUnfolded(): Set<string> {
+  try {
+    const parsed: unknown = JSON.parse(localStorage.getItem('qahwa.sidebar.unfolded') ?? '[]')
+    return new Set(Array.isArray(parsed) ? parsed.filter((g): g is string => typeof g === 'string') : [])
+  } catch { return new Set() }
+}
+
+export function saveUnfolded(groups: ReadonlySet<string>): void {
+  try { localStorage.setItem('qahwa.sidebar.unfolded', JSON.stringify([...groups])) } catch { /* private mode: the choice lasts until reload */ }
 }
