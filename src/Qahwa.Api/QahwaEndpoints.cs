@@ -122,6 +122,7 @@ public static class QahwaEndpoints
         app.MapQahwaAssignmentRules();
         app.MapQahwaAutoRepeat();
         app.MapQahwaReminders();
+        app.MapQahwaConversation();
         app.MapQahwaPreparedReports();
         app.MapQahwaNotificationRules();
         app.MapQahwaEmail();

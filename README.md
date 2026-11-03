@@ -59,6 +59,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **Prepared reports**: big reports built in the background as you, with every row, kept for a week ([ADR-144](docs/adr/144-prepared-reports.md))
 - **S3 file storage**: attachments in any S3-compatible bucket, signed with SigV4 and no SDK ([ADR-145](docs/adr/145-s3-file-storage.md))
 - **Passkeys**: sign in with a fingerprint, face or device PIN (WebAuthn, ES256 and RS256, no library; [ADR-150](docs/adr/150-passkeys.md))
+- **Email threads on documents**: mail sent from a document carries a reference, replies that keep it show on the document's form ([ADR-153](docs/adr/153-email-threads-on-documents.md))
 - **Azure Blob file storage**: attachments in an Azure Blob Storage container, Shared Key signed with no SDK ([ADR-149](docs/adr/149-azure-blob-file-storage.md))
 - **Qahwa CRM-lite**: leads, opportunities, lead conversion and a pipeline report, as an app a site turns on (`apps/Qahwa.Crm`, [ADR-146](docs/adr/146-crm-app.md))
 - **Tables inside tables**: a child table can hold a table of its own, one level deep (an assembly's lines and each line's parts), saved, calculated, copied, restored and printed with its row ([ADR-147](docs/adr/147-nested-child-tables.md))

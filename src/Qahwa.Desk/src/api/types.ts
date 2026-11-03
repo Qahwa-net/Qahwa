@@ -1148,3 +1148,13 @@ export interface PasskeyInfo {
   created: string
   lastUsed: string | null
 }
+
+export interface ConversationItem {
+  kind: 'sent' | 'received'
+  who: string
+  whoName: string | null
+  subject: string
+  text: string
+  at: string
+  status: string | null
+}

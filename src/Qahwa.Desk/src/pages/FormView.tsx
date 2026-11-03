@@ -10,6 +10,7 @@ import { Icon, IconButton } from '../controls/Icon.tsx'
 import { ConfirmDialog } from '../controls/Modal.tsx'
 import { ActivityPanel } from './ActivityPanel.tsx'
 import { MilestoneStrip } from './MilestoneStrip.tsx'
+import { ConversationPanel } from './ConversationPanel.tsx'
 import { AssignDialog } from './AssignPanel.tsx'
 import { RepeatDialog } from './RepeatDialog.tsx'
 import { ReminderDialog } from './ReminderDialog.tsx'
@@ -614,6 +615,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
       </DocContext.Provider>
 
       {doc && !isNew && meta.module !== 'Core' && <MilestoneStrip doctype={meta.name} name={doc.name} />}
+      {doc && !isNew && meta.module !== 'Core' && <ConversationPanel doctype={meta.name} name={doc.name} />}
       {doc && <ActivityPanel meta={meta} childMetas={childMetas} name={doc.name} />}
       </div>
       {doc && <DocRail doctype={meta.name} doc={doc} trackViews={meta.trackViews} canAssign={perms.write && docstatus !== 2 && !meta.isSingle} canShare={perms.write && !meta.isSingle && docstatus !== 2}

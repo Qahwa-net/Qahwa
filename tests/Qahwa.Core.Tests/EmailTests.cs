@@ -68,7 +68,8 @@ public class EmailTests
         Assert.Equal(2, queued);
         var queue = await QueueAsync();
         Assert.Equal(["x@example.com", "y@example.com"], queue.Select(r => (string)r["recipient"]!).Order());
-        Assert.All(queue, r => Assert.Equal(("Pending", "Hi  Bcc: evil@example.com"), ((string)r["status"]!, (string)r["subject"]!))); // the line break cannot become a header
+        Assert.All(queue, r => Assert.Matches(@"^Hi  Bcc: evil@example\.com \[QW-[0-9a-f]{10}\]$", (string)r["subject"]!)); // the line break cannot become a header; the reference is added
+        Assert.All(queue, r => Assert.Equal("Pending", (string)r["status"]!));
         Assert.Contains(await _engine.Activity.TimelineAsync("Quote", id, Ann), i => i.Content == "Emailed x@example.com, y@example.com");
     }
 
@@ -83,7 +84,8 @@ public class EmailTests
         Assert.Equal(new EmailRun(0, 0), await _engine.Email.SendPendingAsync());
 
         var sent = Assert.Single(_engine.EmailSender.Sent);
-        Assert.Equal(("x@example.com", "Hello", "Text"), (sent.To, sent.Subject, sent.Body));
+        Assert.Equal(("x@example.com", "Text"), (sent.To, sent.Body));
+        Assert.Matches(@"^Hello \[QW-[0-9a-f]{10}\]$", sent.Subject); // an email about a document carries a reference so a reply finds its way back (ADR-153)
         Assert.Equal("Sent", (string)Assert.Single(await QueueAsync())["status"]!);
     }
 
@@ -163,7 +165,7 @@ public class EmailTests
 
         Assert.Equal(($"Your quote {id}", "Hello Acme, the total is 120. From ann@example.com."), (preview.Subject, preview.Message));
         await _engine.Email.SendFromDocumentAsync("Quote", id, new EmailRequest(["x@example.com"], Template: "Quote ready"), Ann);
-        Assert.Equal(preview.Subject, (string)Assert.Single(await QueueAsync())["subject"]!);
+        Assert.StartsWith(preview.Subject + " [QW-", (string)Assert.Single(await QueueAsync())["subject"]!); // the reference follows the template's subject
     }
 
     [Fact]
