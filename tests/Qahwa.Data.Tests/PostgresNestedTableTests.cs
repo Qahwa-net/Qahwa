@@ -112,4 +112,18 @@ public class PostgresNestedTableTests(PostgresFixture postgres) : IClassFixture<
         var cells = export.Rows.Select(r => export.Columns.Select(c => r.GetValueOrDefault(c)?.ToString() ?? string.Empty).ToArray()).ToList();
         Assert.Equal([["A", "Side", "bolt", "4"], ["", "", "nut", "6"], ["", "Top", "panel", "1"], ["B", "Leg", "peg", "2"]], cells);
     }
+
+    [SkippableFact]
+    public async Task A_report_over_the_parts_inside_the_lines_runs_on_postgres()
+    {
+        await using var db = await StackAsync();
+        await db.Documents.InsertAsync("Assembly", Values(("label", "A"), ("lines", new[] { L("Side", P("bolt", 4), P("nut", 6)), L("Top", P("panel", 1)), L("Empty") })), TestUsers.Admin);
+        await db.Documents.InsertAsync("Assembly", Values(("label", "B"), ("lines", new[] { L("Side", P("peg", 2)) })), TestUsers.Admin);
+
+        var perLine = await db.Documents.ReportAsync("Assembly", "lines.title", "sum", "lines.parts.qty", new ListRequest(), TestUsers.Admin);
+        var perDocument = await db.Documents.ReportAsync("Assembly", "label", "sum", "lines.parts.qty", new ListRequest(), TestUsers.Admin);
+
+        Assert.Equal(new Dictionary<string, decimal> { ["Side"] = 12, ["Top"] = 1 }, perLine.Rows.ToDictionary(r => r.Group!, r => Convert.ToDecimal(r.Value)));
+        Assert.Equal(new Dictionary<string, decimal> { ["A"] = 11, ["B"] = 2 }, perDocument.Rows.ToDictionary(r => r.Group!, r => Convert.ToDecimal(r.Value)));
+    }
 }

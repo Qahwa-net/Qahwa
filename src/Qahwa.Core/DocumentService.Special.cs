@@ -414,6 +414,44 @@ public sealed partial class DocumentService
             throw bad;
     }
 
+    private FieldType? RowFieldType(DocTypeMeta meta, string column)
+    {
+        var parts = column.Split('.');
+        var child = registry.Get(TableFields(meta).First(t => t.Name == parts[0]).Options!);
+        var holder = parts.Length == 2 ? child : registry.Get(TableFields(child).First(t => t.Name == parts[1]).Options!);
+        return holder.Fields.FirstOrDefault(f => f.Name == parts[^1])?.Type;
+    }
+
+    /// <summary>
+    /// The rows of one table (or of the table inside it) of every document the person may list, as flat rows for a report: the document's and the
+    /// line's values are carried down onto each part, and a line with no parts gives no row when parts are asked for.
+    /// </summary>
+    private async Task<(List<Dictionary<string, object?>> Rows, bool Truncated)> ReadRowsAsync(
+        string doctype, DocTypeMeta meta, ListRequest request, List<string> fields, List<string> rowColumns, IUserContext user, CancellationToken ct)
+    {
+        var plain = fields.Where(f => !f.Contains('.', StringComparison.Ordinal)).Append("name").Distinct(StringComparer.Ordinal).ToList();
+        var (documents, truncated) = await ReadAllAsync(doctype, request with { Fields = plain }, user, ct);
+        var (expanded, cut) = await ExpandRowsAsync(meta, documents, rowColumns, keepName: true, truncated, ct);
+        var deepest = rowColumns.Where(c => c.Split('.').Length == 3).ToList();
+        var flat = new List<Dictionary<string, object?>>();
+        Dictionary<string, object?>? carry = null;
+        foreach (var row in expanded)
+        {
+            if (row.ContainsKey("name"))
+                carry = new Dictionary<string, object?>(row); // the first row of a document holds its own values
+            var filled = new Dictionary<string, object?>(carry ?? []);
+            foreach (var (key, value) in row)
+                filled[key] = value;
+            // A line's cells are blank on its later parts: they are carried down from the line's first row.
+            foreach (var (key, value) in row.Where(r => r.Key.Split('.').Length == 2))
+                carry![key] = value;
+            if ((deepest.Count > 0 ? deepest : rowColumns).Any(row.ContainsKey))
+                flat.Add(filled);
+        }
+
+        return (flat, cut);
+    }
+
     /// <summary>The rows of a child table for a set of parents, in order, by parent.</summary>
     private async Task<Dictionary<string, List<Dictionary<string, object?>>>> ChildRowsAsync(DocTypeMeta child, string parentType, string parentField, IReadOnlyList<string> parents, CancellationToken ct)
     {
@@ -536,19 +574,35 @@ public sealed partial class DocumentService
         if (!Aggregates.Contains(function))
             throw new DocumentValidationException([new FieldError("aggregate", $"Use one of: {string.Join(", ", Aggregates)}.")]);
 
+        // Either field may be a column of a table (lines.item) or of a table inside a row (lines.parts.qty): then the report runs over those rows.
+        var rowColumns = new[] { groupBy, valueField }.Where(c => c is not null && c.Contains('.', StringComparison.Ordinal)).Select(c => c!).Distinct(StringComparer.Ordinal).ToList();
         var columns = meta.ColumnTypes();
-        if (!columns.TryGetValue(groupBy ?? string.Empty, out var groupType) || groupType == FieldType.Password)
+        if (rowColumns.Count > 0)
+        {
+            var access = permissions.FieldAccessFor(meta, user, documentOwner: null, creating: false);
+            foreach (var column in rowColumns)
+                CheckRowColumn(meta, column, access, user);
+            if (rowColumns.Select(c => c.Split('.')[0]).Distinct(StringComparer.Ordinal).Count() > 1)
+                throw new DocumentValidationException([new FieldError("group_by", "Group and sum fields from one table at a time.")]);
+        }
+
+        FieldType? TypeOf(string? name) =>
+            name is null ? null : name.Contains('.', StringComparison.Ordinal) ? RowFieldType(meta, name) : columns.TryGetValue(name, out var t) ? t : null;
+
+        if (TypeOf(groupBy) is not { } groupType || groupType == FieldType.Password)
             throw new DocumentValidationException([new FieldError("group_by", "Group by a field of this DocType.")]);
 
         var fields = new List<string> { groupBy! };
         if (function != "count")
         {
-            if (valueField is null || !columns.TryGetValue(valueField, out var valueType) || !Numeric.Contains(valueType))
+            if (valueField is null || TypeOf(valueField) is not { } valueType || !Numeric.Contains(valueType))
                 throw new DocumentValidationException([new FieldError("field", "Choose a numeric field to summarise.")]);
             fields.Add(valueField);
         }
 
-        var (rows, truncated) = await ReadAllAsync(doctype, request with { Fields = fields }, user, ct);
+        var (rows, truncated) = rowColumns.Count == 0
+            ? await ReadAllAsync(doctype, request with { Fields = fields }, user, ct)
+            : await ReadRowsAsync(doctype, meta, request, fields, rowColumns, user, ct);
         var groups = rows.GroupBy(r => r.GetValueOrDefault(groupBy!) switch
         {
             null => null,

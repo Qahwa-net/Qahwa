@@ -226,6 +226,44 @@ public class NestedTableTests
             _engine.Documents.ExportAsync("Assembly", new ListRequest { Fields = ["lines.parts.nothing"] }, TestUsers.Admin));
     }
 
+    // ---- reports over rows inside rows ----
+
+    private async Task<Dictionary<string, decimal>> ReportAsync(string groupBy, string function, string? field) =>
+        (await _engine.Documents.ReportAsync("Assembly", groupBy, function, field, new ListRequest(), TestUsers.Admin)).Rows
+            .ToDictionary(r => r.Group ?? "(none)", r => Convert.ToDecimal(r.Value));
+
+    [Fact]
+    public async Task A_report_can_group_and_sum_over_lines_and_over_the_parts_inside_them()
+    {
+        await AddAssemblyAsync("Frame", L("Side", P("bolt", 4), P("nut", 6)), L("Top", P("panel", 1)));
+        await AddAssemblyAsync("Table", L("Side", P("peg", 2)), L("Empty"));
+
+        // Parts per line title: Side has 4 + 6 + 2, Top 1; the line with no parts is not a part of anything.
+        Assert.Equal(new Dictionary<string, decimal> { ["Side"] = 12, ["Top"] = 1 }, await ReportAsync("lines.title", "sum", "lines.parts.qty"));
+        // With no part column the rows counted are the lines themselves, including the one with no parts.
+        Assert.Equal(new Dictionary<string, decimal> { ["Side"] = 2, ["Top"] = 1, ["Empty"] = 1 }, await ReportAsync("lines.title", "count", null));
+    }
+
+    [Fact]
+    public async Task A_report_can_group_by_a_field_of_the_document_and_sum_a_field_of_its_rows()
+    {
+        await AddAssemblyAsync("Frame", L("Side", P("bolt", 4), P("nut", 6)), L("Top", P("panel", 1)));
+        await AddAssemblyAsync("Table", L("Side", P("peg", 2)));
+
+        Assert.Equal(new Dictionary<string, decimal> { ["Frame"] = 11, ["Table"] = 2 }, await ReportAsync("name_text", "sum", "lines.parts.qty"));
+        Assert.Equal(new Dictionary<string, decimal> { ["bolt"] = 1, ["nut"] = 1, ["panel"] = 1, ["peg"] = 1 }, await ReportAsync("lines.parts.part_name", "count", null));
+        Assert.Equal(new Dictionary<string, decimal> { ["Side"] = 2, ["Top"] = 1 }, await ReportAsync("lines.title", "min", "lines.parts.qty"));
+    }
+
+    [Fact]
+    public async Task A_report_over_rows_refuses_bad_columns_and_non_numeric_sums()
+    {
+        await AddAssemblyAsync("Frame", L("Side", P("bolt", 4)));
+
+        await Assert.ThrowsAsync<DocumentValidationException>(() => ReportAsync("lines.nothing", "count", null));
+        await Assert.ThrowsAsync<DocumentValidationException>(() => ReportAsync("lines.title", "sum", "lines.parts.part_name")); // not numeric
+    }
+
     // ---- saving and reading ----
 
     [Fact]
