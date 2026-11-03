@@ -227,7 +227,7 @@ export function ListView() {
         <ColumnsPanel key={settings ? 'saved' : 'default'} doctype={doctype} fields={allFields.filter((f) => f.name !== 'name')}
           current={[...otherColumns.map((c) => c.name)]} initial={settings} onClose={() => setColumnsOpen(false)} />
       )}
-      {reporting && <ReportPanel doctype={doctype} fields={allFields} filters={effectiveFilters} onClose={() => setReporting(false)} />}
+      {reporting && <ReportPanel doctype={doctype} fields={filterFields} filters={effectiveFilters} onClose={() => setReporting(false)} />}
 
       {listScripts.intro && <div className="banner info" role="status">{listScripts.intro}</div>}
       {listScripts.notice && <div className="banner info" role="status">{listScripts.notice} <button type="button" className="btn small" onClick={listScripts.dismissNotice}>OK</button></div>}
