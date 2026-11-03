@@ -146,7 +146,8 @@ public sealed class ActivityService(
         {
             foreach (var key in tables.Select(kv => kv.Key).ToList())
             {
-                if (!Visible(key))
+                // A table inside a row is logged as "table › inner table": the person sees it when they may see the table that holds it.
+                if (!Visible(key.Split(" › ")[0]))
                     tables.Remove(key);
             }
 

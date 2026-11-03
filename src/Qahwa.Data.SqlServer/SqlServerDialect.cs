@@ -46,6 +46,12 @@ public sealed class SqlServerDialect : ISqlDialect
 
     public string DropIndexSql(string indexName, string quotedTable) => $"DROP INDEX IF EXISTS {Quote(indexName)} ON {quotedTable}";
 
+    public string RenameColumnSql(string quotedTable, string column, string newColumn) =>
+        $"EXEC sp_rename N'{(quotedTable + "." + Quote(column)).Replace("'", "''")}', N'{newColumn.Replace("'", "''")}', N'COLUMN'";
+
+    public string AlterColumnTypeSql(string quotedTable, string column, FieldType type) =>
+        $"ALTER TABLE {quotedTable} ALTER COLUMN {Quote(column)} {ColumnType(type)} NULL";
+
     public string DropTableSql(string quotedTable) => $"DROP TABLE IF EXISTS {quotedTable}";
 
     public string AddColumnSql(string quotedTable, string columnDefinition) => $"ALTER TABLE {quotedTable} ADD {columnDefinition}";

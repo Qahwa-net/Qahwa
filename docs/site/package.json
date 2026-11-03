@@ -1,0 +1,14 @@
+{
+  "name": "qahwa-docs-site",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Builds the Qahwa documentation (the markdown under docs/) into a static website.",
+  "scripts": {
+    "build": "node build.mjs",
+    "check": "node build.mjs --check"
+  },
+  "dependencies": {
+    "marked": "^15.0.0"
+  }
+}

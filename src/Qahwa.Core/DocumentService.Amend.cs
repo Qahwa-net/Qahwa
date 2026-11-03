@@ -32,10 +32,7 @@ public sealed partial class DocumentService
             {
                 if (source.GetValueOrDefault(field.Name) is IEnumerable<object?> rows && registry.TryGet(field.Options ?? string.Empty, out var child))
                 {
-                    values[field.Name] = rows.OfType<IReadOnlyDictionary<string, object?>>()
-                        .Select(row => child.Fields.Where(f => f.Type != FieldType.Table && IsCopied(f) && row.ContainsKey(f.Name))
-                            .ToDictionary(f => f.Name, f => row[f.Name], StringComparer.Ordinal))
-                        .ToList();
+                    values[field.Name] = CopyRows(registry, child, rows, IsCopied);
                 }
             }
             else if (source.TryGetValue(field.Name, out var value) && value is not null)
@@ -51,4 +48,27 @@ public sealed partial class DocumentService
 
     private static bool IsCopied(DocFieldMeta f) =>
         !FieldTypes.IsLayout(f.Type) && f.Type != FieldType.Password && f.Formula is null && !f.Unique && !f.NoCopy && f.Name != AmendedFromField;
+
+    /// <summary>
+    /// The rows of a table as new input for a copy (amend, repeat): the copyable values of each row, and the rows nested inside it, without
+    /// any ids or parents, so the copy gets rows of its own.
+    /// </summary>
+    public static List<Dictionary<string, object?>> CopyRows(IMetaRegistry registry, DocTypeMeta child, IEnumerable<object?> rows, Func<DocFieldMeta, bool> copyable)
+    {
+        var copied = new List<Dictionary<string, object?>>();
+        foreach (var row in rows.OfType<IReadOnlyDictionary<string, object?>>())
+        {
+            var one = child.Fields.Where(f => f.Type != FieldType.Table && copyable(f) && row.ContainsKey(f.Name))
+                .ToDictionary(f => f.Name, f => row[f.Name], StringComparer.Ordinal);
+            foreach (var inner in child.Fields.Where(f => f.Type == FieldType.Table && copyable(f)))
+            {
+                if (row.GetValueOrDefault(inner.Name) is IEnumerable<object?> innerRows && registry.TryGet(inner.Options ?? string.Empty, out var innerMeta))
+                    one[inner.Name] = CopyRows(registry, innerMeta, innerRows, copyable);
+            }
+
+            copied.Add(one);
+        }
+
+        return copied;
+    }
 }

@@ -1,0 +1,17 @@
+{
+  "name": "Passkey",
+  "module": "Core",
+  "trackChanges": false,
+  "fields": [
+    { "name": "user", "type": "Data", "label": "User", "required": true, "indexed": true, "inListView": true },
+    { "name": "credential_id", "type": "Data", "label": "Credential ID", "required": true, "unique": true, "indexed": true },
+    { "name": "public_key", "type": "Text", "label": "Public key", "permLevel": 9 },
+    { "name": "alg", "type": "Int", "label": "Algorithm" },
+    { "name": "sign_count", "type": "Int", "label": "Sign count" },
+    { "name": "label", "type": "Data", "label": "Label", "inListView": true },
+    { "name": "last_used", "type": "Datetime", "label": "Last used" }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "delete": true }
+  ]
+}

@@ -15,4 +15,4 @@ People should be able to use the Desk in their own language, including languages
 
 ## Consequences
 - Adding a language needs no deployment: add Translation documents, pick the language in the top bar.
-- Not yet: translating every button and message in the Desk (only the chrome and field labels so far), plural forms and placeholders, per-user language stored on the user, import/export of translations as files, translating print formats and emails, mirrored arrow icons.
+- Not yet: translating every button and message in the Desk (only the chrome and field labels so far), (plural forms, placeholders and a language on the user are now built, ADR-133) import/export of translations as files, translating print formats and emails, mirrored arrow icons.

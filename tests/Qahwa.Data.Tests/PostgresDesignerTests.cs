@@ -124,6 +124,70 @@ public class PostgresDesignerTests(PostgresFixture postgres) : IClassFixture<Pos
     }
 
     [SkippableFact]
+    public async Task A_renamed_field_keeps_its_values_and_its_unique_index()
+    {
+        await using var db = await StackAsync();
+        var created = await db.Designer.CreateAsync(Supplier(Field("code", FieldType.Data, unique: true)), Admin);
+        await db.Documents.InsertAsync("Supplier", Values(("supplier_name", "A"), ("rating", 3), ("code", "X1")), Admin);
+        db.Clock.Advance(TimeSpan.FromMinutes(1));
+
+        var renamed = Supplier(Field("code", FieldType.Data, unique: true) with { Name = "vendor_code", RenamedFrom = "code" });
+        await db.Designer.UpdateAsync("Supplier", renamed, created.Modified, Admin);
+
+        Assert.Equal(1, await db.ScalarAsync("SELECT COUNT(*) FROM \"tabSupplier\" WHERE \"vendor_code\" = 'X1'"));
+        var doc = await db.Documents.GetAsync("Supplier", "SUP-00001", Admin);
+        Assert.Equal("X1", doc["vendor_code"]);
+        Assert.False(doc.ContainsKey("code"));
+        // Still unique under the new name.
+        await Assert.ThrowsAsync<ConflictException>(() =>
+            db.Documents.InsertAsync("Supplier", Values(("supplier_name", "B"), ("vendor_code", "X1")), Admin));
+        // And no second column was added.
+        Assert.Equal(0, await db.ScalarAsync("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'tabSupplier' AND column_name = 'code'"));
+    }
+
+    [SkippableFact]
+    public async Task A_field_can_change_type_and_every_value_is_converted()
+    {
+        await using var db = await StackAsync();
+        var created = await db.Designer.CreateAsync(Supplier(Field("code", FieldType.Data, unique: true)), Admin);
+        await db.Documents.InsertAsync("Supplier", Values(("supplier_name", "A"), ("rating", 3), ("code", "17")), Admin);
+        db.Clock.Advance(TimeSpan.FromMinutes(1));
+
+        // Int -> Decimal and Data -> Int (the unique index is dropped and made again around the change).
+        var changed = Supplier(Field("code", FieldType.Int, unique: true)) with
+        {
+            Fields = [Field("supplier_name", FieldType.Data), Field("rating", FieldType.Decimal), Field("code", FieldType.Int, unique: true)],
+        };
+        await db.Designer.UpdateAsync("Supplier", changed, created.Modified, Admin);
+
+        var doc = await db.Documents.GetAsync("Supplier", "SUP-00001", Admin);
+        Assert.Equal(3m, doc["rating"]);
+        Assert.Equal(17, doc["code"]);
+        await Assert.ThrowsAsync<ConflictException>(() =>
+            db.Documents.InsertAsync("Supplier", Values(("supplier_name", "B"), ("code", 17)), Admin));
+    }
+
+    [SkippableFact]
+    public async Task A_type_change_that_does_not_fit_the_saved_values_changes_nothing()
+    {
+        await using var db = await StackAsync();
+        var created = await db.Designer.CreateAsync(Supplier(Field("code", FieldType.Data)), Admin);
+        await db.Documents.InsertAsync("Supplier", Values(("supplier_name", "A"), ("code", "not a number")), Admin);
+        db.Clock.Advance(TimeSpan.FromMinutes(1));
+
+        var changed = Supplier() with
+        {
+            Fields = [Field("supplier_name", FieldType.Data), Field("rating", FieldType.Int), Field("code", FieldType.Int)],
+        };
+        var ex = await Assert.ThrowsAsync<ConflictException>(() => db.Designer.UpdateAsync("Supplier", changed, created.Modified, Admin));
+
+        Assert.Contains("Nothing was changed", ex.Message);
+        Assert.Equal(FieldType.Data, db.Registry.Get("Supplier").Fields.Single(f => f.Name == "code").Type);
+        var doc = await db.Documents.GetAsync("Supplier", "SUP-00001", Admin);
+        Assert.Equal("not a number", doc["code"]);
+    }
+
+    [SkippableFact]
     public async Task A_type_changed_behind_our_back_blocks_the_save()
     {
         await using var db = await StackAsync();

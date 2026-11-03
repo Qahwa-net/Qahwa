@@ -45,6 +45,48 @@ public sealed class BackupApiTests : IAsyncDisposable
         Assert.Contains("Auditor", new StreamReader(zip.GetEntry(role.GetProperty("file").GetString()!)!.Open()).ReadToEnd());
     }
 
+    private const string Password = "a long enough passphrase";
+
+    [Fact]
+    public async Task A_protected_backup_is_sealed_with_a_password_sent_in_the_body_and_restores_only_with_it()
+    {
+        await Admin.PostAsJsonAsync("/api/resource/Role", new { role_name = "Treasurer" });
+
+        var response = await Admin.PostAsJsonAsync("/api/backup/download-protected", new { password = Password });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("application/octet-stream", response.Content.Headers.ContentType!.MediaType);
+        Assert.EndsWith(".qbk", response.Content.Headers.ContentDisposition!.FileName!.Trim('"'));
+        Assert.Equal("no-store", response.Headers.CacheControl!.ToString());
+        var bytes = await response.Content.ReadAsByteArrayAsync();
+        Assert.Equal("QBK1", System.Text.Encoding.ASCII.GetString(bytes, 0, 4));
+        Assert.DoesNotContain("Treasurer", System.Text.Encoding.UTF8.GetString(bytes)); // not readable
+
+        var noPassword = await Admin.PostAsync("/api/backup/restore?dryRun=true", Zip(bytes, "application/octet-stream"));
+        Assert.Equal(HttpStatusCode.BadRequest, noPassword.StatusCode);
+        Assert.Contains("password", await noPassword.Content.ReadAsStringAsync());
+
+        var wrong = new HttpRequestMessage(HttpMethod.Post, "/api/backup/restore?dryRun=true") { Content = Zip(bytes, "application/octet-stream") };
+        wrong.Headers.Add("X-Backup-Password", "not the right password");
+        var refused = await Admin.SendAsync(wrong);
+        Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+        Assert.Equal("wrong_password", (await refused.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("code").GetString());
+
+        var right = new HttpRequestMessage(HttpMethod.Post, "/api/backup/restore?dryRun=true") { Content = Zip(bytes, "application/octet-stream") };
+        right.Headers.Add("X-Backup-Password", Password);
+        var opened = await Admin.SendAsync(right);
+        Assert.Equal(HttpStatusCode.OK, opened.StatusCode);
+        Assert.True((await opened.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("data").GetProperty("dryRun").GetBoolean());
+    }
+
+    [Fact]
+    public async Task A_protected_backup_needs_an_administrator_and_a_real_password()
+    {
+        Assert.Equal(HttpStatusCode.Forbidden, (await _factory.ClientFor("s@example.com", "System Manager").PostAsJsonAsync("/api/backup/download-protected", new { password = Password })).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.ClientFor(null).PostAsJsonAsync("/api/backup/download-protected", new { password = Password })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await Admin.PostAsJsonAsync("/api/backup/download-protected", new { password = "short" })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await Admin.PostAsJsonAsync("/api/backup/download-protected", new { })).StatusCode);
+    }
+
     [Fact]
     public async Task Nobody_else_can_download_or_restore_and_an_api_key_cannot_either()
     {

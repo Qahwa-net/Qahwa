@@ -34,6 +34,98 @@ public class DataImportTests
     private async Task<List<Dictionary<string, object?>>> ContactsAsync() =>
         (await _engine.Documents.ListAsync("Lead", new ListRequest { OrderBy = "creation", Descending = false, Limit = 100 }, Ann)).Data.ToList();
 
+    // ---- child table rows in the same file ----
+
+    private void AddOrders()
+    {
+        _engine.Registry.Add(DocTypeLoader.Parse("""{ "name": "Order Line", "isChildTable": true, "fields": [ { "name": "item", "type": "Data", "label": "Item", "required": true }, { "name": "qty", "type": "Int" }, { "name": "calc", "type": "Int", "formula": "qty * 2" } ] }"""));
+        _engine.Registry.Add(DocTypeLoader.Parse("""
+            { "name": "Order", "autoname": "ORD-.####", "fields": [ { "name": "title", "type": "Data", "required": true }, { "name": "lines", "type": "Table", "label": "Lines", "options": "Order Line" } ],
+              "permissions": [ { "role": "Clerk", "read": true, "write": true, "create": true } ] }
+            """));
+        _engine.Registry.ValidateReferences();
+    }
+
+    private async Task<List<Dictionary<string, object?>>> OrdersAsync() =>
+        (await _engine.Documents.ListAsync("Order", new ListRequest { OrderBy = "creation", Descending = false, Limit = 100, Fields = ["name", "title"] }, Ann)).Data.ToList();
+
+    private async Task<List<(string Item, long Qty)>> LinesOfAsync(string name) =>
+        ((List<Dictionary<string, object?>>)(await _engine.Documents.GetAsync("Order", name, Ann))["lines"]!).Select(r => ((string)r["item"]!, Convert.ToInt64(r["qty"]))).ToList();
+
+    [Fact]
+    public async Task Rows_that_leave_the_document_blank_add_rows_to_the_document_above_them()
+    {
+        AddOrders();
+        var result = await ImportAsync("title,lines.item,lines.qty\r\nFirst,Pen,2\r\n,Book,5\r\n,Ink,1\r\nSecond,Cap,9\r\n", doctype: "Order");
+
+        Assert.Equal((2, 0, 0), (result.Created, result.Updated, result.Failed));
+        var orders = await OrdersAsync();
+        Assert.Equal(["First", "Second"], orders.Select(o => (string)o["title"]!));
+        Assert.Equal([("Pen", 2L), ("Book", 5L), ("Ink", 1L)], await LinesOfAsync((string)orders[0]["name"]!));
+        Assert.Equal([("Cap", 9L)], await LinesOfAsync((string)orders[1]["name"]!));
+    }
+
+    [Fact]
+    public async Task Columns_match_the_table_by_label_and_the_template_lists_them()
+    {
+        AddOrders();
+        Assert.Equal("title,lines.item,lines.qty\r\n", _engine.DataImport.Template("Order", "Insert", Ann));
+
+        var result = await ImportAsync("Title,Lines.Item,lines.QTY\r\nA,Pen,3\r\n", doctype: "Order");
+        Assert.Equal(1, result.Created);
+        Assert.Equal([("Pen", 3L)], await LinesOfAsync((string)(await OrdersAsync())[0]["name"]!));
+    }
+
+    [Fact]
+    public async Task A_bad_child_cell_or_a_server_rule_is_reported_at_the_line_of_that_row()
+    {
+        AddOrders();
+        var result = await ImportAsync("title,lines.item,lines.qty\r\nGood,Pen,2\r\nBad,Book,many\r\nWorse,Ink,1\r\n,,3\r\n", doctype: "Order");
+
+        Assert.Equal(1, result.Created);
+        Assert.Equal(2, result.Failed);
+        var coercion = result.Errors.Single(e => e.Row == 3);
+        Assert.Equal("lines.qty", coercion.Field);
+        var required = result.Errors.Single(e => e.Row == 5); // the row without an item, reported at its own line
+        Assert.Equal("lines.item", required.Field);
+        Assert.Single(await OrdersAsync());
+    }
+
+    [Fact]
+    public async Task Updating_with_child_columns_replaces_the_table_and_without_them_leaves_it()
+    {
+        AddOrders();
+        await ImportAsync("title,lines.item,lines.qty\r\nOrder,Pen,2\r\n,Book,5\r\n", doctype: "Order");
+        var name = (string)(await OrdersAsync())[0]["name"]!;
+
+        var plain = await ImportAsync($"name,title\r\n{name},Renamed\r\n", "Update", doctype: "Order");
+        Assert.Equal(1, plain.Updated);
+        Assert.Equal(2, (await LinesOfAsync(name)).Count); // no child columns: the lines are untouched
+
+        var replaced = await ImportAsync($"name,lines.item,lines.qty\r\n{name},Cap,7\r\n,Pin,1\r\n,Tag,2\r\n", "Update", doctype: "Order");
+        Assert.Equal(1, replaced.Updated);
+        Assert.Equal([("Cap", 7L), ("Pin", 1L), ("Tag", 2L)], await LinesOfAsync(name));
+    }
+
+    [Fact]
+    public async Task Without_child_columns_blank_rows_are_still_their_own_documents()
+    {
+        var result = await ImportAsync("full_name\r\nAnn\r\n\r\n");
+        Assert.Equal(1, result.Created); // the blank line is dropped by the reader, as before
+        Assert.Equal(0, result.Failed);
+    }
+
+    [Fact]
+    public async Task The_preview_shows_child_columns_and_problems_in_child_rows()
+    {
+        AddOrders();
+        var preview = await _engine.DataImport.PreviewAsync("Order", "title,lines.item,lines.qty,lines.nope\r\nA,Pen,2,x\r\n,Book,lots,x\r\n", "Insert", Ann);
+
+        Assert.Equal(["title", "item", "qty", null], preview.Columns.Select(c => c.Field));
+        Assert.Equal(["lines", "lines", null], preview.Columns.Skip(1).Select(c => c.Table));
+        Assert.Contains(preview.Errors, e => e.Row == 3 && e.Field == "lines.qty");
+    }
+
     // ---- reading CSV ----
 
     [Theory]

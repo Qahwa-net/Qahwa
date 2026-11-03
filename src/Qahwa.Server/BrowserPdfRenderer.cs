@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Text;
 using Qahwa.Core;
 
 /// <summary>Settings under <c>Qahwa:Pdf</c>.</summary>
@@ -48,6 +49,43 @@ public sealed class BrowserPdfRenderer : IPdfRenderer
 
     public bool Available => _path is not null;
 
+    private static void Kill(Process process)
+    {
+        try
+        {
+            process.Kill(entireProcessTree: true);
+        }
+        catch (InvalidOperationException)
+        {
+            // it had just exited
+        }
+    }
+
+    /// <summary>A PDF that is finished: it ends with the end-of-file marker and did not change since the last look.</summary>
+    private static async Task<bool> IsCompletePdfAsync(string path, CancellationToken ct)
+    {
+        try
+        {
+            if (!File.Exists(path))
+                return false;
+            var first = new FileInfo(path).Length;
+            if (first < 8)
+                return false;
+            await Task.Delay(100, ct);
+            await using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+            if (stream.Length != first)
+                return false;
+            var tail = new byte[Math.Min(stream.Length, 1024)];
+            stream.Seek(-tail.Length, SeekOrigin.End);
+            await stream.ReadExactlyAsync(tail, ct);
+            return Encoding.ASCII.GetString(tail).Contains("%%EOF", StringComparison.Ordinal);
+        }
+        catch (IOException)
+        {
+            return false; // still being written
+        }
+    }
+
     public async Task<byte[]> RenderAsync(string html, CancellationToken ct = default)
     {
         if (_path is null)
@@ -66,7 +104,7 @@ public sealed class BrowserPdfRenderer : IPdfRenderer
             var start = new ProcessStartInfo(_path) { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true, CreateNoWindow = true };
             foreach (var argument in new[]
             {
-                "--headless=new", "--disable-gpu", "--disable-extensions", "--disable-dev-shm-usage", "--disable-background-networking", "--disable-sync",
+                "--headless=new", "--disable-gpu", "--disable-dev-shm-usage", "--disable-background-networking", "--disable-sync",
                 "--no-first-run", "--no-default-browser-check", "--mute-audio", "--hide-scrollbars", "--no-pdf-header-footer",
                 "--proxy-server=127.0.0.1:9", "--host-resolver-rules=MAP * ~NOTFOUND", "--virtual-time-budget=4000",
                 $"--user-data-dir={Path.Combine(folder, "profile")}", $"--print-to-pdf={output}",
@@ -83,14 +121,19 @@ public sealed class BrowserPdfRenderer : IPdfRenderer
             limit.CancelAfter(TimeSpan.FromSeconds(Math.Clamp(_options.TimeoutSeconds, 5, 300)));
             try
             {
-                await process.WaitForExitAsync(limit.Token);
+                // Done when the browser exits or, because some versions linger after printing, as soon as a complete PDF is on disk.
+                while (!process.HasExited && !await IsCompletePdfAsync(output, limit.Token))
+                    await Task.Delay(50, limit.Token);
             }
             catch (OperationCanceledException)
             {
-                process.Kill(entireProcessTree: true);
+                Kill(process);
                 ct.ThrowIfCancellationRequested();
                 throw new InvalidOperationException("Making the PDF took too long.");
             }
+
+            if (!process.HasExited)
+                Kill(process);
 
             if (!File.Exists(output))
                 throw new InvalidOperationException("The browser did not make a PDF.");

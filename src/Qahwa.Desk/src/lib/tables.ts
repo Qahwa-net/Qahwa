@@ -8,6 +8,8 @@ export interface TableRow {
   key: string
   name?: string
   values: Record<string, CellValue>
+  /** The tables inside this row (a child DocType may hold tables one level deep), by field name. */
+  tables?: Record<string, TableRow[]>
 }
 
 let counter = 0
@@ -35,38 +37,65 @@ export function emptyRow(child: DocTypeMeta): TableRow {
   return { key: nextKey(), values }
 }
 
-/** Rows as saved on the server become rows the grid can edit. */
-export function rowsFromDoc(child: DocTypeMeta, rows: unknown): TableRow[] {
+/** The Table fields a child DocType holds itself, with their child DocTypes (those the server sent along). */
+export function nestedFieldsOf(child: DocTypeMeta, children?: Record<string, DocTypeMeta>): { field: DocField; child: DocTypeMeta }[] {
+  if (!children) return []
+  return child.fields
+    .filter((f) => f.type === 'Table')
+    .flatMap((field) => {
+      const inner = field.options ? children[field.options] : undefined
+      return inner ? [{ field, child: inner }] : []
+    })
+}
+
+/** Rows as saved on the server become rows the grid can edit (with the rows inside them, when `children` says what those are). */
+export function rowsFromDoc(child: DocTypeMeta, rows: unknown, children?: Record<string, DocTypeMeta>): TableRow[] {
   if (!Array.isArray(rows)) return []
   return rows.map((raw) => {
     const row = raw as Record<string, unknown>
     const values: Record<string, CellValue> = {}
     for (const field of editableFields(child)) values[field.name] = toInput(field, row[field.name])
-    return { key: nextKey(), name: String(row.name), values }
+    const nested = nestedFieldsOf(child, children)
+    const tables = nested.length > 0 ? Object.fromEntries(nested.map(({ field, child: inner }) => [field.name, rowsFromDoc(inner, row[field.name], children)])) : undefined
+    return { key: nextKey(), name: String(row.name), values, ...(tables ? { tables } : {}) }
   })
 }
 
-/** What the API expects for a Table field: rows in display order, saved rows identified by their name. */
-export function rowsToPayload(child: DocTypeMeta, rows: TableRow[]): Record<string, unknown>[] {
+/** What the API expects for a Table field: rows in display order, saved rows identified by their name, tables inside rows nested in them. */
+export function rowsToPayload(child: DocTypeMeta, rows: TableRow[], children?: Record<string, DocTypeMeta>): Record<string, unknown>[] {
   return rows.map((row) => {
     const payload: Record<string, unknown> = row.name ? { name: row.name } : {}
     for (const field of editableFields(child)) {
       const value = row.values[field.name]
       if (value !== undefined) payload[field.name] = fromInput(field, value)
     }
+    for (const { field, child: inner } of nestedFieldsOf(child, children)) {
+      const nested = row.tables?.[field.name]
+      if (nested !== undefined) payload[field.name] = rowsToPayload(inner, nested, children)
+    }
     return payload
   })
 }
 
-/** True when the rows differ from what was loaded (added, removed, reordered or edited). */
+/** True when the rows differ from what was loaded (added, removed, reordered or edited, here or in a table inside a row). */
 export function rowsChanged(before: TableRow[], after: TableRow[]): boolean {
   if (before.length !== after.length) return true
   return before.some((row, i) => {
     const other = after[i]!
     if (row.name !== other.name) return true
-    return Object.keys({ ...row.values, ...other.values }).some((k) => row.values[k] !== other.values[k])
+    if (Object.keys({ ...row.values, ...other.values }).some((k) => row.values[k] !== other.values[k])) return true
+    return Object.keys({ ...row.tables, ...other.tables }).some((k) => rowsChanged(row.tables?.[k] ?? [], other.tables?.[k] ?? []))
   })
 }
+
+/** The errors that belong to the tables inside one row, with the row's part of the path taken off: `lines[1].parts[0].qty` becomes `parts[0].qty`. */
+export function nestedErrors(errors: Record<string, string>, tableField: string, rowIndex: number): Record<string, string> {
+  const prefix = `${tableField}[${rowIndex}].`
+  return Object.fromEntries(Object.entries(errors).filter(([path]) => path.startsWith(prefix)).map(([path, message]) => [path.slice(prefix.length), message]))
+}
+
+/** The row with the rows of one of its inner tables replaced. */
+export const withNested = (row: TableRow, field: string, rows: TableRow[]): TableRow => ({ ...row, tables: { ...row.tables, [field]: rows } })
 
 /** Errors for one Table field, grouped by row: `items[2].qty` becomes row 2, field "qty". */
 export function rowErrors(errors: Record<string, string>, tableField: string): { table?: string; rows: Map<number, Record<string, string>> } {

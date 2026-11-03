@@ -182,4 +182,42 @@ public class WorkspaceTests
         Assert.Equal("<script>alert(1)</script> & co", shown.Text); // returned as data; the Desk renders it as text
         Assert.NotNull(made);
     }
+
+    // ---- text blocks ----
+
+    private static WorkspaceBlock Words(string html) => new() { Type = WorkspaceBlock.FormattedText, Text = html };
+
+    [Fact]
+    public async Task A_text_block_keeps_its_formatting_but_never_a_script()
+    {
+        await RolesAsync();
+        var made = await MakeAsync("Welcome", 0, [], Words("<p>Hello <b>team</b></p><script>alert(1)</script><a href=\"javascript:alert(2)\" onclick=\"x()\">click</a>"));
+
+        var stored = Assert.Single(made.Blocks).Text!;
+        Assert.Contains("<b>team</b>", stored);
+        Assert.DoesNotContain("script", stored, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("javascript:", stored, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("onclick", stored, StringComparison.OrdinalIgnoreCase);
+
+        var shown = (await _engine.Workspaces.MineAsync(Ann)).Single().Blocks.Single();
+        Assert.Equal(WorkspaceBlock.FormattedText, shown.Type);
+        Assert.Contains("<b>team</b>", shown.Text);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("<p> </p>")]
+    [InlineData("<script>alert(1)</script>")]
+    public async Task A_text_block_needs_some_text(string html)
+    {
+        var ex = await Assert.ThrowsAsync<DocumentValidationException>(() => MakeAsync("Empty", 0, [], Words(html)));
+        Assert.Contains(ex.Errors, e => e.Field.EndsWith(".text", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_text_block_has_a_size_limit()
+    {
+        var ex = await Assert.ThrowsAsync<DocumentValidationException>(() => MakeAsync("Long", 0, [], Words("<p>" + new string('x', WorkspaceBlock.MaxTextLength + 1) + "</p>")));
+        Assert.Contains(ex.Errors, e => e.Field.EndsWith(".text", StringComparison.Ordinal));
+    }
 }

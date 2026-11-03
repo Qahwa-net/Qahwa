@@ -56,7 +56,7 @@ export function ReportPanel({ doctype, fields, filters, onClose }: {
         )}
         <button className="btn primary" disabled={run.isPending || !groupBy || (needsField && !field)}>Run</button>
       </form>
-      <p className="muted">Uses the filters of the list.</p>
+      <p className="muted">Uses the filters of the list. Fields of a table ("Lines › Qty") summarise its rows; use fields of one table at a time.</p>
 
       {message && <div className="banner error" role="alert">{message}</div>}
       {run.data && (

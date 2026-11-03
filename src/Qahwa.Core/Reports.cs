@@ -1,9 +1,16 @@
 using System.Text.Json;
 using Qahwa.Abstractions;
+using Qahwa.Core.Expressions;
 
 namespace Qahwa.Core;
 
 public sealed record ReportAggregate(string Function, string? Field = null);
+
+/// <summary>
+/// A column worked out for each row of a list report from the document's own fields, in the same safe expression language as formulas
+/// (<c>qty * rate</c>, <c>daysBetween(start, end)</c>). It is only worked out for the rows the person may read, from fields they may read.
+/// </summary>
+public sealed record ReportCalculation(string Label, string Expression);
 
 /// <summary>
 /// What a report shows. Without <see cref="GroupBy"/> it is a list of documents (the chosen columns, filtered and ordered). With it, it is
@@ -24,6 +31,11 @@ public sealed record ReportDefinition
     public int Limit { get; init; } = 200;
     public string? GroupBy { get; init; }
     public IReadOnlyList<ReportAggregate> Aggregates { get; init; } = [];
+
+    /// <summary>Columns calculated from the document's fields (list reports only), shown after the chosen columns.</summary>
+    public IReadOnlyList<ReportCalculation> Calculated { get; init; } = [];
+    public const int MaxCalculated = 5;
+    public const int MaxExpression = 300;
 }
 
 /// <param name="IsPublic">Everyone signed in can open it (each sees only what their own permissions allow).</param>
@@ -127,6 +139,7 @@ public sealed class ReportService(
             OrderBy = string.IsNullOrWhiteSpace(input.OrderBy) ? null : input.OrderBy.Trim(),
             GroupBy = string.IsNullOrWhiteSpace(input.GroupBy) ? null : input.GroupBy.Trim(),
             Aggregates = (input.Aggregates ?? []).Select(a => new ReportAggregate((a.Function ?? string.Empty).Trim().ToLowerInvariant(), string.IsNullOrWhiteSpace(a.Field) ? null : a.Field.Trim())).ToList(),
+            Calculated = (input.Calculated ?? []).Select(c => new ReportCalculation(c.Label?.Trim() ?? string.Empty, c.Expression?.Trim() ?? string.Empty)).ToList(),
         };
 
         var errors = new List<FieldError>();
@@ -183,9 +196,96 @@ public sealed class ReportService(
                 Add("aggregates", "Each number can only be shown once.");
         }
 
+        if (definition.Calculated.Count > 0)
+        {
+            if (definition.GroupBy is not null)
+                Add("calculated", "Calculated columns are only for lists, not summaries.");
+            if (definition.Calculated.Count > ReportDefinition.MaxCalculated)
+                Add("calculated", $"At most {ReportDefinition.MaxCalculated} calculated columns.");
+            var labels = new HashSet<string>(definition.Columns.Select(c => LabelOf(meta, c)), StringComparer.OrdinalIgnoreCase);
+            for (var i = 0; i < Math.Min(definition.Calculated.Count, ReportDefinition.MaxCalculated); i++)
+            {
+                var calc = definition.Calculated[i];
+                if (calc.Label.Length is 0 or > 60 || calc.Label.Any(char.IsControl))
+                    Add($"calculated[{i}].label", "Name the column (up to 60 characters).");
+                else if (!labels.Add(calc.Label))
+                    Add($"calculated[{i}].label", $"There is already a column named '{calc.Label}'.");
+                if (calc.Expression.Length is 0 or > ReportDefinition.MaxExpression)
+                {
+                    Add($"calculated[{i}].expression", $"Write a formula of up to {ReportDefinition.MaxExpression} characters.");
+                    continue;
+                }
+
+                try
+                {
+                    var expression = Expression.Parse(calc.Expression);
+                    if (expression.Identifiers.FirstOrDefault(n => !Known(n) && n != "name") is { } unknown)
+                        Add($"calculated[{i}].expression", $"'{unknown}' is not a field of {meta.Name} that a report can read.");
+                    else if (expression.UsesParent || expression.Lookups.Count > 0)
+                        Add($"calculated[{i}].expression", "Use only this document's own fields.");
+                }
+                catch (ExpressionException ex)
+                {
+                    Add($"calculated[{i}].expression", $"{ex.Message} (character {ex.Position + 1})");
+                }
+            }
+        }
+
         if (errors.Count > 0)
             throw new DocumentValidationException(errors);
         return definition;
+    }
+
+    private static IReadOnlyList<string> NeededFields(ReportDefinition definition)
+    {
+        var fields = new List<string>(definition.Columns);
+        foreach (var calc in definition.Calculated)
+            foreach (var id in Expression.Parse(calc.Expression).Identifiers)
+                if (!fields.Contains(id, StringComparer.Ordinal))
+                    fields.Add(id);
+        return fields;
+    }
+
+    /// <summary>Works the calculated columns out for each row (from the fields the person was allowed to read) and drops fields only the formulas needed.</summary>
+    private static (IReadOnlyList<ReportColumn> Columns, List<Dictionary<string, object?>> Rows) WithCalculated(
+        ReportDefinition definition, IReadOnlyList<ReportColumn> columns, IEnumerable<Dictionary<string, object?>> rows)
+    {
+        var result = new List<Dictionary<string, object?>>();
+        var seen = new bool[definition.Calculated.Count];
+        var notNumber = new bool[definition.Calculated.Count];
+        var compiled = definition.Calculated.Select(c => Expression.Parse(c.Expression)).ToList();
+        var now = DateTime.UtcNow;
+        foreach (var row in rows)
+        {
+            var context = new ExpressionContext
+            {
+                Fields = row.ToDictionary(kv => kv.Key, kv => Values.FromStorage(kv.Value), StringComparer.Ordinal),
+                Today = now.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
+                Now = now.ToString("yyyy-MM-dd'T'HH:mm:ss'Z'", System.Globalization.CultureInfo.InvariantCulture),
+            };
+            var line = columns.ToDictionary(c => c.Key, c => row.GetValueOrDefault(c.Key), StringComparer.Ordinal);
+            for (var i = 0; i < compiled.Count; i++)
+            {
+                var value = compiled[i].Evaluate(context);
+                if (value is double d && (double.IsNaN(d) || double.IsInfinity(d)))
+                    value = null;
+                if (value is not null)
+                {
+                    seen[i] = true;
+                    if (value is not double)
+                        notNumber[i] = true;
+                    if (value is not (double or string or bool))
+                        value = Values.ToText(value);
+                }
+
+                line[$"calc_{i + 1}"] = value;
+            }
+
+            result.Add(line);
+        }
+
+        var all = columns.Concat(definition.Calculated.Select((c, i) => new ReportColumn($"calc_{i + 1}", c.Label, seen[i] && !notNumber[i] ? "Float" : "Data"))).ToList();
+        return (all, result);
     }
 
     private static string CleanTitle(string? title)
@@ -272,9 +372,11 @@ public sealed class ReportService(
 
         var list = await documents.ListAsync(definition.DocType, request with
         {
-            Fields = definition.Columns, OrderBy = definition.OrderBy ?? "modified", Descending = definition.Descending, Limit = definition.Limit,
+            Fields = NeededFields(definition), OrderBy = definition.OrderBy ?? "modified", Descending = definition.Descending, Limit = definition.Limit,
         }, user, ct);
-        return new ReportRun(definition.Columns.Select(c => new ReportColumn(c, LabelOf(meta, c), TypeOf(meta, c))).ToList(), list.Data, list.Total > list.Data.Count, false);
+        var shown = definition.Columns.Select(c => new ReportColumn(c, LabelOf(meta, c), TypeOf(meta, c))).ToList();
+        var (all, rows2) = WithCalculated(definition, shown, list.Data);
+        return new ReportRun(all, rows2, list.Total > list.Data.Count, false);
     }
 
     /// <summary>The report as a table for download: header texts and rows keyed by them. A list report needs the export right (like any export); a summary only needs the report right.</summary>
@@ -293,9 +395,11 @@ public sealed class ReportService(
         var export = await documents.ExportAsync(definition.DocType, new ListRequest
         {
             Filters = definition.Filters.Select(f => new RawFilter(f.Field, f.Op, f.Value)).ToList(),
-            Fields = definition.Columns, OrderBy = definition.OrderBy ?? "modified", Descending = definition.Descending,
+            Fields = NeededFields(definition), OrderBy = definition.OrderBy ?? "modified", Descending = definition.Descending,
         }, user, ct);
-        return Labelled(export.Columns.Select(c => new ReportColumn(c, LabelOf(meta, c), TypeOf(meta, c))).ToList(), export.Rows, export.Truncated, title);
+        var exported = definition.Columns.Select(c => new ReportColumn(c, LabelOf(meta, c), TypeOf(meta, c))).ToList();
+        var (everything, withCalc) = WithCalculated(definition, exported, export.Rows);
+        return Labelled(everything, withCalc, export.Truncated, title);
     }
 
     private static (IReadOnlyList<string>, IReadOnlyList<Dictionary<string, object?>>, bool, string) Labelled(

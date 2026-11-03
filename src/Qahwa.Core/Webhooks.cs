@@ -618,6 +618,29 @@ public sealed class WebhookService(
         }
     }
 
+    /// <summary>
+    /// Puts a failed delivery back in the queue so it is sent again (with a fresh set of tries). Only a System Manager may, and only a
+    /// delivery that failed: one still waiting or being sent is left alone.
+    /// </summary>
+    public async Task RetryAsync(string deliveryName, IUserContext user, CancellationToken ct = default)
+    {
+        if (!user.IsAuthenticated)
+            throw new UnauthenticatedException();
+        if (!(user.Roles.Contains(UserContext.AdministratorRole, StringComparer.Ordinal) || user.Roles.Contains("System Manager", StringComparer.Ordinal)))
+            throw new PermissionDeniedException("Only a System Manager can manage webhooks.");
+        var row = await repository.GetAsync(Meta, deliveryName, ct) ?? throw new NotFoundException("This delivery was not found.");
+        if (row["status"] as string != "Failed")
+            throw new ConflictException("Only a delivery that failed can be sent again.");
+
+        var requeue = new Dictionary<string, object?>
+        {
+            ["status"] = "Pending", ["attempts"] = 0L, ["next_attempt"] = history.Now(), ["last_error"] = null, ["response_code"] = null,
+            ["modified"] = Next((DateTime)row["modified"]!),
+        };
+        if (!await repository.UpdateAsync(Meta, deliveryName, requeue, (DateTime)row["modified"]!, null, ct))
+            throw new ConflictException("This delivery just changed. Reload and try again.");
+    }
+
     /// <summary>Sends what is due. Safe to run on several servers at once.</summary>
     public async Task<(int Sent, int Failed)> DeliverPendingAsync(CancellationToken ct = default)
     {

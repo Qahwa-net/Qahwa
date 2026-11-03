@@ -111,6 +111,20 @@ public sealed class SqlBuilder(ISqlDialect dialect)
             $"AND {dialect.Quote("parenttype")} = {dialect.Parameter(1)}",
             [parent, parentDocType]);
 
+    /// <summary>
+    /// Deletes the rows of a table inside a child table (one level deeper) for every row of <paramref name="holder"/> that belongs to one document:
+    /// the nested rows name their holding row as their parent, so they are found through it. Only DocType names reach the statement, as quoted identifiers.
+    /// </summary>
+    public SqlStatement DeleteNestedOfDocument(string nested, string holder, string parentDocType, string parent) =>
+        new($"DELETE FROM {dialect.TableName(nested)} WHERE {dialect.Quote("parenttype")} = {dialect.Parameter(0)} AND {dialect.Quote("parent")} IN " +
+            $"(SELECT {dialect.Quote("name")} FROM {dialect.TableName(holder)} WHERE {dialect.Quote("parent")} = {dialect.Parameter(1)} AND {dialect.Quote("parenttype")} = {dialect.Parameter(2)})",
+            [holder, parent, parentDocType]);
+
+    /// <summary>Deletes the nested rows of one row of a child table (the row is being removed).</summary>
+    public SqlStatement DeleteNestedOfRow(string nested, string holder, string holderRow) =>
+        new($"DELETE FROM {dialect.TableName(nested)} WHERE {dialect.Quote("parent")} = {dialect.Parameter(0)} AND {dialect.Quote("parenttype")} = {dialect.Parameter(1)}",
+            [holderRow, holder]);
+
     /// <summary>Gives a document a new name (the primary key). Every identifier comes from the DocType, every value is a parameter.</summary>
     public SqlStatement Rename(DocTypeMeta meta, string oldName, string newName) =>
         new($"UPDATE {dialect.TableName(meta.Name)} SET {dialect.Quote("name")} = {dialect.Parameter(0)} WHERE {dialect.Quote("name")} = {dialect.Parameter(1)}",

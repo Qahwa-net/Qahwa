@@ -111,6 +111,8 @@ public sealed class TestEngine
         Activity = new ActivityService(Registry, Repository, Documents, Permissions, History, Collaboration);
         Assignments = new AssignmentService(Registry, Repository, Documents, Permissions, ShareManager, Notifications, Follows, History);
         AutoRepeat = new AutoRepeatService(Registry, Repository, Documents, Permissions, Notifications, History);
+        Reminders = new ReminderService(Registry, Repository, Notifications, History);
+        Milestones = new MilestoneService(Registry, Repository, Documents, Permissions);
         ListSettings = new ListSettingsService(Registry, Repository, Documents, Permissions, History);
         Bulk = new BulkService(Registry, Documents);
         DocTypeStore = new InMemoryDocTypeStore();
@@ -121,6 +123,7 @@ public sealed class TestEngine
         Print = new PrintService(Registry, Repository, Documents, Permissions, History, AccessLog);
         Dashboards = new DashboardService(Registry, Repository, Documents, Permissions, Notifications, History);
         Reports = new ReportService(Registry, Repository, Documents, Permissions, Notifications, History);
+        PreparedReports = new PreparedReportService(Registry, Repository, Reports, Notifications, History, Permissions);
         DataImport = new DataImportService(Registry, Documents, Permissions);
         DocumentActions = new DocumentActionEngine(Registry, Repository, Documents, Clock);
         ServerScripts = new ServerScriptEngine(Registry, Repository, new ScriptSandbox(Documents, Clock), Clock);
@@ -158,6 +161,8 @@ public sealed class TestEngine
         AuthStore = new InMemoryAuthStore();
         AuthOptions = new AuthOptions { HashIterations = 1000 };
         SecurityPolicy = new SecurityPolicyService(Registry, Repository, Options.Create(AuthOptions));
+        RoleNetworks = new RoleNetworkService(Registry, Repository, Clock);
+        ImportRuns = new ImportRunService(Registry, Repository, DataImport, Notifications, History, Permissions);
         WorkflowLinks = new WorkflowLinkService(Registry, Repository, Documents, WorkflowCatalog, Notifications, Email, EmailAccounts, Options.Create(AuthOptions), History);
         Auth = new AuthService(
             Registry,
@@ -175,6 +180,7 @@ public sealed class TestEngine
         SsoOptions = new SsoOptions { Providers = { ["idp"] = new SsoProvider { DisplayName = "Company login", Authority = FakeIdentityProvider.Authority, ClientId = FakeIdentityProvider.ClientId, ClientSecret = "s3cret" } } };
         Sso = new SsoService(Options.Create(SsoOptions), IdentityProvider, IdentityStore, Auth, protector, Clock);
         TwoFactor = new TwoFactorService(TotpStore, protector, AuthStore, Options.Create(AuthOptions), Clock);
+        EmailCodes = new EmailCodeService(Registry, Repository, EmailSender, protector, AuthStore, Options.Create(AuthOptions), Clock);
         Sessions = new SessionService(new InMemorySessionStore(), Options.Create(AuthOptions), Clock, SecurityPolicy);
         GlobalSearch = new GlobalSearchService(Documents, Permissions, new HitCounter(Clock));
         SamlIdp = new FakeSamlIdp();
@@ -212,7 +218,12 @@ public sealed class TestEngine
     public WorkflowStateFieldService WorkflowStateFields { get; }
     public WorkflowEscalationService WorkflowEscalations { get; }
     public WorkflowLinkService WorkflowLinks { get; }
+    public RoleNetworkService RoleNetworks { get; }
+    public ImportRunService ImportRuns { get; }
     public AutoRepeatService AutoRepeat { get; }
+    public ReminderService Reminders { get; }
+    public MilestoneService Milestones { get; }
+    public PreparedReportService PreparedReports { get; }
     public AssignmentRuleCatalog AssignmentRuleCatalog { get; }
     public InMemoryAssignmentRuleStore AssignmentRuleStore { get; }
     public AssignmentRuleEngine AssignmentRules { get; }
@@ -297,6 +308,7 @@ public sealed class TestEngine
     public IAuthStore AuthStore { get; }
     public InMemoryTotpStore TotpStore { get; }
     public TwoFactorService TwoFactor { get; }
+    public EmailCodeService EmailCodes { get; }
     public SessionService Sessions { get; }
     public PasswordResetService PasswordReset { get; }
     public AuthOptions AuthOptions { get; }

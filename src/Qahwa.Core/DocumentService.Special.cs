@@ -333,8 +333,15 @@ public sealed partial class DocumentService
         return (rows, truncated);
     }
 
-    /// <summary>Documents for download. Needs the export right as well as read; password fields are never included.</summary>
-    public async Task<ExportResult> ExportAsync(string doctype, ListRequest request, IUserContext user, CancellationToken ct = default)
+    /// <summary>Output rows allowed when the rows of tables are included (a document takes one output row per row of its tables).</summary>
+    public const int ExportRowLimit = 100_000;
+
+    /// <summary>
+    /// Documents for download. Needs the export right as well as read; password fields are never included. With <paramref name="withRows"/>
+    /// (or table columns named in <c>Fields</c>, written <c>lines.item</c> or <c>lines.parts.qty</c>) a document takes one output row per row of
+    /// its tables: the document's own columns on the first only, so the file imports back as it is (see ADR-128 and ADR-152).
+    /// </summary>
+    public async Task<ExportResult> ExportAsync(string doctype, ListRequest request, IUserContext user, CancellationToken ct = default, bool withRows = false)
     {
         var meta = RequireTopLevel(registry.Get(doctype));
         permissions.Require(meta, user, PermAction.Read);
@@ -345,14 +352,210 @@ public sealed partial class DocumentService
         var columns = request.Fields is { Count: > 0 }
             ? request.Fields.Distinct(StringComparer.Ordinal).ToList()
             : new[] { "name" }.Concat(meta.Fields.Where(f => IsExportable(f) && access.CanRead(f)).Select(f => f.Name)).ToList();
+        if (withRows)
+            columns.AddRange(RowColumns(meta, access, user).Where(c => !columns.Contains(c)));
         var passwords = meta.Fields.Where(f => f.Type == FieldType.Password).Select(f => f.Name).ToHashSet(StringComparer.Ordinal);
         if (columns.Any(passwords.Contains))
             throw new DocumentValidationException([new FieldError("fields", "Password fields cannot be exported.")]);
 
-        var (rows, truncated) = await ReadAllAsync(doctype, request with { Fields = columns }, user, ct);
+        var dotted = columns.Where(c => c.Contains('.', StringComparison.Ordinal)).ToList();
+        var plain = columns.Except(dotted).ToList();
+        foreach (var column in dotted)
+            CheckRowColumn(meta, column, access, user);
+        if (dotted.Count > 0 && !plain.Contains("name"))
+            plain.Insert(0, "name"); // needed to find the rows, dropped again below
+
+        var (rows, truncated) = await ReadAllAsync(doctype, request with { Fields = plain }, user, ct);
+        if (dotted.Count > 0)
+            (rows, truncated) = await ExpandRowsAsync(meta, rows, dotted, columns.Contains("name"), truncated, ct);
         if (accessLog is not null)
             await accessLog.RecordAsync("Export", meta.Name, null, rows.Count, user, ct);
         return new ExportResult(columns, rows, truncated);
+    }
+
+    private bool MayReadRowField(DocFieldMeta field, IUserContext user) =>
+        IsExportable(field) && (permissions.IsAdministrator(user) || field.PermLevel == 0);
+
+    /// <summary>Every column of every table of a DocType, and of the tables inside them, that the person may read.</summary>
+    private IEnumerable<string> RowColumns(DocTypeMeta meta, FieldAccess access, IUserContext user)
+    {
+        foreach (var table in TableFields(meta).Where(access.CanRead))
+        {
+            var child = registry.Get(table.Options!);
+            foreach (var field in child.Fields.Where(f => f.Type != FieldType.Table && MayReadRowField(f, user)))
+                yield return $"{table.Name}.{field.Name}";
+            foreach (var inner in TableFields(child).Where(f => permissions.IsAdministrator(user) || f.PermLevel == 0))
+                foreach (var field in registry.Get(inner.Options!).Fields.Where(f => MayReadRowField(f, user)))
+                    yield return $"{table.Name}.{inner.Name}.{field.Name}";
+        }
+    }
+
+    /// <summary>A column like <c>lines.item</c> or <c>lines.parts.qty</c> must name readable fields; anything else is refused.</summary>
+    private void CheckRowColumn(DocTypeMeta meta, string column, FieldAccess access, IUserContext user)
+    {
+        var parts = column.Split('.');
+        var bad = new DocumentValidationException([new FieldError("fields", $"'{column}' is not a column you can export.")]);
+        if (parts.Length is < 2 or > 3)
+            throw bad;
+        var table = TableFields(meta).FirstOrDefault(t => t.Name == parts[0]);
+        if (table is null || !access.CanRead(table))
+            throw bad;
+        var child = registry.Get(table.Options!);
+        if (parts.Length == 2)
+        {
+            if (child.Fields.FirstOrDefault(f => f.Name == parts[1]) is not { } field || field.Type == FieldType.Table || !MayReadRowField(field, user))
+                throw bad;
+            return;
+        }
+
+        var inner = TableFields(child).FirstOrDefault(t => t.Name == parts[1]);
+        if (inner is null || !(permissions.IsAdministrator(user) || inner.PermLevel == 0)
+            || registry.Get(inner.Options!).Fields.FirstOrDefault(f => f.Name == parts[2]) is not { } innerField || !MayReadRowField(innerField, user))
+            throw bad;
+    }
+
+    private FieldType? RowFieldType(DocTypeMeta meta, string column)
+    {
+        var parts = column.Split('.');
+        var child = registry.Get(TableFields(meta).First(t => t.Name == parts[0]).Options!);
+        var holder = parts.Length == 2 ? child : registry.Get(TableFields(child).First(t => t.Name == parts[1]).Options!);
+        return holder.Fields.FirstOrDefault(f => f.Name == parts[^1])?.Type;
+    }
+
+    /// <summary>
+    /// The rows of one table (or of the table inside it) of every document the person may list, as flat rows for a report: the document's and the
+    /// line's values are carried down onto each part, and a line with no parts gives no row when parts are asked for.
+    /// </summary>
+    private async Task<(List<Dictionary<string, object?>> Rows, bool Truncated)> ReadRowsAsync(
+        string doctype, DocTypeMeta meta, ListRequest request, List<string> fields, List<string> rowColumns, IUserContext user, CancellationToken ct)
+    {
+        var plain = fields.Where(f => !f.Contains('.', StringComparison.Ordinal)).Append("name").Distinct(StringComparer.Ordinal).ToList();
+        var (documents, truncated) = await ReadAllAsync(doctype, request with { Fields = plain }, user, ct);
+        var (expanded, cut) = await ExpandRowsAsync(meta, documents, rowColumns, keepName: true, truncated, ct);
+        var deepest = rowColumns.Where(c => c.Split('.').Length == 3).ToList();
+        var flat = new List<Dictionary<string, object?>>();
+        Dictionary<string, object?>? carry = null;
+        foreach (var row in expanded)
+        {
+            if (row.ContainsKey("name"))
+                carry = new Dictionary<string, object?>(row); // the first row of a document holds its own values
+            var filled = new Dictionary<string, object?>(carry ?? []);
+            foreach (var (key, value) in row)
+                filled[key] = value;
+            // A line's cells are blank on its later parts: they are carried down from the line's first row.
+            foreach (var (key, value) in row.Where(r => r.Key.Split('.').Length == 2))
+                carry![key] = value;
+            if ((deepest.Count > 0 ? deepest : rowColumns).Any(row.ContainsKey))
+                flat.Add(filled);
+        }
+
+        return (flat, cut);
+    }
+
+    /// <summary>The rows of a child table for a set of parents, in order, by parent.</summary>
+    private async Task<Dictionary<string, List<Dictionary<string, object?>>>> ChildRowsAsync(DocTypeMeta child, string parentType, string parentField, IReadOnlyList<string> parents, CancellationToken ct)
+    {
+        var byParent = new Dictionary<string, List<Dictionary<string, object?>>>(StringComparer.Ordinal);
+        foreach (var chunk in parents.Chunk(50))
+        {
+            var rows = await repository.ListAsync(child, new ListQuery
+            {
+                Filters =
+                [
+                    new QueryFilter("parent", FilterOp.In, chunk.Cast<object?>().ToList()),
+                    new QueryFilter("parenttype", FilterOp.Eq, parentType),
+                    new QueryFilter("parentfield", FilterOp.Eq, parentField),
+                ],
+                OrderBy = "idx", Descending = false, Limit = 200_000,
+            }, ct);
+            foreach (var row in rows)
+            {
+                var parent = (string)row["parent"]!;
+                if (!byParent.TryGetValue(parent, out var list))
+                    byParent[parent] = list = [];
+                list.Add(row);
+            }
+        }
+
+        return byParent;
+    }
+
+    private async Task<(List<Dictionary<string, object?>> Rows, bool Truncated)> ExpandRowsAsync(
+        DocTypeMeta meta, List<Dictionary<string, object?>> documents, List<string> dotted, bool keepName, bool truncated, CancellationToken ct)
+    {
+        var names = documents.Select(d => (string)d["name"]!).ToList();
+        // For each table: the entries of each document, an entry being the cells of one output row (keyed by the column name).
+        var entries = new Dictionary<string, Dictionary<string, List<Dictionary<string, object?>>>>(StringComparer.Ordinal);
+        foreach (var group in dotted.Select(c => c.Split('.')).GroupBy(p => p[0], StringComparer.Ordinal))
+        {
+            var table = TableFields(meta).First(t => t.Name == group.Key);
+            var child = registry.Get(table.Options!);
+            var lines = await ChildRowsAsync(child, meta.Name, table.Name, names, ct);
+            var lineColumns = group.Where(p => p.Length == 2).Select(p => p[1]).ToList();
+            var innerTables = group.Where(p => p.Length == 3).GroupBy(p => p[1], StringComparer.Ordinal).ToList();
+            var inners = new Dictionary<string, Dictionary<string, List<Dictionary<string, object?>>>>(StringComparer.Ordinal);
+            foreach (var innerGroup in innerTables)
+                inners[innerGroup.Key] = await ChildRowsAsync(registry.Get(TableFields(child).First(t => t.Name == innerGroup.Key).Options!), child.Name, innerGroup.Key,
+                    lines.Values.SelectMany(l => l).Select(l => (string)l["name"]!).ToList(), ct);
+
+            var perDocument = new Dictionary<string, List<Dictionary<string, object?>>>(StringComparer.Ordinal);
+            foreach (var (document, rows) in lines)
+            {
+                var list = perDocument[document] = [];
+                foreach (var line in rows)
+                {
+                    var entry = lineColumns.ToDictionary(c => $"{group.Key}.{c}", c => line.GetValueOrDefault(c));
+                    var first = true;
+                    foreach (var innerGroup in innerTables)
+                    {
+                        foreach (var part in inners[innerGroup.Key].GetValueOrDefault((string)line["name"]!) ?? [])
+                        {
+                            // The first inner row shares the line's output row; the others get rows of their own, with the line's cells blank.
+                            var e = first ? entry : [];
+                            foreach (var p in innerGroup)
+                                e[$"{group.Key}.{innerGroup.Key}.{p[2]}"] = part.GetValueOrDefault(p[2]);
+                            list.Add(e);
+                            first = false;
+                        }
+                    }
+
+                    if (first)
+                        list.Add(entry); // a line with no inner rows
+                }
+            }
+
+            entries[group.Key] = perDocument;
+        }
+
+        var result = new List<Dictionary<string, object?>>();
+        foreach (var document in documents)
+        {
+            var name = (string)document["name"]!;
+            var perTable = entries.Values.Select(e => e.GetValueOrDefault(name) ?? []).ToList();
+            var count = Math.Max(1, perTable.Max(t => t.Count));
+            if (result.Count + count > ExportRowLimit)
+            {
+                truncated = true;
+                break;
+            }
+
+            for (var i = 0; i < count; i++)
+            {
+                var row = i == 0 ? new Dictionary<string, object?>(document) : [];
+                if (!keepName && i == 0)
+                    row.Remove("name");
+                foreach (var table in perTable)
+                {
+                    if (i < table.Count)
+                        foreach (var (key, value) in table[i])
+                            row[key] = value;
+                }
+
+                result.Add(row);
+            }
+        }
+
+        return (result, truncated);
     }
 
     /// <summary>
@@ -371,19 +574,35 @@ public sealed partial class DocumentService
         if (!Aggregates.Contains(function))
             throw new DocumentValidationException([new FieldError("aggregate", $"Use one of: {string.Join(", ", Aggregates)}.")]);
 
+        // Either field may be a column of a table (lines.item) or of a table inside a row (lines.parts.qty): then the report runs over those rows.
+        var rowColumns = new[] { groupBy, valueField }.Where(c => c is not null && c.Contains('.', StringComparison.Ordinal)).Select(c => c!).Distinct(StringComparer.Ordinal).ToList();
         var columns = meta.ColumnTypes();
-        if (!columns.TryGetValue(groupBy ?? string.Empty, out var groupType) || groupType == FieldType.Password)
+        if (rowColumns.Count > 0)
+        {
+            var access = permissions.FieldAccessFor(meta, user, documentOwner: null, creating: false);
+            foreach (var column in rowColumns)
+                CheckRowColumn(meta, column, access, user);
+            if (rowColumns.Select(c => c.Split('.')[0]).Distinct(StringComparer.Ordinal).Count() > 1)
+                throw new DocumentValidationException([new FieldError("group_by", "Group and sum fields from one table at a time.")]);
+        }
+
+        FieldType? TypeOf(string? name) =>
+            name is null ? null : name.Contains('.', StringComparison.Ordinal) ? RowFieldType(meta, name) : columns.TryGetValue(name, out var t) ? t : null;
+
+        if (TypeOf(groupBy) is not { } groupType || groupType == FieldType.Password)
             throw new DocumentValidationException([new FieldError("group_by", "Group by a field of this DocType.")]);
 
         var fields = new List<string> { groupBy! };
         if (function != "count")
         {
-            if (valueField is null || !columns.TryGetValue(valueField, out var valueType) || !Numeric.Contains(valueType))
+            if (valueField is null || TypeOf(valueField) is not { } valueType || !Numeric.Contains(valueType))
                 throw new DocumentValidationException([new FieldError("field", "Choose a numeric field to summarise.")]);
             fields.Add(valueField);
         }
 
-        var (rows, truncated) = await ReadAllAsync(doctype, request with { Fields = fields }, user, ct);
+        var (rows, truncated) = rowColumns.Count == 0
+            ? await ReadAllAsync(doctype, request with { Fields = fields }, user, ct)
+            : await ReadRowsAsync(doctype, meta, request, fields, rowColumns, user, ct);
         var groups = rows.GroupBy(r => r.GetValueOrDefault(groupBy!) switch
         {
             null => null,

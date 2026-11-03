@@ -355,14 +355,7 @@ public sealed class AutoRepeatService(
             {
                 if (source.GetValueOrDefault(field.Name) is IEnumerable<object?> rows && registry.TryGet(field.Options ?? string.Empty, out var child))
                 {
-                    var copied = new List<Dictionary<string, object?>>();
-                    foreach (var rowValues in rows.OfType<IReadOnlyDictionary<string, object?>>())
-                    {
-                        copied.Add(child.Fields.Where(CopyableField).Where(f => f.Type != FieldType.Table && rowValues.ContainsKey(f.Name))
-                            .ToDictionary(f => f.Name, f => rowValues[f.Name], StringComparer.Ordinal));
-                    }
-
-                    values[field.Name] = copied;
+                    values[field.Name] = DocumentService.CopyRows(registry, child, rows, CopyableField);
                 }
             }
             else if (dateFields.Contains(field.Name))

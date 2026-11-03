@@ -24,6 +24,13 @@ public interface IUserContextResolver
     ValueTask<IUserContext> ResolveAsync(HttpContext context, CancellationToken ct = default);
 }
 
+/// <summary>What a host outside this assembly may ask about who is calling.</summary>
+public static class RequestIdentity
+{
+    /// <summary>True when the request was authenticated by an API key rather than a signed-in session.</summary>
+    public static bool IsApiKey(HttpContext http) => http.Items.ContainsKey(CookieUserContextResolver.ViaApiKey);
+}
+
 /// <summary>
 /// Reads the signed session cookie, then re-checks the user against the database (briefly cached), so disabling a
 /// user, changing roles or changing the password takes effect on open sessions.
@@ -33,6 +40,7 @@ internal sealed class CookieUserContextResolver(
     ApiKeyService apiKeys,
     OAuthService oauth,
     SessionService sessions,
+    RoleNetworkService roleNetworks,
     IMemoryCache cache,
     IOptions<AuthOptions> options) : IUserContextResolver
 {
@@ -45,6 +53,8 @@ internal sealed class CookieUserContextResolver(
             return (IUserContext)cached!;
 
         var resolved = await ResolveCoreAsync(context, ct);
+        if (resolved.IsAuthenticated && await roleNetworks.BlockedByAsync(resolved, context.Connection.RemoteIpAddress, ct) is { } role)
+            throw new PermissionDeniedException($"The role '{role}' can only be used from certain networks, and this is not one of them.");
         context.Items[ItemKey] = resolved;
         return resolved;
     }
@@ -59,6 +69,8 @@ internal sealed class CookieUserContextResolver(
                 return UserContext.Anonymous;
             if (identity.ReadOnly && !HttpMethods.IsGet(context.Request.Method) && !HttpMethods.IsHead(context.Request.Method) && !HttpMethods.IsOptions(context.Request.Method))
                 throw new PermissionDeniedException("This API key is read-only.");
+            if (!ApiKeyService.Allows(identity.DocTypes, context.Request.Path.Value ?? string.Empty))
+                throw new PermissionDeniedException("This API key is limited to certain DocTypes and cannot be used for this.");
             context.Items[ViaApiKey] = true;
             return identity.User;
         }
@@ -247,6 +259,8 @@ public static class ApplicationBuilderExtensions
 
                 context.Response.Clear();
                 context.Response.StatusCode = status;
+                if (ex is ApiKeyRateLimitedException limited)
+                    context.Response.Headers.RetryAfter = limited.RetryAfterSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 await context.Response.WriteAsJsonAsync(body);
             }
         });

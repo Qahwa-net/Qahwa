@@ -1,6 +1,8 @@
 import { useId, useRef, useState } from 'react'
 import type { DocField, DocTypeMeta } from '../api/types.ts'
-import { addChip, chipField, chipValues, editableFields, emptyRow, gridColumns, moveRow, removeChip, rowErrorList, rowErrors, type TableRow } from '../lib/tables.ts'
+import {
+  addChip, chipField, chipValues, editableFields, emptyRow, gridColumns, moveRow, nestedErrors, nestedFieldsOf, removeChip, rowErrorList, rowErrors, withNested, type TableRow,
+} from '../lib/tables.ts'
 import { labelOf } from '../lib/fields.ts'
 import type { FieldState } from '../lib/logic.ts'
 import { FieldControl, FieldInput } from './FieldControl.tsx'
@@ -25,10 +27,12 @@ interface Props {
   makeRow?: () => TableRow
   /** Called after a cell was edited, with the row's index and the field, e.g. to run "fetch from". */
   onCellEdited?: (rowIndex: number, fieldName: string, value: string | boolean) => void
+  /** Every child DocType the server sent along: what the tables inside a row are made of. Without it, only the row's own fields are shown. */
+  childMetas?: Record<string, DocTypeMeta>
 }
 
 /** An editable grid for a child table: type into the cells, add, remove and reorder rows. */
-export function TableControl({ field, child, rows, onChange, readOnly, errors, preview, rowState, makeRow, onCellEdited }: Props) {
+export function TableControl({ field, child, rows, onChange, readOnly, errors, preview, rowState, makeRow, onCellEdited, childMetas }: Props) {
   const id = useId()
   const toast = useToast()
   const picker = useRef<HTMLInputElement>(null)
@@ -36,6 +40,7 @@ export function TableControl({ field, child, rows, onChange, readOnly, errors, p
   const [expanded, setExpanded] = useState<string | null>(null)
   const columns = gridColumns(child)
   const all = editableFields(child).filter((f) => preview || !f.hidden)
+  const inner = nestedFieldsOf(child, childMetas).filter((n) => preview || !n.field.hidden)
   const locked = Boolean(readOnly || field.readOnly)
   const { table: tableError, rows: byRow } = rowErrors(errors, field.name)
   const messages = rowErrorList(errors, field.name, child.fields)
@@ -178,6 +183,12 @@ export function TableControl({ field, child, rows, onChange, readOnly, errors, p
                               onChange={(v) => update(index, f.name, v)} />
                           ))}
                         </div>
+                        {inner.map((n) => (
+                          <TableControl key={n.field.name} field={n.field} child={n.child} childMetas={childMetas} preview={preview} readOnly={locked}
+                            rows={row.tables?.[n.field.name] ?? []} errors={nestedErrors(errors, field.name, index)}
+                            rowState={rowState ? (_r, f) => ({ active: true, required: f.required, readOnly: Boolean(f.readOnly || f.formula) }) : undefined}
+                            onChange={(innerRows) => onChange(rows.map((r, i) => (i === index ? withNested(r, n.field.name, innerRows) : r)))} />
+                        ))}
                         </div>
                       </td>
                     </tr>

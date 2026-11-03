@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 using Qahwa.Testing;
 
 namespace Qahwa.Api.Tests;
@@ -55,6 +56,65 @@ public sealed class ApiKeyApiTests : IAsyncDisposable
 
         Assert.Equal(HttpStatusCode.OK, (await me.DeleteAsync($"/api/api-keys/{id}")).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await script.GetAsync("/api/auth/me")).StatusCode);
+    }
+
+    [Fact]
+    public async Task A_key_limited_to_a_DocType_can_use_only_that_DocType()
+    {
+        var me = await SignedInAsync();
+        var (_, token) = await MakeKeyAsync(me, new { description = "customers only", docTypes = new[] { "Customer" } });
+        var script = WithKey(token);
+
+        Assert.Equal(HttpStatusCode.Created, (await script.PostAsJsonAsync("/api/resource/Customer", new { customer_name = "Scoped" })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await script.GetAsync("/api/resource/Customer")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await script.GetAsync("/api/v1/resource/Customer")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await script.GetAsync("/api/meta/Customer")).StatusCode);
+
+        // Everything else is closed to it, even what its person may do.
+        Assert.Equal(HttpStatusCode.Forbidden, (await script.GetAsync("/api/resource/Territory")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await script.GetAsync("/api/auth/me")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await script.GetAsync("/api/api-keys")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await me.GetAsync("/api/resource/Territory")).StatusCode); // the person, signed in, still can
+    }
+
+    [Fact]
+    public async Task A_key_over_its_limit_gets_429_with_Retry_After()
+    {
+        var me = await SignedInAsync();
+        var (_, token) = await MakeKeyAsync(me, new { description = "slow", ratePerMinute = 3 });
+        var script = WithKey(token);
+
+        for (var i = 0; i < 3; i++)
+            Assert.Equal(HttpStatusCode.OK, (await script.GetAsync("/api/resource/Customer")).StatusCode);
+        var refused = await script.GetAsync("/api/resource/Customer");
+
+        Assert.Equal(HttpStatusCode.TooManyRequests, refused.StatusCode);
+        Assert.True(refused.Headers.RetryAfter?.Delta is { } wait && wait > TimeSpan.Zero && wait <= TimeSpan.FromSeconds(60));
+        Assert.Equal("rate_limited", (await JsonOf(refused)).GetProperty("code").GetString());
+        Assert.Equal(HttpStatusCode.OK, (await me.GetAsync("/api/resource/Customer")).StatusCode); // the person is not limited by their key
+    }
+
+    [Fact]
+    public async Task A_person_whose_role_is_limited_to_networks_is_refused_from_other_addresses()
+    {
+        var restricted = await SignedInAsync("limited@example.com", "Field Agent");
+        var open = await SignedInAsync("free@example.com", "Sales Manager");
+        Assert.Equal(HttpStatusCode.OK, (await restricted.GetAsync("/api/auth/me")).StatusCode);
+
+        // A System Manager limits the role to an office network; the test client comes from no address inside it.
+        var admin = await SignedInAsync("boss@example.com", "System Manager");
+        Assert.Equal(HttpStatusCode.OK, (await admin.PutAsJsonAsync("/api/resource/Role/Field%20Agent", new { allowed_networks = "10.0.0.0/8" })).StatusCode);
+        _factory.Services.GetRequiredService<Qahwa.Core.RoleNetworkService>().Refresh();
+
+        var refused = await restricted.GetAsync("/api/auth/me");
+        Assert.Equal(HttpStatusCode.Forbidden, refused.StatusCode);
+        Assert.Contains("Field Agent", (await JsonOf(refused)).GetProperty("message").GetString());
+        Assert.Equal(HttpStatusCode.OK, (await open.GetAsync("/api/auth/me")).StatusCode); // other roles are not affected
+        Assert.Equal(HttpStatusCode.OK, (await admin.GetAsync("/api/auth/me")).StatusCode);
+
+        // The System Manager role itself cannot be limited.
+        var tryLock = await admin.PutAsJsonAsync("/api/resource/Role/System%20Manager", new { allowed_networks = "10.0.0.0/8" });
+        Assert.Equal(HttpStatusCode.BadRequest, tryLock.StatusCode);
     }
 
     [Fact]

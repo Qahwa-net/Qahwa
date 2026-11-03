@@ -1,0 +1,373 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qahwa.dev/schema/doctype.schema.json",
+  "title": "Qahwa DocType",
+  "description": "A DocType: one kind of document, from which Qahwa makes the table, the API and the screens.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "name"
+  ],
+  "properties": {
+    "name": {
+      "type": "string"
+    },
+    "allowCopy": {
+      "type": "boolean",
+      "description": "False hides \"Duplicate\" for this DocType (people can still create documents)."
+    },
+    "allowRename": {
+      "type": "boolean",
+      "description": "Documents may be renamed, or merged into another, by people who can write them."
+    },
+    "autoname": {
+      "type": "string",
+      "description": "How document names are generated: \"hash\" (default), \"prompt\" (caller supplies it), \"field:<fieldname>\", or a series pattern such as \"CUST-.#####\"."
+    },
+    "defaultView": {
+      "type": "string",
+      "description": "The view a person lands on the first time they open this DocType in a session: list (the default), tree, board, calendar, gallery, map or timeline."
+    },
+    "fields": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "Data",
+              "Text",
+              "LongText",
+              "Int",
+              "Float",
+              "Decimal",
+              "Currency",
+              "Percent",
+              "Check",
+              "Select",
+              "Date",
+              "Datetime",
+              "Time",
+              "Link",
+              "DynamicLink",
+              "Table",
+              "Attach",
+              "AttachImage",
+              "Json",
+              "Password",
+              "Email",
+              "Phone",
+              "Url",
+              "Code",
+              "Markdown",
+              "SectionBreak",
+              "ColumnBreak",
+              "TabBreak",
+              "Rating",
+              "Duration",
+              "Color",
+              "Heading",
+              "Html",
+              "Barcode",
+              "Geolocation",
+              "Icon",
+              "Signature",
+              "SmallText",
+              "Autocomplete",
+              "TextEditor"
+            ]
+          },
+          "allowOnSubmit": {
+            "type": "boolean",
+            "description": "Submittable DocTypes: the field may still be changed after the document is submitted."
+          },
+          "bold": {
+            "type": "boolean",
+            "description": "The label is shown in bold on the form."
+          },
+          "default": {
+            "type": "string"
+          },
+          "dependsOn": {
+            "type": "string",
+            "description": "Expression: the field is only shown (and only required) while this is true."
+          },
+          "description": {
+            "type": "string",
+            "description": "Help text shown under the field in forms."
+          },
+          "fetchFrom": {
+            "type": "string",
+            "description": "\"link_field.target_field\": copy a value from the document a Link field points at."
+          },
+          "fetchIfEmpty": {
+            "type": "boolean",
+            "description": "With FetchFrom: only copy the value while this field is still empty."
+          },
+          "formula": {
+            "type": "string",
+            "description": "Expression: the value is calculated from other fields every time the document is saved."
+          },
+          "hidden": {
+            "type": "boolean",
+            "description": "UI hint: the field is not shown in forms (its value is kept and still validated)."
+          },
+          "inListView": {
+            "type": "boolean"
+          },
+          "inPreview": {
+            "type": "boolean",
+            "description": "When a document of this DocType is chosen in a Link field, a small preview card offers this field's value (ADR-116)."
+          },
+          "inStandardFilter": {
+            "type": "boolean",
+            "description": "The field is offered in the list's filter sidebar (Select, Link, Check, Data, Email, Phone, Int and Rating fields)."
+          },
+          "indexed": {
+            "type": "boolean",
+            "description": "Create a database index on this field (for fields that are searched or joined on)."
+          },
+          "label": {
+            "type": "string"
+          },
+          "lowercase": {
+            "type": "boolean",
+            "description": "Convert text values to lower case when saving (used for emails)."
+          },
+          "mandatoryDependsOn": {
+            "type": "string",
+            "description": "Expression: the field is required while this is true, in addition to Required."
+          },
+          "maxLength": {
+            "type": "integer",
+            "description": "A text field refuses values longer than this many characters (1 to 10000)."
+          },
+          "multiSelect": {
+            "type": "boolean",
+            "description": "Table fields only: the child DocType has just one Link field and the Desk shows the rows as a list of chips to pick from (several documents of one DocType, each at most once) instead of a grid."
+          },
+          "noCopy": {
+            "type": "boolean",
+            "description": "The value is not copied when a document is duplicated, amended or repeated."
+          },
+          "nonNegative": {
+            "type": "boolean",
+            "description": "A number field refuses values below zero."
+          },
+          "options": {
+            "type": "string",
+            "description": "Link target DocType, child DocType for Table, or newline-separated Select options."
+          },
+          "permLevel": {
+            "type": "integer",
+            "description": "Permission level 0 to 9. Level 0 fields follow the DocType's ordinary access; a higher level is only visible and editable to roles that have a permission rule at that level."
+          },
+          "precision": {
+            "type": "integer",
+            "description": "The decimals a Float, Decimal, Currency or Percent value keeps (0 to 9): longer values are rounded, halves away from zero, when saved."
+          },
+          "readOnly": {
+            "type": "boolean",
+            "description": "UI hint: the field is shown but cannot be edited in forms."
+          },
+          "readOnlyDependsOn": {
+            "type": "string",
+            "description": "Expression: UI hint, the field cannot be edited while this is true."
+          },
+          "renamedFrom": {
+            "type": "string",
+            "description": "Designer only: the name this field had before. When the DocType is saved the saved column (and its data) is renamed to Name instead of a new empty column being added. It is never kept in the stored definition."
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "setOnce": {
+            "type": "boolean",
+            "description": "Once the field has a value it cannot be changed (it can still be filled in the first time)."
+          },
+          "translatable": {
+            "type": "boolean",
+            "description": "The value is shown through the Translation documents of the person's language, like a label (Data, Select, Text and Autocomplete fields)."
+          },
+          "unique": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "name",
+          "type"
+        ]
+      }
+    },
+    "imageField": {
+      "type": "string",
+      "description": "The image field (of type Image) the gallery shows by default."
+    },
+    "indicators": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "color": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "color",
+          "value"
+        ]
+      },
+      "description": "The colour of each value of StatusField; values not listed are grey."
+    },
+    "isChildTable": {
+      "type": "boolean"
+    },
+    "isSingle": {
+      "type": "boolean",
+      "description": "One document only, named after the DocType (settings pages). It has no list and cannot be deleted."
+    },
+    "isSubmittable": {
+      "type": "boolean"
+    },
+    "isTree": {
+      "type": "boolean",
+      "description": "Documents form a tree through TreeParentField and TreeGroupField."
+    },
+    "maxAttachments": {
+      "type": "integer",
+      "description": "The most files one document may have (1 to 50); empty means the system limit of 50."
+    },
+    "module": {
+      "type": "string"
+    },
+    "permissions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "role": {
+            "type": "string"
+          },
+          "amend": {
+            "type": "boolean"
+          },
+          "cancel": {
+            "type": "boolean",
+            "description": "Submittable DocTypes: may cancel a submitted document (docstatus 1 to 2)."
+          },
+          "create": {
+            "type": "boolean"
+          },
+          "delete": {
+            "type": "boolean"
+          },
+          "email": {
+            "type": "boolean"
+          },
+          "export": {
+            "type": "boolean",
+            "description": "May export documents (CSV)."
+          },
+          "ifOwner": {
+            "type": "boolean",
+            "description": "Restrict this rule to documents the user owns."
+          },
+          "import": {
+            "type": "boolean",
+            "description": "May import documents from a file, share a document, print it and email about it. These default to true (so a rule written before they existed changes nothing); they only take away what the role's other rights would allow, and are ignored for people with no rule for the DocType (see PermFlag)."
+          },
+          "permLevel": {
+            "type": "integer",
+            "description": "The permission level of fields this rule covers (0 is the document itself and its ordinary fields)."
+          },
+          "print": {
+            "type": "boolean"
+          },
+          "read": {
+            "type": "boolean"
+          },
+          "report": {
+            "type": "boolean",
+            "description": "May use grouped reports over the documents."
+          },
+          "share": {
+            "type": "boolean"
+          },
+          "submit": {
+            "type": "boolean",
+            "description": "Submittable DocTypes: may submit a draft (docstatus 0 to 1)."
+          },
+          "write": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "role"
+        ]
+      }
+    },
+    "searchFields": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Text fields (up to 5) that picking a document in a Link field also searches, besides the name and the title."
+    },
+    "sortDescending": {
+      "type": "boolean",
+      "description": "True (the default) sorts the default sort from highest to lowest."
+    },
+    "sortField": {
+      "type": "string",
+      "description": "How the list is sorted until the person chooses otherwise: \"name\", \"modified\", \"creation\" or one of the DocType's fields. Empty means last modified first."
+    },
+    "statusField": {
+      "type": "string",
+      "description": "The field whose value is shown as a coloured status in lists (usually a Select such as Status)."
+    },
+    "titleField": {
+      "type": "string"
+    },
+    "trackChanges": {
+      "type": "boolean",
+      "description": "Keep an updates log (a Version row per change, in the same transaction). On unless a DocType opts out."
+    },
+    "trackViews": {
+      "type": "boolean",
+      "description": "Keep a View Log: who opened each document and when (shown to the people who may change it)."
+    },
+    "validations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "expression": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "field": {
+            "type": "string",
+            "description": "The field to show the message under; without it the message applies to the document."
+          }
+        },
+        "required": [
+          "expression",
+          "message"
+        ]
+      }
+    }
+  }
+}

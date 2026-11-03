@@ -899,3 +899,9 @@ kbd { font: .75rem ui-monospace, Consolas, monospace; padding: .05rem .35rem; bo
 .narrow { max-inline-size: 5rem; }
 .escalate-cell { display: grid; gap: .3rem; min-inline-size: 11rem; } .escalate-cell label { display: flex; align-items: center; gap: .35rem; }
 .preview-row .btn.small { white-space: nowrap; flex: none; }
+
+.milestones { margin: 1rem 0; }
+.milestone-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .5rem; }
+.milestone-list li { display: flex; flex-direction: column; gap: .1rem; padding: .4rem .7rem; border: 1px solid var(--border, #ddd); border-radius: 6px; }
+.milestone-list li.current { border-color: var(--accent, #7a5230); }
+.milestone-list li:not(:last-child)::after { content: none; }

@@ -8,7 +8,7 @@ using Qahwa.Core;
 /// with <c>Qahwa:Scheduler:Enabled = false</c>; change the pace with <c>Qahwa:Scheduler:IntervalSeconds</c> (10 to 3600, default 300).
 /// </summary>
 public sealed class SchedulerService(
-    AutoRepeatService autoRepeat, WorkflowEscalationService escalations, NotificationRuleEngine notificationRules, EmailService email, WebhookService webhooks, ErrorLogService errorLog,
+    AutoRepeatService autoRepeat, ReminderService reminders, PreparedReportService preparedReports, WorkflowEscalationService escalations, ImportRunService importRuns, NotificationRuleEngine notificationRules, EmailService email, WebhookService webhooks, ErrorLogService errorLog,
     BackupService backup, BackupOptions backupOptions, AppJobRunner appJobs, DeletedDocumentService deletedDocuments, AccessLogService accessLog, AutoEmailReportService emailedReports,
     EmailDigestService digests, AppInstaller installer, OAuthService oauth, IncomingMailService incomingMail, BackgroundJobService backgroundJobs, ServerScriptEngine serverScripts, NotificationService notifications, JobLogService jobLog, IConfiguration configuration, ILogger<SchedulerService> logger) : BackgroundService
 {
@@ -60,10 +60,28 @@ public sealed class SchedulerService(
                 return run.Created + run.Failed > 0 ? $"{run.Created} document(s) made, {run.Failed} failed." : null;
             }, stoppingToken);
 
+            await StepAsync("reminders", async () =>
+            {
+                var (sent, dropped) = await reminders.RunDueAsync(stoppingToken);
+                return sent + dropped > 0 ? $"{sent} sent, {dropped} dropped (nobody to tell)." : null;
+            }, stoppingToken);
+
+            await StepAsync("prepared reports", async () =>
+            {
+                var (built, failed) = await preparedReports.RunDueAsync(stoppingToken);
+                return built + failed > 0 ? $"{built} built, {failed} failed." : null;
+            }, stoppingToken);
+
             await StepAsync("workflow escalation", async () =>
             {
                 var (escalated, failed) = await escalations.RunDueAsync(stoppingToken);
                 return escalated + failed > 0 ? $"{escalated} escalated, {failed} failed." : null;
+            }, stoppingToken);
+
+            await StepAsync("data imports", async () =>
+            {
+                var (done, failed) = await importRuns.RunDueAsync(stoppingToken);
+                return done + failed > 0 ? $"{done} finished, {failed} failed." : null;
             }, stoppingToken);
 
             await StepAsync("emailed reports", async () =>
@@ -114,7 +132,7 @@ public sealed class SchedulerService(
                 lastBackup = DateTime.UtcNow;
                 await StepAsync("backup", async () =>
                 {
-                    var written = await backup.RunScheduledAsync(backupOptions.Path, backupOptions.Keep, new UserContext("system@qahwa", [UserContext.AdministratorRole]), stoppingToken);
+                    var written = await backup.RunScheduledAsync(backupOptions.Path, backupOptions.Keep, new UserContext("system@qahwa", [UserContext.AdministratorRole]), stoppingToken, backupOptions.Password);
                     return written is null ? null : $"Backup written to {Path.GetFileName(written)}.";
                 }, stoppingToken);
             }
@@ -133,6 +151,7 @@ public sealed class SchedulerService(
                     await accessLog.PurgeAsync(TimeSpan.FromDays(accessDays), stoppingToken);
                     await oauth.PurgeAsync(stoppingToken);
                     await backgroundJobs.PurgeAsync(stoppingToken);
+                    await importRuns.PurgeAsync(stoppingToken);
                     return copies > 0 ? $"Removed {copies} old copy(ies) of deleted documents." : null;
                 }, stoppingToken);
             }

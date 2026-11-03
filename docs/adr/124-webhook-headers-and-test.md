@@ -13,4 +13,5 @@ Receivers often want a token in an `Authorization` header, and nobody trusts a w
 - The Desk's Webhooks page gets an "Extra headers" editor and a "Send a test" button next to each webhook (enabled once the webhook is saved and has no unsaved changes), with the result shown beside it.
 
 ## Consequences
-- Not yet: per-webhook retry settings, a body template, resending a failed delivery from the delivery list.
+- A failed delivery can be sent again: a "Send again" button on a failed Webhook Delivery (`POST /api/webhooks/deliveries/{id}/retry`, System Managers, only status Failed) puts it back in the queue with a fresh set of five tries.
+- Not yet: per-webhook retry settings and a body template.

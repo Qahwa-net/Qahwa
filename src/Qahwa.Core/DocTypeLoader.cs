@@ -361,8 +361,8 @@ public static partial class DocTypeLoader
     {
         if (field.Type == FieldType.Table)
         {
-            if (inChildTable)
-                add($"{path}.type", "A child table cannot contain another table.");
+            // A child table may hold a table of its own, one level deep: that rule needs the other DocTypes, so the registry checks it
+            // (MetaRegistry.CheckReferences), not this single-definition check.
             if (field.Unique)
                 add($"{path}.unique", "A table cannot be unique.");
             if (!string.IsNullOrEmpty(field.Default))

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError, api } from '../api/client.ts'
 import type { ApiKeyCreated } from '../api/types.ts'
+import { ChipPicker } from '../controls/ChipPicker.tsx'
 import { Icon, IconButton } from '../controls/Icon.tsx'
 import { ConfirmDialog, Modal } from '../controls/Modal.tsx'
 import { useToast } from '../controls/Toast.tsx'
@@ -42,6 +43,8 @@ export function ApiKeysSection() {
               <small className="muted"><code>qk_{k.keyId}…</code></small>
               <small className="chips">
                 {k.readOnly && <span className="chip">Read only</span>}
+                {k.docTypes.length > 0 && <span className="chip" title={k.docTypes.join(', ')}>Only {k.docTypes.length === 1 ? k.docTypes[0] : `${k.docTypes.length} DocTypes`}</span>}
+                {k.ratePerMinute ? <span className="chip">{k.ratePerMinute}/minute</span> : null}
                 {k.expired ? <span className="chip prio-high">Expired</span> : k.expiresOn ? <span className="chip">Expires {k.expiresOn}</span> : <span className="chip">No expiry</span>}
                 <span className="chip">{k.lastUsed ? `Used ${new Date(k.lastUsed).toLocaleString()}` : 'Never used'}</span>
               </small>
@@ -63,9 +66,11 @@ function CreateDialog({ onClose, onCreated }: { onClose: () => void; onCreated: 
   const [description, setDescription] = useState('')
   const [readOnly, setReadOnly] = useState(false)
   const [expiresOn, setExpiresOn] = useState('')
+  const [docTypes, setDocTypes] = useState<string[]>([])
+  const [rate, setRate] = useState('')
   const [error, setError] = useState<string | null>(null)
   const create = useMutation({
-    mutationFn: () => api.apiKeys.create({ description: description.trim(), readOnly, expiresOn: expiresOn || undefined }),
+    mutationFn: () => api.apiKeys.create({ description: description.trim(), readOnly, expiresOn: expiresOn || undefined, docTypes: docTypes.length > 0 ? docTypes : undefined, ratePerMinute: rate.trim() === '' ? undefined : Number(rate) }),
     onSuccess: onCreated,
     onError: (e) => setError(e instanceof ApiError ? (e.details[0]?.message ?? e.message) : 'Could not make the key.'),
   })
@@ -85,6 +90,15 @@ function CreateDialog({ onClose, onCreated }: { onClose: () => void; onCreated: 
         <div className="field">
           <label htmlFor="key-exp">Expires on <span className="muted">(optional)</span></label>
           <input id="key-exp" type="date" min={tomorrow} value={expiresOn} onChange={(e) => setExpiresOn(e.target.value)} />
+        </div>
+        <div className="field">
+          <label>Only these DocTypes <span className="muted">(optional: with none chosen it can use all you can)</span></label>
+          <ChipPicker doctype="DocType" values={docTypes} onChange={setDocTypes} label="DocTypes this key may use" placeholder="Search a DocType…" />
+          <small className="muted">A limited key can only read and write those DocTypes. Everything else is closed to it, including your account and other keys.</small>
+        </div>
+        <div className="field">
+          <label htmlFor="key-rate">Most requests per minute <span className="muted">(optional)</span></label>
+          <input id="key-rate" type="number" min={1} max={10000} inputMode="numeric" value={rate} placeholder="no limit" onChange={(e) => setRate(e.target.value)} />
         </div>
         <label className="switch"><input type="checkbox" checked={readOnly} onChange={(e) => setReadOnly(e.target.checked)} /><span>Read only (it can look but not change anything)</span></label>
       </form>

@@ -6,6 +6,7 @@ import { api } from '../api/client.ts'
 import type { WorkspaceBlockView } from '../api/types.ts'
 import { Icon } from '../controls/Icon.tsx'
 import { DashboardTiles } from './Dashboards.tsx'
+import { sanitizeHtml } from '../lib/richText.ts'
 
 /** The workspaces made for this person, as tabs on the home page. Nothing is shown when there are none. */
 export function WorkspaceHome() {
@@ -39,6 +40,8 @@ export function WorkspaceHome() {
 
 function Block({ block }: { block: WorkspaceBlockView }) {
   if (block.type === 'Heading') return <h3 className="workspace-heading">{block.text}</h3>
+  // The server cleaned this when it was saved and again when it was sent; the Desk cleans it a third time before showing it.
+  if (block.type === 'Text') return <div className="form-html workspace-text" dangerouslySetInnerHTML={{ __html: sanitizeHtml(block.text) }} />
   if (block.type === 'Dashboard' && block.dashboardId) {
     return (
       <div className="workspace-dashboard">

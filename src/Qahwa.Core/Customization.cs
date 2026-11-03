@@ -228,7 +228,7 @@ public sealed partial class CustomizationManager(
             if (stored?.Modified != expectedModified)
                 throw new ConflictException($"'{name}' was customised by someone else after you opened it. Reload and try again.");
 
-            await schema.ApplyAsync(effective, ct); // new columns only; nothing is dropped
+            await schema.ApplyAsync(effective, ct: ct); // new columns only; nothing is dropped
             var row = new StoredCustomization(name, DocTypeLoader.SerializeCustomization(customization), Now(), user.User);
             if (!await store.SaveAsync(row, expectedModified, ct))
                 throw new ConflictException($"'{name}' was customised by someone else. Reload and try again.");

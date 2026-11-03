@@ -12,11 +12,14 @@ const string usage = """
     qahwa new-site     <name> --sites <dir> --host <host> [--host <host> ...] --admin-connection <cs>
                        [--provider postgres|sqlserver] [--connection-env <VARIABLE>] [--doctypes <dir> ...] [--email <email> [--full-name <name>] [--password-stdin]]
     qahwa list-sites   --sites <dir>
+    qahwa schema
+    qahwa list-patches (--connection <cs> | --site <name> --sites <dir>)
+    qahwa run-patch    <name> [--force] (--connection <cs> | --site <name> --sites <dir>)
     qahwa list-apps    (--connection <cs> | --site <name> --sites <dir>)
     qahwa install-app  <app> (--connection <cs> | --site <name> --sites <dir>)
     qahwa uninstall-app <app> (--connection <cs> | --site <name> --sites <dir>)
-    qahwa backup       (--connection <cs> | --site <name> --sites <dir>) --out <file.zip> [--doctypes <dir> ...]
-    qahwa restore      <file.zip> (--connection <cs> | --site <name> --sites <dir>) [--dry-run] [--doctypes <dir> ...]
+    qahwa backup       (--connection <cs> | --site <name> --sites <dir>) --out <file.zip|file.qbk> [--password-stdin] [--doctypes <dir> ...]
+    qahwa restore      <file> (--connection <cs> | --site <name> --sites <dir>) [--dry-run] [--password-stdin] [--doctypes <dir> ...]
 
     migrate       Creates or updates database tables for the framework and every DocType found in the directories.
                   --plan   print the SQL that would run without executing it
@@ -28,6 +31,11 @@ const string usage = """
                   --connection-env the file holds only the name of an environment variable for the connection string,
                   which you must set when the server runs. Run the server with Qahwa:Sites:Path set to <sites>.
     list-sites    Shows the sites found in the directory.
+    list-patches  Shows the data patches the command line knows (the framework's own) and whether each has run.
+    run-patch     Runs one of them now. One that already ran needs --force (it runs again, so it must be safe to repeat).
+                  Patches that belong to apps run from the server: use the Patch Log page in the Desk for those.
+    schema        Prints the JSON Schema of a DocType file (for editor completion, hover help and typo warnings).
+                  Save it as doctype.schema.json and add "$schema": "./doctype.schema.json" to a DocType file.
     list-apps     Shows the apps the server has recorded for the site and whether each is installed or uninstalled.
     install-app   Switches an app back on for the site. The app must have been recorded by a server start.
     uninstall-app Switches an app off for the site (its hooks, methods, jobs and reports stop; its data and DocTypes stay).
@@ -36,6 +44,9 @@ const string usage = """
     backup        Writes the documents and definitions of the site to a zip (never passwords, sessions or secrets). The file must not exist yet.
     restore       Adds what is in a backup zip to the site: rows that already exist are left alone. --dry-run only reports what would be added.
                   Both need the same --doctypes the server uses, so the app DocTypes are known.
+
+    --password-stdin  (backup, restore) seals the backup with a password read from the first line of stdin (12 or more characters), or opens a
+                  protected one. The password is never taken as a command-line argument.
 
     --connection (or QAHWA_CONNECTION) names the database directly; --site names a site made by new-site.
     --provider chooses the database product: postgres (the default) or sqlserver (also QAHWA_PROVIDER). For an existing site
@@ -49,7 +60,7 @@ if (args.Length == 0 || args[0] is "-h" or "--help")
 }
 
 var command = args[0];
-if (command is not ("migrate" or "create-admin" or "new-site" or "list-sites" or "list-apps" or "install-app" or "uninstall-app" or "backup" or "restore"))
+if (command is not ("migrate" or "create-admin" or "new-site" or "list-sites" or "schema" or "list-patches" or "run-patch" or "list-apps" or "install-app" or "uninstall-app" or "backup" or "restore"))
 {
     Console.Error.WriteLine($"Unknown command '{command}'.\n\n{usage}");
     return 1;
@@ -62,6 +73,8 @@ var product = (Environment.GetEnvironmentVariable("QAHWA_PROVIDER") ?? "postgres
 string? email = null, fullName = null, site = null, sitesDir = null, adminConnection = null, connectionEnv = null, siteName = null, appName = null;
 var planOnly = false;
 var dryRun = false;
+var force = false;
+string? patchName = null;
 string? outFile = null, restoreFile = null;
 var passwordFromStdin = false;
 
@@ -71,7 +84,7 @@ for (var i = 1; i < args.Length; i++)
     var hasValue = i + 1 < args.Length;
     switch (arg)
     {
-        case "--connection" when hasValue && command is "migrate" or "create-admin" or "list-apps" or "install-app" or "uninstall-app" or "backup" or "restore" or "backup" or "restore":
+        case "--connection" when hasValue && command is "migrate" or "create-admin" or "list-apps" or "install-app" or "uninstall-app" or "backup" or "restore" or "list-patches" or "run-patch":
             connection = args[++i];
             break;
         case "--doctypes" when hasValue && command != "list-sites":
@@ -83,7 +96,7 @@ for (var i = 1; i < args.Length; i++)
         case "--full-name" when hasValue && command is "create-admin" or "new-site":
             fullName = args[++i];
             break;
-        case "--password-stdin" when command is "create-admin" or "new-site":
+        case "--password-stdin" when command is "create-admin" or "new-site" or "backup" or "restore":
             passwordFromStdin = true;
             break;
         case "--out" when hasValue && command == "backup":
@@ -95,7 +108,10 @@ for (var i = 1; i < args.Length; i++)
         case "--plan" when command == "migrate":
             planOnly = true;
             break;
-        case "--site" when hasValue && command is "migrate" or "create-admin" or "list-apps" or "install-app" or "uninstall-app" or "backup" or "restore" or "backup" or "restore":
+        case "--force" when command == "run-patch":
+            force = true;
+            break;
+        case "--site" when hasValue && command is "migrate" or "create-admin" or "list-apps" or "install-app" or "uninstall-app" or "backup" or "restore" or "list-patches" or "run-patch":
             site = args[++i];
             break;
         case "--provider" when hasValue && command is "migrate" or "create-admin" or "new-site":
@@ -120,6 +136,12 @@ for (var i = 1; i < args.Length; i++)
                 break;
             }
 
+            if (command == "run-patch" && patchName is null && !arg.StartsWith('-'))
+            {
+                patchName = arg;
+                break;
+            }
+
             if (command == "restore" && restoreFile is null && !arg.StartsWith('-'))
             {
                 restoreFile = arg;
@@ -135,6 +157,12 @@ for (var i = 1; i < args.Length; i++)
             Console.Error.WriteLine($"Unexpected argument '{arg}'.\n\n{usage}");
             return 1;
     }
+}
+
+if (command == "schema")
+{
+    Console.Write(Qahwa.Core.DocTypeSchema.Generate());
+    return 0;
 }
 
 try
@@ -179,6 +207,8 @@ try
         return Fail("--out is required.");
     if (command == "restore" && string.IsNullOrWhiteSpace(restoreFile))
         return Fail("The backup file is required.");
+    if (command == "run-patch" && string.IsNullOrWhiteSpace(patchName))
+        return Fail("The name of the patch is required.");
 
     await using var provider = Build(connection);
     return command switch
@@ -187,8 +217,17 @@ try
         "list-apps" or "install-app" or "uninstall-app" => await AppsAsync(provider),
         "backup" => await BackupAsync(provider),
         "restore" => await RestoreAsync(provider),
+        "list-patches" or "run-patch" => await PatchesAsync(provider),
         _ => await CreateAdminAsync(provider),
     };
+}
+catch (Qahwa.Core.DocumentValidationException e)
+{
+    return Fail(e.Errors.Count > 0 ? e.Errors[0].Message : e.Message);
+}
+catch (Qahwa.Core.QahwaException e)
+{
+    return Fail(e.Message);
 }
 catch (IOException e)
 {
@@ -240,6 +279,36 @@ async Task<int> MigrateAsync(ServiceProvider provider)
     return 0;
 }
 
+async Task<int> PatchesAsync(ServiceProvider provider)
+{
+    // The command line carries the framework's own patches; those of apps run in the server (see the Patch Log page in the Desk).
+    var runner = provider.GetRequiredService<Qahwa.Core.PatchRunner>();
+    await provider.GetRequiredService<QahwaMigrator>().MigrateAsync(planOnly: false); // the Patch Log table must exist
+    if (command == "list-patches")
+    {
+        var all = await runner.ListAsync();
+        foreach (var p in all)
+            Console.WriteLine($"{p.Name}: {p.Status.ToLowerInvariant()}{(p.Error is null ? string.Empty : " (" + p.Error.Split('\n')[0] + ")")}");
+        Console.WriteLine(all.Count == 0 ? "No patches." : $"{all.Count} patch(es).");
+        return 0;
+    }
+
+    try
+    {
+        var done = await runner.RunOneAsync(patchName!, force);
+        Console.WriteLine($"{done.Name}: {done.Status.ToLowerInvariant()}.");
+        return 0;
+    }
+    catch (Qahwa.Core.QahwaException e)
+    {
+        return Fail(e.Message);
+    }
+    catch (Qahwa.Core.PatchFailedException e)
+    {
+        return Fail($"The patch '{patchName}' failed: {e.InnerException?.Message}");
+    }
+}
+
 async Task<int> AppsAsync(ServiceProvider provider)
 {
     var registry = provider.GetRequiredService<Qahwa.Core.IMetaRegistry>();
@@ -283,7 +352,13 @@ async Task<int> BackupAsync(ServiceProvider provider)
     {
         // CreateNew: an existing file is never overwritten.
         await using (var stream = new FileStream(path, FileMode.CreateNew, FileAccess.Write, FileShare.None))
-            await provider.GetRequiredService<Qahwa.Core.BackupService>().WriteAsync(stream, admin);
+        {
+            var service = provider.GetRequiredService<Qahwa.Core.BackupService>();
+            if (passwordFromStdin)
+                await service.WriteProtectedAsync(stream, admin, Console.In.ReadLine() ?? string.Empty);
+            else
+                await service.WriteAsync(stream, admin);
+        }
     }
     catch
     {
@@ -292,7 +367,7 @@ async Task<int> BackupAsync(ServiceProvider provider)
         throw;
     }
 
-    Console.WriteLine($"Backup written to {path} ({new FileInfo(path).Length} bytes). It holds business data: keep it private.");
+    Console.WriteLine($"Backup written to {path} ({new FileInfo(path).Length} bytes). {(passwordFromStdin ? "It is password protected: keep the password safe, it cannot be recovered." : "It holds business data and is NOT encrypted: keep it private (or make it again with --password-stdin).")}");
     return 0;
 }
 
@@ -303,7 +378,7 @@ async Task<int> RestoreAsync(ServiceProvider provider)
         return Fail($"There is no file {path}.");
     var admin = new Qahwa.Core.UserContext(Qahwa.Core.UserContext.AdministratorRole, [Qahwa.Core.UserContext.AdministratorRole]);
     await using var stream = File.OpenRead(path);
-    var report = await provider.GetRequiredService<Qahwa.Core.BackupService>().RestoreAsync(stream, dryRun, admin);
+    var report = await provider.GetRequiredService<Qahwa.Core.BackupService>().RestoreAsync(stream, dryRun, admin, password: passwordFromStdin ? Console.In.ReadLine() : null);
     Console.WriteLine(report.DryRun ? "Dry run: nothing was changed." : "Restored.");
     foreach (var table in report.Tables)
         Console.WriteLine($"  {table}");

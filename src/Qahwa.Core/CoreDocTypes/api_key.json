@@ -8,6 +8,8 @@
     { "name": "description", "type": "Data", "label": "Description", "inListView": true },
     { "name": "secret_hash", "type": "Data", "label": "Secret hash", "permLevel": 9 },
     { "name": "read_only", "type": "Check", "label": "Read only" },
+    { "name": "doctypes", "type": "Text", "label": "Only these DocTypes" },
+    { "name": "rate_per_minute", "type": "Int", "label": "Requests per minute" },
     { "name": "expires_on", "type": "Date", "label": "Expires on" },
     { "name": "last_used", "type": "Datetime", "label": "Last used" }
   ],

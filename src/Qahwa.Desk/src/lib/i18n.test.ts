@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_LANGUAGE, isRtl, isValidLanguage, mergeMessages, readLanguage, translate } from './i18n.ts'
+import { BUILT_IN, DEFAULT_LANGUAGE, format, isRtl, isValidLanguage, mergeMessages, readLanguage, translate } from './i18n.ts'
 
 describe('i18n helpers', () => {
   it('knows right-to-left languages, with or without a region', () => {
@@ -50,3 +50,46 @@ describe('values of translatable fields', () => {
     setValueTranslator((text) => text)
   })
 })
+
+describe('placeholders and plural forms', () => {
+  const rows = 'one: {count} row | other: {count} rows'
+
+  it('puts values into {name} places and leaves unknown names and look-alike words alone', () => {
+    expect(format('Hello {name}, you have {n} messages', { name: 'Ann', n: 3 })).toBe('Hello Ann, you have 3 messages')
+    expect(format('{missing} stays', { x: 1 })).toBe('{missing} stays')
+    expect(format('{constructor} is only a word', {})).toBe('{constructor} is only a word') // own properties only
+    expect(format('no placeholders', { name: 'x' })).toBe('no placeholders')
+  })
+
+  it('chooses the English plural form from the count', () => {
+    expect(format(rows, { count: 1 }, 'en')).toBe('1 row')
+    expect(format(rows, { count: 0 }, 'en')).toBe('0 rows')
+    expect(format(rows, { count: 5 }, 'en')).toBe('5 rows')
+  })
+
+  it('uses the six Arabic forms from the language rules', () => {
+    const ar = BUILT_IN.ar![rows]!
+    const say = (count: number) => format(ar, { count }, 'ar')
+    expect(say(0)).toBe('لا صفوف')
+    expect(say(1)).toBe('صف واحد')
+    expect(say(2)).toBe('صفان')
+    expect(say(3)).toBe('3 صفوف')
+    expect(say(11)).toBe('11 صفًا')
+    expect(say(100)).toBe('100 صف')
+  })
+
+  it('falls back sensibly: the "other" form for a missing category, the first form without a count, plain text for plain text', () => {
+    expect(format('other: {count} things', { count: 1 }, 'en')).toBe('1 things') // no "one" form given
+    expect(format(rows, {}, 'en')).toBe('{count} row')
+    expect(format('a | b', { count: 2 }, 'en')).toBe('a | b') // a bar that is not a plural list
+    expect(format(rows, { count: 2 }, 'not a language!')).toBe('2 rows')
+  })
+
+  it('translate() fills in the translated message, or the English one when there is no translation', () => {
+    const messages = { [rows]: BUILT_IN.ar![rows]! }
+    expect(translate(messages, rows, { count: 2 }, 'ar')).toBe('صفان')
+    expect(translate({}, rows, { count: 2 }, 'ar')).toBe('2 rows') // English text, whatever the language
+    expect(translate({}, 'Save')).toBe('Save') // no values: untouched, as before
+  })
+})
+

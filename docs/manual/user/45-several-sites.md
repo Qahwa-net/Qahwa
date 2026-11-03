@@ -15,6 +15,13 @@ Start the server with the sites folder:
 ```
 (or the environment variable `Qahwa__Sites__Path`). `qahwa list-sites --sites ./sites` shows what the server will find. Restart the server after adding a site.
 
+## Adding and removing sites without a restart
+Switch it on in the server's settings (only an operator can do this; it lets an administrator create databases):
+```json
+"Qahwa": { "Sites": { "Path": "sites", "Manage": true, "AdminConnection": "Host=db;Username=postgres;Password=…;Database=postgres" } }
+```
+An Administrator of the **main** site then sees **Sites** in the Desk menu. *Add a site* asks for a name, the host names and the first administrator; the site starts answering at once, with a database of its own. *Stop serving* makes a site stop answering and stops its background work. Nothing is deleted: its database and files stay, and its settings file is renamed to `site_config.json.removed-…` so a restart does not bring it back (rename it back to restore the site). Use your database tools to drop the database when you are sure. Administrators of the other sites never see this page, and API keys cannot be used for it.
+
 ## The site file
 ```json
 {

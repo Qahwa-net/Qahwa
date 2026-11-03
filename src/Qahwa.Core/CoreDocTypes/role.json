@@ -4,7 +4,8 @@
   "autoname": "field:role_name",
   "titleField": "role_name",
   "fields": [
-    { "name": "role_name", "type": "Data", "label": "Role Name", "required": true, "inListView": true }
+    { "name": "role_name", "type": "Data", "label": "Role Name", "required": true, "inListView": true },
+    { "name": "allowed_networks", "type": "Text", "label": "Allowed networks", "description": "Only from these addresses or ranges (one per line, for example 10.0.0.0/8). Empty means anywhere. Not for Administrator or System Manager." }
   ],
   "permissions": [
     { "role": "System Manager", "read": true, "write": true, "create": true, "delete": true }

@@ -3,6 +3,7 @@ import { Link, Navigate, useSearchParams } from 'react-router-dom'
 import { ApiError, api } from '../api/client.ts'
 import { useAuth } from '../auth.tsx'
 import { useTheme } from '../theme.tsx'
+import { passkeyErrorText, passkeysSupported } from '../lib/passkeys.ts'
 import { samlLoginUrl, ssoErrorText, ssoStartUrl, type SsoProviderInfo } from '../lib/sso.ts'
 
 /** Only follow same-site relative paths after login, never an arbitrary URL. */
@@ -11,7 +12,7 @@ function safeNext(next: string | null): string {
 }
 
 export function LoginPage() {
-  const { user, login, loginWithCode } = useAuth()
+  const { user, login, loginWithCode, loginWithPasskey } = useAuth()
   const { brand } = useTheme()
   const [params] = useSearchParams()
   const [email, setEmail] = useState('')
@@ -20,6 +21,7 @@ export function LoginPage() {
   const [busy, setBusy] = useState(false)
   const [challenge, setChallenge] = useState<string | null>(null)
   const [expired, setExpired] = useState(false)
+  const [method, setMethod] = useState<'app' | 'email'>('app')
   const [code, setCode] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [repeat, setRepeat] = useState('')
@@ -27,11 +29,13 @@ export function LoginPage() {
   const [providers, setProviders] = useState<SsoProviderInfo[]>([])
   const [samlProviders, setSamlProviders] = useState<SsoProviderInfo[]>([])
   const [canSignUp, setCanSignUp] = useState(false)
+  const [canPasskey, setCanPasskey] = useState(false)
 
   useEffect(() => {
     api.sso.providers().then(setProviders, () => setProviders([]))
     api.sso.samlProviders().then(setSamlProviders, () => setSamlProviders([]))
     api.signUp.enabled().then(setCanSignUp, () => setCanSignUp(false))
+    if (passkeysSupported()) api.passkeys.enabled().then(setCanPasskey, () => setCanPasskey(false))
   }, [])
 
   if (user) return <Navigate to={safeNext(params.get('next'))} replace />
@@ -57,6 +61,7 @@ export function LoginPage() {
         if (next) {
           setChallenge(next.token)
           setExpired(next.kind === 'expired')
+          setMethod(next.method ?? 'app')
           if (next.kind === 'code') setPassword('')
         }
       }
@@ -71,11 +76,23 @@ export function LoginPage() {
         : e instanceof ApiError && e.status === 429
           ? 'Too many attempts. Please wait a minute and try again.'
           : e instanceof ApiError && e.code === 'invalid_code'
-            ? 'That code is not right. Try the next one, or use a recovery code.'
+            ? (method === 'email' ? 'That code is not right. Check the latest email, or sign in again to get a new code.' : 'That code is not right. Try the next one, or use a recovery code.')
           : e instanceof ApiError && e.status === 401
             ? challenge ? 'This sign-in took too long. Start again.' : 'Invalid email or password.'
             : 'Could not sign in. Please try again.',
       )
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function withPasskey() {
+    setBusy(true)
+    setError(null)
+    try {
+      await loginWithPasskey()
+    } catch (e) {
+      setError(e instanceof ApiError && e.status === 429 ? 'Too many attempts. Please wait a minute and try again.' : e instanceof ApiError && e.status === 401 ? 'That passkey was not accepted.' : passkeyErrorText(e))
     } finally {
       setBusy(false)
     }
@@ -87,7 +104,7 @@ export function LoginPage() {
         {brand.logo && <img src={brand.logo} alt="" className="login-logo" />}
         <h1>{brand.name}</h1>
         {brand.login_message && <p className="login-message">{brand.login_message}</p>}
-        <p className="muted">{challenge && expired ? 'Your password has expired. Choose a new one to continue.' : challenge ? 'Enter the code from your authenticator app' : 'Sign in to continue'}</p>
+        <p className="muted">{challenge && expired ? 'Your password has expired. Choose a new one to continue.' : challenge ? (method === 'email' ? 'We emailed you a code. Enter it to sign in.' : 'Enter the code from your authenticator app') : 'Sign in to continue'}</p>
         {notice && !challenge && <div className="banner info" role="status">{notice}</div>}
 
         {(error ?? ssoErrorText(params.get('sso_error'))) && <div className="banner error" role="alert">{error ?? ssoErrorText(params.get('sso_error'))}</div>}
@@ -105,7 +122,7 @@ export function LoginPage() {
             <span>Code</span>
             <input inputMode="text" autoComplete="one-time-code" required autoFocus maxLength={20} value={code}
               onChange={(e) => setCode(e.target.value)} />
-            <small className="muted">The 6 digits from the app, or one of your recovery codes.</small>
+            <small className="muted">{method === 'email' ? 'The 6 digits from the email. It works once, for 10 minutes.' : 'The 6 digits from the app, or one of your recovery codes.'}</small>
           </label>
         ) : (<>
         <label className="field">
@@ -121,6 +138,7 @@ export function LoginPage() {
         </>)}
 
         <button className="btn primary" type="submit" disabled={busy}>{busy ? 'Working…' : challenge && expired ? 'Change password' : challenge ? 'Verify' : 'Sign in'}</button>
+        {!challenge && canPasskey && <button className="btn" type="button" disabled={busy} onClick={() => void withPasskey()}>Sign in with a passkey</button>}
         {!challenge && providers.map((p) => (
           <a key={p.name} className="btn" href={ssoStartUrl(p.name, params.get('next'))}>Sign in with {p.display_name}</a>
         ))}

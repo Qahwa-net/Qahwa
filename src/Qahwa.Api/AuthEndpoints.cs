@@ -33,9 +33,17 @@ public sealed record SignUpConfirmRequest(string? Token, string? Password);
 
 public sealed record TwoFactorLoginRequest(string? Token, string? Code);
 
+public sealed record EmailCodeSendRequest(string? Purpose);
+
+public sealed record LanguageRequest(string? Language);
+
+public sealed record EmailCodeConfirmRequest(string? Token, string? Code, string? Password);
+
 public sealed record TwoFactorCodeRequest(string? Code, string? Password);
 
 public sealed record TwoFactorResetRequest(string? User);
+
+public sealed record PasskeyBeginRequest(string? Password);
 
 public static class AuthEndpoints
 {
@@ -43,7 +51,7 @@ public static class AuthEndpoints
     {
         var auth = app.MapGroup("/api/auth");
 
-        auth.MapPost("/login", async (LoginRequest body, HttpContext http, AuthService service, TwoFactorService twoFactor, SessionService sessions, PasswordResetService reset, LdapService ldap, CancellationToken ct) =>
+        auth.MapPost("/login", async (LoginRequest body, HttpContext http, AuthService service, TwoFactorService twoFactor, EmailCodeService emailCodes, SessionService sessions, PasswordResetService reset, LdapService ldap, CancellationToken ct) =>
         {
             // People who sign in through the company directory use only that (their local password is a random one nobody knows);
             // everyone else uses their password here and, if that does not fit, the directory gets a try (which may link them).
@@ -75,20 +83,30 @@ public static class AuthEndpoints
             if (await twoFactor.IsEnabledAsync(key, ct))
                 return Results.Ok(new { data = new { two_factor = true, token = twoFactor.CreateChallenge(key) } });
 
+            // Without an authenticator app, a person who chose email codes gets a code by email instead.
+            if (await emailCodes.IsEnabledAsync(key, ct))
+                return Results.Ok(new { data = new { two_factor = true, method = "email", token = await emailCodes.SendAsync(key, "login", ct) } });
+
             var session = await service.CompleteLoginAsync(key, ct) ?? throw new InvalidCredentialsException();
             await SignInAsync(http, session, await StartSessionAsync(http, sessions, session.User.User, ct));
-            return Results.Ok(new { data = Describe(session) });
+            return Results.Ok(new { data = Describe(session, await service.LanguageOfAsync(session.User.User, ct)) });
         }).RequireRateLimiting(AuthClaims.LoginRateLimit);
 
-        auth.MapPost("/login/2fa", async (TwoFactorLoginRequest body, HttpContext http, AuthService service, TwoFactorService twoFactor, SessionService sessions, CancellationToken ct) =>
+        auth.MapPost("/login/2fa", async (TwoFactorLoginRequest body, HttpContext http, AuthService service, TwoFactorService twoFactor, EmailCodeService emailCodes, SessionService sessions, CancellationToken ct) =>
         {
-            var key = twoFactor.RedeemChallenge(body.Token) ?? throw new InvalidCredentialsException();
-            if (!await twoFactor.VerifyLoginAsync(key, body.Code, ct))
-                throw new InvalidCodeException();
+            string key;
+            if (twoFactor.RedeemChallenge(body.Token) is { } appUser)
+            {
+                key = appUser;
+                if (!await twoFactor.VerifyLoginAsync(key, body.Code, ct))
+                    throw new InvalidCodeException();
+            }
+            else
+                key = await emailCodes.VerifyAsync(body.Token, body.Code, "login", ct) ?? throw new InvalidCodeException();
 
             var session = await service.CompleteLoginAsync(key, ct) ?? throw new InvalidCredentialsException();
             await SignInAsync(http, session, await StartSessionAsync(http, sessions, session.User.User, ct));
-            return Results.Ok(new { data = Describe(session) });
+            return Results.Ok(new { data = Describe(session, await service.LanguageOfAsync(session.User.User, ct)) });
         }).RequireRateLimiting(AuthClaims.LoginRateLimit);
 
         auth.MapPost("/expired-password", async (ExpiredPasswordRequest body, PasswordResetService reset, CancellationToken ct) =>
@@ -221,13 +239,61 @@ public static class AuthEndpoints
             return Results.Ok(new { message = "ok" });
         });
 
-        second.MapPost("/reset", async (TwoFactorResetRequest body, HttpContext http, IUserContextResolver users, PermissionService permissions, TwoFactorService twoFactor, CancellationToken ct) =>
+        // Email codes: the person asks for a code, then confirms turning the option on or off with it.
+        second.MapGet("/email", async (HttpContext http, IUserContextResolver users, EmailCodeService emailCodes, CancellationToken ct) =>
+        {
+            var user = await PersonAsync(http, users, ct);
+            return Results.Ok(new { data = new { enabled = await emailCodes.IsEnabledAsync(user.User, ct) } });
+        });
+
+        second.MapPost("/email/send", async (EmailCodeSendRequest body, HttpContext http, IUserContextResolver users, EmailCodeService emailCodes, CancellationToken ct) =>
+        {
+            var user = await PersonAsync(http, users, ct);
+            var enabled = await emailCodes.IsEnabledAsync(user.User, ct);
+            var purpose = body.Purpose == "disable" ? "disable" : "enable";
+            if (purpose == "enable" && enabled)
+                throw new ConflictException("Email codes are already on.");
+            if (purpose == "disable" && !enabled)
+                throw new ConflictException("Email codes are not on.");
+            return Results.Ok(new { data = new { token = await emailCodes.SendAsync(user.User, purpose, ct) } });
+        });
+
+        second.MapPost("/email/enable", async (EmailCodeConfirmRequest body, HttpContext http, IUserContextResolver users, EmailCodeService emailCodes, CancellationToken ct) =>
+        {
+            var user = await PersonAsync(http, users, ct);
+            if (await emailCodes.VerifyAsync(body.Token, body.Code, "enable", ct) != user.User)
+                throw new DocumentValidationException([new FieldError("code", "That code is not right, or it has expired. Ask for a new one.")]);
+            await emailCodes.SetEnabledAsync(user.User, true, ct);
+            return Results.Ok(new { message = "ok" });
+        });
+
+        second.MapPost("/email/disable", async (EmailCodeConfirmRequest body, HttpContext http, IUserContextResolver users, AuthService service, EmailCodeService emailCodes, CancellationToken ct) =>
+        {
+            var user = await PersonAsync(http, users, ct);
+            if (!await service.CheckPasswordAsync(user.User, body.Password, ct))
+                throw new DocumentValidationException([new FieldError("password", "The password is incorrect.")]);
+            if (await emailCodes.VerifyAsync(body.Token, body.Code, "disable", ct) != user.User)
+                throw new DocumentValidationException([new FieldError("code", "That code is not right, or it has expired. Ask for a new one.")]);
+            await emailCodes.SetEnabledAsync(user.User, false, ct);
+            return Results.Ok(new { message = "ok" });
+        });
+
+        second.MapPost("/reset", async (TwoFactorResetRequest body, HttpContext http, IUserContextResolver users, PermissionService permissions, TwoFactorService twoFactor, EmailCodeService emailCodes, CancellationToken ct) =>
         {
             var user = await PersonAsync(http, users, ct);
             if (!permissions.IsAdministrator(user) && !user.Roles.Contains("System Manager", StringComparer.Ordinal))
                 throw new PermissionDeniedException("Only a System Manager can reset someone's two-factor sign-in.");
             var target = AuthService.Normalize(body.User) ?? throw new DocumentValidationException([new FieldError("user", "Choose a user.")]);
             await twoFactor.AdminResetAsync(target, ct);
+            await emailCodes.SetEnabledAsync(target, false, ct);
+            return Results.Ok(new { message = "ok" });
+        });
+
+        // The person's own choice of language, kept on their account so it follows them to every device. Not for API keys.
+        auth.MapPut("/language", async (LanguageRequest body, HttpContext http, IUserContextResolver users, AuthService service, CancellationToken ct) =>
+        {
+            var user = await PersonAsync(http, users, ct);
+            await service.SetLanguageAsync(user.User, body.Language, ct);
             return Results.Ok(new { message = "ok" });
         });
 
@@ -244,7 +310,7 @@ public static class AuthEndpoints
                 throw new UnauthenticatedException();
 
             var session = await service.LoadSessionAsync(user.User, ct) ?? throw new UnauthenticatedException();
-            return Results.Ok(new { data = Describe(session) });
+            return Results.Ok(new { data = Describe(session, await service.LanguageOfAsync(session.User.User, ct)) });
         });
 
         auth.MapPost("/change-password", async (
@@ -266,6 +332,66 @@ public static class AuthEndpoints
             return Results.Ok(new { message = "ok" });
         }).RequireRateLimiting(AuthClaims.LoginRateLimit);
 
+        // ---- passkeys (ADR-150) ----
+        RelyingParty PartyOf(HttpContext http, PasskeyService passkeys, IOptions<AuthOptions> authOptions) =>
+            passkeys.RelyingPartyFor(authOptions.Value.PublicUrl, $"{http.Request.Scheme}://{http.Request.Host}");
+        void RequireEnabled(PasskeyService passkeys)
+        {
+            if (!passkeys.Enabled)
+                throw new NotFoundException("Passkeys are not turned on.");
+        }
+
+        auth.MapGet("/passkey", (PasskeyService passkeys) => Results.Ok(new { data = new { enabled = passkeys.Enabled } }));
+
+        auth.MapPost("/passkey/login/begin", (HttpContext http, PasskeyService passkeys, IOptions<AuthOptions> authOptions) =>
+        {
+            RequireEnabled(passkeys);
+            return Results.Ok(new { data = passkeys.BeginAuthentication(PartyOf(http, passkeys, authOptions)) });
+        }).RequireRateLimiting(AuthClaims.LoginRateLimit);
+
+        auth.MapPost("/passkey/login", async (PasskeyAssertion body, HttpContext http, PasskeyService passkeys, IOptions<AuthOptions> authOptions, AuthService service, SessionService sessions, CancellationToken ct) =>
+        {
+            RequireEnabled(passkeys);
+            var key = await passkeys.FinishAuthenticationAsync(body, PartyOf(http, passkeys, authOptions), ct) ?? throw new InvalidCredentialsException();
+            var session = await service.CompleteLoginAsync(key, ct) ?? throw new InvalidCredentialsException();
+            await SignInAsync(http, session, await StartSessionAsync(http, sessions, session.User.User, ct));
+            return Results.Ok(new { data = Describe(session, await service.LanguageOfAsync(session.User.User, ct)) });
+        }).RequireRateLimiting(AuthClaims.LoginRateLimit);
+
+        var keys = app.MapGroup("/api/auth/passkeys");
+
+        keys.MapGet("", async (HttpContext http, IUserContextResolver users, PasskeyService passkeys, CancellationToken ct) =>
+        {
+            var user = await PersonAsync(http, users, ct);
+            return Results.Ok(new { data = await passkeys.ListAsync(user.User, ct) });
+        });
+
+        // Making a passkey needs the password again: a stolen session must not be able to leave a way back in.
+        keys.MapPost("/begin", async (PasskeyBeginRequest body, HttpContext http, IUserContextResolver users, PasskeyService passkeys, IOptions<AuthOptions> authOptions, AuthService service, CancellationToken ct) =>
+        {
+            RequireEnabled(passkeys);
+            var user = await PersonAsync(http, users, ct);
+            if (!await service.CheckPasswordAsync(user.User, body.Password, ct))
+                throw new InvalidCredentialsException();
+            var session = await service.LoadSessionAsync(user.User, ct) ?? throw new UnauthenticatedException();
+            return Results.Ok(new { data = await passkeys.BeginRegistrationAsync(user.User, session.FullName ?? user.User, PartyOf(http, passkeys, authOptions), ct) });
+        }).RequireRateLimiting(AuthClaims.LoginRateLimit);
+
+        keys.MapPost("", async (PasskeyRegistration body, HttpContext http, IUserContextResolver users, PasskeyService passkeys, IOptions<AuthOptions> authOptions, CancellationToken ct) =>
+        {
+            RequireEnabled(passkeys);
+            var user = await PersonAsync(http, users, ct);
+            var made = await passkeys.FinishRegistrationAsync(user.User, body, PartyOf(http, passkeys, authOptions), ct);
+            return Results.Created($"/api/auth/passkeys/{made.Id}", new { data = made });
+        }).RequireRateLimiting(AuthClaims.LoginRateLimit);
+
+        keys.MapDelete("/{id}", async (string id, HttpContext http, IUserContextResolver users, PasskeyService passkeys, CancellationToken ct) =>
+        {
+            var user = await PersonAsync(http, users, ct);
+            await passkeys.RemoveAsync(user.User, id, ct);
+            return Results.Ok(new { message = "ok" });
+        });
+
         return app;
     }
 
@@ -277,8 +403,8 @@ public static class AuthEndpoints
         return user.IsAuthenticated ? user : throw new UnauthenticatedException();
     }
 
-    private static object Describe(SessionInfo session) =>
-        new { user = session.User.User, full_name = session.FullName, roles = session.User.Roles };
+    private static object Describe(SessionInfo session, string? language = null) =>
+        new { user = session.User.User, full_name = session.FullName, roles = session.User.Roles, language };
 
     private static Task<string> StartSessionAsync(HttpContext http, SessionService sessions, string user, CancellationToken ct) =>
         sessions.StartAsync(user, http.Connection.RemoteIpAddress?.ToString(), http.Request.Headers.UserAgent.ToString(), ct);

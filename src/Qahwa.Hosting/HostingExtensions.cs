@@ -84,6 +84,10 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<WorkflowManager>();
         services.TryAddSingleton<WorkflowStateFieldService>();
         services.TryAddSingleton<WorkflowEscalationService>();
+        services.TryAddSingleton<RoleNetworkService>();
+        services.TryAddSingleton<EmailCodeService>();
+        services.TryAddSingleton<PasskeyService>();
+        services.TryAddSingleton<ImportRunService>();
         services.TryAddSingleton<WorkflowLinkService>();
         services.TryAddSingleton(sp => new Lazy<WorkflowLinkService>(() => sp.GetRequiredService<WorkflowLinkService>()));
         services.TryAddSingleton<IAssignmentRuleStore, AssignmentRuleStore>();
@@ -129,6 +133,9 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<CollaborationHooks>();
         services.TryAddSingleton<AssignmentService>();
         services.TryAddSingleton<AutoRepeatService>();
+        services.TryAddSingleton<ReminderService>();
+        services.TryAddSingleton<MilestoneService>();
+        services.TryAddSingleton<PreparedReportService>();
         services.TryAddSingleton<AutoEmailReportService>();
         services.TryAddSingleton<EmailDigestService>();
         services.TryAddSingleton<JobLogService>();

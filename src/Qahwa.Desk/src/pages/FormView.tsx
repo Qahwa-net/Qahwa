@@ -9,8 +9,10 @@ import { FormSkeleton } from '../controls/Skeleton.tsx'
 import { Icon, IconButton } from '../controls/Icon.tsx'
 import { ConfirmDialog } from '../controls/Modal.tsx'
 import { ActivityPanel } from './ActivityPanel.tsx'
+import { MilestoneStrip } from './MilestoneStrip.tsx'
 import { AssignDialog } from './AssignPanel.tsx'
 import { RepeatDialog } from './RepeatDialog.tsx'
+import { ReminderDialog } from './ReminderDialog.tsx'
 import { EmailDialog } from './EmailDialog.tsx'
 import { PrintDialog } from './PrintDialog.tsx'
 import { FollowButton } from './FollowButton.tsx'
@@ -57,7 +59,7 @@ function initialValues(meta: DocTypeMeta, doc: Doc | null): Values {
 
 function initialTables(meta: DocTypeMeta, children: Record<string, DocTypeMeta>, doc: Doc | null): Tables {
   const tables: Tables = {}
-  for (const { field, child } of tableFieldsOf(meta, children)) tables[field.name] = rowsFromDoc(child, doc?.[field.name])
+  for (const { field, child } of tableFieldsOf(meta, children)) tables[field.name] = rowsFromDoc(child, doc?.[field.name], children)
   return tables
 }
 
@@ -150,6 +152,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
   const [renaming, setRenaming] = useState(false)
   const [assigning, setAssigning] = useState(false)
   const [repeating, setRepeating] = useState(false)
+  const [reminding, setReminding] = useState(false)
   const [emailing, setEmailing] = useState(false)
   const [printing, setPrinting] = useState(false)
   const [activeTab, setActiveTab] = useState(0)
@@ -285,7 +288,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
           .filter((n) => canWriteField(meta.fields.find((f) => f.name === n)!))
           .map((n) => [n, fromInput(meta.fields.find((f) => f.name === n)!, view.values[n]!)]))
       const sendTables = (defs: typeof tableDefs) =>
-        Object.fromEntries(defs.filter(({ field }) => canWriteField(field)).map(({ field, child }) => [field.name, rowsToPayload(child, view.tables[field.name] ?? [])]))
+        Object.fromEntries(defs.filter(({ field }) => canWriteField(field)).map(({ field, child }) => [field.name, rowsToPayload(child, view.tables[field.name] ?? [], childMetas)]))
 
       if (isNew) {
         const filled = Object.keys(view.values).filter((n) => view.values[n] !== '')
@@ -412,14 +415,14 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
             if (!state.active) return null
 
             const rowState = (row: TableRow, f: DocField): FieldState =>
-              hasLogic(f) ? fieldState(f, rowContext(def.child, row.values, view.values, meta, liveSession)) : staticState(f)
+              hasLogic(f) ? fieldState(f, rowContext(def.child, row.values, view.values, meta, liveSession, { tables: row.tables, children: childMetas })) : staticState(f)
             const makeRow = (): TableRow => {
               const row = emptyRow(def.child)
               return { ...row, values: rowExpressionDefaults(def.child, row.values, view.values, meta, liveSession) }
             }
 
             return (
-              <TableControl key={field.name} field={field} child={def.child} rows={view.tables[field.name] ?? []}
+              <TableControl key={field.name} field={field} child={def.child} childMetas={childMetas} rows={view.tables[field.name] ?? []}
                 readOnly={!canWriteField(field) || state.readOnly} errors={fieldErrors} rowState={rowState} makeRow={makeRow}
                 onChange={(rows) => { setTables({ ...tables, [field.name]: rows }); clearErrorsFor(field.name) }}
                 onCellEdited={(index, name, value) => {
@@ -464,6 +467,8 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
         <div className="doc-actions">
           {!isNew && doc && user?.roles.some(r => r === 'Administrator' || r === 'System Manager') && meta.name === 'User' && <UserPasswordActions key={doc.name} email={doc.name} />}
           {!isNew && user?.roles.some(r => r === 'Administrator' || r === 'System Manager') && meta.name === 'Email Account' && <TestEmailAction disabled={dirty} />}
+          {!isNew && doc && user?.roles.includes('Administrator') && meta.name === 'Patch Log' && <IconButton icon="repeat" label="Run this patch again" disabled={dirty || doc.status === 'Running'} onClick={() => api.patches.run(doc.name, doc.status === 'Done').then(() => { toast('The patch ran'); void queryClient.invalidateQueries({ queryKey: ['doc', meta.name, doc.name] }) }, () => toast('The patch could not be run (see its problem text)'))} />}
+          {!isNew && doc && doc.status === 'Failed' && user?.roles.some(r => r === 'Administrator' || r === 'System Manager') && meta.name === 'Webhook Delivery' && <IconButton icon="repeat" label="Send again" disabled={dirty} onClick={() => api.webhooks.retryDelivery(doc.name).then(() => { toast('Queued to be sent again'); void queryClient.invalidateQueries({ queryKey: ['doc', meta.name, doc.name] }) }, () => toast('Could not queue it again'))} />}
           {!isNew && user?.roles.some(r => r === 'Administrator' || r === 'System Manager') && meta.name === 'Email Account' && <TestIncomingEmailAction disabled={dirty} />}
           {!isNew && doc && meta.module !== 'Core' && !meta.isSingle && <LikeButton doctype={meta.name} name={doc.name} />}
           {!isNew && doc && <FollowButton doctype={meta.name} name={doc.name} />}
@@ -472,6 +477,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
           {!isNew && !meta.isSingle && perms.write && perms.share !== false && docstatus !== 2 && <IconButton icon="share" label="Share" onClick={() => setSharing(true)} />}
           {!isNew && perms.read && perms.print !== false && <IconButton icon="printer" label="Print" onClick={() => setPrinting(true)} />}
           {!isNew && !meta.isSingle && perms.write && perms.email !== false && docstatus !== 2 && <IconButton icon="mail" label="Email" onClick={() => setEmailing(true)} />}
+ {!isNew && !meta.isSingle && meta.module !== 'Core' && perms.read && <IconButton icon="bell" label="Remind me" onClick={() => setReminding(true)} />}
           {!isNew && !meta.isSingle && perms.create && meta.module !== 'Core' && meta.autoname !== 'prompt' && <IconButton icon="repeat" label="Repeat" onClick={() => setRepeating(true)} />}
           {!isNew && meta.allowRename && perms.write && docstatus !== 1 && <IconButton icon="pencil" label="Rename" onClick={() => setRenaming(true)} />}
           {!isNew && meta.name === 'Deleted Document' && perms.delete && <IconButton icon="undo" label="Restore" tone="primary" disabled={restore.isPending} onClick={() => restore.mutate()} />}
@@ -503,6 +509,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
       {printing && doc && <PrintDialog doctype={meta.name} name={doc.name} onClose={() => setPrinting(false)} />}
       {emailing && doc && <EmailDialog doctype={meta.name} name={doc.name} onClose={() => setEmailing(false)} />}
       {repeating && doc && <RepeatDialog meta={meta} name={doc.name} onClose={() => setRepeating(false)} />}
+      {reminding && doc && <ReminderDialog meta={meta} name={doc.name} onClose={() => setReminding(false)} />}
       {assigning && doc && <AssignDialog doctype={meta.name} name={doc.name} canAssign={perms.write} onClose={() => setAssigning(false)} />}
       {confirm && doc && (
         <ConfirmDialog
@@ -606,6 +613,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
       </form>
       </DocContext.Provider>
 
+      {doc && !isNew && meta.module !== 'Core' && <MilestoneStrip doctype={meta.name} name={doc.name} />}
       {doc && <ActivityPanel meta={meta} childMetas={childMetas} name={doc.name} />}
       </div>
       {doc && <DocRail doctype={meta.name} doc={doc} trackViews={meta.trackViews} canAssign={perms.write && docstatus !== 2 && !meta.isSingle} canShare={perms.write && !meta.isSingle && docstatus !== 2}

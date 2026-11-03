@@ -188,3 +188,44 @@ describe('lookup() in the form', () => {
     expect(documentContext(purchase, {}, done.values, {}, withLinked).linked).toEqual({ buyer: { credit_limit: 500 } })
   })
 })
+
+describe('formulas over rows inside rows', () => {
+  const part: DocTypeMeta = {
+    name: 'Kit Part', isChildTable: true, isSubmittable: false, trackChanges: false,
+    fields: [field('qty', 'Int'), field('weight', 'Float', { formula: 'qty * 2' }), field('line_title', 'Data', { formula: 'parent.title' })],
+  }
+  const kitLine: DocTypeMeta = {
+    name: 'Kit Line', isChildTable: true, isSubmittable: false, trackChanges: false,
+    fields: [field('title', 'Data'), field('parts', 'Table', { options: 'Kit Part' }), field('part_count', 'Int', { formula: "sum(parts, 'qty')" })],
+  }
+  const kit: DocTypeMeta = {
+    name: 'Kit', isChildTable: false, isSubmittable: false, trackChanges: false,
+    fields: [field('lines', 'Table', { options: 'Kit Line' }), field('total_parts', 'Int', { formula: "sum(lines, 'part_count')" })],
+  }
+  const children = { 'Kit Line': kitLine, 'Kit Part': part }
+  const row = (values: Record<string, string>, tables?: Record<string, TableRow[]>): TableRow => ({ key: Math.random().toString(), values, ...(tables ? { tables } : {}) })
+
+  it('calculates inner rows, then the row that holds them, then the document', () => {
+    const tables = { lines: [row({ title: 'Side' }, { parts: [row({ qty: '4' }), row({ qty: '6' })] }), row({ title: 'Top' }, { parts: [row({ qty: '1' })] })] }
+
+    const result = applyLogic(kit, children, {}, tables, session)
+
+    const lines = result.tables.lines!
+    expect(lines.map((l) => l.values.part_count)).toEqual(['10', '1'])
+    expect(result.values.total_parts).toBe('11')
+    expect(lines[0]!.tables!.parts!.map((p) => p.values.weight)).toEqual(['8', '12'])
+    expect(lines[0]!.tables!.parts!.map((p) => p.values.line_title)).toEqual(['Side', 'Side']) // `parent` of an inner row is its row
+  })
+
+  it('leaves a document without inner rows as it was and does not touch rows it does not know about', () => {
+    const plain = { lines: [row({ title: 'Empty' })] }
+    expect(applyLogic(kit, children, {}, plain, session).values.total_parts).toBe('0')
+    expect(applyLogic(kit, { 'Kit Line': kitLine }, {}, { lines: [row({ title: 'x' }, { parts: [row({ qty: '3' })] })] }, session).tables.lines![0]!.values.part_count).toBeDefined()
+  })
+
+  it('lets a row read its inner rows in conditions too', () => {
+    const context = rowContext(kitLine, { title: 'Side' }, {}, kit, session, { tables: { parts: [row({ qty: '2' })] }, children })
+    expect(context.fields.parts).toEqual([expect.objectContaining({ qty: 2 })])
+  })
+})
+

@@ -7,13 +7,15 @@ namespace Qahwa.Core;
 /// <summary>A link on a workspace: to a DocType's list, a dashboard, or one of the Desk's own pages.</summary>
 public sealed record WorkspaceShortcut(string Label, string Kind, string Target);
 
-/// <summary>One block of a workspace page: a heading, a row of shortcuts, or a dashboard's tiles.</summary>
+/// <summary>One block of a workspace page: a heading, a row of shortcuts, a dashboard's tiles, or a piece of formatted text.</summary>
 public sealed record WorkspaceBlock
 {
     public const string Heading = "Heading";
     public const string Shortcuts = "Shortcuts";
     public const string Dashboard = "Dashboard";
-    public static readonly string[] Types = [Heading, Shortcuts, Dashboard];
+    public const string FormattedText = "Text";
+    public static readonly string[] Types = [Heading, Shortcuts, Dashboard, FormattedText];
+    public const int MaxTextLength = 5000;
 
     public const string DocTypeKind = "DocType";
     public const string DashboardKind = "Dashboard";
@@ -137,6 +139,10 @@ public sealed class WorkspaceService(
                     case WorkspaceBlock.Heading:
                         blocks.Add(new WorkspaceBlockView(block.Type, Text: block.Text));
                         break;
+                    case WorkspaceBlock.FormattedText:
+                        // Cleaned again on the way out: what is stored is never trusted to still be clean.
+                        blocks.Add(new WorkspaceBlockView(block.Type, Text: HtmlSanitizer.Clean(block.Text)));
+                        break;
                     case WorkspaceBlock.Dashboard:
                         if (block.DashboardId is { } id && visibleDashboards.TryGetValue(id, out var title))
                             blocks.Add(new WorkspaceBlockView(block.Type, DashboardId: id, DashboardTitle: title));
@@ -228,6 +234,17 @@ public sealed class WorkspaceService(
                         Add("text", "Write a heading of up to 100 characters.");
                     cleaned.Add(new WorkspaceBlock { Type = b.Type, Text = b.Text?.Trim() });
                     break;
+                case WorkspaceBlock.FormattedText:
+                {
+                    // Formatted text is cleaned here, once, when it is saved (bold, lists, links and the like; scripts and styles never get in).
+                    var html = HtmlSanitizer.Clean(b.Text);
+                    if (HtmlSanitizer.ToPlainText(html).Length == 0)
+                        Add("text", "Write some text.");
+                    else if (html.Length > WorkspaceBlock.MaxTextLength)
+                        Add("text", $"The text can be at most {WorkspaceBlock.MaxTextLength} characters long, formatting included.");
+                    cleaned.Add(new WorkspaceBlock { Type = b.Type, Text = html });
+                    break;
+                }
                 case WorkspaceBlock.Dashboard:
                     if (b.DashboardId is null || !await repository.ExistsAsync(registry.Get(DashboardService.DocTypeName), b.DashboardId, ct))
                         Add("dashboardId", "Choose a dashboard.");

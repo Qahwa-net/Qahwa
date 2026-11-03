@@ -95,6 +95,11 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 91. [Roles from your company sign-in](91-roles-from-sign-in.md)
 92. [Stricter sign-in and password rules](92-stricter-security.md)
 93. [Background jobs](93-background-jobs.md)
+94. [Reminders: be told about a document later](94-reminders.md)
+95. [Events: your calendar](95-events.md)
+96. [Milestones: how a status moved](96-milestones.md)
+97. [Prepared reports: big reports built in the background](97-prepared-reports.md)
+98. [CRM: leads and opportunities](98-crm.md)
 
 **Words used**
 

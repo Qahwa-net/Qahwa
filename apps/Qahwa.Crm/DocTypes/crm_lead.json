@@ -1,0 +1,29 @@
+{
+  "$schema": "../../../docs/schema/doctype.schema.json",
+  "name": "Crm Lead",
+  "module": "CRM",
+  "autoname": "LEAD-.#####",
+  "titleField": "lead_name",
+  "defaultView": "board",
+  "searchFields": ["company", "email"],
+  "fields": [
+    { "name": "lead_name", "type": "Data", "label": "Name", "required": true, "inListView": true },
+    { "name": "company", "type": "Data", "label": "Company", "inListView": true },
+    { "name": "email", "type": "Email", "label": "Email", "inListView": true, "lowercase": true },
+    { "name": "phone", "type": "Phone", "label": "Phone" },
+    { "name": "source", "type": "Select", "label": "Source", "options": "Website\nReferral\nEvent\nCold call\nOther", "inStandardFilter": true },
+    { "name": "status", "type": "Select", "label": "Status", "options": "New\nContacted\nQualified\nConverted\nLost", "default": "New", "inListView": true, "inStandardFilter": true },
+    { "name": "lost_reason", "type": "Data", "label": "Why it was lost", "dependsOn": "status == 'Lost'", "mandatoryDependsOn": "status == 'Lost'" },
+    { "name": "notes", "type": "TextEditor", "label": "Notes" },
+    { "name": "opportunity", "type": "Link", "options": "Crm Opportunity", "label": "Opportunity", "readOnly": true, "noCopy": true, "dependsOn": "status == 'Converted'" }
+  ],
+  "statusField": "status",
+  "indicators": [
+    { "value": "New", "color": "blue" }, { "value": "Contacted", "color": "orange" }, { "value": "Qualified", "color": "purple" },
+    { "value": "Converted", "color": "green" }, { "value": "Lost", "color": "gray" }
+  ],
+  "permissions": [
+    { "role": "CRM User", "read": true, "write": true, "create": true, "ifOwner": true, "export": true },
+    { "role": "CRM Manager", "read": true, "write": true, "create": true, "delete": true, "export": true, "report": true }
+  ]
+}

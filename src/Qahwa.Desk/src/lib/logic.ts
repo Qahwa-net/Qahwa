@@ -1,7 +1,7 @@
 import type { DocField, DocTypeMeta, ValidationRule } from '../api/types.ts'
 import { Expression, type ExprContext, type Value } from './expr/expr.ts'
 import { hasColumn, kindOf } from './fields.ts'
-import type { CellValue, TableRow } from './tables.ts'
+import { nestedFieldsOf, type CellValue, type TableRow } from './tables.ts'
 
 /** Who is editing, for functions such as user(), hasRole() and isNew(). */
 export interface Session {
@@ -69,22 +69,34 @@ function recordValues(fields: DocField[], values: Values): Record<string, Value>
   return record
 }
 
-/** The expression context for the document itself: its fields, plus its tables as lists of rows. */
+/** A row as an expression sees it: its values and, under their field names, the rows of the tables inside it. */
+function rowRecord(child: DocTypeMeta, row: TableRow, children: Record<string, DocTypeMeta> | undefined): Record<string, Value> {
+  const record = recordValues(child.fields, row.values)
+  for (const { field, child: inner } of nestedFieldsOf(child, children))
+    record[field.name] = (row.tables?.[field.name] ?? []).map((r) => recordValues(inner.fields, r.values))
+  return record
+}
+
+/** The expression context for the document itself: its fields, plus its tables as lists of rows (each with the rows inside it). */
 export function documentContext(
   meta: DocTypeMeta, children: Record<string, DocTypeMeta>, values: Values, tables: Tables, session: Session,
 ): ExprContext {
   const fields = recordValues(meta.fields, values)
   for (const field of meta.fields.filter((f) => f.type === 'Table')) {
     const child = field.options ? children[field.options] : undefined
-    if (child) fields[field.name] = (tables[field.name] ?? []).map((row) => recordValues(child.fields, row.values))
+    if (child) fields[field.name] = (tables[field.name] ?? []).map((row) => rowRecord(child, row, children))
   }
   return { fields, parent: null, user: session.user, roles: session.roles, isNew: session.isNew, linked: session.linked?.(meta, values) ?? null, ...clock() }
 }
 
 /** The expression context for one row of a child table: the row's fields, with the document as `parent`. */
-export function rowContext(child: DocTypeMeta, row: Values, parentValues: Values, parentMeta: DocTypeMeta, session: Session): ExprContext {
+export function rowContext(
+  child: DocTypeMeta, row: Values, parentValues: Values, parentMeta: DocTypeMeta, session: Session,
+  /** The tables inside the row, so its formulas can read them (with the DocTypes they are made of). */
+  inside?: { tables: Record<string, TableRow[]> | undefined; children: Record<string, DocTypeMeta> },
+): ExprContext {
   return {
-    fields: recordValues(child.fields, row),
+    fields: inside ? rowRecord(child, { key: '', values: row, tables: inside.tables }, inside.children) : recordValues(child.fields, row),
     parent: recordValues(parentMeta.fields, parentValues),
     user: session.user,
     roles: session.roles,
@@ -149,6 +161,37 @@ export function formulaOrder(fields: DocField[]): DocField[] {
   return ordered
 }
 
+/** The formulas of the rows of one table, after those of the rows inside each row (a total over them reads their results). */
+function applyRows(
+  child: DocTypeMeta, rows: TableRow[], parentValues: Values, parentMeta: DocTypeMeta,
+  children: Record<string, DocTypeMeta>, session: Session, markChanged: () => void,
+): TableRow[] {
+  const order = formulaOrder(child.fields)
+  const nested = nestedFieldsOf(child, children)
+  return rows.map((row) => {
+    let current = row
+    if (current.tables) {
+      let tables = current.tables
+      for (const { field, child: inner } of nested) {
+        const before = tables[field.name] ?? []
+        const next = applyRows(inner, before, current.values, child, children, session, markChanged)
+        if (next.some((r, i) => r !== before[i])) tables = { ...tables, [field.name]: next }
+      }
+      if (tables !== current.tables) current = { ...current, tables }
+    }
+
+    for (const formula of order) {
+      const result = calculate(formula, rowContext(child, current.values, parentValues, parentMeta, session, nested.length > 0 ? { tables: current.tables, children } : undefined))
+      if (result !== undefined && result !== current.values[formula.name]) {
+        current = { ...current, values: { ...current.values, [formula.name]: result } }
+        markChanged()
+      }
+    }
+
+    return current
+  })
+}
+
 /**
  * Calculates every formula of the document and of its table rows from what the user has typed. It is pure and
  * can be run on every render: calculated values are derived, never stored, so editing a formula's inputs always
@@ -157,10 +200,12 @@ export function formulaOrder(fields: DocField[]): DocField[] {
 export function applyLogic(
   meta: DocTypeMeta, children: Record<string, DocTypeMeta>, values: Values, tables: Tables, session: Session,
 ): { values: Values; tables: Tables } {
+  const hasRowLogic = (child: DocTypeMeta): boolean =>
+    child.fields.some((c) => c.formula) || nestedFieldsOf(child, children).some((n) => hasRowLogic(n.child))
   const rowFormulas = meta.fields
     .filter((f) => f.type === 'Table' && f.options && children[f.options])
     .map((f) => ({ field: f, child: children[f.options!]! }))
-    .filter(({ child }) => child.fields.some((c) => c.formula))
+    .filter(({ child }) => hasRowLogic(child))
   const docFormulas = formulaOrder(meta.fields)
   if (rowFormulas.length === 0 && docFormulas.length === 0) return { values, tables }
 
@@ -171,18 +216,7 @@ export function applyLogic(
     let changed = false
 
     for (const { field, child } of rowFormulas) {
-      const order = formulaOrder(child.fields)
-      const rows = (nextTables[field.name] ?? []).map((row) => {
-        let current = row
-        for (const formula of order) {
-          const result = calculate(formula, rowContext(child, current.values, nextValues, meta, session))
-          if (result !== undefined && result !== current.values[formula.name]) {
-            current = { ...current, values: { ...current.values, [formula.name]: result } }
-            changed = true
-          }
-        }
-        return current
-      })
+      const rows = applyRows(child, nextTables[field.name] ?? [], nextValues, meta, children, session, () => { changed = true })
       if (rows.some((row, i) => row !== (nextTables[field.name] ?? [])[i])) nextTables = { ...nextTables, [field.name]: rows }
     }
 

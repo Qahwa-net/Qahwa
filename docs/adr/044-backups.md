@@ -16,4 +16,4 @@ A system that holds business documents needs a backup people can make and restor
 
 ## Consequences
 - A site can be moved or recovered from the Desk and from a folder of daily files.
-- Not yet: encryption of the file, including file contents, restoring over existing rows ("overwrite"), uploading backups to cloud storage (S3 and the like), a command line restore.
+- Password protection of the file is now built (ADR-132). Not yet: encryption of file contents, restoring over existing rows ("overwrite"), uploading backups to cloud storage (S3 and the like), a command line restore.

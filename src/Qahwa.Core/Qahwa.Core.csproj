@@ -20,6 +20,9 @@
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- The XML comments of the DocType model become the descriptions in the DocType JSON Schema (see DocTypeSchema). -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS1573;CS1572;CS1574;CS1570;CS1571;CS1584;CS1587;CS1580;CS1581;CS1711;CS1712;CS1734</NoWarn>
   </PropertyGroup>
 
 </Project>

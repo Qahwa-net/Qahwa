@@ -59,6 +59,23 @@ public class ConverterAndNamingTests
         Assert.Equal("{\"a\":1}", FieldValueConverter.ToStorage(FieldType.Json, "{\"a\":1}"));
     }
 
+    [Theory]
+    [InlineData("/relative")]
+    [InlineData("/etc/hosts")]
+    [InlineData("//host/share")]
+    [InlineData("C:\\temp\\x")]
+    [InlineData("example.com")]
+    [InlineData("")]
+    public void A_url_field_refuses_paths_and_text_without_a_scheme(string text) =>
+        Assert.Throws<FormatException>(() => FieldValueConverter.ToStorage(FieldType.Url, text));
+
+    [Theory]
+    [InlineData("https://example.com/a?b=1#c")]
+    [InlineData("http://localhost:5101/")]
+    [InlineData("mailto:ann@example.com")]
+    public void A_url_field_accepts_addresses_with_a_scheme(string text) =>
+        Assert.Equal(text, FieldValueConverter.ToStorage(FieldType.Url, text));
+
     [Fact]
     public void Password_fields_take_text_up_to_a_limit()
     {

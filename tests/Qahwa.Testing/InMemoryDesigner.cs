@@ -62,7 +62,10 @@ public sealed class InMemorySchemaManager : ISchemaManager
             return _tables.ContainsKey(doctype);
     }
 
-    public Task<SchemaPreview> PreviewAsync(DocTypeMeta meta, CancellationToken ct = default)
+    /// <summary>The renames and type changes of the last <see cref="ApplyAsync"/>, for tests.</summary>
+    public SchemaChanges? LastChanges { get; private set; }
+
+    public Task<SchemaPreview> PreviewAsync(DocTypeMeta meta, SchemaChanges? changes = null, CancellationToken ct = default)
     {
         lock (_gate)
         {
@@ -70,24 +73,33 @@ public sealed class InMemorySchemaManager : ISchemaManager
             if (!_tables.TryGetValue(meta.Name, out var current))
                 return Task.FromResult(new SchemaPreview(false, [new SchemaChange($"Create table tab{meta.Name}", "CREATE TABLE ...")], []));
 
-            var changes = wanted.Where(c => !current.ContainsKey(c.Key))
-                .Select(c => new SchemaChange($"Add column tab{meta.Name}.{c.Key}", "ALTER TABLE ... ADD COLUMN ..."))
-                .ToList();
-            var warnings = wanted.Where(c => current.TryGetValue(c.Key, out var type) && type != c.Value)
+            var renamed = (changes?.Renames ?? []).Where(r => current.ContainsKey(r.From)).ToList();
+            var list = renamed.Select(r => new SchemaChange($"Rename column tab{meta.Name}.{r.From} to {r.To}", "ALTER TABLE ... RENAME COLUMN ...")).ToList();
+            var after = current.Where(c => renamed.All(r => r.From != c.Key)).Concat(renamed.Select(r => KeyValuePair.Create(r.To, current[r.From]))).ToDictionary(c => c.Key, c => c.Value);
+            list.AddRange(wanted.Where(c => !after.ContainsKey(c.Key))
+                .Select(c => new SchemaChange($"Add column tab{meta.Name}.{c.Key}", "ALTER TABLE ... ADD COLUMN ...")));
+            var retyped = wanted.Where(c => after.TryGetValue(c.Key, out var type) && type != c.Value && changes?.Retypes.Contains(c.Key) == true).ToList();
+            list.AddRange(retyped.Select(c => new SchemaChange($"Change column tab{meta.Name}.{c.Key} to {c.Value}", "ALTER TABLE ... ALTER COLUMN ...")));
+            var warnings = wanted.Where(c => after.TryGetValue(c.Key, out var type) && type != c.Value && changes?.Retypes.Contains(c.Key) != true)
                 .Select(c => $"tab{meta.Name}.{c.Key} has a different type in the database.")
                 .ToList();
-            return Task.FromResult(new SchemaPreview(true, changes, warnings));
+            return Task.FromResult(new SchemaPreview(true, list, warnings));
         }
     }
 
-    public Task ApplyAsync(DocTypeMeta meta, CancellationToken ct = default)
+    public Task ApplyAsync(DocTypeMeta meta, SchemaChanges? changes = null, CancellationToken ct = default)
     {
         lock (_gate)
         {
             if (!_tables.TryGetValue(meta.Name, out var current))
                 _tables[meta.Name] = current = new Dictionary<string, FieldType>();
+            foreach (var (from, to) in changes?.Renames ?? [])
+                if (current.Remove(from, out var type))
+                    current[to] = type;
             foreach (var (name, type) in meta.ColumnTypes())
-                current.TryAdd(name, type);
+                if (!current.TryAdd(name, type) && changes?.Retypes.Contains(name) == true)
+                    current[name] = type;
+            LastChanges = changes;
         }
 
         return Task.CompletedTask;

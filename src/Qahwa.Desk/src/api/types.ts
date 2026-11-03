@@ -50,6 +50,8 @@ export interface DocField {
   maxLength?: number | null
   /** Table fields only: shown as a list of chips to pick from (the child table has one Link field). */
   multiSelect?: boolean
+  /** Sent when a saved field is renamed: the name it had, so its column and data move to the new name. */
+  renamedFrom?: string | null
 }
 
 export interface ValidationRule {
@@ -145,6 +147,8 @@ export interface DesignerItem {
   editable: boolean
   fieldCount: number
   isChildTable: boolean
+  /** The DocType holds a Table field itself (so it cannot be the rows of a table inside another child table). */
+  hasTables?: boolean
 }
 
 export interface DesignerDetail {
@@ -490,6 +494,8 @@ export interface SessionUser {
   user: string
   full_name: string
   roles: string[]
+  /** The language of the Desk the person chose on their account, if any. */
+  language?: string | null
 }
 
 /** One state of a workflow. docStatus: 0 draft, 1 submitted, 2 cancelled. */
@@ -792,7 +798,7 @@ export interface WorkspaceShortcut {
 }
 
 export interface WorkspaceBlock {
-  type: 'Heading' | 'Shortcuts' | 'Dashboard'
+  type: 'Heading' | 'Shortcuts' | 'Dashboard' | 'Text'
   text?: string | null
   items: WorkspaceShortcut[]
   dashboardId?: string | null
@@ -812,7 +818,7 @@ export interface WorkspaceDetail {
 }
 
 export interface WorkspaceBlockView {
-  type: 'Heading' | 'Shortcuts' | 'Dashboard'
+  type: 'Heading' | 'Shortcuts' | 'Dashboard' | 'Text'
   text?: string | null
   shortcuts?: { label: string; kind: string; path: string }[] | null
   dashboardId?: string | null
@@ -829,6 +835,8 @@ export interface ImportColumn {
   header: string
   field?: string | null
   label?: string | null
+  /** For a column of a child table (written table.field): the Table field it belongs to. */
+  table?: string | null
 }
 
 export interface ImportRowError {
@@ -854,6 +862,23 @@ export interface ImportResult {
   moreErrors: boolean
 }
 
+/** A background import: how far it is and, when it ends, what happened. */
+export interface ImportRun {
+  id: string
+  docType: string
+  mode: string
+  status: 'Queued' | 'Running' | 'Done' | 'Failed' | 'Cancelled'
+  rows: number
+  processed: number
+  created: number
+  updated: number
+  failed: number
+  errors: ImportRowError[]
+  moreErrors: boolean
+  message?: string | null
+  cancelRequested: boolean
+}
+
 export interface ApiKeyInfo {
   id: string
   keyId: string
@@ -864,6 +889,10 @@ export interface ApiKeyInfo {
   created: string
   lastUsed?: string | null
   expired: boolean
+  /** The DocTypes the key is limited to; empty means every DocType its owner may use. */
+  docTypes: string[]
+  /** The most requests per minute; null means no limit of its own. */
+  ratePerMinute?: number | null
 }
 
 export interface ApiKeyCreated {
@@ -976,6 +1005,8 @@ export interface PublicForm {
 export interface TwoFactorChallenge {
   two_factor: true
   token: string
+  /** How the code reaches the person: an authenticator app (the default) or an email. */
+  method?: 'app' | 'email'
 }
 
 export interface ExpiredPasswordChallenge {
@@ -1045,4 +1076,75 @@ export interface ReportRun {
   rows: Record<string, unknown>[]
   truncated: boolean
   grouped: boolean
+}
+
+/** A reminder to be told about a document at a time. */
+export interface ReminderInfo {
+  id: string
+  docType: string
+  name: string
+  remindAt: string
+  message?: string | null
+  status: 'Pending' | 'Sent' | 'Cancelled'
+  sentAt?: string | null
+}
+
+export interface ReminderRequest {
+  /** ISO 8601 date and time with an offset, e.g. 2026-12-01T09:00:00+03:00. */
+  remindAt: string
+  message?: string
+}
+
+/** How a tracked field moved: every value it held, when it got it and who changed it. */
+export interface MilestoneItem {
+  value: string
+  at: string
+  by: string
+  afterSeconds?: number | null
+}
+
+export interface MilestoneView {
+  field: string
+  label: string
+  items: MilestoneItem[]
+}
+
+/** A report built in the background and kept for a week. */
+export interface PreparedReportInfo {
+  id: string
+  report: string
+  title?: string | null
+  status: 'Queued' | 'Running' | 'Done' | 'Failed'
+  rows: number
+  truncated: boolean
+  message?: string | null
+  requested: string
+  started?: string | null
+  finished?: string | null
+}
+
+export interface PreparedReportResult {
+  info: PreparedReportInfo
+  columns: string[]
+  rows: Record<string, string | number | boolean | null>[]
+}
+
+export interface SiteSummary {
+  name: string
+  hosts: string[]
+}
+
+export interface NewSite {
+  name: string
+  hosts: string[]
+  adminEmail: string
+  adminPassword: string
+  adminName?: string
+}
+
+export interface PasskeyInfo {
+  id: string
+  label: string
+  created: string
+  lastUsed: string | null
 }

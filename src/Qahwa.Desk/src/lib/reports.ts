@@ -1,10 +1,17 @@
 import type { DocField } from '../api/types.ts'
 import { hasColumn } from './fields.ts'
+import { checkExpression } from './expr/expr.ts'
 
 export interface ReportFilterDraft {
   field: string
   op: string
   value: string
+}
+
+/** A column worked out for each row from the document's own fields (lists only). */
+export interface ReportCalculationDraft {
+  label: string
+  expression: string
 }
 
 export interface ReportAggregateDraft {
@@ -25,6 +32,7 @@ export interface ReportDraft {
   limit: number
   groupBy: string
   aggregates: ReportAggregateDraft[]
+  calculated: ReportCalculationDraft[]
 }
 
 export const OPERATORS: { value: string; label: string }[] = [
@@ -56,7 +64,7 @@ export const reportFields = (fields: DocField[]): DocField[] => fields.filter((f
 
 export const newDraft = (docType = ''): ReportDraft => ({
   title: '', isPublic: false, docType, mode: 'list', columns: [], filters: [], orderBy: '', descending: true, limit: 200, groupBy: '',
-  aggregates: [{ function: 'count', field: '' }],
+  aggregates: [{ function: 'count', field: '' }], calculated: [],
 })
 
 /** A filter's value as the server wants it: a list for "is one of", plain text otherwise, and "set"/"not set" for "is". */
@@ -70,7 +78,7 @@ export function toDefinition(draft: ReportDraft): Record<string, unknown> {
   const common = { docType: draft.docType, filters, orderBy: draft.orderBy || null, descending: draft.descending, limit: draft.limit }
   return draft.mode === 'summary'
     ? { ...common, columns: [], groupBy: draft.groupBy, aggregates: draft.aggregates.map((a) => ({ function: a.function, field: a.function === 'count' ? null : a.field })) }
-    : { ...common, columns: draft.columns, groupBy: null, aggregates: [] }
+    : { ...common, columns: draft.columns, groupBy: null, aggregates: [], calculated: draft.calculated.filter((c) => c.label.trim() !== '' || c.expression.trim() !== '').map((c) => ({ label: c.label.trim(), expression: c.expression.trim() })) }
 }
 
 /** Turns a saved definition back into something the builder can edit. */
@@ -83,6 +91,7 @@ export function fromDefinition(title: string, isPublic: boolean, definition: Rec
     title, isPublic, docType: String(definition.docType ?? ''), mode: definition.groupBy ? 'summary' : 'list',
     columns: (definition.columns as string[] | undefined) ?? [], filters, orderBy: String(definition.orderBy ?? ''), descending: definition.descending !== false,
     limit: Number(definition.limit ?? 200), groupBy: String(definition.groupBy ?? ''), aggregates: aggregates.length > 0 ? aggregates : [{ function: 'count', field: '' }],
+    calculated: ((definition.calculated as { label: string; expression: string }[] | undefined) ?? []).map((c) => ({ label: c.label, expression: c.expression })),
   }
 }
 
@@ -94,6 +103,14 @@ export function draftProblem(draft: ReportDraft): string | null {
     if (!draft.groupBy) return 'Choose a field to group by.'
     if (draft.aggregates.length === 0) return 'Choose at least one number to show.'
     if (draft.aggregates.some((a) => a.function !== 'count' && !a.field)) return 'Choose a numeric field for each number.'
+  }
+  if (draft.mode === 'list') {
+    for (const c of draft.calculated) {
+      if (c.label.trim() === '' && c.expression.trim() === '') continue
+      if (c.label.trim() === '') return 'Name each calculated column.'
+      const bad = checkExpression(c.expression)
+      if (bad) return `Calculated column "${c.label.trim()}": ${bad.message}`
+    }
   }
   return null
 }

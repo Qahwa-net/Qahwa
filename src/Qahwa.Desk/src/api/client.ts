@@ -5,9 +5,10 @@ import type { SearchResponse } from '../lib/search.ts'
 import type { ImportSource } from '../lib/importFile.ts'
 import type { SsoProviderInfo } from '../lib/sso.ts'
 import type { DisplaySettings } from '../lib/display.ts'
+import type { PasskeyCeremony } from '../lib/passkeys.ts'
 import type {
   DesignerDetail, DocPerm, DesignerItem, DesignerPreview, Doc, DocTypeDefinition, FieldError, FieldTypeInfo,
-  ListResponse, ReportDetail, ReportInfo, ReportRun, RestoreReport, SignIn, ExpiredPasswordChallenge, TwoFactorChallenge, TwoFactorSetup, TwoFactorStatus, PublicForm, BundleReport, TranslationCatalog, AttachedFile, WebhookItem, WebhookSet, WebhookTestResult, WebhookView, ApiKeyCreated, ApiKeyInfo, ImportPreview, ImportResult, WorkspaceBlock, WorkspaceDetail, WorkspaceInfo, WorkspaceView, LetterHeadDetail, PrintChoices, PrintFormatDetail, PrintFormatInfo, DashboardDetail, DashboardInfo, DashboardItem, DashboardResult, EmailPreview, EmailTemplateInfo, NotificationRuleItem, NotificationRuleSet, NotificationRuleView, AutoRepeatInfo, AutoRepeatRequest, AssignmentRuleItem, AssignmentRuleSet, AssignmentRuleView, PendingAction, WorkflowDefinition, WorkflowItem, WorkflowStatus, WorkflowView, MetaResponse, MetaSummary, PermissionItem, ActivityItem, WorkflowLinkInfo, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, AppInfo, OAuthAuthorizeParams, OAuthConsent, OAuthClientInfo, OAuthConnected, EmailDigest, ScriptReportInfo, ScriptReportResult, Viewer, FollowState, LikeState, TagCount, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode,
+  ListResponse, ReportDetail, ReportInfo, ReportRun, RestoreReport, SignIn, ExpiredPasswordChallenge, TwoFactorChallenge, TwoFactorSetup, TwoFactorStatus, PublicForm, BundleReport, TranslationCatalog, AttachedFile, WebhookItem, WebhookSet, WebhookTestResult, WebhookView, ApiKeyCreated, ApiKeyInfo, ImportPreview, ImportResult, ImportRun, WorkspaceBlock, WorkspaceDetail, WorkspaceInfo, WorkspaceView, LetterHeadDetail, PrintChoices, PrintFormatDetail, PrintFormatInfo, DashboardDetail, DashboardInfo, DashboardItem, DashboardResult, EmailPreview, EmailTemplateInfo, NotificationRuleItem, NotificationRuleSet, NotificationRuleView, AutoRepeatInfo, AutoRepeatRequest, ReminderInfo, ReminderRequest, MilestoneView, PreparedReportInfo, PreparedReportResult, AssignmentRuleItem, AssignmentRuleSet, AssignmentRuleView, PendingAction, WorkflowDefinition, WorkflowItem, WorkflowStatus, WorkflowView, MetaResponse, MetaSummary, PermissionItem, ActivityItem, WorkflowLinkInfo, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, AppInfo, OAuthAuthorizeParams, OAuthConsent, OAuthClientInfo, OAuthConnected, EmailDigest, ScriptReportInfo, ScriptReportResult, Viewer, FollowState, LikeState, TagCount, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode, SiteSummary, NewSite, PasskeyInfo,
 } from './types.ts'
 import type { Filter } from '../lib/filters.ts'
 import { toApiFilters } from '../lib/filters.ts'
@@ -116,10 +117,36 @@ export const api = {
     xlsxUrl: (id: string) => `/api/reports/${encodeURIComponent(id)}/xlsx`,
   },
 
+  passkeys: {
+    enabled: async () => (await request<{ data: { enabled: boolean } }>('GET', '/api/auth/passkey')).data.enabled,
+    loginBegin: async () => (await request<{ data: PasskeyCeremony }>('POST', '/api/auth/passkey/login/begin', {})).data,
+    login: async (answer: unknown): Promise<SessionUser> => (await request<{ data: SessionUser }>('POST', '/api/auth/passkey/login', answer)).data,
+    list: async () => (await request<{ data: PasskeyInfo[] }>('GET', '/api/auth/passkeys')).data,
+    begin: async (password: string) => (await request<{ data: PasskeyCeremony }>('POST', '/api/auth/passkeys/begin', { password })).data,
+    register: async (answer: unknown) => (await request<{ data: PasskeyInfo }>('POST', '/api/auth/passkeys', answer)).data,
+    remove: (id: string) => request('DELETE', `/api/auth/passkeys/${encodeURIComponent(id)}`),
+  },
+
+  sites: {
+    list: async (): Promise<SiteSummary[]> => (await request<{ data: SiteSummary[] }>('GET', '/api/sites')).data,
+    create: async (site: NewSite): Promise<SiteSummary> => (await request<{ data: SiteSummary }>('POST', '/api/sites', site)).data,
+    remove: (name: string) => request('DELETE', `/api/sites/${encodeURIComponent(name)}`),
+  },
+
   backup: {
     /** The file is sent as it is (application/zip), so it never has to be read into the page. */
-    restore: async (file: File, dryRun: boolean): Promise<RestoreReport> => {
-      const response = await fetch(`/api/backup/restore?dryRun=${dryRun}`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/zip' }, body: file })
+    /** A protected backup: the password goes in the body, never in the address; the file comes back sealed. */
+    downloadProtected: async (password: string): Promise<{ blob: Blob; fileName: string }> => {
+      const response = await fetch('/api/backup/download-protected', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password }) })
+      if (!response.ok) {
+        const json = (await response.json().catch(() => null)) as { code?: string; message?: string; details?: FieldError[] } | null
+        throw new ApiError(response.status, json?.code ?? 'error', json?.message ?? response.statusText, json?.details ?? [])
+      }
+      const named = /filename="?([^";]+)"?/.exec(response.headers.get('Content-Disposition') ?? '')?.[1]
+      return { blob: await response.blob(), fileName: named ?? 'qahwa-backup.qbk' }
+    },
+    restore: async (file: File, dryRun: boolean, password?: string): Promise<RestoreReport> => {
+      const response = await fetch(`/api/backup/restore?dryRun=${dryRun}`, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/zip', ...(password ? { 'X-Backup-Password': password } : {}) }, body: file })
       const json = (await response.json().catch(() => null)) as { data?: RestoreReport; code?: string; message?: string; details?: FieldError[] } | null
       if (!response.ok) throw new ApiError(response.status, json?.code ?? 'error', json?.message ?? response.statusText, json?.details ?? [])
       return json!.data!
@@ -163,6 +190,17 @@ export const api = {
     enable: async (code: string) => (await request<{ data: { recovery_codes: string[] } }>('POST', '/api/auth/2fa/enable', { code })).data.recovery_codes,
     disable: (password: string, code: string) => request<unknown>('POST', '/api/auth/2fa/disable', { password, code }),
     reset: (user: string) => request<unknown>('POST', '/api/auth/2fa/reset', { user }),
+    email: {
+      status: async () => (await request<{ data: { enabled: boolean } }>('GET', '/api/auth/2fa/email')).data,
+      send: async (purpose: 'enable' | 'disable') => (await request<{ data: { token: string } }>('POST', '/api/auth/2fa/email/send', { purpose })).data.token,
+      enable: (token: string, code: string) => request<unknown>('POST', '/api/auth/2fa/email/enable', { token, code }),
+      disable: (token: string, code: string, password: string) => request<unknown>('POST', '/api/auth/2fa/email/disable', { token, code, password }),
+    },
+  },
+
+  account: {
+    /** The person's own choice of language, kept on their account so it follows them to every device. */
+    setLanguage: (language: string | null) => request<unknown>('PUT', '/api/auth/language', { language }),
   },
 
   logout: () => request<unknown>('POST', '/api/auth/logout'),
@@ -230,9 +268,10 @@ export const api = {
   },
 
   /** A link the browser can follow to download the matching documents as CSV. */
-  exportUrl(doctype: string, filters: Filter[], format: 'csv' | 'xlsx' = 'csv'): string {
+  exportUrl(doctype: string, filters: Filter[], format: 'csv' | 'xlsx' = 'csv', withRows = false): string {
     const query = new URLSearchParams()
     if (format === 'xlsx') query.set('format', 'xlsx')
+    if (withRows) query.set('rows', 'true')
     if (filters.length > 0) query.set('filters', JSON.stringify(toApiFilters(filters)))
     return `${resource(doctype)}/export${query.size > 0 ? `?${query}` : ''}`
   },
@@ -409,23 +448,33 @@ export const api = {
     save: async (name: string, hooks: WebhookSet, modified: string | null | undefined) =>
       (await request<{ data: WebhookView }>('PUT', `/api/webhooks/doctypes/${encodeURIComponent(name)}`, { hooks, modified })).data,
     remove: async (name: string) => { await request<unknown>('DELETE', `/api/webhooks/doctypes/${encodeURIComponent(name)}`) },
+    retryDelivery: async (id: string) => { await request<unknown>('POST', `/api/webhooks/deliveries/${encodeURIComponent(id)}/retry`) },
     test: async (name: string, hook: string) =>
       (await request<{ data: WebhookTestResult }>('POST', `/api/webhooks/doctypes/${encodeURIComponent(name)}/test`, { hook })).data,
   },
 
   apiKeys: {
     list: async () => (await request<{ data: ApiKeyInfo[] }>('GET', '/api/api-keys')).data,
-    create: async (body: { description: string; readOnly: boolean; expiresOn?: string }) =>
+    create: async (body: { description: string; readOnly: boolean; expiresOn?: string; docTypes?: string[]; ratePerMinute?: number }) =>
       (await request<{ data: ApiKeyCreated }>('POST', '/api/api-keys', body)).data,
     revoke: async (id: string) => { await request<unknown>('DELETE', `/api/api-keys/${encodeURIComponent(id)}`) },
   },
 
   import: {
     templateUrl: (doctype: string, mode: string) => `/api/import/${encodeURIComponent(doctype)}/template?mode=${encodeURIComponent(mode)}`,
-    preview: async (doctype: string, source: ImportSource, mode: string) =>
-      (await request<{ data: ImportPreview }>('POST', `/api/import/${encodeURIComponent(doctype)}/preview`, { ...source, mode })).data,
+    preview: async (doctype: string, source: ImportSource, mode: string, background = false) =>
+      (await request<{ data: ImportPreview }>('POST', `/api/import/${encodeURIComponent(doctype)}/preview`, { ...source, mode, background })).data,
+    background: async (doctype: string, source: ImportSource, mode: string, stopOnError: boolean) =>
+      (await request<{ data: ImportRun }>('POST', `/api/import/${encodeURIComponent(doctype)}/background`, { ...source, mode, stopOnError })).data,
+    runStatus: async (id: string) => (await request<{ data: ImportRun }>('GET', `/api/import-runs/${encodeURIComponent(id)}`)).data,
+    cancelRun: async (id: string) => { await request<unknown>('POST', `/api/import-runs/${encodeURIComponent(id)}/cancel`) },
     run: async (doctype: string, source: ImportSource, mode: string, stopOnError: boolean) =>
       (await request<{ data: ImportResult }>('POST', `/api/import/${encodeURIComponent(doctype)}`, { ...source, mode, stopOnError })).data,
+  },
+
+  patches: {
+    list: async () => (await request<{ data: { name: string; status: string; error?: string | null }[] }>('GET', '/api/patches')).data,
+    run: async (name: string, force: boolean) => { await request<unknown>('POST', `/api/patches/${encodeURIComponent(name)}/run`, { force }) },
   },
 
   workspaces: {
@@ -560,6 +609,26 @@ export const api = {
       (await request<{ data: AutoRepeatInfo }>('PUT', `/api/auto-repeat/${encodeURIComponent(id)}`, body)).data,
     runNow: async (id: string) => (await request<{ data: AutoRepeatInfo }>('POST', `/api/auto-repeat/${encodeURIComponent(id)}/run`)).data,
     remove: async (id: string) => { await request<unknown>('DELETE', `/api/auto-repeat/${encodeURIComponent(id)}`) },
+  },
+
+  preparedReports: {
+    request: async (reportId: string) => (await request<{ data: PreparedReportInfo }>('POST', `/api/reports/${encodeURIComponent(reportId)}/prepare`)).data,
+    forReport: async (reportId: string) => (await request<{ data: PreparedReportInfo[] }>('GET', `/api/reports/${encodeURIComponent(reportId)}/prepared`)).data,
+    get: async (id: string) => (await request<{ data: PreparedReportResult }>('GET', `/api/prepared-reports/${encodeURIComponent(id)}`)).data,
+    remove: async (id: string) => { await request<unknown>('DELETE', `/api/prepared-reports/${encodeURIComponent(id)}`) },
+  },
+
+  milestones: {
+    forDocument: async (doctype: string, name: string) =>
+      (await request<{ data: MilestoneView | null }>('GET', `${resource(doctype, name)}/milestones`)).data,
+  },
+
+  reminders: {
+    forDocument: async (doctype: string, name: string) =>
+      (await request<{ data: ReminderInfo[] }>('GET', `${resource(doctype, name)}/reminders`)).data,
+    create: async (doctype: string, name: string, body: ReminderRequest) =>
+      (await request<{ data: ReminderInfo }>('POST', `${resource(doctype, name)}/reminders`, body)).data,
+    cancel: async (id: string) => { await request<unknown>('DELETE', `/api/reminders/${encodeURIComponent(id)}`) },
   },
 
   assignmentRules: {

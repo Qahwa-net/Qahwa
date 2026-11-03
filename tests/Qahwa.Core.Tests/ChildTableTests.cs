@@ -296,7 +296,7 @@ public class ChildTableTests
         var paths = errors.Select(e => e.Field).ToHashSet();
         Assert.Contains("autoname", paths);
         Assert.Contains("fields[0].unique", paths);
-        Assert.Contains("fields[1].type", paths); // no table inside a table
+        Assert.DoesNotContain("fields[1].type", paths); // a table inside a table is allowed now (one level; the registry checks the target)
 
         var table = DocTypeLoader.Check(DocTypeLoader.Parse(SalesOrder) with
         {

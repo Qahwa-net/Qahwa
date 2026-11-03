@@ -13,6 +13,7 @@ You only ever see shortcuts to things you are allowed to use; if a link is missi
    - **Heading**: a line of text to organise the page.
    - **Shortcuts**: a row of links. For each choose what it opens: the documents of a DocType, a dashboard, or one of the Desk's pages (such as Dashboards or Auto Repeat). Give it a label.
    - **Dashboard**: shows the tiles of a dashboard right on the page. Make the dashboard shared with everyone if the whole role should see it.
+   - **Text**: a block of formatted text (bold, italics, lists, links) for a welcome note, instructions or a reminder of how your team works. Scripts, styles and anything unsafe are removed when you save; it is for words, not for building pages.
 5. Use the arrows to reorder blocks, the bin to remove one, and **Save workspace**.
 
 Shortcuts can only open DocTypes, dashboards and Desk pages, not outside websites. Headings are shown exactly as typed.

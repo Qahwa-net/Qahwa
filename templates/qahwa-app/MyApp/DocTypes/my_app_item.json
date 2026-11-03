@@ -1,0 +1,16 @@
+{
+  "name": "DOCTYPE_PREFIX Item",
+  "module": "DOCTYPE_PREFIX",
+  "autoname": "ITEM-.#####",
+  "titleField": "title",
+  "fields": [
+    { "name": "title", "type": "Data", "label": "Title", "required": true, "inListView": true },
+    { "name": "status", "type": "Select", "label": "Status", "options": "Open\nDone", "default": "Open", "inListView": true },
+    { "name": "notes", "type": "Text", "label": "Notes" }
+  ],
+  "statusField": "status",
+  "indicators": [ { "value": "Open", "color": "orange" }, { "value": "Done", "color": "green" } ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "write": true, "create": true, "delete": true }
+  ]
+}

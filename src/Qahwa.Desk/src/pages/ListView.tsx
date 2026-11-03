@@ -57,15 +57,20 @@ export function ListView() {
     [meta],
   )
 
-  // Filters can also look into the rows of a table ("Lines › Item"): the document must have a row that matches.
+  // Filters can also look into the rows of a table ("Lines › Item") and, one level further, the rows inside those ("Lines › Parts › Qty"):
+  // the document must have a row that matches.
   const childMetas = metaQuery.data?.children
   const filterFields = useMemo<DocField[]>(() => {
     if (!meta) return allFields
+    const rowFields = (table: DocField, prefix: string, label: string, depth: number): DocField[] =>
+      (childMetas?.[table.options ?? '']?.fields ?? []).flatMap((c) => {
+        if ((c.permLevel ?? 0) !== 0) return []
+        if (c.type === 'Table' && c.options) return depth < 1 ? rowFields(c, `${prefix}${c.name}.`, `${label} › ${labelOf(c)}`, depth + 1) : []
+        return hasColumn(c.type) && c.type !== 'Password' ? [{ ...c, name: `${prefix}${c.name}`, label: `${label} › ${labelOf(c)}` }] : []
+      })
     const nested = meta.fields
       .filter((f) => f.type === 'Table' && f.options && childMetas?.[f.options] && (f.permLevel ?? 0) === 0)
-      .flatMap((table) => childMetas![table.options!]!.fields
-        .filter((c) => hasColumn(c.type) && c.type !== 'Password' && (c.permLevel ?? 0) === 0)
-        .map((c) => ({ ...c, name: `${table.name}.${c.name}`, label: `${labelOf(table)} › ${labelOf(c)}` })))
+      .flatMap((table) => rowFields(table, `${table.name}.`, labelOf(table), 0))
     return [...allFields, ...nested]
   }, [meta, allFields, childMetas])
 
@@ -210,6 +215,7 @@ export function ListView() {
         {listScripts.buttons.map((b) => <IconButton key={b.id} icon="play" label={b.label} onClick={() => listScripts.runButton(b.id)} />)}
         {perms?.report && <IconButton icon="chart" label="Report" aria-expanded={reporting} pressed={reporting} onClick={() => setReporting(!reporting)} />}
         {perms?.export && <a className="icon-btn" aria-label="Export CSV" data-tip="Export CSV" href={api.exportUrl(doctype, effectiveFilters)} download><Icon name="fileCsv" /></a>}
+        {perms?.export && meta.fields.some((f) => f.type === 'Table') && <a className="icon-btn" aria-label="Export CSV with table rows" data-tip="Export CSV with table rows" href={api.exportUrl(doctype, effectiveFilters, 'csv', true)} download><Icon name="fileCsv" /></a>}
         {perms?.export && <a className="icon-btn" aria-label="Export Excel" data-tip="Export Excel" href={api.exportUrl(doctype, effectiveFilters, 'xlsx')} download><Icon name="fileExcel" /></a>}
         {perms?.create && perms?.import !== false && !meta.isSingle && <IconButton icon="upload" label="Import" onClick={() => setImporting(true)} />}
         {perms?.create && <Link className="icon-btn primary" aria-label={`New ${doctype}`} data-tip={`New ${doctype}`} to={`${base}/new`}><Icon name="plus" /></Link>}
@@ -221,7 +227,7 @@ export function ListView() {
         <ColumnsPanel key={settings ? 'saved' : 'default'} doctype={doctype} fields={allFields.filter((f) => f.name !== 'name')}
           current={[...otherColumns.map((c) => c.name)]} initial={settings} onClose={() => setColumnsOpen(false)} />
       )}
-      {reporting && <ReportPanel doctype={doctype} fields={allFields} filters={effectiveFilters} onClose={() => setReporting(false)} />}
+      {reporting && <ReportPanel doctype={doctype} fields={filterFields} filters={effectiveFilters} onClose={() => setReporting(false)} />}
 
       {listScripts.intro && <div className="banner info" role="status">{listScripts.intro}</div>}
       {listScripts.notice && <div className="banner info" role="status">{listScripts.notice} <button type="button" className="btn small" onClick={listScripts.dismissNotice}>OK</button></div>}

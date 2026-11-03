@@ -18,7 +18,7 @@ export const PAGES: { value: string; label: string }[] = [
 export const newShortcut = (): WorkspaceShortcut => ({ label: '', kind: 'DocType', target: '' })
 
 export const newBlock = (type: WorkspaceBlock['type']): WorkspaceBlock =>
-  type === 'Heading' ? { type, text: '', items: [] } : type === 'Dashboard' ? { type, items: [], dashboardId: '' } : { type, items: [newShortcut()] }
+  type === 'Heading' || type === 'Text' ? { type, text: '', items: [] } : type === 'Dashboard' ? { type, items: [], dashboardId: '' } : { type, items: [newShortcut()] }
 
 export function moveBlock<T>(list: T[], index: number, by: -1 | 1): T[] {
   const target = index + by
@@ -36,6 +36,7 @@ export function toRequest(draft: { title: string; sequence: number; roles: strin
     roles: draft.roles,
     blocks: draft.blocks.map((b): WorkspaceBlock => {
       if (b.type === 'Heading') return { type: 'Heading', text: (b.text ?? '').trim(), items: [] }
+      if (b.type === 'Text') return { type: 'Text', text: b.text ?? '', items: [] }
       if (b.type === 'Dashboard') return { type: 'Dashboard', dashboardId: b.dashboardId || null, items: [] }
       return { type: 'Shortcuts', items: b.items.filter((s) => s.target).map((s) => ({ ...s, label: s.label.trim() || s.target })) }
     }),

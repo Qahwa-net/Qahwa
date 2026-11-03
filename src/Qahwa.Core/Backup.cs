@@ -15,6 +15,12 @@ public sealed class BackupOptions
 
     /// <summary>The most a backup may be when read back (after unzipping). Protects against files made to blow up.</summary>
     public int MaxRestoreMegabytes { get; set; } = 1024;
+
+    /// <summary>
+    /// When set, scheduled backups are password protected (files end in .qbk). Put it in an environment variable or a secret store
+    /// (<c>Qahwa__Backup__Password</c>), not in a file that is kept with the backups.
+    /// </summary>
+    public string? Password { get; set; }
 }
 
 public sealed record BackupTable(string DocType, string File, long Rows);
@@ -102,6 +108,18 @@ public sealed class BackupService(IMetaRegistry registry, IDocumentRepository re
         await WriteTextAsync(zip, "manifest.json", JsonSerializer.Serialize(manifest, Json), ct);
     }
 
+    /// <summary>Makes the backup and seals it with the password (see <see cref="BackupCrypto"/>). The plain zip only ever exists in a temporary file that is deleted at once.</summary>
+    public async Task WriteProtectedAsync(Stream output, IUserContext user, string password, CancellationToken ct = default, int rounds = BackupCrypto.DefaultRounds)
+    {
+        RequireAdministrator(user);
+        if (BackupCrypto.PasswordProblem(password) is { } problem)
+            throw new DocumentValidationException([new FieldError("password", problem)]);
+        await using var temp = new FileStream(System.IO.Path.GetTempFileName(), FileMode.Create, FileAccess.ReadWrite, FileShare.None, 81920, FileOptions.DeleteOnClose | FileOptions.Asynchronous);
+        await WriteAsync(temp, user, ct);
+        temp.Position = 0;
+        await BackupCrypto.EncryptAsync(temp, output, password, ct, rounds);
+    }
+
     private static async Task WriteTextAsync(ZipArchive zip, string name, string text, CancellationToken ct)
     {
         await using var stream = zip.CreateEntry(name, CompressionLevel.Optimal).Open();
@@ -111,9 +129,19 @@ public sealed class BackupService(IMetaRegistry registry, IDocumentRepository re
     // ---- reading one back ----
 
     /// <param name="input">A seekable stream holding the zip.</param>
-    public async Task<RestoreReport> RestoreAsync(Stream input, bool dryRun, IUserContext user, CancellationToken ct = default, long maxBytes = 1024L * 1024 * 1024)
+    public async Task<RestoreReport> RestoreAsync(Stream input, bool dryRun, IUserContext user, CancellationToken ct = default, long maxBytes = 1024L * 1024 * 1024, string? password = null)
     {
         RequireAdministrator(user);
+        if (BackupCrypto.IsProtected(input))
+        {
+            if (string.IsNullOrEmpty(password))
+                throw new DocumentValidationException([new FieldError("password", "This backup is password protected. Enter its password.")]);
+            await using var opened = new FileStream(System.IO.Path.GetTempFileName(), FileMode.Create, FileAccess.ReadWrite, FileShare.None, 81920, FileOptions.DeleteOnClose | FileOptions.Asynchronous);
+            await BackupCrypto.DecryptAsync(input, opened, password, ct);
+            opened.Position = 0;
+            return await RestoreAsync(opened, dryRun, user, ct, maxBytes, password: null);
+        }
+
         ZipArchive zip;
         try
         {
@@ -312,11 +340,12 @@ public sealed class BackupService(IMetaRegistry registry, IDocumentRepository re
     // ---- scheduled backups ----
 
     /// <summary>Writes today's backup into the folder unless one exists, keeps only the newest <paramref name="keep"/>, and says what it wrote.</summary>
-    public async Task<string?> RunScheduledAsync(string folder, int keep, IUserContext user, CancellationToken ct = default)
+    public async Task<string?> RunScheduledAsync(string folder, int keep, IUserContext user, CancellationToken ct = default, string? password = null)
     {
         Directory.CreateDirectory(folder);
         var now = clock.GetUtcNow().UtcDateTime;
-        var path = Path.Combine(folder, $"qahwa-backup-{now:yyyyMMdd}.zip");
+        var extension = string.IsNullOrEmpty(password) ? "zip" : "qbk";
+        var path = Path.Combine(folder, $"qahwa-backup-{now:yyyyMMdd}.{extension}");
         string? made = null;
         if (File.Exists(path + ".part") && File.GetLastWriteTimeUtc(path + ".part") <= now.AddHours(-6))
             File.Delete(path + ".part"); // left behind by a server that died while writing
@@ -330,7 +359,10 @@ public sealed class BackupService(IMetaRegistry registry, IDocumentRepository re
                 await using (var file = new FileStream(path + ".part", FileMode.CreateNew, FileAccess.Write, FileShare.None))
                 {
                     created = true;
-                    await WriteAsync(file, user, ct);
+                    if (string.IsNullOrEmpty(password))
+                        await WriteAsync(file, user, ct);
+                    else
+                        await WriteProtectedAsync(file, user, password, ct);
                 }
 
                 File.Move(path + ".part", path, overwrite: false);
@@ -350,7 +382,7 @@ public sealed class BackupService(IMetaRegistry registry, IDocumentRepository re
             }
         }
 
-        var old = Directory.GetFiles(folder, "qahwa-backup-????????.zip").OrderByDescending(f => f, StringComparer.Ordinal).Skip(Math.Max(keep, 1));
+        var old = Directory.GetFiles(folder, $"qahwa-backup-????????.{extension}").OrderByDescending(f => f, StringComparer.Ordinal).Skip(Math.Max(keep, 1));
         foreach (var file in old)
             File.Delete(file);
         return made;

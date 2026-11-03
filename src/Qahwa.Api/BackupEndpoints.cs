@@ -6,6 +6,8 @@ using Qahwa.Core;
 namespace Qahwa.Api;
 
 /// <summary>Download and restore a backup (Administrator only). One at a time: a backup reads the whole database.</summary>
+public sealed record ProtectedBackupRequest(string? Password);
+
 public static class BackupEndpoints
 {
     private static readonly SemaphoreSlim OneAtATime = new(1, 1);
@@ -49,6 +51,42 @@ public static class BackupEndpoints
             return Results.File(temp, "application/zip", $"qahwa-backup-{DateTime.UtcNow:yyyyMMdd-HHmm}.zip");
         });
 
+        // A password-protected backup: the password goes in the body (never in an address) and the file is sealed before it leaves the server.
+        group.MapPost("/download-protected", async (ProtectedBackupRequest body, HttpContext http, IUserContextResolver users, BackupService backup, CancellationToken ct) =>
+        {
+            var user = await users.ResolveAsync(http, ct);
+            backup.Require(user);
+            if (http.Items.ContainsKey(CookieUserContextResolver.ViaApiKey))
+                throw new PermissionDeniedException("A backup cannot be made with an API key. Sign in to do that.");
+            if (BackupCrypto.PasswordProblem(body.Password) is { } problem)
+                throw new DocumentValidationException([new FieldError("password", problem)]);
+            if (!await OneAtATime.WaitAsync(0, ct))
+                return Results.Json(new { code = "busy", message = "A backup or restore is already running. Try again in a few minutes." }, statusCode: 429);
+
+            FileStream temp;
+            try
+            {
+                temp = new FileStream(Path.GetTempFileName(), FileMode.Create, FileAccess.ReadWrite, FileShare.None, 81920, FileOptions.DeleteOnClose | FileOptions.Asynchronous);
+                try
+                {
+                    await backup.WriteProtectedAsync(temp, user, body.Password!, ct);
+                }
+                catch
+                {
+                    await temp.DisposeAsync();
+                    throw;
+                }
+            }
+            finally
+            {
+                OneAtATime.Release();
+            }
+
+            temp.Position = 0;
+            http.Response.Headers["Cache-Control"] = "no-store";
+            return Results.File(temp, "application/octet-stream", $"qahwa-backup-{DateTime.UtcNow:yyyyMMdd-HHmm}.qbk");
+        });
+
         // The body is the zip itself, sent as application/zip (which another site cannot send without a CORS preflight).
         group.MapPost("/restore", async (bool? dryRun, HttpContext http, IUserContextResolver users, BackupService backup, BackupOptions options, CancellationToken ct) =>
         {
@@ -56,8 +94,9 @@ public static class BackupEndpoints
             backup.Require(user);
             if (http.Items.ContainsKey(CookieUserContextResolver.ViaApiKey))
                 throw new PermissionDeniedException("A backup cannot be restored with an API key. Sign in to do that.");
-            if (!string.Equals(http.Request.ContentType?.Split(';')[0].Trim(), "application/zip", StringComparison.OrdinalIgnoreCase))
-                return Results.Json(new { code = "bad_request", message = "Send the backup as application/zip." }, statusCode: 415);
+            var contentType = http.Request.ContentType?.Split(';')[0].Trim();
+            if (!string.Equals(contentType, "application/zip", StringComparison.OrdinalIgnoreCase) && !string.Equals(contentType, "application/octet-stream", StringComparison.OrdinalIgnoreCase))
+                return Results.Json(new { code = "bad_request", message = "Send the backup as application/zip (or application/octet-stream for a protected one)." }, statusCode: 415);
 
             var limit = Math.Max(options.MaxRestoreMegabytes, 1) * 1024L * 1024L;
             if (http.Request.ContentLength > limit)
@@ -81,7 +120,7 @@ public static class BackupEndpoints
                 }
 
                 temp.Position = 0;
-                return Results.Ok(new { data = await backup.RestoreAsync(temp, dryRun ?? true, user, ct, limit) });
+                return Results.Ok(new { data = await backup.RestoreAsync(temp, dryRun ?? true, user, ct, limit, http.Request.Headers["X-Backup-Password"].ToString() is { Length: > 0 } password ? password : null) });
             }
             finally
             {

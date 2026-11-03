@@ -26,6 +26,12 @@ public interface ISqlDialect
     /// <summary>Adds one column (already quoted and typed, e.g. <c>"since" date</c>) to a table.</summary>
     string AddColumnSql(string quotedTable, string columnDefinition);
 
+    /// <summary>Renames a column; its values stay.</summary>
+    string RenameColumnSql(string quotedTable, string column, string newColumn);
+
+    /// <summary>Changes a column to the type of a field type, converting every saved value (the statement fails when one does not fit).</summary>
+    string AlterColumnTypeSql(string quotedTable, string column, FieldType type);
+
     string DropTableSql(string quotedTable);
 
     /// <summary>Table holding DocType definitions created in the designer.</summary>

@@ -105,6 +105,22 @@ public sealed class AuthService(
         return credential is not null && credential.PasswordChanged.AddDays(days) <= Now();
     }
 
+    /// <summary>The language of the Desk this person chose (a code such as <c>ar</c>), or null when they have not chosen one.</summary>
+    public async Task<string?> LanguageOfAsync(string email, CancellationToken ct = default) =>
+        Normalize(email) is { } key && await GetUserAsync(key, ct) is { } user && user.GetValueOrDefault("language") is string { Length: > 0 } code ? code : null;
+
+    /// <summary>Saves the person's choice of language (null clears it). A language code is a short, plain code: two or three letters, optionally a region.</summary>
+    public async Task SetLanguageAsync(string email, string? language, CancellationToken ct = default)
+    {
+        var key = Normalize(email) ?? throw new UnauthenticatedException();
+        var code = string.IsNullOrWhiteSpace(language) ? null : language.Trim();
+        if (code is not null && (code.Length > 12 || !System.Text.RegularExpressions.Regex.IsMatch(code, "^[a-z]{2,3}(-[A-Za-z0-9]{2,8})?$")))
+            throw new DocumentValidationException([new FieldError("language", "Use a language code such as en or ar.")]);
+        if (await GetUserAsync(key, ct) is null)
+            throw new UnauthenticatedException();
+        await repository.UpdateAsync(registry.Get("User"), key, new Dictionary<string, object?> { ["language"] = code }, null, null, ct);
+    }
+
     /// <summary>The last step of signing in: clears the failure counter and loads the session (null if the account stopped being usable).</summary>
     public async Task<SessionInfo?> CompleteLoginAsync(string key, CancellationToken ct = default)
     {

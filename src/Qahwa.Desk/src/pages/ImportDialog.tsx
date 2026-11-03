@@ -1,16 +1,18 @@
 import { useState } from 'react'
-import { useMutation, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError, api } from '../api/client.ts'
 import type { ImportPreview, ImportResult } from '../api/types.ts'
 import { Icon } from '../controls/Icon.tsx'
 import { Modal } from '../controls/Modal.tsx'
+import { useT } from '../i18n.tsx'
 import { useToast } from '../controls/Toast.tsx'
-import { checkImportFile, isSpreadsheet, summarise, toBase64, type ImportSource } from '../lib/importFile.ts'
+import { checkImportFile, isSpreadsheet, needsBackground, percentDone, summarise, toBase64, type ImportSource } from '../lib/importFile.ts'
 
 /** Import documents from a CSV file: choose the file, check it, then import. Every row is created as if you had typed it. */
 export function ImportDialog({ doctype, canUpdate, onClose }: { doctype: string; canUpdate: boolean; onClose: () => void }) {
   const queryClient = useQueryClient()
   const toast = useToast()
+  const t = useT()
   const [mode, setMode] = useState<'Insert' | 'Update'>('Insert')
   const [csv, setCsv] = useState<ImportSource | null>(null)
   const [fileName, setFileName] = useState('')
@@ -18,23 +20,39 @@ export function ImportDialog({ doctype, canUpdate, onClose }: { doctype: string;
   const [error, setError] = useState<string | null>(null)
   const [preview, setPreview] = useState<ImportPreview | null>(null)
   const [result, setResult] = useState<ImportResult | null>(null)
+  const [background, setBackground] = useState(false)
+  const [runId, setRunId] = useState<string | null>(null)
 
   const fail = (e: unknown) => setError(e instanceof ApiError ? (e.details[0]?.message ?? e.message) : 'Something went wrong. Please try again.')
   const check = useMutation({
-    mutationFn: (args: { text: ImportSource; mode: string }) => api.import.preview(doctype, args.text, args.mode),
+    mutationFn: (args: { text: ImportSource; mode: string; background: boolean }) => api.import.preview(doctype, args.text, args.mode, args.background),
     onSuccess: (p) => { setPreview(p); setError(null) },
     onError: (e) => { setPreview(null); fail(e) },
   })
   const run = useMutation({
-    mutationFn: () => api.import.run(doctype, csv!, mode, stopOnError),
+    mutationFn: async () => {
+      if (background) return { queued: await api.import.background(doctype, csv!, mode, stopOnError) }
+      return { done: await api.import.run(doctype, csv!, mode, stopOnError) }
+    },
     onSuccess: async (r) => {
-      setResult(r)
       setError(null)
-      toast(summarise(r))
+      if (r.queued) return setRunId(r.queued.id)
+      setResult(r.done!)
+      toast(summarise(r.done!))
       await queryClient.invalidateQueries({ queryKey: ['list', doctype] })
     },
     onError: fail,
   })
+  // A background import: look at its progress every couple of seconds until it ends.
+  const status = useQuery({
+    queryKey: ['import-run', runId],
+    queryFn: () => api.import.runStatus(runId!),
+    enabled: runId !== null,
+    refetchInterval: (q) => (q.state.data && ['Done', 'Failed', 'Cancelled'].includes(q.state.data.status) ? false : 2000),
+    retry: false,
+  })
+  const cancelRun = useMutation({ mutationFn: () => api.import.cancelRun(runId!), onError: fail })
+  const finished = status.data !== undefined && ['Done', 'Failed', 'Cancelled'].includes(status.data.status)
 
   const choose = async (file: File | undefined) => {
     setPreview(null)
@@ -50,24 +68,27 @@ export function ImportDialog({ doctype, canUpdate, onClose }: { doctype: string;
     const text: ImportSource = isSpreadsheet(file) ? { xlsx: toBase64(new Uint8Array(await file.arrayBuffer())) } : { csv: await file.text() }
     setCsv(text)
     setFileName(file.name)
-    check.mutate({ text, mode })
+    const big = needsBackground(file)
+    setBackground(big)
+    check.mutate({ text, mode, background: big })
   }
 
   const switchMode = (next: 'Insert' | 'Update') => {
     setMode(next)
-    if (csv) check.mutate({ text: csv, mode: next })
+    if (csv) check.mutate({ text: csv, mode: next, background })
   }
 
   const busy = check.isPending || run.isPending
-  const ready = csv !== null && preview !== null && !busy && result === null
+  const fileTooBigForNow = csv !== null && (csv.csv?.length ?? 0) > 5 * 1024 * 1024
+  const ready = csv !== null && preview !== null && !busy && result === null && runId === null
 
   return (
     <Modal title={`Import ${doctype}`} subtitle="Create documents from an Excel or CSV file, one per row. The first row names the columns." size="lg" onClose={onClose} dismissible={!run.isPending}
       footer={<>
-        <button className="btn" onClick={onClose} disabled={run.isPending}>{result ? 'Close' : 'Cancel'}</button>
-        {!result && (
+        <button className="btn" onClick={onClose} disabled={run.isPending}>{result || runId ? 'Close' : 'Cancel'}</button>
+        {!result && runId === null && (
           <button className="btn primary" disabled={!ready} onClick={() => run.mutate()}>
-            <Icon name="upload" /> {run.isPending ? 'Importing…' : `Import ${preview?.rows ?? ''} row${preview?.rows === 1 ? '' : 's'}`}
+            <Icon name="upload" /> {run.isPending ? (background ? 'Starting…' : 'Importing…') : background ? `Start the import of ${preview?.rows ?? ''} row${preview?.rows === 1 ? '' : 's'}` : `Import ${preview?.rows ?? ''} row${preview?.rows === 1 ? '' : 's'}`}
           </button>
         )}
       </>}>
@@ -88,6 +109,7 @@ export function ImportDialog({ doctype, canUpdate, onClose }: { doctype: string;
           <small className="muted">
             <a href={api.import.templateUrl(doctype, mode)}>Download a template</a> with the right columns.
             {mode === 'Update' && ' Updating needs a column named name with each document’s ID.'}
+            {' '}Rows of a table go in columns like <code>lines.item</code>: a row that leaves the document’s own columns blank adds another row to the document above it.
           </small>
         </div>
       </div>
@@ -95,7 +117,7 @@ export function ImportDialog({ doctype, canUpdate, onClose }: { doctype: string;
       {check.isPending && <p className="muted" role="status">Checking {fileName}…</p>}
       {preview && !result && (
         <>
-          <h3 className="modal-section">{fileName}: {preview.rows} row{preview.rows === 1 ? '' : 's'}</h3>
+          <h3 className="modal-section">{fileName}: {t('one: {count} row | other: {count} rows', { count: preview.rows })}</h3>
           <div className="table-wrap">
             <table aria-label="Columns and sample rows">
               <thead>
@@ -112,7 +134,19 @@ export function ImportDialog({ doctype, canUpdate, onClose }: { doctype: string;
             ? <Problems errors={preview.errors} more={preview.moreErrors} intro="Problems in the first rows (all rows are checked again when importing):" />
             : <p className="muted">The first rows look fine.</p>}
           <label className="switch"><input type="checkbox" checked={stopOnError} onChange={(e) => setStopOnError(e.target.checked)} /><span>Stop at the first row that fails</span></label>
+          <label className="switch"><input type="checkbox" checked={background} disabled={fileTooBigForNow} onChange={(e) => { setBackground(e.target.checked); if (csv) check.mutate({ text: csv, mode, background: e.target.checked }) }} /><span>Import in the background{fileTooBigForNow ? ' (needed for a file this big)' : ' (for big files: you can close this and carry on)'}</span></label>
         </>
+      )}
+      {runId !== null && status.data && (
+        <div role="status" aria-live="polite">
+          <h3 className="modal-section">{fileName || 'Import'}: {status.data.status === 'Queued' ? 'waiting to start' : status.data.status === 'Running' ? 'running' : status.data.status.toLowerCase()}</h3>
+          <progress max={100} value={finished && status.data.status === 'Done' ? 100 : percentDone(status.data.processed, status.data.rows)} aria-label="Import progress" style={{ inlineSize: '100%' }} />
+          <p className="muted">{status.data.processed} of {status.data.rows} rows done · {summarise(status.data)}</p>
+          {status.data.message && <div className={`banner ${status.data.status === 'Failed' ? 'error' : 'info'}`}>{status.data.message}</div>}
+          {!finished && <button className="btn" disabled={cancelRun.isPending || status.data.cancelRequested} onClick={() => cancelRun.mutate()}>{status.data.cancelRequested ? 'Stopping…' : 'Stop the import'}</button>}
+          {status.data.errors.length > 0 && <Problems errors={status.data.errors} more={status.data.moreErrors} intro="These rows were not imported:" />}
+          {!finished && <p className="muted">You can close this window: the import carries on.</p>}
+        </div>
       )}
       {result && (
         <>

@@ -11,6 +11,8 @@ import {
   FUNCTIONS, OPERATORS, draftProblem, fromDefinition, isNumeric, newDraft, reportFields, toDefinition, toggle, type ReportDraft,
 } from '../lib/reports.ts'
 import { Select } from '../controls/Select.tsx'
+import { PreparedReports } from './PreparedReports.tsx'
+import { checkExpression } from '../lib/expr/expr.ts'
 
 const messageOf = (e: unknown): string =>
   e instanceof ApiError ? (e.details.length > 0 ? e.details.map((d) => d.message).join(' ') : e.message) : 'Something went wrong.'
@@ -106,6 +108,7 @@ export function ReportViewPage() {
       {run.isError && <div className="banner error" role="alert">{run.error instanceof ApiError && run.error.status === 403 ? 'You do not have access to the documents in this report.' : messageOf(run.error)}</div>}
       {run.isPending && <p className="muted" role="status">Loading…</p>}
       {run.data && <ReportTable run={run.data} />}
+      <PreparedReports reportId={id} />
     </>
   )
 }
@@ -183,7 +186,26 @@ export function ReportEditorPage() {
                   <label key={f.name}><input type="checkbox" checked={draft.columns.includes(f.name)} onChange={() => set({ columns: toggle(draft.columns, f.name) })} /> {f.label}</label>
                 ))}
               </fieldset>
-            ) : (
+            ) : null}
+            {draft.mode === 'list' && (
+              <fieldset className="checks"><legend>Calculated columns <span className="muted">(optional: worked out for each row from its fields, for example <code>amount * qty</code>)</span></legend>
+                {draft.calculated.map((c, i) => {
+                  const bad = c.expression.trim() === '' ? null : checkExpression(c.expression)
+                  return (
+                    <div className="row" key={i}>
+                      <input aria-label={`Calculated column ${i + 1} name`} placeholder="Column name" maxLength={60} value={c.label}
+                        onChange={(e) => set({ calculated: draft.calculated.map((x, n) => (n === i ? { ...x, label: e.target.value } : x)) })} />
+                      <input aria-label={`Calculated column ${i + 1} formula`} className="mono" placeholder="amount * qty" spellCheck={false} maxLength={300} value={c.expression} aria-invalid={Boolean(bad)}
+                        onChange={(e) => set({ calculated: draft.calculated.map((x, n) => (n === i ? { ...x, expression: e.target.value } : x)) })} />
+                      <button type="button" className="btn small" aria-label={`Remove calculated column ${i + 1}`} onClick={() => set({ calculated: draft.calculated.filter((_, n) => n !== i) })}>✕</button>
+                      {bad && <small className="error-text" role="alert">{bad.message}</small>}
+                    </div>
+                  )
+                })}
+                {draft.calculated.length < 5 && <button type="button" className="btn small" onClick={() => set({ calculated: [...draft.calculated, { label: '', expression: '' }] })}>Add a calculated column</button>}
+              </fieldset>
+            )}
+            {draft.mode === 'list' ? null : (
               <>
                 <label className="field">Group by
                   <Select value={draft.groupBy} onChange={(e) => set({ groupBy: e.target.value })}>

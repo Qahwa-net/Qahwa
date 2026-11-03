@@ -7,18 +7,18 @@ namespace Qahwa.Data;
 /// <summary>Adapts <see cref="SchemaSync"/> to the designer's <see cref="ISchemaManager"/>.</summary>
 public sealed class SchemaManager(SchemaSync sync, ISqlDialect dialect) : ISchemaManager
 {
-    public async Task<SchemaPreview> PreviewAsync(DocTypeMeta meta, CancellationToken ct = default)
+    public async Task<SchemaPreview> PreviewAsync(DocTypeMeta meta, SchemaChanges? changes = null, CancellationToken ct = default)
     {
-        var plan = await sync.PlanAsync(meta, ct);
+        var plan = await sync.PlanAsync(meta, changes, ct);
         return new SchemaPreview(
             plan.TableExists,
             plan.Statements.Select(s => new SchemaChange(s.Description, s.Sql)).ToList(),
             plan.Warnings);
     }
 
-    public async Task ApplyAsync(DocTypeMeta meta, CancellationToken ct = default)
+    public async Task ApplyAsync(DocTypeMeta meta, SchemaChanges? changes = null, CancellationToken ct = default)
     {
-        var plan = await sync.PlanAsync(meta, ct);
+        var plan = await sync.PlanAsync(meta, changes, ct);
         try
         {
             await sync.ApplyAsync(plan, ct);
@@ -33,6 +33,13 @@ public sealed class SchemaManager(SchemaSync sync, ISqlDialect dialect) : ISchem
         catch (DbException ex) when (dialect.IsDuplicateObject(ex))
         {
             throw new ConflictException($"'{meta.Name}' was just created or changed by someone else. Reload and try again.");
+        }
+        catch (DbException) when (changes is { Retypes.Count: > 0 })
+        {
+            // The whole plan ran in one transaction, so nothing was changed.
+            throw new ConflictException(
+                "A field's type was not changed because some saved values cannot be converted (for example text in a field that becomes a number or date, or text that is too long). " +
+                "Fix those values first. Nothing was changed.");
         }
     }
 

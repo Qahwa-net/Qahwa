@@ -120,6 +120,46 @@ public class WebhookTests
         Assert.Equal(500, result.StatusCode);
     }
 
+    // ---- sending a failed delivery again ----
+
+    [Fact]
+    public async Task A_failed_delivery_can_be_sent_again_with_a_fresh_set_of_tries()
+    {
+        await SaveAsync(Hook());
+        await ShipmentAsync();
+        _engine.WebhookSender.Status = 500;
+        for (var i = 0; i < WebhookService.MaxAttempts; i++)
+        {
+            await _engine.Webhooks.DeliverPendingAsync();
+            _engine.Clock.Advance(TimeSpan.FromHours(3));
+        }
+
+        var failed = Assert.Single(await DeliveriesAsync());
+        Assert.Equal("Failed", failed["status"]);
+
+        _engine.WebhookSender.Status = 200; // the receiver is fixed
+        var id = (await _engine.Documents.ListAsync("Webhook Delivery", new ListRequest { Fields = ["name"], Limit = 5 }, TestUsers.Admin)).Data.Single()["name"]!.ToString()!;
+        await _engine.Webhooks.RetryAsync(id, TestUsers.SystemManager);
+        Assert.Equal("Pending", (await DeliveriesAsync()).Single()["status"]);
+        Assert.Equal((1, 0), await _engine.Webhooks.DeliverPendingAsync());
+
+        var sent = (await DeliveriesAsync()).Single();
+        Assert.Equal(("Sent", 1L), (sent["status"], Convert.ToInt64(sent["attempts"])));
+        Assert.Null(sent["last_error"]);
+    }
+
+    [Fact]
+    public async Task Only_a_manager_can_resend_and_only_a_delivery_that_failed()
+    {
+        await SaveAsync(Hook());
+        await ShipmentAsync();
+        var id = (await _engine.Documents.ListAsync("Webhook Delivery", new ListRequest { Fields = ["name"], Limit = 5 }, TestUsers.Admin)).Data.Single()["name"]!.ToString()!;
+
+        await Assert.ThrowsAsync<PermissionDeniedException>(() => _engine.Webhooks.RetryAsync(id, Ann));
+        await Assert.ThrowsAsync<ConflictException>(() => _engine.Webhooks.RetryAsync(id, TestUsers.SystemManager)); // still pending
+        await Assert.ThrowsAsync<NotFoundException>(() => _engine.Webhooks.RetryAsync("nope", TestUsers.SystemManager));
+    }
+
     // ---- events become signed deliveries ----
 
     [Fact]

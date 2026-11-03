@@ -15,6 +15,6 @@ One installation often serves several organisations or environments (a company a
 - **CLI:** `qahwa new-site <name> --sites <dir> --host <h> --admin-connection <cs> [--email …]` checks the new site against the others, creates the database `qahwa_<name>` (name checked and quoted), writes the file, creates the tables and the administrator; `qahwa list-sites`; `migrate` and `create-admin` take `--site <name> --sites <dir>`.
 
 ## Consequences
-- Not yet: creating or removing sites while the server runs (restart to pick up changes), per-site DocType sets (all sites share the DocType folders; custom DocTypes live in each site's database), a site manager UI, a SQL Server database per site.
+- Not yet (live add/remove arrived with [ADR-148](148-site-manager.md)): per-site DocType sets (all sites share the DocType folders; custom DocTypes live in each site's database), a SQL Server database per site.
 - A site can be moved by restoring its backup into another installation; the database is the whole site (files excepted).
 - Memory grows with the number of sites (each has its own registry and caches); thousands of tiny sites need another approach.

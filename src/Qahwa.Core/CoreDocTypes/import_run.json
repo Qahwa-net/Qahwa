@@ -1,0 +1,26 @@
+{
+  "name": "Import Run",
+  "module": "Core",
+  "trackChanges": false,
+  "fields": [
+    { "name": "reference_doctype", "type": "Data", "label": "DocType", "required": true, "inListView": true, "indexed": true },
+    { "name": "mode", "type": "Select", "options": "Insert\nUpdate", "label": "Mode", "inListView": true },
+    { "name": "stop_on_error", "type": "Check", "label": "Stop at the first failure" },
+    { "name": "status", "type": "Select", "options": "Queued\nRunning\nDone\nFailed\nCancelled", "default": "Queued", "label": "Status", "inListView": true, "indexed": true },
+    { "name": "total_rows", "type": "Int", "label": "Rows in the file" },
+    { "name": "processed", "type": "Int", "label": "Documents done" },
+    { "name": "created", "type": "Int", "label": "Created" },
+    { "name": "updated", "type": "Int", "label": "Updated" },
+    { "name": "failed", "type": "Int", "label": "Failed" },
+    { "name": "errors", "type": "LongText", "label": "Problems" },
+    { "name": "more_errors", "type": "Check", "label": "More problems than listed" },
+    { "name": "message", "type": "Text", "label": "Message" },
+    { "name": "cancel_requested", "type": "Check", "label": "Stop requested" },
+    { "name": "started_at", "type": "Datetime", "label": "Started" },
+    { "name": "finished_at", "type": "Datetime", "label": "Finished" },
+    { "name": "csv", "type": "LongText", "label": "File", "permLevel": 9 }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true }
+  ]
+}

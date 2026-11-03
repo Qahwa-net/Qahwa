@@ -13,4 +13,5 @@ Schema changes are additive and automatic, but a new version sometimes needs dat
 - **Write patches to be safe to repeat**, since an interrupted run is repeated from the start.
 
 ## Consequences
-- Not yet: running a single patch from the command line, patches that belong to an installable app (with app dependencies and ordering across apps), a Desk button to retry.
+- **Looking at and re-running patches** (added later): `PatchRunner.ListAsync` lists every registered patch with its state (Pending, Running, Done, Failed, plus logged ones that no longer exist); `RunOneAsync(name, force)` runs one now. A pending or failed patch just runs; a Done one needs `force` (it runs again, so it must be safe to repeat); one that another server is running right now is refused even then. Over HTTP (`GET /api/patches` for System Managers, `POST /api/patches/{name}/run` for Administrators only, never with an API key) and in the Desk as a "Run this patch again" button on the Patch Log form. On the command line, `qahwa list-patches` and `qahwa run-patch <name> [--force]` work with the patches the command line carries (the framework's own); patches that belong to apps are registered by the server, so run those from the Desk.
+- Not yet: ordering of patches across apps (with app dependencies).

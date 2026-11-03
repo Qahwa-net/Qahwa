@@ -2,6 +2,18 @@
 
 An **app** is a .NET class library with an `IQahwaApp` class. It can bring DocTypes (JSON files), hooks on documents, server functions, scheduled jobs, fixtures and patches. Several apps can be installed together, and on a server with several sites each site records the apps it has.
 
+## Start from the template
+
+The repository has a `dotnet new` template that makes a working app, with a DocType, a hook, a server function and a test project:
+
+```bash
+dotnet new install ./templates/qahwa-app
+dotnet new qahwa-app -n Acme.Crm --FrameworkPath /path/to/Qahwa -o Acme.Crm
+dotnet test Acme.Crm/Acme.Crm.Tests
+```
+
+`--FrameworkPath` is the folder of the Qahwa repository (the one with `src` and `tests`); it defaults to `../Qahwa`. The app's name (`acme_crm`), its DocType (`Acme Crm Item`) and its namespace are made from the name you give, with anything that is not a letter or digit made safe. Register the generated `QahwaAppModule` in your host as shown below. Uninstall it with `dotnet new uninstall ./templates/qahwa-app`.
+
 ## The smallest app
 
 ```csharp
@@ -114,7 +126,7 @@ curl -b jar.txt -X POST localhost:5101/api/method/qahwa.get_count -H "Content-Ty
 
 ## Patches, fixtures and jobs
 
-- `Patches` are ordinary `IPatch` objects (see ADR-043): one-time, named with a date prefix, run once per site in name order.
+- `Patches` are ordinary `IPatch` objects (see ADR-043): one-time, named with a date prefix, run once per site. Patches of the host run first, then those of each app in install order (an app after the apps it depends on), each in name order, so a patch can rely on its dependencies' data being up to date ([ADR-141](../../adr/141-patch-order-per-app.md)).
 - A `Fixture` with a `name` is skipped when that document already exists, and fixtures are made only the first time an app is installed on a site.
 - A job runs at most about once per `every` (a minimum of one minute) on each server's scheduler tick; failures go to the Error Log and never stop other jobs.
 
@@ -125,3 +137,37 @@ Set `Qahwa:Developer:Enabled` to `true` and `Qahwa:Developer:AppPath` to your ap
 ## Testing an app
 
 `TestEngine` (in `Qahwa.Testing`) has `AppCatalog`: `engine.AppCatalog.Add(new CrmApp())` activates the hooks and methods for the engine's `Documents` and `Methods`; `AppInstaller.InstallAllAsync()` records the app and makes fixtures; `AppJobs.RunDueAsync()` runs due jobs. See `tests/Qahwa.Core.Tests/AppTests.cs`.
+
+## Building the documentation site
+The markdown under `docs/` can be built into a static website with a page list, a filter box and checked links:
+
+```bash
+cd docs/site && npm ci && npm run build   # writes docs/site/dist; open dist/index.html
+```
+
+`npm run check` only checks the links. CI builds the site on every change, so a link to a page that does not exist fails the build ([ADR-135](../../adr/135-docs-site.md)).
+
+## Typed documents
+To get IntelliSense and compile-time field names, list the DocType files in the project and reference the generator:
+
+```xml
+<ItemGroup>
+  <ProjectReference Include="..\Qahwa\src\Qahwa.SourceGenerators\Qahwa.SourceGenerators.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
+  <AdditionalFiles Include="DocTypes\*.json" />
+</ItemGroup>
+```
+
+Each DocType then has a class in `Qahwa.Typed`:
+
+```csharp
+var invoice = new SalesInvoice { Customer = "Acme", PostingDate = new DateOnly(2026, 3, 1) };
+invoice.AddItems().Qty = 3;
+var saved = await documents.InsertAsync(SalesInvoice.DocType, invoice.Values, user);
+var loaded = new SalesInvoice(await documents.GetAsync(SalesInvoice.DocType, (string)saved["name"]!, user));
+```
+
+The class only wraps the dictionary; see [ADR-136](../../adr/136-typed-documents.md) for the type mapping and limits.
+
+## A complete example: Qahwa CRM
+`apps/Qahwa.Crm` is a small real app built the same way: two DocTypes (`Crm Lead`, `Crm Opportunity`) as JSON files, a before-save hook per DocType, a server function (`qahwa_crm.convert_lead`) that works through the person's permissions, a script report, and fixtures for its two roles. `apps/Qahwa.Crm.Tests` shows how to test an app: load its DocTypes into the `TestEngine`, add the app to `engine.AppCatalog`, and call `engine.Documents`, `engine.Methods` and `engine.ScriptReports` as test users. The reference server offers it per site with `Qahwa:Apps:Crm = true` ([ADR-146](../../adr/146-crm-app.md)).
+

@@ -405,7 +405,7 @@ Timeline assumes **1–2 full-time developers**. Scale it up or down accordingly
 - Background jobs (Hangfire) + scheduler + job DocTypes; SignalR realtime
 - Workflow engine, notifications, email queue, print formats (PDF)
 - Data import/export, global search, custom fields and property setters
-- Source generator for typed documents
+- Source generator for typed documents (done: `src/Qahwa.SourceGenerators`, ADR-136)
 - Reports (query/report builder), dashboard charts and number cards
 - Localization and RTL (Arabic) in Desk
 
@@ -414,8 +414,8 @@ Timeline assumes **1–2 full-time developers**. Scale it up or down accordingly
 - Visual DocType designer in Desk
 - Kanban/calendar/tree views, webhooks, OAuth2/OIDC provider support
 - Marketplace-style app distribution (NuGet feed), upgrade tooling
-- Docs site, tutorials, templates (`dotnet new qahwa-app`)
-- First flagship app (e.g., **Qahwa CRM**, to dogfood the framework)
+- Docs site (done: `docs/site`, ADR-135), tutorials, templates (`dotnet new qahwa-app`)
+- First flagship app (e.g., **Qahwa CRM**, to dogfood the framework): CRM-lite done (`apps/Qahwa.Crm`, ADR-146); quotations, contacts sync and email-to-lead are later
 
 ---
 
@@ -428,7 +428,7 @@ Timeline assumes **1–2 full-time developers**. Scale it up or down accordingly
 | Contract/API | WebApplicationFactory | Endpoints, error envelopes, authz matrix |
 | Security | Custom suites | SQL injection payloads, IDOR, permission bypass attempts |
 | E2E | Playwright | Create DocType → use list/form, and key user flows |
-| Performance | k6/BenchmarkDotNet | List with 1M rows, meta cache hit rate, bulk insert |
+| Performance | k6/BenchmarkDotNet | List with 1M rows, meta cache hit rate, bulk insert (BenchmarkDotNet engine benchmarks and a k6 load test with a million rows done: `benchmarks/`, ADR-137; not in CI) |
 | Migration | Snapshot tests | Schema diff output stays stable |
 
 Rule: every bug in the schema engine or permission system gets a regression test before the fix.
@@ -456,8 +456,8 @@ Rule: every bug in the schema engine or permission system gets a regression test
 - `dotnet tool install -g qahwa-cli`
 - `qahwa init my-bench` → `qahwa new-site dev.local` → `qahwa new-app my_app` → `qahwa start`
 - Hot reload of DocType JSON in development (auto-migrate on file change)
-- JSON Schema for DocType files (IDE autocomplete and validation)
-- `dotnet new qahwa-app` template; clear error messages that point to the DocType and field
+- JSON Schema for DocType files (IDE autocomplete and validation): done, `qahwa schema` and `docs/schema/doctype.schema.json` (ADR-131)
+- `dotnet new qahwa-app` template (done: `templates/qahwa-app`, ADR-134); clear error messages that point to the DocType and field
 - Documentation: Getting Started (10 min), Concepts, DocType reference, API reference, Cookbook, Architecture
 
 ---
@@ -518,8 +518,8 @@ Rules that keep it honest:
 
 | Step | Scope | Status |
 |---|---|---|
-| **L1: DocType Designer** | Create, edit and delete custom DocTypes in the Desk: fields, field properties, naming, title field, list columns, permissions, live form preview, SQL change preview, safe schema apply | **done (v1)**. Not yet: child tables (L2), rename, type change of saved fields, depends_on (L4), drag-and-drop ordering (up/down buttons today) |
-| L2: Child tables | `Table` fields, child DocTypes, grid editing in forms, designer support | **done (v1)**. Rows save atomically with the parent; the form has an editable grid. Filters on the fields of child rows (ADR-123). Not yet: Table MultiSelect, nested tables, import/export of rows, row-level drag and drop (up/down buttons today) |
+| **L1: DocType Designer** | Create, edit and delete custom DocTypes in the Desk: fields, field properties, naming, title field, list columns, permissions, live form preview, SQL change preview, safe schema apply | **done (v1)**. Rename and type change of saved fields done (ADR-138). Not yet: child tables (L2), depends_on (L4), drag-and-drop ordering (up/down buttons today) |
+| L2: Child tables | `Table` fields, child DocTypes, grid editing in forms, designer support | **done (v1)**. Rows save atomically with the parent; the form has an editable grid. Filters on the fields of child rows (ADR-123). Nested tables, one level deep (ADR-147), with list filters through them (ADR-151). Not yet: Table MultiSelect, import/export of rows, row-level drag and drop (up/down buttons today) |
 | L3: Customize Form | Custom Fields and Property Setters on any DocType (standard included), reorder fields, hide/rename, per-DocType list settings | **done (v1)**. Custom fields (real columns, never dropped), property changes on standard fields (label, help, hidden, read-only, required, default, list, permission level, Select choices, conditions), order, title field, reset; framework DocTypes Administrator-only. Not yet: child tables, per-DocType list settings (L7), fixtures export (L12) |
 | L4: Field logic | `depends_on` family, `fetch_from`, default and validation expressions, expression language shared by server and client | **done (v1)**. A safe expression language (no code, no loops) evaluated identically on server and in the Desk, checked by 220+ shared test vectors. Show/require/read-only conditions, calculated fields (formulas, also in table rows, `parent.x`, `sum(table, 'field')`), expression defaults (`=today()`), fetch from a linked document, and document/row validation rules, all edited in the designer with live checks. Rules across the rows of a table (average, smallest, largest, count and sum of matching rows, distinct values; ADR-121). Formulas that read a field of a linked document, with the person's own permissions (`lookup`, ADR-122). Not yet: formulas over many other documents, per-field validation messages by type, date/time pickers in expressions |
 | L5: Permissions UI | Role Permission Manager, permission levels, User Permissions, Role/Module Profiles, sharing | **done (v1)**. Done: permission levels (0–9) on fields and rules, enforced on the server (hidden fields are absent from documents, lists, filters; unwritable fields are refused), the Role Permission Manager (customise, reset, per-level rules, Core DocTypes Administrator-only), designer support. User Permissions (restrict a user to some linked values, enforced in lists, reads, writes and link fields). Sharing a document with one person (read or write, from a Share panel on the form). Submittable documents with submit and cancel rights (draft, submitted, cancelled; locked after submit). Role Profiles and Module Profiles (roles from a profile; blocked modules), and the export (CSV) and report (grouped summary) rights. Not yet: import and share rights, amend |
@@ -592,7 +592,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Attachments, File manager (folders, private/public, thumbnails) | done: attachments on documents (private, permission-checked, picture thumbnails); not yet folders, public files, a File Manager page | ✅ (v1) | L10 |
 | Deleted Documents (restore), View Log, Access Log, Activity Log | Deleted Documents (ADR-067), View Log (ADR-080) and Access Log (ADR-081) done | ✅ | L7 |
 | Auto Repeat (recurring documents) | daily, weekly, monthly, quarterly, yearly; date fields; pause, run now, end date | ✅ (v1) | L8 |
-| Reminders, Events (calendar), Milestones | | 🔽 | L8 |
+| Reminders, Events (calendar), Milestones | Reminders (ADR-139), Events (ADR-140) and Milestones (ADR-142) done | ✅ (v1) | L8 |
 
 ### A3. Workflow, automation and messaging
 
@@ -606,7 +606,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Notification Log (bell icon), Email Digest | bell and log done (ADR-015); Email Digest done (ADR-072) | ✅ | L8 |
 | Scheduled Job Types (cron, hourly, daily, weekly, monthly), Scheduler UI and logs | background scheduler loop exists (auto repeat); job types, UI and logs not yet | 🔽 | L8 |
 | Background jobs and queues (short, default, long), job UI | scheduler steps and app jobs are timed and written to the Scheduled Job Log (ADR-075); persistent background queue with short, default and long queues, retries with backoff, crash recovery and a Background Job list (ADR-117) | ✅ | L8 |
-| Webhooks (outgoing, conditions, signed) | done: events, conditions, signing, retries, SSRF-safe; custom headers and a test button done (ADR-124) | ✅ | L10 |
+| Webhooks (outgoing, conditions, signed) | done: events, conditions, signing, retries, SSRF-safe; custom headers, a test button and resending failed deliveries done (ADR-124) | ✅ | L10 |
 | Auto Email Report | done: scheduled plain-text emails of a saved report, run as a chosen user (ADR-071) | ✅ | L9 |
 | Document Naming Rule | done: rules with priority and conditions, naming by expression (ADR-073) | ✅ | L6 |
 | Energy Points and gamification | | 🔽 | later |
@@ -625,12 +625,12 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Permission query and `has_permission` hooks | done: app checks and list conditions that can only narrow access, fail closed (ADR-074) | ✅ | L11 |
 | Password hashing, lockout, rate limit, change password | | ✅ | done |
 | Password policy (strength, expiry), password reset by email, email verification, sign-up | done: strength rules, reset by email and expiry (ADR-041), self sign-up with email verification (ADR-052); System Managers can set a password or send a reset link, audited (ADR-090) | ✅ | L10 |
-| Two-factor authentication (TOTP, email, SMS) | done: TOTP with recovery codes and admin reset (ADR-039); not email/SMS/passkeys | ✅ (v1) | L10 |
-| API keys / secrets, token auth | done: per-person Bearer keys, hashed, read-only and expiry; not yet scopes, rate limits, OAuth | ✅ (v1) | L10 |
+| Two-factor authentication (TOTP, email, SMS) | done: TOTP with recovery codes and admin reset (ADR-039), sign-in codes by email (ADR-127) and passkeys (ADR-150, tested with a simulated device, not yet with real hardware); not SMS | ✅ (v1) | L10 |
+| API keys / secrets, token auth | done: per-person Bearer keys, hashed, read-only and expiry, limited to chosen DocTypes and to a number of requests per minute (ADR-125); OAuth provider is separate (ADR-094) | ✅ (v1) | L10 |
 | OAuth 2 provider, social login (Google, GitHub, Microsoft, Keycloak), OpenID Connect | done: OpenID Connect sign-in (code + PKCE, state, nonce, full token checks, identity linking, domain allow-list, auto-create) with any provider; Qahwa is also an OAuth 2.0 provider for other programs (code + PKCE, rotating refresh tokens, revocation, user info; ADR-094); optional group-to-role map in configuration that can never name Administrator or System Manager (ADR-113); without it roles never come from the token | ✅ | L10 |
 | LDAP, SAML single sign-on | done: LDAP / Active Directory sign-in (ADR-054) and SAML 2.0 sign-in (ADR-058), both tested against stand-in providers | ✅ (v1) | L12 |
 | Session management (list/revoke, expiry), login as user (impersonation) | done: list, revoke, admin sign-out-everywhere, absolute limit (ADR-040); impersonation deliberately not built | ✅ (v1) | L10 |
-| IP restrictions, system settings (security) | done: IP allow-list in configuration, System Settings (display) (ADR-042); not per-role IP rules | ✅ (v1) | L10 |
+| IP restrictions, system settings (security) | done: IP allow-list in configuration, System Settings (display) (ADR-042); per-role network limits (ADR-126) | ✅ (v1) | L10 |
 | Encrypted fields (Password type) | done: encrypted at rest, masked on read, never listed (ADR-066) | ✅ | L3 |
 | CSRF, security headers | | ✅ | done |
 
@@ -655,18 +655,18 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Awesomebar (global search, create, commands), global search index | done: Ctrl+K search box with pages, DocTypes, "new …" and permission-checked document search by name, title and each DocType's search fields (ADR-061, ADR-105); no database full-text index, deliberately (ADR-107) | ✅ | L9 |
 | Notification bell, toasts, dialogs | done (ADR-015) | ✅ (v1) | L8 |
 | Themes (light, dark, automatic), RTL layout | RTL done (logical CSS, dir follows the language); light, dark and automatic themes with organisation brand default done | ✅ | L12 |
-| Translations (Translation DocType, language switch) | done: Translation DocType, catalog API, language switch, built-in Arabic chrome; not yet every message, plurals, per-user language | ✅ (v1) | L12 |
+| Translations (Translation DocType, language switch) | done: Translation DocType, catalog API, language switch, built-in Arabic chrome, plural forms and placeholders, language kept on the account (ADR-133); not yet every message | ✅ (v1) | L12 |
 | User settings: language, time zone, date/number/currency formats | language and time zone/date formats done (ADR-033, ADR-042); light/dark/auto theme per person and organisation brand done (ADR-056); number and currency format is a site setting (ADR-106) | ✅ | L7 |
-| Page Builder / Custom HTML Block | | 🔽 | L11 |
+| Page Builder / Custom HTML Block | partly (ADR-143): a Text block of cleaned formatted text on workspace pages; no arbitrary HTML or script, no page builder | ✅ (v1, text only) | L11 |
 
 ### A6. Reports, charts and printing
 
 | Feature | Notes | Status | Step |
 |---|---|---|---|
-| **Report Builder** (pick fields, filters, group by, sort, save, share) | done: lists and multi-number summaries, run with the viewer's rights, CSV (ADR-045); not joins, calculated columns, PDF | ✅ (v1) | L9 |
+| **Report Builder** (pick fields, filters, group by, sort, save, share) | done: lists and multi-number summaries, run with the viewer's rights, CSV (ADR-045), calculated columns (ADR-130); not joins, PDF | ✅ (v1) | L9 |
 | Query Report (SQL), Script Report | Script Reports written by apps done (ADR-088); a SQL box in the Desk is deliberately not offered (it bypasses permissions) | ✅ (by design) | L11 |
 | Dashboard Charts (count, sum, average, group by, time series), Number Cards, Dashboards | done: number, chart and list tiles, per day/month/year, filters, private or shared | ✅ (v1) | L9 |
-| Prepared Reports (background) | | 🔽 | L9 |
+| Prepared Reports (background) | done (ADR-144): built by the scheduler as the person, all rows, kept 7 days, open or download from the report page | ✅ (v1) | L9 |
 | Export to CSV / Excel / PDF | done: CSV and Excel (lists, reports, ADR-064), PDF of printouts (ADR-050) | ✅ (v1) | L9 |
 | **Print Format Builder** (drag and drop), Print Settings, Letter Head, custom HTML/Jinja-style formats | done: HTML templates with placeholders, if/each, default layout, letter heads, preview; not yet drag and drop, print settings, server PDF | ✅ (v1) | L9 |
 | PDF generation | done: headless Chrome, Chromium or Edge, inert page, no network, strict limits (ADR-050) | ✅ (v1) | L9 |
@@ -682,7 +682,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | API versioning, OpenAPI documentation | done: OpenAPI 3 per caller; URL versioning `/api/v1/` with a version header (ADR-097) | ✅ | L12 |
 | Webhooks, incoming API via server script | outgoing webhooks done (L10); incoming API via scripts not yet (L11) | 🔽 | L10, L11 |
 | Realtime updates (socket events, document updates), SignalR | done with Server-Sent Events instead of SignalR: live bell and live form updates (ADR-070); database backplane for several servers (ADR-086) | ✅ | L8 |
-| Payment gateways (Stripe, PayPal, Razorpay), SMS gateways, Google Calendar/Contacts/Drive, Dropbox, S3 backups, Slack, push notifications | | 🔽 | L12 |
+| Payment gateways (Stripe, PayPal, Razorpay), SMS gateways, Google Calendar/Contacts/Drive, Dropbox, S3 backups, Slack, push notifications | S3-compatible (ADR-145) and Azure Blob (ADR-149) attachment storage done, Google Cloud Storage only through its S3 interoperability mode (documented, untested); the rest open | 🔽 (S3 and Azure files ✅) | L12 |
 | Event streaming / data sync between sites | | 🔽 | later |
 
 ### A8. Data tools and operations
@@ -690,10 +690,10 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Feature | Notes | Status | Step |
 |---|---|---|---|
 | Schema migration (additive), dry run | | ✅ | done |
-| Patches / data migrations (patch log) | done (ADR-043); not per-app ordering or a CLI to run one | ✅ (v1) | L12 |
-| **Data Import** (CSV/Excel template, validate, preview, background, update existing) | done: CSV, template, preview, row results, update existing; not yet Excel, background, child tables | ✅ (v1) | L10 |
+| Patches / data migrations (patch log) | done (ADR-043), listing and running one patch from the Desk, the API and the CLI; per-app ordering (ADR-141) | ✅ (v1) | L12 |
+| **Data Import** (CSV/Excel template, validate, preview, background, update existing) | done: CSV and Excel, template, preview, row results, update existing, child table rows in the same file (ADR-128), also the rows inside those rows, export of table rows and reports over them through the API (ADR-152) and background import of big files with progress (ADR-129) | ✅ (v1) | L10 |
 | Data Export, bulk update, bulk rename | export to CSV and Excel (ADR-064), import from CSV and Excel (ADR-027, ADR-064), bulk edit (ADR-016) and bulk rename (ADR-065) done | ✅ | L10 |
-| Backups (download, scheduled, restore) | done: download, daily folder, additive restore (ADR-044); not encryption, file contents, cloud storage | ✅ (v1) | L12 |
+| Backups (download, scheduled, restore) | done: download, daily folder, additive restore (ADR-044), password-protected backups (ADR-132); not file contents, cloud storage | ✅ (v1) | L12 |
 | Error Log, Scheduled Job Log, Recorder (query profiler), System Console | done: Error Log (requests and scheduler), Scheduled Job Log (ADR-075); slow-request recorder with database statement counts and time (ADR-112); no statement-text profiler or console, by design (ADR-107) | ✅ | L12 |
 | System Settings (time zone, formats, session expiry, security) | done: time zone, date format, first weekday, default language; session length, password length and password age can be made stricter (never looser) in System Settings (ADR-114); lockout, hashing and the network allow-list stay in configuration (ADR-107) | ✅ | L10 |
 | Fixtures (export UI-made customisations as files) | done: **bundle** export/import of DocTypes, customizations, workflows and rules with preview; not yet print formats/dashboards, patches, CLI | ✅ (v1) | L12 |
@@ -706,7 +706,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | CLI: init, new-site, new-app, install-app, backup, restore, console, run-tests, set-config | `migrate`, `create-admin`, `new-site`, `list-sites` done (ADR-055); `list-apps`, `install-app`, `uninstall-app` done (ADR-093); `backup` and `restore` done (ADR-104); init is `new-site`, and set-config, console, run-tests and new-app are left out on purpose (ADR-104) | ✅ | L12 |
 | Apps (installable packages with DocTypes, hooks, fixtures, patches) | done: `IQahwaApp`, per-site install record, fixtures, patches (ADR-062), dependencies (ADR-085), uninstall/install per site and `list-apps`/`install-app`/`uninstall-app` on the command line (ADR-093) | ✅ | L12 |
 | SQL Server dialect | done: second database product, per site, same tests on both (ADR-059) | ✅ (v1) | L12 |
-| Multi-tenancy (sites, per-site config, database per site) | done: Host-header sites, a container and database per site, per-site config files, `qahwa new-site` (ADR-055); not live add/remove, no site manager UI | ✅ (v1) | L12 |
+| Multi-tenancy (sites, per-site config, database per site) | done: Host-header sites, a container and database per site, per-site config files, `qahwa new-site` (ADR-055); live add/remove from a Sites page in the Desk (ADR-148). Not yet: renaming or re-hosting a site live, deleting a site's database from the Desk | ✅ (v1) | L12 |
 | Developer mode (UI-made DocTypes written to the app's files) | done (ADR-062) | ✅ (v1) | L12 |
 | Caching, boot info, performance | boot info in one call (`BootService`); DocType definitions held in memory and refreshed when they change; script and action lists cached for 15 seconds on each server; API responses are never cached (they hold private data, `Cache-Control: no-store`) | ✅ | L12 |
 | Test framework (unit, integration, UI) | unit and integration done: xUnit with in-memory stores (Core, Api through a full test server), tests against real PostgreSQL and SQL Server (Data, need a database), vitest for the Desk, shared expression vectors checked by both C# and TypeScript; browser end-to-end tests with Playwright in `e2e/` (ADR-115), run against a throwaway site | ✅ | ongoing |

@@ -6,6 +6,9 @@ import type {
 export interface DraftField extends DocField {
   key: string
   locked: boolean
+  /** For a saved field: the name and type it has in the database, so a rename or a type change can be told from the start. */
+  savedName?: string
+  savedType?: FieldType
   /** True while the name still follows the label (until the user edits the name by hand). */
   nameFollowsLabel: boolean
 }
@@ -212,6 +215,8 @@ export function fromDetail(detail: DesignerDetail): Draft {
       ...f,
       key: nextKey(),
       locked: true,
+      savedName: f.name,
+      savedType: f.type,
       nameFollowsLabel: false,
       options: f.options ?? null,
       default: f.default ?? null,
@@ -304,6 +309,7 @@ export function toDefinition(draft: Draft): DocTypeDefinition {
       permLevel: (!draft.isChildTable && f.permLevel) || undefined,
       allowOnSubmit: (draft.isSubmittable && !draft.isChildTable && f.allowOnSubmit) || undefined,
       multiSelect: (f.type === 'Table' && f.multiSelect) || undefined,
+      renamedFrom: f.locked && f.savedName && f.savedName !== f.name ? f.savedName : undefined,
     })) as DocTypeDefinition['fields'],
     // Child table rows follow the permissions of the document they belong to.
     permissions: draft.isChildTable ? [] : draft.permissions
@@ -329,4 +335,17 @@ export const isTextType = (type: FieldType) =>
   ['Data', 'Text', 'SmallText', 'Autocomplete', 'LongText', 'Email', 'Phone', 'Url', 'Code', 'Markdown'].includes(type)
 
 /** Types that cannot sensibly be unique or hold a default (long text, layout). */
+/** Settings of the DocType that name a field follow it when the field is renamed. */
+export function followRename(draft: Draft, from: string, to: string): Partial<Draft> {
+  const follow = (name: string) => (name === from ? to : name)
+  return {
+    titleField: follow(draft.titleField),
+    statusField: follow(draft.statusField),
+    sortField: follow(draft.sortField),
+    imageField: follow(draft.imageField),
+    autonameField: follow(draft.autonameField),
+    searchFields: draft.searchFields.map(follow),
+  }
+}
+
 export const isLayoutType = (type: FieldType) => type === 'SectionBreak' || type === 'TabBreak' || type === 'ColumnBreak' || type === 'Heading' || type === 'Html'

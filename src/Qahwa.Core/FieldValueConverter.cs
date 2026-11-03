@@ -72,6 +72,13 @@ public static class FieldValueConverter
         _ => value,
     };
 
+    /// <summary>
+    /// An address with its own scheme (<c>https://…</c>, <c>mailto:…</c>). On Linux and macOS .NET reads a path such as <c>/etc/hosts</c> as an
+    /// absolute <c>file:</c> address, and on Windows so is <c>C:\x</c>; a path is not a URL, so such text is refused unless it really says <c>file:</c>.
+    /// </summary>
+    internal static bool IsAbsoluteUrl(string text) =>
+        Uri.TryCreate(text, UriKind.Absolute, out var uri) && !(uri.IsFile && !text.StartsWith("file:", StringComparison.OrdinalIgnoreCase));
+
     private static object? Convert(FieldType type, object? raw)
     {
         if (raw is null)
@@ -163,7 +170,7 @@ public static class FieldValueConverter
                 return HtmlSanitizer.Clean(text);
             case FieldType.Email when !MailAddress.TryCreate(text, out _):
                 throw new FormatException("Value must be a valid email address.");
-            case FieldType.Url when !Uri.TryCreate(text, UriKind.Absolute, out _):
+            case FieldType.Url when !IsAbsoluteUrl(text):
                 throw new FormatException("Value must be an absolute URL.");
             case FieldType.Json:
                 using (JsonDocument.Parse(text)) { }

@@ -33,3 +33,11 @@ describe('workspace helpers', () => {
     expect(new Set(PAGES.map((p) => p.value)).size).toBe(PAGES.length)
   })
 })
+
+describe('text blocks', () => {
+  it('starts empty and keeps its formatted text as typed (the server cleans it)', () => {
+    expect(newBlock('Text')).toMatchObject({ type: 'Text', text: '', items: [] })
+    const request = toRequest({ title: 't', sequence: 0, roles: [], blocks: [{ type: 'Text', text: '<p>Hi <b>there</b></p>', items: [] }] })
+    expect(request.blocks[0]).toEqual({ type: 'Text', text: '<p>Hi <b>there</b></p>', items: [] })
+  })
+})

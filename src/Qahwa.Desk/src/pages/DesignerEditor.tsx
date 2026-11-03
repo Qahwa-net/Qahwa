@@ -9,7 +9,7 @@ import { TableControl } from '../controls/TableControl.tsx'
 import { FieldCard, PermissionsEditor } from '../designer/FieldCard.tsx'
 import { RulesEditor } from '../designer/RulesEditor.tsx'
 import {
-  emptyDraft, errorMap, fromDetail, isLayoutType, isTextType, moveItem, newField, toDefinition, type AutonameKind, type Draft, type DraftField,
+  emptyDraft, errorMap, followRename, fromDetail, isLayoutType, isTextType, moveItem, newField, toDefinition, type AutonameKind, type Draft, type DraftField,
 } from '../lib/designer.ts'
 import { isEditable } from '../lib/fields.ts'
 import {
@@ -111,8 +111,15 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
   const blocking = (preview.data?.errors.length ?? 0) > 0
 
   const patch = (changes: Partial<Draft>) => { setDraft((d) => ({ ...d, ...changes })); setServerErrors([]) }
-  const patchField = (key: string, changes: Partial<DraftField>) =>
-    patch({ fields: draft.fields.map((f) => (f.key === key ? { ...f, ...changes } : f)) })
+  const patchField = (key: string, changes: Partial<DraftField>) => {
+    const before = draft.fields.find((f) => f.key === key)
+    const renamed = before && changes.name !== undefined && changes.name !== before.name && before.locked
+    patch({
+      fields: draft.fields.map((f) => (f.key === key ? { ...f, ...changes } : f)),
+      // A DocType setting that names the field keeps following it while its name is being typed.
+      ...(renamed ? followRename(draft, before.name, changes.name!) : {}),
+    })
+  }
 
   function addField(info: FieldTypeInfo) {
     const field = newField(info, draft.fields.map((f) => f.name))
@@ -178,7 +185,8 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
 
   const modules = [...new Set((doctypes.data ?? []).map((d) => d.module).filter((m): m is string => Boolean(m)))]
   const linkable = (doctypes.data ?? []).filter((d) => !d.isChildTable).map((d) => d.name)
-  const childTargets = (doctypes.data ?? []).filter((d) => d.isChildTable).map((d) => d.name)
+  // A child table can hold a table too, but only of child DocTypes that hold no table themselves: tables nest one level deep.
+  const childTargets = (doctypes.data ?? []).filter((d) => d.isChildTable && !(draft.isChildTable && d.hasTables)).map((d) => d.name)
   const dataFields = draft.fields.filter((f) => isEditable(f.type))
 
   return (
@@ -413,8 +421,8 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
                     <h3>{group}</h3>
                     <div className="type-grid">
                       {items.map((t) => (
-                        <button key={t.type} type="button" role="menuitem" className="type-option" disabled={!t.supported || (t.type === 'Table' && draft.isChildTable)}
-                          title={!t.supported ? (t.unsupportedReason ?? 'Not supported yet') : t.type === 'Table' && draft.isChildTable ? 'A child table cannot contain another table' : t.hint} onClick={() => addField(t)}>
+                        <button key={t.type} type="button" role="menuitem" className="type-option" disabled={!t.supported}
+                          title={!t.supported ? (t.unsupportedReason ?? 'Not supported yet') : t.type === 'Table' && draft.isChildTable ? 'A table inside this table: its rows belong to each row (one level deep)' : t.hint} onClick={() => addField(t)}>
                           <strong>{t.label}</strong>
                           <small className="muted">{t.supported ? t.hint : 'Coming soon'}</small>
                         </button>
@@ -434,6 +442,7 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
                   doctypes={linkable} childTables={childTargets} inChildTable={draft.isChildTable} submittable={draft.isSubmittable} errors={errors}
                   fieldNames={draft.fields.map((f) => f.name)} linkFields={draft.fields.filter((f) => f.type === 'Link')}
                   onToggle={() => setOpen(open === field.key ? null : field.key)}
+                  typeChoices={types.filter((t) => t.supported && !isLayoutType(t.type) && t.type !== 'Table')}
                   onChange={(changes) => patchField(field.key, changes)}
                   onMove={(delta) => patch({ fields: moveItem(draft.fields, index, index + delta) })}
                   onRemove={() => removeField(field)} />

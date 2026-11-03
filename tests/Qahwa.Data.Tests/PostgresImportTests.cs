@@ -30,4 +30,27 @@ public class PostgresImportTests(PostgresFixture postgres) : IClassFixture<Postg
         Assert.Equal(1, update.Updated);
         Assert.Equal(42L, Convert.ToInt64((await db.Documents.GetAsync("Person Row", (string)rows[0]["name"]!, clerk))["age"]));
     }
+
+    [SkippableFact]
+    public async Task A_file_with_child_rows_imports_documents_with_their_tables_on_postgres()
+    {
+        Skip.IfNot(postgres.Available, postgres.SkipReason);
+        await using var db = await postgres.CreateStackAsync();
+        db.Registry.Add(DocTypeLoader.Parse("""{ "name": "Batch Line", "isChildTable": true, "fields": [ { "name": "item", "type": "Data", "required": true }, { "name": "qty", "type": "Int" } ] }"""));
+        db.Registry.Add(DocTypeLoader.Parse("""
+            { "name": "Batch", "autoname": "BAT-.####", "fields": [ { "name": "title", "type": "Data", "required": true }, { "name": "lines", "type": "Table", "options": "Batch Line" } ],
+              "permissions": [ { "role": "Clerk", "read": true, "write": true, "create": true } ] }
+            """));
+        db.Registry.ValidateReferences();
+        await db.MigrateAsync();
+        var clerk = new UserContext("c@example.com", ["Clerk"]);
+
+        var result = await db.DataImport.RunAsync("Batch", "title,lines.item,lines.qty\r\nFirst,Pen,2\r\n,Book,5\r\nSecond,Cap,9\r\n", "Insert", false, clerk);
+
+        Assert.Equal((2, 0), (result.Created, result.Failed));
+        var batches = (await db.Documents.ListAsync("Batch", new ListRequest { OrderBy = "creation", Descending = false, Limit = 10, Fields = ["name", "title"] }, clerk)).Data;
+        var first = (List<Dictionary<string, object?>>)(await db.Documents.GetAsync("Batch", (string)batches[0]["name"]!, clerk))["lines"]!;
+        Assert.Equal(["Pen", "Book"], first.Select(r => (string)r["item"]!));
+        Assert.Equal(5L, Convert.ToInt64(first[1]["qty"]));
+    }
 }

@@ -30,12 +30,19 @@ function groupByModule(metas: MetaSummary[]): [string, MetaSummary[]][] {
 
 export function Shell() {
   const { user, logout } = useAuth()
-  const { t, applyDefault } = useI18n()
+  // The Sites page exists only on the main site of a server set up for it; the server answers 404 everywhere else.
+  const sitesOn = !!useQuery({ queryKey: ['sites'], queryFn: api.sites.list, retry: false, enabled: !!user?.roles.includes('Administrator') }).data
+  const { t, applyDefault, applyUser } = useI18n()
   const { brand } = useTheme()
   const settings = useQuery({ queryKey: ['display-settings'], queryFn: api.settings, staleTime: 60_000, retry: false })
   if (settings.data) setDisplaySettings(settings.data) // before the page below renders, so dates follow the settings
   const defaultLanguage = settings.data?.defaultLanguage
   useEffect(() => { if (defaultLanguage) applyDefault(defaultLanguage) }, [defaultLanguage, applyDefault])
+  const savedLanguage = user?.language
+  // Only when the account's language arrives or changes: switching language in the top bar must not be undone by the older saved value.
+  const applyUserRef = useRef(applyUser)
+  applyUserRef.current = applyUser
+  useEffect(() => { if (savedLanguage) applyUserRef.current(savedLanguage) }, [savedLanguage])
   const [open, setOpen] = useState(false)
   const [searching, setSearching] = useState(false)
   const desk = useDeskSettings()
@@ -144,6 +151,7 @@ export function Shell() {
               <li><NavLink to="/app/Deleted%20Document">{t('Deleted Documents')}</NavLink></li>
               <li><NavLink to="/bundle">{t('Export & Import')}</NavLink></li>
               {user?.roles.includes('Administrator') && <li><NavLink to="/backup">{t('Backup & Restore')}</NavLink></li>}
+              {sitesOn && <li><NavLink to="/sites">{t('Sites')}</NavLink></li>}
               <li><NavLink to="/workspaces">{t('Workspaces')}</NavLink></li>
               <li><NavLink to="/brand">{t('Brand')}</NavLink></li>
               <li><NavLink to="/print-formats">{t('Print Formats')}</NavLink></li>

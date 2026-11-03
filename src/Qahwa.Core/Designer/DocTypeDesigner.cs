@@ -3,7 +3,7 @@ using Qahwa.Abstractions;
 namespace Qahwa.Core.Designer;
 
 public sealed record DesignerItem(
-    string Name, string? Module, DocTypeSource Source, bool Editable, int FieldCount, bool IsChildTable);
+    string Name, string? Module, DocTypeSource Source, bool Editable, int FieldCount, bool IsChildTable, bool HasTables = false);
 
 public sealed record DesignerDetail(
     DocTypeMeta Definition,
@@ -37,7 +37,7 @@ public sealed class DocTypeDesigner(
     private static readonly HashSet<string> FrameworkNames = new(StringComparer.OrdinalIgnoreCase)
     {
         "DocType", "DocField", "DocPerm", "Custom Field", "Property Setter", "Custom DocPerm", "Comment", "Communication",
-        "ToDo", "DocShare", "Document Follow", "Version", "File", "Tag", "Note", "Workflow", "Workflow Action", "Workflow Approval", "Workflow Escalation", "Workflow Link", "Notification",
+        "ToDo", "DocShare", "Document Follow", "Version", "File", "Tag", "Note", "Workflow", "Workflow Action", "Workflow Approval", "Workflow Escalation", "Workflow Link", "Import Run", "Notification",
         "Notification Log", "Email Template", "Email Account", "Assignment Rule", "Auto Repeat", "Webhook", "Report",
         "Dashboard", "Dashboard Chart", "Number Card", "Workspace", "Print Format", "Letter Head", "Web Form", "Data Import",
         "Scheduled Job Type", "System Settings", "Module Def", "Series", "Session", "Error Log", "Activity Log", "Access Log",
@@ -54,7 +54,7 @@ public sealed class DocTypeDesigner(
             .Select(m =>
             {
                 var source = registry.SourceOf(m.Name) ?? DocTypeSource.App;
-                return new DesignerItem(m.Name, m.Module, source, source == DocTypeSource.Custom, m.Fields.Count, m.IsChildTable);
+                return new DesignerItem(m.Name, m.Module, source, source == DocTypeSource.Custom, m.Fields.Count, m.IsChildTable, m.Fields.Any(f => f.Type == FieldType.Table));
             })
             .ToList();
     }
@@ -84,11 +84,12 @@ public sealed class DocTypeDesigner(
                 throw new NotFoundException($"Custom DocType '{existingName}' was not found.");
         }
 
+        definition = FollowRenames(definition);
         var errors = Validate(definition, existing).ToList();
         if (errors.Count > 0)
             return new DesignerPreview(errors, null, []);
 
-        var preview = await schema.PreviewAsync(definition, ct);
+        var preview = await schema.PreviewAsync(Settled(definition), ChangesOf(existing, definition), ct);
         errors.AddRange(preview.Warnings.Select(w => new FieldError(string.Empty, w)));
         return new DesignerPreview(errors, preview, Notes(definition, existing));
     }
@@ -140,7 +141,7 @@ public sealed class DocTypeDesigner(
         RequireDesigner(user);
         ThrowIfInvalid(Validate(definition, null));
 
-        var preview = await schema.PreviewAsync(definition, ct);
+        var preview = await schema.PreviewAsync(definition, null, ct);
         if (preview.TableExists)
         {
             // Left over from an earlier attempt that failed half way: reuse it only if it holds nothing.
@@ -149,7 +150,7 @@ public sealed class DocTypeDesigner(
             ThrowIfInvalid(preview.Warnings.Select(w => new FieldError(string.Empty, w)).ToList());
         }
 
-        await schema.ApplyAsync(definition, ct);
+        await schema.ApplyAsync(definition, null, ct);
 
         var now = Now();
         await store.InsertAsync(
@@ -169,17 +170,20 @@ public sealed class DocTypeDesigner(
         var stored = await store.GetAsync(name, ct) ?? throw new NotFoundException($"DocType '{name}' was not found.");
         var existing = registry.Get(name);
 
+        definition = FollowRenames(definition);
         var errors = Validate(definition, existing).ToList();
         if (!string.Equals(definition.Name, name, StringComparison.Ordinal))
             errors.Add(new FieldError("name", "A DocType cannot be renamed yet."));
         ThrowIfInvalid(errors);
+        var changes = ChangesOf(existing, definition);
+        definition = Settled(definition);
 
         if (expectedModified is not null && expectedModified != stored.Modified)
             throw new ConflictException($"'{name}' was changed by someone else after you opened it. Reload and try again.");
 
-        var preview = await schema.PreviewAsync(definition, ct);
+        var preview = await schema.PreviewAsync(definition, changes, ct);
         ThrowIfInvalid(preview.Warnings.Select(w => new FieldError(string.Empty, w)).ToList());
-        await schema.ApplyAsync(definition, ct);
+        await schema.ApplyAsync(definition, changes, ct);
 
         var updated = stored with
         {
@@ -211,7 +215,7 @@ public sealed class DocTypeDesigner(
         if (referencing.Count > 0)
             throw new ConflictException($"'{name}' is used by {string.Join(", ", referencing)}. Remove those fields first.");
 
-        var preview = await schema.PreviewAsync(meta, ct);
+        var preview = await schema.PreviewAsync(meta, null, ct);
         if (preview.TableExists && meta.IsSingle)
         {
             // The single document cannot be deleted through the API, so it must not keep the DocType from being removed.
@@ -262,18 +266,75 @@ public sealed class DocTypeDesigner(
         }
         else
         {
+            var renamedFrom = new HashSet<string>(StringComparer.Ordinal);
             for (var i = 0; i < definition.Fields.Count; i++)
             {
                 var field = definition.Fields[i];
-                var before = existing.Fields.FirstOrDefault(f => f.Name == field.Name);
-                if (before is not null && before.Type != field.Type)
-                    errors.Add(new FieldError(
-                        $"fields[{i}].type",
-                        $"The type of the existing field '{field.Name}' cannot be changed yet (it is {before.Type})."));
+                var before = BeforeOf(existing, field);
+                if (!string.IsNullOrEmpty(field.RenamedFrom) && field.RenamedFrom != field.Name)
+                {
+                    var source = existing.Fields.FirstOrDefault(f => f.Name == field.RenamedFrom);
+                    if (source is null)
+                        errors.Add(new FieldError($"fields[{i}].renamedFrom", $"There is no saved field named '{field.RenamedFrom}' to rename."));
+                    else if (!FieldTypes.HasColumn(source.Type))
+                        errors.Add(new FieldError($"fields[{i}].renamedFrom", $"'{field.RenamedFrom}' holds no data, so there is nothing to carry over; remove it and add the new field."));
+                    else if (existing.Fields.Any(f => f.Name == field.Name))
+                        errors.Add(new FieldError($"fields[{i}].name", $"'{field.Name}' is already the name of another field."));
+                    else if (!renamedFrom.Add(field.RenamedFrom))
+                        errors.Add(new FieldError($"fields[{i}].renamedFrom", $"'{field.RenamedFrom}' is renamed twice."));
+                    else if (definition.Fields.Any(f => f.Name == field.RenamedFrom))
+                        errors.Add(new FieldError($"fields[{i}].renamedFrom", $"'{field.RenamedFrom}' is still the name of another field."));
+                }
+
+                if (before is not null && before.Type != field.Type && FieldTypeChanges.Check(before.Type, field.Type) is { } why)
+                    errors.Add(new FieldError($"fields[{i}].type", $"{why} (it is {before.Type} now)."));
             }
         }
 
         return errors;
+    }
+
+    /// <summary>The saved field a field of the new definition continues: the one it is renamed from, or the one with its name.</summary>
+    private static DocFieldMeta? BeforeOf(DocTypeMeta existing, DocFieldMeta field) =>
+        existing.Fields.FirstOrDefault(f => f.Name == (string.IsNullOrEmpty(field.RenamedFrom) ? field.Name : field.RenamedFrom));
+
+    private static IReadOnlyList<(string From, string To)> RenamesOf(DocTypeMeta definition) =>
+        definition.Fields.Where(f => !string.IsNullOrEmpty(f.RenamedFrom) && f.RenamedFrom != f.Name).Select(f => (f.RenamedFrom!, f.Name)).ToList();
+
+    /// <summary>Settings of the DocType that name a field follow it when the field is renamed.</summary>
+    private static DocTypeMeta FollowRenames(DocTypeMeta definition)
+    {
+        var renames = RenamesOf(definition).ToDictionary(r => r.From, r => r.To, StringComparer.Ordinal);
+        if (renames.Count == 0)
+            return definition;
+        string? Follow(string? field) => field is not null && renames.TryGetValue(field, out var to) ? to : field;
+        return definition with
+        {
+            TitleField = Follow(definition.TitleField),
+            StatusField = Follow(definition.StatusField),
+            SortField = Follow(definition.SortField),
+            ImageField = Follow(definition.ImageField),
+            SearchFields = [.. definition.SearchFields.Select(f => Follow(f)!)],
+            Validations = [.. definition.Validations.Select(v => v with { Field = Follow(v.Field) })],
+        };
+    }
+
+    /// <summary>The definition as it is stored: a rename has been carried out, so it is not asked for again.</summary>
+    private static DocTypeMeta Settled(DocTypeMeta definition) =>
+        definition.Fields.Any(f => f.RenamedFrom is not null)
+            ? definition with { Fields = [.. definition.Fields.Select(f => f.RenamedFrom is null ? f : f with { RenamedFrom = null })] }
+            : definition;
+
+    private static SchemaChanges? ChangesOf(DocTypeMeta? existing, DocTypeMeta definition)
+    {
+        if (existing is null)
+            return null;
+        var retypes = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var field in definition.Fields)
+            if (BeforeOf(existing, field) is { } before && before.Type != field.Type && FieldTypes.HasColumn(before.Type) && FieldTypes.HasColumn(field.Type))
+                retypes.Add(field.Name);
+        var changes = new SchemaChanges(RenamesOf(definition), retypes);
+        return changes.IsEmpty ? null : changes;
     }
 
     private static IReadOnlyList<string> Notes(DocTypeMeta definition, DocTypeMeta? existing)
@@ -281,10 +342,26 @@ public sealed class DocTypeDesigner(
         if (existing is null)
             return [];
 
+        var notes = new List<string>();
+        foreach (var (from, to) in RenamesOf(definition))
+        {
+            notes.Add($"Field '{from}' is renamed to '{to}'; its saved values move with it.");
+            var word = new System.Text.RegularExpressions.Regex($@"\b{System.Text.RegularExpressions.Regex.Escape(from)}\b");
+            var mentions = definition.Fields.Any(f => new[] { f.DependsOn, f.MandatoryDependsOn, f.ReadOnlyDependsOn, f.Formula, f.FetchFrom }.Any(e => e is not null && word.IsMatch(e)))
+                || definition.Validations.Any(v => word.IsMatch(v.Expression));
+            if (mentions)
+                notes.Add($"Some conditions, formulas or rules still mention '{from}'; change them to '{to}'.");
+        }
+
+        foreach (var field in definition.Fields)
+            if (BeforeOf(existing, field) is { } before && before.Type != field.Type && FieldTypes.HasColumn(before.Type) && FieldTypes.HasColumn(field.Type))
+                notes.Add($"Field '{field.Name}' changes from {before.Type} to {field.Type}; every saved value is converted, and the change is refused if one does not fit.");
+
         var kept = existing.Fields
-            .Where(old => FieldTypes.HasColumn(old.Type) && definition.Fields.All(f => f.Name != old.Name))
+            .Where(old => FieldTypes.HasColumn(old.Type) && definition.Fields.All(f => f.Name != old.Name && f.RenamedFrom != old.Name))
             .Select(old => $"Field '{old.Name}' was removed. Its column and data stay in the database and are hidden.");
-        return kept.ToList();
+        notes.AddRange(kept);
+        return notes;
     }
 
     private static void ThrowIfInvalid(IReadOnlyList<FieldError> errors)

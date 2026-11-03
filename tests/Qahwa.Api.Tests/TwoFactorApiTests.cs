@@ -42,6 +42,43 @@ public sealed class TwoFactorApiTests : IAsyncDisposable
         return (secret, codes[0].GetString()!);
     }
 
+    private string MailedCode() => System.Text.RegularExpressions.Regex.Match(_factory.Mail.Sent[^1].Body, @"\b(\d{6})\b").Groups[1].Value;
+
+    [Fact]
+    public async Task Email_codes_can_be_turned_on_and_then_a_mailed_code_finishes_the_sign_in()
+    {
+        var me = await SignedInAsync();
+        Assert.False((await JsonOf(await me.GetAsync("/api/auth/2fa/email"))).GetProperty("data").GetProperty("enabled").GetBoolean());
+
+        // Turning it on is confirmed with a code sent to the person's own address.
+        var send = await JsonOf(await me.PostAsJsonAsync("/api/auth/2fa/email/send", new { purpose = "enable" }));
+        Assert.Equal(Email, _factory.Mail.Sent[^1].To);
+        var wrong = await me.PostAsJsonAsync("/api/auth/2fa/email/enable", new { token = send.GetProperty("data").GetProperty("token").GetString(), code = "000000" });
+        Assert.Equal(HttpStatusCode.BadRequest, wrong.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await me.PostAsJsonAsync("/api/auth/2fa/email/enable", new { token = send.GetProperty("data").GetProperty("token").GetString(), code = MailedCode() })).StatusCode);
+
+        // The password alone no longer gets a session: a code is mailed and the challenge says so.
+        var fresh = _factory.CreateClient();
+        var login = await fresh.PostAsJsonAsync("/api/auth/login", new { email = Email, password = Password });
+        var challenge = (await JsonOf(login)).GetProperty("data");
+        Assert.Equal("email", challenge.GetProperty("method").GetString());
+        Assert.Equal(HttpStatusCode.Unauthorized, (await fresh.GetAsync("/api/auth/me")).StatusCode);
+        var token = challenge.GetProperty("token").GetString();
+        var code = MailedCode();
+
+        Assert.Equal(HttpStatusCode.Unauthorized, (await fresh.PostAsJsonAsync("/api/auth/login/2fa", new { token, code = "000000" })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await fresh.PostAsJsonAsync("/api/auth/login/2fa", new { token, code })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await fresh.GetAsync("/api/auth/me")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await _factory.CreateClient().PostAsJsonAsync("/api/auth/login/2fa", new { token, code })).StatusCode); // the code works once
+
+        // Turning it off needs the password and a fresh code.
+        var off = await JsonOf(await fresh.PostAsJsonAsync("/api/auth/2fa/email/send", new { purpose = "disable" }));
+        var offToken = off.GetProperty("data").GetProperty("token").GetString();
+        Assert.Equal(HttpStatusCode.BadRequest, (await fresh.PostAsJsonAsync("/api/auth/2fa/email/disable", new { token = offToken, code = MailedCode(), password = "not the password" })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await fresh.PostAsJsonAsync("/api/auth/2fa/email/disable", new { token = offToken, code = MailedCode(), password = Password })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await _factory.CreateClient().PostAsJsonAsync("/api/auth/login", new { email = Email, password = Password })).StatusCode);
+    }
+
     [Fact]
     public async Task Once_on_the_password_alone_gets_no_session_and_a_code_finishes_the_sign_in()
     {

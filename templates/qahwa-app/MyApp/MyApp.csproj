@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="QAHWA_FRAMEWORK_PATH/src/Qahwa.Core/Qahwa.Core.csproj" />
+  </ItemGroup>
+
+  <!-- The DocType files travel with the app: the host finds them next to the assembly. -->
+  <ItemGroup>
+    <Content Include="DocTypes\**\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
