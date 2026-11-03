@@ -19,6 +19,21 @@ You can create many documents at once from a spreadsheet: customers, items, cont
 - At most **5,000 rows** and 5 MB per file.
 - Fields that are calculated, passwords, files or system columns (who created it, when) cannot be filled from a file.
 
+## Rows inside the document, and rows inside those rows
+
+A document's table (the lines of an order) is filled with columns named `table.field`, for example `lines.item` and `lines.qty`. A row that leaves every document column empty adds another line to the document above it.
+
+If a line has a table of its own (each line has parts), name those columns `table.inner.field`, for example `lines.parts.part_name` and `lines.parts.qty`:
+
+```
+name_text,lines.title,lines.parts.part_name,lines.parts.qty
+Frame,Side,bolt,4
+,,nut,6
+,Top,panel,1
+Table,Leg,peg,2
+```
+Here *Frame* has a *Side* line with two parts (the second row has no line title, so *nut* joins *Side*) and a *Top* line with one part; *Table* is a second document. A row with parts but no line title and no earlier line to join is refused. A problem in a part is reported with the row of your file that holds it, as `lines.parts.qty`. Exporting rows of tables, inside rows or not, is not done yet.
+
 ## Changing existing documents
 
 Choose **Update existing** (if you may edit them). The file needs a column named **name** holding each document's ID, plus the columns to change. An **empty cell clears** the value. You can get the IDs by exporting the list first.

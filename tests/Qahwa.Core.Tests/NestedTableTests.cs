@@ -109,6 +109,75 @@ public class NestedTableTests
         await Assert.ThrowsAsync<DocumentValidationException>(() => NamesAsync(("lines.parts.nothing", "=", "x")));
     }
 
+    // ---- importing rows inside rows ----
+
+    private DataImportService Importer => new(_engine.Registry, _engine.Documents, _engine.Permissions);
+
+    [Fact]
+    public async Task A_file_can_carry_lines_and_the_parts_under_them()
+    {
+        const string csv = "name_text,lines.title,lines.parts.part_name,lines.parts.qty\n" +
+                           "Frame,Side,bolt,4\n" +
+                           ",,nut,6\n" +          // another part of the Side line
+                           ",Top,panel,1\n" +     // a new line with a part
+                           "Table,Leg,peg,2\n";   // a new document
+
+        var result = await Importer.RunAsync("Assembly", csv, "Insert", false, TestUsers.Admin);
+
+        Assert.Equal(2, result.Created);
+        Assert.Empty(result.Errors);
+        var docs = (await _engine.Documents.ListAsync("Assembly", new ListRequest { Fields = ["name", "name_text"], OrderBy = "name_text", Descending = false, Limit = 10 }, TestUsers.Admin)).Data;
+        var frame = await _engine.Documents.GetAsync("Assembly", (string)docs[0]["name"]!, TestUsers.Admin);
+        Assert.Equal(["Side", "Top"], Lines(frame).Select(l => (string)l["title"]!));
+        Assert.Equal(["bolt", "nut"], Parts(Lines(frame)[0]).Select(p => (string)p["part_name"]!));
+        Assert.Equal(["panel"], Parts(Lines(frame)[1]).Select(p => (string)p["part_name"]!));
+        Assert.Equal(11, frame["total_parts"]); // 4 + 6 + 1, calculated as for any save
+        Assert.Equal(3, await CountAsync("Assembly Part") - 1); // the peg of the second document is the fourth part
+    }
+
+    [Fact]
+    public async Task A_problem_in_a_part_is_reported_on_its_own_line_of_the_file()
+    {
+        const string csv = "name_text,lines.title,lines.parts.part_name,lines.parts.qty\n" +
+                           "Frame,Side,bolt,4\n" +
+                           ",,nut,many\n";
+
+        var preview = await Importer.PreviewAsync("Assembly", csv, "Insert", TestUsers.Admin);
+
+        var error = Assert.Single(preview.Errors);
+        Assert.Equal(3, error.Row);
+        Assert.Equal("lines.parts.qty", error.Field);
+        Assert.Contains(preview.Columns, c => c.Field == "qty" && c.Table == "lines" && c.Inner == "parts");
+    }
+
+    [Fact]
+    public async Task A_server_error_in_a_part_points_at_the_line_of_that_part()
+    {
+        const string csv = "name_text,lines.title,lines.parts.part_name,lines.parts.qty\n" +
+                           "Frame,Side,bolt,4\n" +
+                           ",,nut,500\n"; // the rule allows at most 100
+
+        var result = await Importer.RunAsync("Assembly", csv, "Insert", false, TestUsers.Admin);
+
+        Assert.Equal(1, result.Failed);
+        Assert.Equal(0, result.Created);
+        var error = Assert.Single(result.Errors);
+        Assert.Equal(3, error.Row);
+        Assert.Equal("lines.parts.qty", error.Field);
+        Assert.Equal(0, await CountAsync("Assembly Part"));
+    }
+
+    [Fact]
+    public async Task Parts_with_no_line_above_them_are_refused()
+    {
+        const string csv = "name_text,lines.title,lines.parts.part_name,lines.parts.qty\n" +
+                           "Frame,,bolt,4\n";
+
+        var preview = await Importer.PreviewAsync("Assembly", csv, "Insert", TestUsers.Admin);
+
+        Assert.Contains(preview.Errors, e => e.Row == 2 && e.Message.Contains("no row above", StringComparison.Ordinal));
+    }
+
     // ---- saving and reading ----
 
     [Fact]

@@ -65,7 +65,8 @@ public static class CsvReader
 }
 
 /// <param name="Table">For a column of a child table (written <c>table.field</c>, for example <c>lines.item</c>): the Table field it belongs to; <paramref name="Field"/> is then the child's field.</param>
-public sealed record ImportColumn(string Header, string? Field, string? Label, string? Table = null);
+/// <param name="Inner">For a column of a table inside a child table (<c>table.inner.field</c>, for example <c>lines.parts.qty</c>): the Table field of the child that holds it; <paramref name="Field"/> is then the inner row's field.</param>
+public sealed record ImportColumn(string Header, string? Field, string? Label, string? Table = null, string? Inner = null);
 
 public sealed record ImportRowError(int Row, string? Field, string Message);
 
@@ -175,11 +176,29 @@ public sealed class DataImportService(IMetaRegistry registry, DocumentService do
             if (table is not null && registry.TryGet(table.Options!, out var childMeta))
             {
                 // "lines.item": a column of the child table, matched like any other by name or by label.
+                // "lines.parts.qty": a column of the table inside the child table (one level deeper).
                 var childFields = ImportableFields(childMeta);
                 var part = header[(dot + 1)..].Trim();
-                var child = childFields.FirstOrDefault(f => string.Equals(f.Name, part, StringComparison.OrdinalIgnoreCase))
-                    ?? childFields.FirstOrDefault(f => f.Label is not null && string.Equals(f.Label, part, StringComparison.OrdinalIgnoreCase));
-                column = new ImportColumn(header, child?.Name, child is null ? null : $"{table.Label ?? table.Name} › {child.Label ?? child.Name}", child is null ? null : table.Name);
+                DocFieldMeta? child;
+                string? innerName = null;
+                var innerDot = part.IndexOf('.', StringComparison.Ordinal);
+                var innerTable = innerDot > 0 ? childMeta.Fields.FirstOrDefault(t => t.Type == FieldType.Table && t.Options is not null
+                    && (string.Equals(t.Name, part[..innerDot].Trim(), StringComparison.OrdinalIgnoreCase) || (t.Label is not null && string.Equals(t.Label, part[..innerDot].Trim(), StringComparison.OrdinalIgnoreCase)))) : null;
+                if (innerTable is not null && registry.TryGet(innerTable.Options!, out var innerMeta))
+                {
+                    var innerPart = part[(innerDot + 1)..].Trim();
+                    var innerFields = ImportableFields(innerMeta);
+                    child = innerFields.FirstOrDefault(f => string.Equals(f.Name, innerPart, StringComparison.OrdinalIgnoreCase))
+                        ?? innerFields.FirstOrDefault(f => f.Label is not null && string.Equals(f.Label, innerPart, StringComparison.OrdinalIgnoreCase));
+                    innerName = innerTable.Name;
+                    column = new ImportColumn(header, child?.Name, child is null ? null : $"{table.Label ?? table.Name} › {innerTable.Label ?? innerTable.Name} › {child.Label ?? child.Name}", child is null ? null : table.Name, child is null ? null : innerName);
+                }
+                else
+                {
+                    child = childFields.FirstOrDefault(f => string.Equals(f.Name, part, StringComparison.OrdinalIgnoreCase))
+                        ?? childFields.FirstOrDefault(f => f.Label is not null && string.Equals(f.Label, part, StringComparison.OrdinalIgnoreCase));
+                    column = new ImportColumn(header, child?.Name, child is null ? null : $"{table.Label ?? table.Name} › {child.Label ?? child.Name}", child is null ? null : table.Name);
+                }
             }
             else
             {
@@ -189,7 +208,7 @@ public sealed class DataImportService(IMetaRegistry registry, DocumentService do
                 column = new ImportColumn(header, target, field?.Label ?? (target == "name" ? "ID" : null));
             }
 
-            if (column.Field is not null && !used.Add((column.Table ?? string.Empty) + "." + column.Field))
+            if (column.Field is not null && !used.Add((column.Table ?? string.Empty) + "." + (column.Inner ?? string.Empty) + "." + column.Field))
                 throw Invalid("csv", $"The column '{(header.Length > 40 ? header[..40] : header)}' appears twice.");
             columns.Add(column);
         }
@@ -201,14 +220,14 @@ public sealed class DataImportService(IMetaRegistry registry, DocumentService do
         return (columns, all.Skip(1).ToList());
     }
 
-    private static string Qualify(string? table, string field) => table is null ? field : $"{table}.{field}";
+    private static string Qualify(string? table, string field, string? inner = null) => table is null ? field : inner is null ? $"{table}.{field}" : $"{table}.{inner}.{field}";
 
-    private Dictionary<string, object?> RowValues(DocTypeMeta meta, IReadOnlyList<ImportColumn> columns, IReadOnlyList<string> row, string mode, int line, List<ImportRowError> errors, string? table = null)
+    private Dictionary<string, object?> RowValues(DocTypeMeta meta, IReadOnlyList<ImportColumn> columns, IReadOnlyList<string> row, string mode, int line, List<ImportRowError> errors, string? table = null, string? inner = null)
     {
         var values = new Dictionary<string, object?>(StringComparer.Ordinal);
         for (var c = 0; c < columns.Count; c++)
         {
-            if (columns[c].Field is not { } field || columns[c].Table != table)
+            if (columns[c].Field is not { } field || columns[c].Table != table || columns[c].Inner != inner)
                 continue;
             var raw = c < row.Count ? row[c].Trim() : string.Empty;
             // Exported text that starts with = + - @ is saved with a leading apostrophe; take it off again.
@@ -229,13 +248,13 @@ public sealed class DataImportService(IMetaRegistry registry, DocumentService do
                 var low = raw.ToLowerInvariant();
                 if (True.Contains(low)) values[field] = true;
                 else if (False.Contains(low)) values[field] = false;
-                else errors.Add(new ImportRowError(line, Qualify(table, field), "Use yes or no (or 1 or 0)."));
+                else errors.Add(new ImportRowError(line, Qualify(table, field, inner), "Use yes or no (or 1 or 0)."));
                 continue;
             }
 
             if (meta2?.Type == FieldType.Select && !meta2.SelectOptions().Contains(raw, StringComparer.OrdinalIgnoreCase))
             {
-                errors.Add(new ImportRowError(line, Qualify(table, field), $"Choose one of: {string.Join(", ", meta2.SelectOptions())}."));
+                errors.Add(new ImportRowError(line, Qualify(table, field, inner), $"Choose one of: {string.Join(", ", meta2.SelectOptions())}."));
                 continue;
             }
 
@@ -247,7 +266,7 @@ public sealed class DataImportService(IMetaRegistry registry, DocumentService do
                 }
                 catch (FormatException)
                 {
-                    errors.Add(new ImportRowError(line, Qualify(table, field), $"'{(raw.Length > 30 ? raw[..30] : raw)}' is not a valid {meta2.Type.ToString().ToLowerInvariant()}."));
+                    errors.Add(new ImportRowError(line, Qualify(table, field, inner), $"'{(raw.Length > 30 ? raw[..30] : raw)}' is not a valid {meta2.Type.ToString().ToLowerInvariant()}."));
                     continue;
                 }
             }
@@ -258,13 +277,30 @@ public sealed class DataImportService(IMetaRegistry registry, DocumentService do
         return values;
     }
 
+    /// <summary>One row of a child table, with its line in the file and the rows it has in a table of its own.</summary>
+    private sealed class FileRow(int line, Dictionary<string, object?> values)
+    {
+        public int Line { get; } = line;
+        public Dictionary<string, object?> Values { get; } = values;
+        public Dictionary<string, List<FileRow>> Inner { get; } = new(StringComparer.Ordinal);
+
+        /// <summary>The values to save: the row's own plus its inner tables.</summary>
+        public Dictionary<string, object?> ToValues()
+        {
+            var all = new Dictionary<string, object?>(Values);
+            foreach (var (name, rows) in Inner)
+                all[name] = rows.Select(r => r.ToValues()).ToList();
+            return all;
+        }
+    }
+
     /// <summary>One document of a file: its own values and the rows it has in each child table, each with its line in the file.</summary>
     private sealed class FileDocument(int line, Dictionary<string, object?> values, string? name)
     {
         public int Line { get; } = line;
         public Dictionary<string, object?> Values { get; } = values;
         public string? Name { get; } = name;
-        public Dictionary<string, List<(int Line, Dictionary<string, object?> Values)>> Tables { get; } = new(StringComparer.Ordinal);
+        public Dictionary<string, List<FileRow>> Tables { get; } = new(StringComparer.Ordinal);
         public List<ImportRowError> Problems { get; } = [];
     }
 
@@ -297,14 +333,40 @@ public sealed class DataImportService(IMetaRegistry registry, DocumentService do
 
             foreach (var table in columns.Where(c => c.Table is not null && c.Field is not null).Select(c => c.Table!).Distinct(StringComparer.Ordinal))
             {
-                var cells = columns.Select((c, idx) => (c, idx)).Where(x => x.c.Table == table && x.c.Field is not null).Select(x => x.idx).ToList();
-                if (cells.All(Blank))
+                var lineCells = columns.Select((c, idx) => (c, idx)).Where(x => x.c.Table == table && x.c.Inner is null && x.c.Field is not null).Select(x => x.idx).ToList();
+                var filledInner = columns.Where(c => c.Table == table && c.Inner is not null && c.Field is not null).Select(c => c.Inner!).Distinct(StringComparer.Ordinal)
+                    .Where(inner => columns.Select((c, idx) => (c, idx)).Any(x => x.c.Table == table && x.c.Inner == inner && x.c.Field is not null && !Blank(x.idx))).ToList();
+                var lineBlank = lineCells.All(Blank);
+                if (lineBlank && filledInner.Count == 0)
                     continue; // this row has nothing for this table
                 var childMeta = registry.Get(meta.Fields.First(f => f.Name == table).Options!);
-                var childValues = RowValues(childMeta, columns, row, "Insert", line, problems, table);
                 if (!document.Tables.TryGetValue(table, out var list))
                     document.Tables[table] = list = [];
-                list.Add((line, childValues));
+                FileRow target;
+                if (lineBlank)
+                {
+                    // Only inner rows on this line of the file: they belong to the row above, as a row with no document columns belongs to the document above.
+                    if (list.Count == 0)
+                    {
+                        problems.Add(new ImportRowError(line, Qualify(table, filledInner[0]), "These rows have no row above them to belong to."));
+                        continue;
+                    }
+
+                    target = list[^1];
+                }
+                else
+                {
+                    target = new FileRow(line, RowValues(childMeta, columns, row, "Insert", line, problems, table));
+                    list.Add(target);
+                }
+
+                foreach (var inner in filledInner)
+                {
+                    var innerMeta = registry.Get(childMeta.Fields.First(f => f.Name == inner).Options!);
+                    if (!target.Inner.TryGetValue(inner, out var innerRows))
+                        target.Inner[inner] = innerRows = [];
+                    innerRows.Add(new FileRow(line, RowValues(innerMeta, columns, row, "Insert", line, problems, table, inner)));
+                }
             }
 
             document.Problems.AddRange(problems);
@@ -316,9 +378,19 @@ public sealed class DataImportService(IMetaRegistry registry, DocumentService do
     /// <summary>The line in the file a server error belongs to: for <c>lines[1].qty</c>, the line of the second row of <c>lines</c>.</summary>
     private static (int Line, string? Field) Locate(FileDocument document, string? field)
     {
-        if (!string.IsNullOrEmpty(field) && System.Text.RegularExpressions.Regex.Match(field, @"^([A-Za-z0-9_]+)\[(\d+)\]\.?(.*)$") is { Success: true } m
+        var pattern = new System.Text.RegularExpressions.Regex(@"^([A-Za-z0-9_]+)\[(\d+)\]\.?(.*)$");
+        if (!string.IsNullOrEmpty(field) && pattern.Match(field) is { Success: true } m
             && document.Tables.TryGetValue(m.Groups[1].Value, out var rows) && int.Parse(m.Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture) is var index && index < rows.Count)
-            return (rows[index].Line, m.Groups[3].Value.Length == 0 ? m.Groups[1].Value : $"{m.Groups[1].Value}.{m.Groups[3].Value}");
+        {
+            var row = rows[index];
+            var rest = m.Groups[3].Value;
+            // "lines[0].parts[1].qty": the line of the second part of the first line.
+            if (pattern.Match(rest) is { Success: true } n && row.Inner.TryGetValue(n.Groups[1].Value, out var innerRows)
+                && int.Parse(n.Groups[2].Value, System.Globalization.CultureInfo.InvariantCulture) is var innerIndex && innerIndex < innerRows.Count)
+                return (innerRows[innerIndex].Line, n.Groups[3].Value.Length == 0 ? $"{m.Groups[1].Value}.{n.Groups[1].Value}" : $"{m.Groups[1].Value}.{n.Groups[1].Value}.{n.Groups[3].Value}");
+            return (row.Line, rest.Length == 0 ? m.Groups[1].Value : $"{m.Groups[1].Value}.{rest}");
+        }
+
         return (document.Line, string.IsNullOrEmpty(field) ? null : field);
     }
 
@@ -408,7 +480,7 @@ public sealed class DataImportService(IMetaRegistry registry, DocumentService do
             var values = new Dictionary<string, object?>(document.Values);
             values.Remove("name");
             foreach (var (table, childRows) in document.Tables)
-                values[table] = childRows.Select(r => r.Values).ToList();
+                values[table] = childRows.Select(r => r.ToValues()).ToList();
 
             try
             {
