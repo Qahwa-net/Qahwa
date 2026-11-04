@@ -59,4 +59,25 @@ public class JobLogTests
         Assert.Empty(await bare.RecentAsync(10));
         Assert.Equal(0, await bare.PurgeAsync(TimeSpan.Zero));
     }
+
+    [Fact]
+    public async Task The_overview_lists_every_known_job_with_its_last_run_and_the_counts_of_the_day_and_adds_app_jobs()
+    {
+        await _engine.JobLog.RecordAsync("email queue", true, "2 sent, 0 failed.", TimeSpan.FromMilliseconds(40));
+        _engine.Clock.Advance(TimeSpan.FromSeconds(1)); // the fake clock stands still otherwise, and "newest" would be a tie
+        await _engine.JobLog.RecordAsync("email queue", false, "mail server down", TimeSpan.FromMilliseconds(10));
+        await _engine.JobLog.RecordAsync("shop.sync", true, "synced", TimeSpan.FromMilliseconds(5));
+
+        var overview = await _engine.JobLog.OverviewAsync();
+
+        Assert.All(SchedulerJobs.All, known => Assert.Contains(overview, j => j.Job == known.Job));
+        var queue = Assert.Single(overview, j => j.Job == "email queue");
+        Assert.Equal((1, 1), (queue.Succeeded24h, queue.Failed24h));
+        Assert.Equal("Failed", queue.Last!.Status);                       // the newest row
+        Assert.Equal("every cycle", queue.Pace);
+        Assert.Null(Assert.Single(overview, j => j.Job == "webhooks").Last);   // nothing to do yet
+        var app = Assert.Single(overview, j => j.Job == "shop.sync");          // not a scheduler step: an app's own job
+        Assert.Equal("its own schedule", app.Pace);
+        Assert.Equal(1, app.Succeeded24h);
+    }
 }

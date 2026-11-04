@@ -1,6 +1,6 @@
 import { DeskEditor } from '../pages/DeskEditor.tsx'
 import { DeskNavigation } from './DeskNavigation.tsx'
-import { useDeskSettings, type DeskLayout, type DeskState } from '../lib/desk.ts'
+import { readUnfolded, saveUnfolded, sidebarGroups, useDeskSettings, type DeskLayout, type DeskState } from '../lib/desk.ts'
 import { useToast } from '../controls/Toast.tsx'
 import { Icon } from '../controls/Icon.tsx'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
@@ -50,15 +50,32 @@ export function Shell() {
   const [deskPreview, setDeskPreview] = useState<DeskLayout | null>(null)
   const queryClient = useQueryClient()
   const toast = useToast()
-  const collapseGroup = useMutation({
-    mutationFn: (group: string) => {
+  // Folded groups are saved with the desk (they follow the person); groups they unfolded among the ones that start folded are remembered on this device.
+  const [unfolded, setUnfolded] = useState(readUnfolded)
+  const foldGroups = useMutation({
+    mutationFn: ({ groups, fold }: { groups: string[]; fold: boolean }) => {
       const state = desk.data!
-      const collapsedGroups = state.layout.collapsedGroups.includes(group) ? state.layout.collapsedGroups.filter(g => g !== group) : [...state.layout.collapsedGroups, group]
-      return api.desk.save({ ...state.layout, collapsedGroups }, state.modified)
+      const current = new Set(state.layout.collapsedGroups)
+      for (const g of groups) { if (fold) current.add(g); else current.delete(g) }
+      return api.desk.save({ ...state.layout, collapsedGroups: [...current] }, state.modified)
     },
     onSuccess: next => queryClient.setQueriesData<DeskState>({ queryKey: ['desk-settings'] }, old => old ? next : old),
     onError: () => { toast('Could not save sidebar state. Reload and try again.'); void queryClient.invalidateQueries({ queryKey: ['desk-settings'] }) },
   })
+  const arrange = useMutation({
+    mutationFn: (layout: DeskLayout) => api.desk.save(layout, desk.data!.modified),
+    onSuccess: next => queryClient.setQueriesData<DeskState>({ queryKey: ['desk-settings'] }, old => old ? next : old),
+    onError: () => { toast('Could not save the new order. Reload and try again.'); void queryClient.invalidateQueries({ queryKey: ['desk-settings'] }) },
+  })
+  const fold = (groups: string[], folded: boolean) => {
+    const next = new Set(unfolded)
+    for (const g of groups) { if (folded) next.delete(g); else next.add(g) }
+    setUnfolded(next)
+    saveUnfolded(next)
+    const saved = new Set(desk.data?.layout.collapsedGroups ?? [])
+    // Only talk to the server when a saved choice changes (folding a group that is only folded by default needs nothing saved).
+    if (groups.some(g => (folded ? !saved.has(g) : saved.has(g)))) foldGroups.mutate({ groups, fold: folded })
+  }
 
   const location = useLocation()
   const navigate = useNavigate()
@@ -117,8 +134,14 @@ export function Shell() {
       </header>
 
       <nav className={`sidebar${open ? ' open' : ''}`} aria-label="DocTypes">
-        <div className="desk-customize"><button type="button" className="btn small" disabled={!desk.data} onClick={() => setEditingDesk(true)}><Icon name="pencil" size={15} /> {t('Customize Desk')}</button></div>
-        {desk.data ? <DeskNavigation state={desk.data} layout={deskPreview ?? desk.data.layout} busy={collapseGroup.isPending || editingDesk} onCollapse={group => collapseGroup.mutate(group)} /> : <>
+        <div className="desk-customize">
+          <button type="button" className="btn small" disabled={!desk.data} onClick={() => setEditingDesk(true)}><Icon name="pencil" size={15} /> {t('Customize Desk')}</button>
+          {desk.data && <span className="desk-fold-all">
+            <button type="button" className="link-btn" disabled={foldGroups.isPending} onClick={() => fold(sidebarGroups(desk.data!.links, desk.data!.layout).map(([g]) => g), false)}>{t('Expand all')}</button>
+            <button type="button" className="link-btn" disabled={foldGroups.isPending} onClick={() => fold(sidebarGroups(desk.data!.links, desk.data!.layout).map(([g]) => g), true)}>{t('Collapse all')}</button>
+          </span>}
+        </div>
+        {desk.data ? <DeskNavigation state={desk.data} layout={deskPreview ?? desk.data.layout} busy={foldGroups.isPending || arrange.isPending || editingDesk} unfolded={unfolded} onFold={(group, folded) => fold([group], folded)} onLayout={next => { if (next !== desk.data!.layout) arrange.mutate(next) }} /> : <>
         {metas.isPending && <p className="muted pad">Loading…</p>}
         {metas.isError && <p className="muted pad">Could not load DocTypes.</p>}
         {metas.data?.length === 0 && <p className="muted pad">You do not have access to any DocType yet.</p>}

@@ -22,20 +22,16 @@ export function HomePage() {
       <WorkflowInbox />
       <MyAssignments />
       <WorkspaceHome />
-      <p className="muted">Pick a DocType to see its documents.</p>
-      {groups.map((group) => (
-        <section key={group.module || 'other'} aria-label={group.label}>
-          <h2>{group.label}</h2>
-          {group.description && <p className="muted">{group.description}</p>}
-          <div className="tiles">
-            {group.items.map((meta) => (
-              <Link key={meta.name} className="card tile" to={`/app/${encodeURIComponent(meta.name)}`}>
-                <strong>{meta.name}</strong>
-              </Link>
-            ))}
-          </div>
-        </section>
-      ))}
+      <h2>Modules</h2>
+      <p className="muted">Open a module to see its DocTypes.</p>
+      <div className="tiles">
+        {groups.map((group) => (
+          <Link key={group.module || 'other'} className="card tile" to={`/module/${encodeURIComponent(group.module || group.label)}`} aria-label={group.label}>
+            <strong>{group.label}</strong>
+            <span className="muted">{group.description || `${group.items.length} ${group.items.length === 1 ? 'DocType' : 'DocTypes'}`}</span>
+          </Link>
+        ))}
+      </div>
     </>
   )
 }

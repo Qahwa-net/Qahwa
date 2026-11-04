@@ -220,4 +220,46 @@ public class WorkspaceTests
         var ex = await Assert.ThrowsAsync<DocumentValidationException>(() => MakeAsync("Long", 0, [], Words("<p>" + new string('x', WorkspaceBlock.MaxTextLength + 1) + "</p>")));
         Assert.Contains(ex.Errors, e => e.Field.EndsWith(".text", StringComparison.Ordinal));
     }
+
+    // ---- icons and workspaces under workspaces ----
+
+    private Task<WorkspaceDetail> MakeUnderAsync(string title, string? parent, string? icon = null) =>
+        _engine.Workspaces.CreateAsync(new WorkspaceRequest(title, 0, null, [Heading(title)], icon, parent), TestUsers.SystemManager);
+
+    [Fact]
+    public async Task A_workspace_has_an_icon_and_can_go_under_another_one_level_deep()
+    {
+        var sales = await MakeUnderAsync("Sales", null, "chart");
+        var leads = await MakeUnderAsync("Leads", sales.Info.Id, "users");
+
+        var mine = await _engine.Workspaces.MineAsync(Ann);
+
+        Assert.Equal("chart", mine.Single(w => w.Id == sales.Info.Id).Icon);
+        Assert.Null(mine.Single(w => w.Id == sales.Info.Id).Parent);
+        Assert.Equal((sales.Info.Id, "users"), (mine.Single(w => w.Id == leads.Info.Id).Parent!, mine.Single(w => w.Id == leads.Info.Id).Icon!));
+    }
+
+    [Fact]
+    public async Task Only_one_level_is_allowed_and_the_icon_and_parent_must_be_valid()
+    {
+        var sales = await MakeUnderAsync("Sales", null);
+        var leads = await MakeUnderAsync("Leads", sales.Info.Id);
+
+        await Assert.ThrowsAsync<DocumentValidationException>(() => MakeUnderAsync("Deep", leads.Info.Id));               // under a child
+        await Assert.ThrowsAsync<DocumentValidationException>(() => MakeUnderAsync("Orphan", "nope"));                    // no such parent
+        await Assert.ThrowsAsync<DocumentValidationException>(() => MakeUnderAsync("Bad icon", null, "x\"><script>"));    // not an icon name
+        await Assert.ThrowsAsync<DocumentValidationException>(() => _engine.Workspaces.UpdateAsync(sales.Info.Id, new WorkspaceRequest("Sales", 0, null, [], null, sales.Info.Id), TestUsers.SystemManager));   // under itself
+        await Assert.ThrowsAsync<DocumentValidationException>(() => _engine.Workspaces.UpdateAsync(sales.Info.Id, new WorkspaceRequest("Sales", 0, null, [], null, leads.Info.Id), TestUsers.SystemManager)); // a parent cannot go under its child
+    }
+
+    [Fact]
+    public async Task Deleting_a_workspace_lifts_the_ones_under_it_to_the_top()
+    {
+        var sales = await MakeUnderAsync("Sales", null);
+        var leads = await MakeUnderAsync("Leads", sales.Info.Id);
+
+        await _engine.Workspaces.DeleteAsync(sales.Info.Id, TestUsers.SystemManager);
+
+        Assert.Null((await _engine.Workspaces.MineAsync(Ann)).Single(w => w.Id == leads.Info.Id).Parent);
+    }
 }

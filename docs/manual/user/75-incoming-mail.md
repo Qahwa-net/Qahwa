@@ -19,3 +19,8 @@ Qahwa can read a mailbox (for example `support@yourcompany.com`) and keep each n
 
 ## If it does not work
 Press the test button. If it fails, check the server name, the port and security choice, the folder name and the password. Details of failures are in **Scheduled Job Log** (step "incoming mail").
+
+## Replies show on the document
+When you **email from a document**, Qahwa adds a short reference to the subject, like `Your quote [QW-0a1b2c3d4e]`. If the person replies and keeps it (replying normally does), the reply is matched to the document when the mailbox is read, and the document's form shows an **Emails** section: what was sent and what came back, oldest first, with the reference hidden. A message without a known reference stays an ordinary Communication, which a System Manager can link to a document by hand (the *About* fields).
+
+Anyone who can read the document sees its emails, even though they cannot open Communications themselves: the conversation is part of the document's record. The reference is random and only given to the people you wrote to, but anyone who has it can attach a (plain-text) reply to that document, so do not paste it into public places.

@@ -242,6 +242,10 @@
       "type": "boolean",
       "description": "Documents form a tree through TreeParentField and TreeGroupField."
     },
+    "isVirtual": {
+      "type": "boolean",
+      "description": "The documents live outside the database: a source registered by the host or an app supplies them (ADR-158). Read-only, with no table of its own, and the usual permissions, filters, lists, reports and exports work over what the source returns."
+    },
     "maxAttachments": {
       "type": "integer",
       "description": "The most files one document may have (1 to 50); empty means the system limit of 50."

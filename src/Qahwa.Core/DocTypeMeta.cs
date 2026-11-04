@@ -21,6 +21,12 @@ public sealed record DocTypeMeta
     /// <summary>One document only, named after the DocType (settings pages). It has no list and cannot be deleted.</summary>
     public bool IsSingle { get; init; }
 
+    /// <summary>
+    /// The documents live outside the database: a source registered by the host or an app supplies them (ADR-158). Read-only, with no table
+    /// of its own, and the usual permissions, filters, lists, reports and exports work over what the source returns.
+    /// </summary>
+    public bool IsVirtual { get; init; }
+
     /// <summary>The field whose value is shown as a coloured status in lists (usually a Select such as Status).</summary>
     public string? StatusField { get; init; }
 

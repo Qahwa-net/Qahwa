@@ -561,7 +561,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Child tables (Table field, parent/child) | created in the designer, saved atomically with the parent | ✅ | L2 |
 | Single DocTypes (settings stored as one document) | done (ADR-011) | ✅ (v1) | L6 |
 | Tree DocTypes (nested set, parent/child hierarchy) | done: parent/child with tree views (ADR-011) | ✅ (v1) | L6 |
-| Virtual DocTypes (data from outside the database) | | 🔽 | L12 |
+| Virtual DocTypes (data from outside the database) | done (ADR-158): read-only, no table, documents from an `IVirtualSource`; a JSON-file source is built in. Writes through a source not yet | ✅ (v1) | L12 |
 | Submittable DocTypes (draft, submitted, cancelled, amend) | done: draft, submitted, cancelled (ADR-009) | ✅ (v1) | L6 |
 | Naming: hash, field, prompt, series | | ✅ | done |
 | Naming: format with date/field parts (`INV-{YYYY}-.####`), expression, naming rules, series manager | done: series, date and field parts, prompt, expression, rule tables, series manager (ADR-011, ADR-063, ADR-073) | ✅ | L6 |
@@ -570,7 +570,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Document options: title field, sort field/order, search fields, image field, quick entry, allow rename, allow import, allow copy, editable grid, max attachments, default view | title field, allow rename, allow import (permission flag), quick entry (ADR-091), default sort, allow copy, max attachments, search fields, default view and image field (ADR-105) done; child tables are edited in an inline grid (TableControl) | ✅ | L1, L3 |
 | Customize Form (adjust standard DocTypes) | done (ADR-013) | ✅ (v1) | L3 |
 | Custom Field, Property Setter | done: stored as data, survive upgrades (ADR-013) | ✅ (v1) | L3 |
-| DocType Layout (alternative form layouts per role) | | 🔽 | L3 |
+| DocType Layout (alternative form layouts per role) | done (ADR-157): hide fields on the form for some roles; reordering fields not yet | ✅ (v1) | L3 |
 | Module Definition, Module Profile | group DocTypes on the home page with label, order and hide flag (ADR-099); restrict access to modules with Module Profiles (ADR-081) | ✅ | L5 |
 
 ### A2. Document lifecycle and logic
@@ -602,14 +602,14 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Workflow Actions inbox, approve/reject by email link | inbox on the home page done; approve/reject by email link done (ADR-120) | ✅ | L8 |
 | Notification rules (on new, save, submit, value change, days before/after, custom condition) | done for the in-app channel; email, Slack and SMS channels not yet | ✅ (v1) | L8 |
 | Email Template, Email Account (SMTP out, IMAP/POP in), Email Queue, Email Domain | Email Template, Email Queue and a site Email Account for SMTP out (encrypted password, applies without restart, test email) done (ADR-090) and incoming mail over IMAP (TLS only, read-only, polled, kept as Communication; ADR-095); POP, OAuth SMTP and several accounts not planned | ✅ | L8 |
-| Communication (email threads on documents), send email from a document | send from a document done; received mail is kept as Communication documents (ADR-095); threads on documents not yet | 🔽 | L8 |
+| Communication (email threads on documents), send email from a document | send from a document done; received mail is kept as Communication documents (ADR-095); threads on documents through a reference in the subject (ADR-153) | 🔽 | L8 |
 | Notification Log (bell icon), Email Digest | bell and log done (ADR-015); Email Digest done (ADR-072) | ✅ | L8 |
-| Scheduled Job Types (cron, hourly, daily, weekly, monthly), Scheduler UI and logs | background scheduler loop exists (auto repeat); job types, UI and logs not yet | 🔽 | L8 |
+| Scheduled Job Types (cron, hourly, daily, weekly, monthly), Scheduler UI and logs | scheduler steps, the Scheduled Job Log and a Scheduled Jobs page with each job's last run and day counts (ADR-155); run-now and per-job pace settings not yet | 🔽 | L8 |
 | Background jobs and queues (short, default, long), job UI | scheduler steps and app jobs are timed and written to the Scheduled Job Log (ADR-075); persistent background queue with short, default and long queues, retries with backoff, crash recovery and a Background Job list (ADR-117) | ✅ | L8 |
 | Webhooks (outgoing, conditions, signed) | done: events, conditions, signing, retries, SSRF-safe; custom headers, a test button and resending failed deliveries done (ADR-124) | ✅ | L10 |
 | Auto Email Report | done: scheduled plain-text emails of a saved report, run as a chosen user (ADR-071) | ✅ | L9 |
 | Document Naming Rule | done: rules with priority and conditions, naming by expression (ADR-073) | ✅ | L6 |
-| Energy Points and gamification | | 🔽 | later |
+| Energy Points and gamification | done (ADR-159): rules on document events, a log, a leaderboard and a page; badges and points for comments not yet | ✅ (v1) | later |
 
 ### A4. Permissions and security
 
@@ -680,7 +680,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Filter operators: `not like`, `not in`, `between`, timespans, dynamic values (`__user`) | done (ADR-060) | ✅ (v1) | L7 |
 | `/api/method` (whitelisted server functions), `get_count`, `get_value`, `set_value`, `get_list`, `rename_doc` | done (ADR-062) | ✅ (v1) | L7 |
 | API versioning, OpenAPI documentation | done: OpenAPI 3 per caller; URL versioning `/api/v1/` with a version header (ADR-097) | ✅ | L12 |
-| Webhooks, incoming API via server script | outgoing webhooks done (L10); incoming API via scripts not yet (L11) | 🔽 | L10, L11 |
+| Webhooks, incoming API via server script | outgoing webhooks done (L10); incoming API via server scripts done (ADR-108: an API script is called at `/api/script-method/<name>`, as the caller) | ✅ (v1) | L10, L11 |
 | Realtime updates (socket events, document updates), SignalR | done with Server-Sent Events instead of SignalR: live bell and live form updates (ADR-070); database backplane for several servers (ADR-086) | ✅ | L8 |
 | Payment gateways (Stripe, PayPal, Razorpay), SMS gateways, Google Calendar/Contacts/Drive, Dropbox, S3 backups, Slack, push notifications | S3-compatible (ADR-145) and Azure Blob (ADR-149) attachment storage done, Google Cloud Storage only through its S3 interoperability mode (documented, untested); the rest open | 🔽 (S3 and Azure files ✅) | L12 |
 | Event streaming / data sync between sites | | 🔽 | later |
@@ -722,4 +722,4 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Report, Dashboard, Dashboard Chart, Number Card, Workspace, Print Format, Letter Head | Dashboard, Workspace, Print Format and Letter Head done (charts and number cards are tiles of a Dashboard) | ✅ (v1) | L9 |
 | Data Import, Data Export, Scheduled Job Type, Error Log, System Settings, Navbar Settings | ✅ import and export (files), app jobs, Error Log, System Settings, Desk Setting for the sidebar | L10, L12 |
 | Contact, Address, Country, Currency, Language, Salutation, Gender (master data) | done: Country, Currency, Language, Salutation, Gender (ADR-046), Contact and Address with dynamic links (ADR-077) | ✅ | L10 |
-| Web Form, Web Page, Blog, Website Settings (portal and website) | 🔽 | later |
+| Web Form, Web Page, Blog, Website Settings (portal and website) | web forms done (ADR-034); web pages and a pages index done (ADR-160); blog, website settings and a portal not yet | 🟡 | later |

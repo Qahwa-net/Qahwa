@@ -65,7 +65,7 @@ public sealed class EmailService(
 
     /// <summary>Puts emails in the queue, one per address. Returns how many were queued.</summary>
     public async Task<int> EnqueueAsync(
-        IEnumerable<string> to, string subject, string body, string? doctype, string? name, string owner, CancellationToken ct = default, int limit = MaxRecipients)
+        IEnumerable<string> to, string subject, string body, string? doctype, string? name, string owner, CancellationToken ct = default, int limit = MaxRecipients, bool thread = false)
     {
         subject = OneLine(subject);
         if (subject.Length == 0 || subject.Length > MaxSubject)
@@ -80,11 +80,16 @@ public sealed class EmailService(
         if (addresses.FirstOrDefault(a => !ValidAddress(a)) is { } bad)
             throw Invalid("to", $"'{OneLine(bad)[..Math.Min(bad.Length, 60)]}' is not an email address.");
 
+        // A message about a document carries a short reference in its subject. A reply keeps it, which is how an answer finds its way back to the document.
+        var reference = thread && doctype is not null && name is not null ? ConversationService.NewReference() : null;
+        if (reference is not null)
+            subject = $"{subject} [{reference}]";
         var now = history.Now();
         foreach (var address in addresses)
         {
             var row = HistoryRecorder.Standard(owner, now);
             row["recipient"] = address;
+            row["thread_ref"] = reference;
             row["subject"] = subject;
             row["body"] = body;
             row["status"] = "Pending";
@@ -162,7 +167,7 @@ public sealed class EmailService(
         if (today + Math.Max(recipients.Count, 1) > DailyLimit)
             throw Invalid(string.Empty, $"You can send at most {DailyLimit} emails a day.");
 
-        var count = await EnqueueAsync(recipients, subject ?? string.Empty, message ?? string.Empty, doctype, name, user.User, ct);
+        var count = await EnqueueAsync(recipients, subject ?? string.Empty, message ?? string.Empty, doctype, name, user.User, ct, thread: true);
         if (history.InfoNote(doctype, name, $"Emailed {string.Join(", ", recipients.Select(a => a.Trim()).Distinct(StringComparer.OrdinalIgnoreCase))}", user.User, history.Now()) is { } note)
             await repository.InsertAsync(note.Meta, note.Inserts[0], null, ct);
         return count;

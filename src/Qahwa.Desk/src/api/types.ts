@@ -810,6 +810,8 @@ export interface WorkspaceInfo {
   sequence: number
   roles: string[]
   blocks: number
+  icon?: string | null
+  parent?: string | null
 }
 
 export interface WorkspaceDetail {
@@ -829,6 +831,8 @@ export interface WorkspaceView {
   id: string
   title: string
   blocks: WorkspaceBlockView[]
+  icon?: string | null
+  parent?: string | null
 }
 
 export interface ImportColumn {
@@ -1148,3 +1152,24 @@ export interface PasskeyInfo {
   created: string
   lastUsed: string | null
 }
+
+export interface ConversationItem {
+  kind: 'sent' | 'received'
+  who: string
+  whoName: string | null
+  subject: string
+  text: string
+  at: string
+  status: string | null
+}
+
+export interface JobLogEntry { id: string; job: string; status: string; message: string | null; durationMs: number; at: string }
+export interface ScheduledJobInfo { job: string; description: string; pace: string; last: JobLogEntry | null; succeeded24h: number; failed24h: number }
+export interface SchedulerOverview { enabled: boolean; intervalSeconds: number; jobs: ScheduledJobInfo[]; recent: JobLogEntry[] }
+
+export interface EnergyPointEntry { reason: string; points: number; docType: string | null; name: string | null; at: string }
+export interface EnergyPointSummary { total: number; thisWeek: number; thisMonth: number; recent: EnergyPointEntry[] }
+export interface LeaderboardEntry { fullName: string; points: number; you: boolean }
+
+export interface PublicPage { route: string; title: string; html: string; summary: string | null; publishedOn: string | null }
+export interface PublicPageLink { route: string; title: string; summary: string | null; publishedOn: string | null }

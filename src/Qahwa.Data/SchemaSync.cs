@@ -15,6 +15,8 @@ public sealed class SchemaSync(
 
     public async Task<SchemaPlan> PlanAsync(DocTypeMeta meta, SchemaChanges? changes, CancellationToken ct = default)
     {
+        if (meta.IsVirtual)
+            return new SchemaPlan(meta.Name, "tab" + meta.Name, false, [], []); // its documents live outside the database: no table
         var current = await inspector.GetTableAsync("tab" + meta.Name, ct);
         return _planner.Plan(meta, current, changes);
     }

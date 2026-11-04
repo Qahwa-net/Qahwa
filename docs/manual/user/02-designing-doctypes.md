@@ -52,3 +52,10 @@ Open a saved field and change its **Field name** or its **Type**. The preview on
 - If one saved value cannot be converted (for example "abc" in a field that becomes a number), the whole change is refused and nothing is changed. Fix those values first.
 
 Take a backup before changing the type of a field that holds many documents.
+
+## Data from outside: a virtual DocType
+Some data is kept elsewhere and you only want to look at it here: exchange rates, a price list, codes. Mark the DocType **virtual** (`"isVirtual": true` in its definition file) and it has **no table** and cannot be changed: nobody gets New, Save, Delete or Import, even with those rights. Lists, filters, sorting, search, export and reports work as for any DocType, over what the source gives.
+
+The simplest source is a file. Ask your administrator to point the DocType at a JSON file in the server's settings, `Qahwa:VirtualDocTypes:Exchange Rate = data/rates.json`: an array of objects, each with a unique `name` and the fields you defined (`[{"name": "EUR", "label": "Euro", "rate": 1.08}]`). When the file changes, the list changes (within a second). Other sources, such as another system's API, are written by a developer.
+
+A virtual DocType cannot be a child table, a settings page, a tree or submittable, and cannot have Table, Password or file fields.

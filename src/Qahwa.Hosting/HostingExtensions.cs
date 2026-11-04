@@ -134,6 +134,7 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<AssignmentService>();
         services.TryAddSingleton<AutoRepeatService>();
         services.TryAddSingleton<ReminderService>();
+        services.TryAddSingleton<ConversationService>();
         services.TryAddSingleton<MilestoneService>();
         services.TryAddSingleton<PreparedReportService>();
         services.TryAddSingleton<AutoEmailReportService>();
@@ -157,7 +158,8 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<SecurityPolicyService>();
         services.TryAddSingleton<AuthService>();
         services.TryAddSingleton<SqlBuilder>();
-        services.TryAddSingleton<IDocumentRepository, DocumentRepository>();
+        // The real store, with virtual DocTypes (documents supplied by an IVirtualSource) answered from their sources.
+        services.TryAddSingleton<IDocumentRepository>(sp => new VirtualAwareRepository(ActivatorUtilities.CreateInstance<DocumentRepository>(sp), sp.GetServices<IVirtualSource>()));
         services.TryAddSingleton<IAuthStore, AuthStore>();
         services.TryAddSingleton<ITotpStore, TotpStore>();
         services.TryAddSingleton<ISessionStore, SessionStore>();
@@ -209,6 +211,8 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<AppInstaller>();
         services.TryAddSingleton<AppJobRunner>();
         services.TryAddSingleton<BackgroundJobService>();
+        services.TryAddSingleton<EnergyPointService>();
+        services.TryAddSingleton(sp => new Lazy<EnergyPointService>(() => sp.GetRequiredService<EnergyPointService>()));
         services.TryAddSingleton<DocumentActionEngine>();
         services.TryAddSingleton(sp => new Lazy<DocumentActionEngine>(() => sp.GetRequiredService<DocumentActionEngine>()));
         services.TryAddSingleton<ClientScriptService>();
@@ -216,6 +220,7 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<ServerScriptEngine>();
         services.TryAddSingleton(sp => new Lazy<ServerScriptEngine>(() => sp.GetRequiredService<ServerScriptEngine>()));
         services.TryAddSingleton<WebFormService>();
+        services.TryAddSingleton<WebPageService>();
         services.TryAddSingleton<CustomDocTypeLoader>();
         services.TryAddSingleton<QahwaMigrator>();
         return services;

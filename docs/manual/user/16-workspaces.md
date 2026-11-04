@@ -17,3 +17,6 @@ You only ever see shortcuts to things you are allowed to use; if a link is missi
 5. Use the arrows to reorder blocks, the bin to remove one, and **Save workspace**.
 
 Shortcuts can only open DocTypes, dashboards and Desk pages, not outside websites. Headings are shown exactly as typed.
+
+## Icons and workspaces under workspaces
+In the editor, choose an **Icon**: it appears beside the title in the sidebar. Choose **Listed under** to put a workspace beneath another one (for example *Leads* under *Sales*); in the sidebar it is indented below its parent, and its page shows *Home › Sales › Leads* at the top. It goes one level deep only: a workspace that has others under it cannot itself go under another. If you delete a workspace, the ones that were under it become ordinary workspaces.

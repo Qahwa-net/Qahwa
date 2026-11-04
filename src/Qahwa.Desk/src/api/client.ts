@@ -8,7 +8,7 @@ import type { DisplaySettings } from '../lib/display.ts'
 import type { PasskeyCeremony } from '../lib/passkeys.ts'
 import type {
   DesignerDetail, DocPerm, DesignerItem, DesignerPreview, Doc, DocTypeDefinition, FieldError, FieldTypeInfo,
-  ListResponse, ReportDetail, ReportInfo, ReportRun, RestoreReport, SignIn, ExpiredPasswordChallenge, TwoFactorChallenge, TwoFactorSetup, TwoFactorStatus, PublicForm, BundleReport, TranslationCatalog, AttachedFile, WebhookItem, WebhookSet, WebhookTestResult, WebhookView, ApiKeyCreated, ApiKeyInfo, ImportPreview, ImportResult, ImportRun, WorkspaceBlock, WorkspaceDetail, WorkspaceInfo, WorkspaceView, LetterHeadDetail, PrintChoices, PrintFormatDetail, PrintFormatInfo, DashboardDetail, DashboardInfo, DashboardItem, DashboardResult, EmailPreview, EmailTemplateInfo, NotificationRuleItem, NotificationRuleSet, NotificationRuleView, AutoRepeatInfo, AutoRepeatRequest, ReminderInfo, ReminderRequest, MilestoneView, PreparedReportInfo, PreparedReportResult, AssignmentRuleItem, AssignmentRuleSet, AssignmentRuleView, PendingAction, WorkflowDefinition, WorkflowItem, WorkflowStatus, WorkflowView, MetaResponse, MetaSummary, PermissionItem, ActivityItem, WorkflowLinkInfo, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, AppInfo, OAuthAuthorizeParams, OAuthConsent, OAuthClientInfo, OAuthConnected, EmailDigest, ScriptReportInfo, ScriptReportResult, Viewer, FollowState, LikeState, TagCount, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode, SiteSummary, NewSite, PasskeyInfo,
+  ListResponse, ReportDetail, ReportInfo, ReportRun, RestoreReport, SignIn, ExpiredPasswordChallenge, TwoFactorChallenge, TwoFactorSetup, TwoFactorStatus, PublicForm, BundleReport, TranslationCatalog, AttachedFile, WebhookItem, WebhookSet, WebhookTestResult, WebhookView, ApiKeyCreated, ApiKeyInfo, ImportPreview, ImportResult, ImportRun, WorkspaceBlock, WorkspaceDetail, WorkspaceInfo, WorkspaceView, LetterHeadDetail, PrintChoices, PrintFormatDetail, PrintFormatInfo, DashboardDetail, DashboardInfo, DashboardItem, DashboardResult, EmailPreview, EmailTemplateInfo, NotificationRuleItem, NotificationRuleSet, NotificationRuleView, AutoRepeatInfo, AutoRepeatRequest, ReminderInfo, ReminderRequest, MilestoneView, PreparedReportInfo, PreparedReportResult, AssignmentRuleItem, AssignmentRuleSet, AssignmentRuleView, PendingAction, WorkflowDefinition, WorkflowItem, WorkflowStatus, WorkflowView, MetaResponse, MetaSummary, PermissionItem, ActivityItem, WorkflowLinkInfo, AssignmentInfo, Customization, CustomizationItem, CustomizationView, BulkResult, AppInfo, OAuthAuthorizeParams, OAuthConsent, OAuthClientInfo, OAuthConnected, EmailDigest, ScriptReportInfo, ScriptReportResult, Viewer, FollowState, LikeState, TagCount, GroupCountItem, LinkOption, ListViewSettings, ListViewState, SavedFilter, NotificationItem, PermissionView, ReportRow, SeriesInfo, SessionUser, ShareInfo, TreeNode, SiteSummary, NewSite, PasskeyInfo, ConversationItem, SchedulerOverview, EnergyPointSummary, LeaderboardEntry, PublicPage, PublicPageLink,
 } from './types.ts'
 import type { Filter } from '../lib/filters.ts'
 import { toApiFilters } from '../lib/filters.ts'
@@ -481,9 +481,9 @@ export const api = {
     mine: async () => (await request<{ data: WorkspaceView[] }>('GET', '/api/workspaces/mine')).data,
     list: async () => (await request<{ data: WorkspaceInfo[] }>('GET', '/api/workspaces')).data,
     get: async (id: string) => (await request<{ data: WorkspaceDetail }>('GET', `/api/workspaces/${encodeURIComponent(id)}`)).data,
-    create: async (body: { title: string; sequence: number; roles: string[]; blocks: WorkspaceBlock[] }) =>
+    create: async (body: { title: string; sequence: number; roles: string[]; blocks: WorkspaceBlock[]; icon?: string; parent?: string }) =>
       (await request<{ data: WorkspaceDetail }>('POST', '/api/workspaces', body)).data,
-    update: async (id: string, body: { title: string; sequence: number; roles: string[]; blocks: WorkspaceBlock[] }) =>
+    update: async (id: string, body: { title: string; sequence: number; roles: string[]; blocks: WorkspaceBlock[]; icon?: string; parent?: string }) =>
       (await request<{ data: WorkspaceDetail }>('PUT', `/api/workspaces/${encodeURIComponent(id)}`, body)).data,
     remove: async (id: string) => { await request<unknown>('DELETE', `/api/workspaces/${encodeURIComponent(id)}`) },
   },
@@ -621,6 +621,23 @@ export const api = {
   milestones: {
     forDocument: async (doctype: string, name: string) =>
       (await request<{ data: MilestoneView | null }>('GET', `${resource(doctype, name)}/milestones`)).data,
+  },
+
+  scheduler: async (): Promise<SchedulerOverview> => (await request<{ data: SchedulerOverview }>('GET', '/api/scheduler')).data,
+
+  publicPages: {
+    index: async () => (await request<{ data: PublicPageLink[] }>('GET', '/api/public/pages')).data,
+    get: async (route: string) => (await request<{ data: PublicPage }>('GET', `/api/public/pages/${encodeURIComponent(route)}`)).data,
+  },
+
+  energyPoints: {
+    mine: async () => (await request<{ data: EnergyPointSummary }>('GET', '/api/energy-points')).data,
+    leaderboard: async (period: 'week' | 'month' | 'all') => (await request<{ data: LeaderboardEntry[] }>('GET', `/api/energy-points/leaderboard?period=${period}`)).data,
+  },
+
+  conversation: {
+    forDocument: async (doctype: string, name: string) =>
+      (await request<{ data: ConversationItem[] }>('GET', `${resource(doctype, name)}/conversation`)).data,
   },
 
   reminders: {

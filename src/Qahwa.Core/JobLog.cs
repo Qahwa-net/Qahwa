@@ -58,6 +58,34 @@ public sealed class JobLogService(IMetaRegistry registry, IDocumentRepository re
             r.GetValueOrDefault("message") as string, Convert.ToInt64(r.GetValueOrDefault("duration_ms") ?? 0L, CultureInfo.InvariantCulture), (DateTime)r["creation"]!)).ToList();
     }
 
+    /// <summary>
+    /// Every job the scheduler knows (and any other job found in the log, such as an app's own), each with its last logged run and how many
+    /// runs succeeded or failed in the last 24 hours. Jobs are logged when they did something or failed, so "last run" means "last time it had work".
+    /// </summary>
+    public async Task<IReadOnlyList<ScheduledJobInfo>> OverviewAsync(CancellationToken ct = default)
+    {
+        if (Meta is not { } meta)
+            return [];
+        var since = history.Now().AddHours(-24);
+        var day = await repository.ListAsync(meta, new ListQuery { Filters = [new("creation", FilterOp.Ge, since)], Fields = ["job", "status"], OrderBy = "creation", Descending = true, Limit = 5000 }, ct);
+        var counts = day.GroupBy(r => r.GetValueOrDefault("job") as string ?? string.Empty)
+            .ToDictionary(g => g.Key, g => (Ok: g.Count(r => r.GetValueOrDefault("status") as string == "Success"), Failed: g.Count(r => r.GetValueOrDefault("status") as string == "Failed")));
+        var known = SchedulerJobs.All.ToDictionary(j => j.Job, StringComparer.Ordinal);
+        var names = SchedulerJobs.All.Select(j => j.Job).Concat(counts.Keys.Where(k => k.Length > 0 && !known.ContainsKey(k)).Order(StringComparer.Ordinal)).ToList();
+        var result = new List<ScheduledJobInfo>();
+        foreach (var name in names)
+        {
+            var last = await repository.ListAsync(meta, new ListQuery { Filters = [new("job", FilterOp.Eq, name)], OrderBy = "creation", Descending = true, Limit = 1 }, ct);
+            var entry = last.Count == 0 ? null : new JobLogEntry((string)last[0]["name"]!, name, last[0].GetValueOrDefault("status") as string ?? string.Empty, last[0].GetValueOrDefault("message") as string,
+                Convert.ToInt64(last[0].GetValueOrDefault("duration_ms") ?? 0L, CultureInfo.InvariantCulture), (DateTime)last[0]["creation"]!);
+            var (ok, failed) = counts.GetValueOrDefault(name);
+            known.TryGetValue(name, out var info);
+            result.Add(new ScheduledJobInfo(name, info.Description ?? "A job of an installed app.", info.Pace ?? "its own schedule", entry, ok, failed));
+        }
+
+        return result;
+    }
+
     public async Task<int> PurgeAsync(TimeSpan retention, CancellationToken ct = default)
     {
         if (Meta is not { } meta)
@@ -76,4 +104,34 @@ public sealed class JobLogService(IMetaRegistry registry, IDocumentRepository re
             }
         }
     }
+}
+
+public sealed record ScheduledJobInfo(string Job, string Description, string Pace, JobLogEntry? Last, int Succeeded24h, int Failed24h);
+
+/// <summary>The steps the scheduler runs, as people should read them. Keep in step with <c>SchedulerService</c>.</summary>
+public static class SchedulerJobs
+{
+    public const string EveryCycle = "every cycle";
+    public const string Hourly = "hourly";
+
+    public static readonly (string Job, string Description, string Pace)[] All =
+    [
+        ("installed apps", "Notices apps installed or uninstalled by another server or the command line.", EveryCycle),
+        ("auto repeat", "Makes the documents that repeat on a schedule.", EveryCycle),
+        ("reminders", "Tells people about documents at the time they asked.", EveryCycle),
+        ("prepared reports", "Builds reports people asked to prepare in the background.", EveryCycle),
+        ("workflow escalation", "Moves or flags documents that waited too long in a workflow state.", EveryCycle),
+        ("data imports", "Runs large imports started in the background.", EveryCycle),
+        ("emailed reports", "Sends reports that are emailed on a schedule.", EveryCycle),
+        ("email digests", "Sends each person's digest of what happened.", EveryCycle),
+        ("background jobs", "Runs work queued by scripts and apps, retrying what failed.", EveryCycle),
+        ("scheduled scripts", "Runs server scripts set to a schedule.", EveryCycle),
+        ("incoming mail", "Reads new mail from the site's mailbox.", EveryCycle),
+        ("email queue", "Sends the emails waiting in the queue.", EveryCycle),
+        ("webhooks", "Delivers the webhook calls waiting to go out.", EveryCycle),
+        ("backup", "Writes the day's backup file to the backup folder, when one is set.", Hourly),
+        ("clean-up", "Removes old copies of deleted documents and old log rows.", Hourly),
+        ("app jobs", "Runs the scheduled jobs of installed apps, each when due.", EveryCycle),
+        ("notification rules", "Tells people about documents by rules counted in days.", Hourly),
+    ];
 }

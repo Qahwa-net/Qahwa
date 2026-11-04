@@ -1,0 +1,18 @@
+{
+  "name": "DocType Layout",
+  "module": "Core",
+  "autoname": "field:layout_name",
+  "titleField": "layout_name",
+  "trackChanges": true,
+  "fields": [
+    { "name": "layout_name", "type": "Data", "label": "Name", "required": true, "unique": true, "inListView": true },
+    { "name": "document_type", "type": "Link", "options": "DocType", "label": "DocType", "required": true, "indexed": true, "inListView": true },
+    { "name": "enabled", "type": "Check", "label": "Enabled", "default": "1", "inListView": true },
+    { "name": "sequence", "type": "Int", "label": "Position", "description": "When several layouts fit a person, the one with the smallest number is used." },
+    { "name": "roles", "type": "Text", "label": "Roles", "description": "One role per line. People with any of these roles get this layout. Leave empty for everyone." },
+    { "name": "hidden_fields", "type": "Text", "label": "Hidden fields", "description": "One field name per line. These fields are not shown on the form for these people. A required field cannot be hidden." }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "write": true, "create": true, "delete": true }
+  ]
+}

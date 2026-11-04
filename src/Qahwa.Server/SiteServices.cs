@@ -63,6 +63,9 @@ public static class QahwaSiteServices
             services.AddSingleton<IFileStorage>(new AzureBlobStorage(config.GetSection("Qahwa:Files:Azure").Get<AzureBlobOptions>() ?? new AzureBlobOptions()));
         else
             services.AddSingleton<IFileStorage>(new DiskFileStorage(config["Qahwa:Files:Path"] ?? Path.Combine(env.ContentRootPath, "data", "files")));
+        // Virtual DocTypes backed by a JSON file: Qahwa:VirtualDocTypes:<DocType> = path (relative to the server's folder).
+        foreach (var feed in config.GetSection("Qahwa:VirtualDocTypes").GetChildren().Where(c => !string.IsNullOrWhiteSpace(c.Value)))
+            services.AddSingleton<IVirtualSource>(new JsonFileVirtualSource(feed.Key, Path.GetFullPath(feed.Value!, env.ContentRootPath)));
         // Apps shipped with Qahwa are off until a site's own settings turn them on (Qahwa:Apps:Crm = true).
         if (config.GetValue<bool>("Qahwa:Apps:Crm"))
             services.AddQahwaApp<Qahwa.Crm.CrmApp>();

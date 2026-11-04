@@ -10,6 +10,7 @@ import { Icon, IconButton } from '../controls/Icon.tsx'
 import { ConfirmDialog } from '../controls/Modal.tsx'
 import { ActivityPanel } from './ActivityPanel.tsx'
 import { MilestoneStrip } from './MilestoneStrip.tsx'
+import { ConversationPanel } from './ConversationPanel.tsx'
 import { AssignDialog } from './AssignPanel.tsx'
 import { RepeatDialog } from './RepeatDialog.tsx'
 import { ReminderDialog } from './ReminderDialog.tsx'
@@ -473,8 +474,6 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
           {!isNew && doc && meta.module !== 'Core' && !meta.isSingle && <LikeButton doctype={meta.name} name={doc.name} />}
           {!isNew && doc && <FollowButton doctype={meta.name} name={doc.name} />}
           {!isNew && !meta.isSingle && meta.allowCopy !== false && perms.create && doc && <IconButton icon="copy" label="Duplicate" onClick={() => navigate(`${base}/new?copy=${encodeURIComponent(doc.name)}`)} />}
-          {!isNew && !meta.isSingle && perms.write && docstatus !== 2 && <IconButton icon="userPlus" label="Assign" onClick={() => setAssigning(true)} />}
-          {!isNew && !meta.isSingle && perms.write && perms.share !== false && docstatus !== 2 && <IconButton icon="share" label="Share" onClick={() => setSharing(true)} />}
           {!isNew && perms.read && perms.print !== false && <IconButton icon="printer" label="Print" onClick={() => setPrinting(true)} />}
           {!isNew && !meta.isSingle && perms.write && perms.email !== false && docstatus !== 2 && <IconButton icon="mail" label="Email" onClick={() => setEmailing(true)} />}
  {!isNew && !meta.isSingle && meta.module !== 'Core' && perms.read && <IconButton icon="bell" label="Remind me" onClick={() => setReminding(true)} />}
@@ -614,6 +613,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
       </DocContext.Provider>
 
       {doc && !isNew && meta.module !== 'Core' && <MilestoneStrip doctype={meta.name} name={doc.name} />}
+      {doc && !isNew && meta.module !== 'Core' && <ConversationPanel doctype={meta.name} name={doc.name} />}
       {doc && <ActivityPanel meta={meta} childMetas={childMetas} name={doc.name} />}
       </div>
       {doc && <DocRail doctype={meta.name} doc={doc} trackViews={meta.trackViews} canAssign={perms.write && docstatus !== 2 && !meta.isSingle} canShare={perms.write && !meta.isSingle && docstatus !== 2}

@@ -11,7 +11,8 @@
     { "name": "last_error", "type": "Text", "label": "Last error" },
     { "name": "reference_doctype", "type": "Link", "options": "DocType", "label": "DocType", "indexed": true },
     { "name": "reference_name", "type": "DynamicLink", "options": "reference_doctype", "label": "Document", "indexed": true },
-    { "name": "sent_at", "type": "Datetime", "label": "Sent at" }
+    { "name": "sent_at", "type": "Datetime", "label": "Sent at" },
+    { "name": "thread_ref", "type": "Data", "label": "Thread reference", "indexed": true }
   ],
   "permissions": [
     { "role": "System Manager", "read": true, "delete": true }

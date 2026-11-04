@@ -106,13 +106,14 @@ public sealed class TestEngine
         Collaboration = new CollaborationHooks(Follows, Notifications, Registry, Repository);
         NamingSeries = new NamingSeriesManager(Registry, Repository, Permissions);
         Documents = new DocumentService(
-            Registry, Repository, Permissions, new NamingService(Repository, Clock, Registry), Clock, new UserPermissionService(Registry, Repository), Shares, Profiles, History, Collaboration, WorkflowCatalog, new Lazy<AssignmentRuleEngine>(() => AssignmentRules!), new Lazy<NotificationRuleEngine>(() => NotificationRules!), new Lazy<WebhookService>(() => Webhooks!), new Lazy<FileService>(() => Files!), new Lazy<DocumentActionEngine>(() => DocumentActions!), new Lazy<ServerScriptEngine>(() => ServerScripts!), new Lazy<AppHookRunner>(() => AppHooks!), new FakeSecretProtector(), Realtime, ViewLog, AccessLog, new Lazy<WorkflowLinkService>(() => WorkflowLinks!));
+            Registry, Repository, Permissions, new NamingService(Repository, Clock, Registry), Clock, new UserPermissionService(Registry, Repository), Shares, Profiles, History, Collaboration, WorkflowCatalog, new Lazy<AssignmentRuleEngine>(() => AssignmentRules!), new Lazy<NotificationRuleEngine>(() => NotificationRules!), new Lazy<WebhookService>(() => Webhooks!), new Lazy<FileService>(() => Files!), new Lazy<DocumentActionEngine>(() => DocumentActions!), new Lazy<ServerScriptEngine>(() => ServerScripts!), new Lazy<AppHookRunner>(() => AppHooks!), new FakeSecretProtector(), Realtime, ViewLog, AccessLog, new Lazy<WorkflowLinkService>(() => WorkflowLinks!), new Lazy<EnergyPointService>(() => EnergyPoints!));
         ShareManager = new ShareManager(Registry, Repository, Documents, Permissions, Shares, History, Notifications);
         Activity = new ActivityService(Registry, Repository, Documents, Permissions, History, Collaboration);
         Assignments = new AssignmentService(Registry, Repository, Documents, Permissions, ShareManager, Notifications, Follows, History);
         AutoRepeat = new AutoRepeatService(Registry, Repository, Documents, Permissions, Notifications, History);
         Reminders = new ReminderService(Registry, Repository, Notifications, History);
         Milestones = new MilestoneService(Registry, Repository, Documents, Permissions);
+        Conversation = new ConversationService(Registry, Repository, Notifications);
         ListSettings = new ListSettingsService(Registry, Repository, Documents, Permissions, History);
         Bulk = new BulkService(Registry, Documents);
         DocTypeStore = new InMemoryDocTypeStore();
@@ -126,6 +127,8 @@ public sealed class TestEngine
         PreparedReports = new PreparedReportService(Registry, Repository, Reports, Notifications, History, Permissions);
         DataImport = new DataImportService(Registry, Documents, Permissions);
         DocumentActions = new DocumentActionEngine(Registry, Repository, Documents, Clock);
+        EnergyPoints = new EnergyPointService(Registry, Repository, Documents, Clock);
+        WebPages = new WebPageService(Registry, Repository);
         ServerScripts = new ServerScriptEngine(Registry, Repository, new ScriptSandbox(Documents, Clock), Clock);
         ErrorLog = new ErrorLogService(Documents, new HitCounter(Clock));
         AppCatalog = new AppCatalog([]);
@@ -223,6 +226,7 @@ public sealed class TestEngine
     public AutoRepeatService AutoRepeat { get; }
     public ReminderService Reminders { get; }
     public MilestoneService Milestones { get; }
+    public ConversationService Conversation { get; }
     public PreparedReportService PreparedReports { get; }
     public AssignmentRuleCatalog AssignmentRuleCatalog { get; }
     public InMemoryAssignmentRuleStore AssignmentRuleStore { get; }
@@ -270,6 +274,8 @@ public sealed class TestEngine
     public PatchRunner PatchRunner { get; }
     public ErrorLogService ErrorLog { get; }
     public DocumentActionEngine DocumentActions { get; }
+    public EnergyPointService EnergyPoints { get; }
+    public WebPageService WebPages { get; }
     public ServerScriptEngine ServerScripts { get; }
     public WebFormService WebForms { get; }
     public DataImportService DataImport { get; }

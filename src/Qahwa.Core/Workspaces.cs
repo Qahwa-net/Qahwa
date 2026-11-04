@@ -32,9 +32,11 @@ public sealed record WorkspaceBlock
 }
 
 /// <param name="Roles">Who sees the workspace: people with any of these roles; empty means everyone signed in.</param>
-public sealed record WorkspaceRequest(string? Title = null, int Sequence = 0, IReadOnlyList<string>? Roles = null, IReadOnlyList<WorkspaceBlock>? Blocks = null);
+/// <param name="Icon">The name of one of the Desk's icons (letters and digits), or empty for the default.</param>
+/// <param name="Parent">The id of the workspace this one is listed under in the sidebar (one level only), or empty.</param>
+public sealed record WorkspaceRequest(string? Title = null, int Sequence = 0, IReadOnlyList<string>? Roles = null, IReadOnlyList<WorkspaceBlock>? Blocks = null, string? Icon = null, string? Parent = null);
 
-public sealed record WorkspaceInfo(string Id, string Title, int Sequence, IReadOnlyList<string> Roles, int Blocks);
+public sealed record WorkspaceInfo(string Id, string Title, int Sequence, IReadOnlyList<string> Roles, int Blocks, string? Icon = null, string? Parent = null);
 
 public sealed record WorkspaceDetail(WorkspaceInfo Info, IReadOnlyList<WorkspaceBlock> Blocks);
 
@@ -44,7 +46,7 @@ public sealed record ShownShortcut(string Label, string Kind, string Path);
 /// <summary>A block as one person sees it: shortcuts they may not use are gone, and a dashboard they cannot open is gone.</summary>
 public sealed record WorkspaceBlockView(string Type, string? Text = null, IReadOnlyList<ShownShortcut>? Shortcuts = null, string? DashboardId = null, string? DashboardTitle = null);
 
-public sealed record WorkspaceView(string Id, string Title, IReadOnlyList<WorkspaceBlockView> Blocks);
+public sealed record WorkspaceView(string Id, string Title, IReadOnlyList<WorkspaceBlockView> Blocks, string? Icon = null, string? Parent = null);
 
 /// <summary>
 /// Workspaces: the pages people start from. A System Manager arranges headings, shortcut rows and dashboards into pages and
@@ -102,7 +104,8 @@ public sealed class WorkspaceService(
         (text ?? string.Empty).Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
     private static WorkspaceInfo ToInfo(Dictionary<string, object?> row) =>
-        new((string)row["name"]!, row["title"] as string ?? string.Empty, Convert.ToInt32(row["sequence"] ?? 0), ParseRoles(row["roles"] as string), ParseBlocks(row["blocks"] as string).Count);
+        new((string)row["name"]!, row["title"] as string ?? string.Empty, Convert.ToInt32(row["sequence"] ?? 0), ParseRoles(row["roles"] as string), ParseBlocks(row["blocks"] as string).Count,
+            row.GetValueOrDefault("icon") as string is { Length: > 0 } icon ? icon : null, row.GetValueOrDefault("parent_workspace") as string is { Length: > 0 } parent ? parent : null);
 
     private bool Sees(Dictionary<string, object?> row, IUserContext user)
     {
@@ -170,7 +173,8 @@ public sealed class WorkspaceService(
                 }
             }
 
-            views.Add(new WorkspaceView((string)row["name"]!, row["title"] as string ?? string.Empty, blocks));
+            views.Add(new WorkspaceView((string)row["name"]!, row["title"] as string ?? string.Empty, blocks,
+                row.GetValueOrDefault("icon") as string is { Length: > 0 } icon ? icon : null, row.GetValueOrDefault("parent_workspace") as string is { Length: > 0 } parent ? parent : null));
         }
 
         return views;
@@ -192,13 +196,28 @@ public sealed class WorkspaceService(
         return new WorkspaceDetail(ToInfo(row), ParseBlocks(row["blocks"] as string));
     }
 
-    private async Task<(string Title, IReadOnlyList<string> Roles, IReadOnlyList<WorkspaceBlock> Blocks)> ValidateAsync(WorkspaceRequest request, CancellationToken ct)
+    private async Task<(string Title, IReadOnlyList<string> Roles, IReadOnlyList<WorkspaceBlock> Blocks, string? Icon, string? Parent)> ValidateAsync(WorkspaceRequest request, string? selfId, CancellationToken ct)
     {
         var title = (request.Title ?? string.Empty).Trim();
         if (title.Length is 0 or > 100 || title.Any(char.IsControl))
             throw Invalid("title", "Give the workspace a title of up to 100 characters.");
         if (request.Sequence is < 0 or > 10_000)
             throw Invalid("sequence", "Use a position from 0 to 10000.");
+        var icon = string.IsNullOrWhiteSpace(request.Icon) ? null : request.Icon.Trim();
+        if (icon is not null && !System.Text.RegularExpressions.Regex.IsMatch(icon, "^[A-Za-z][A-Za-z0-9]{0,30}$"))
+            throw Invalid("icon", "Choose one of the icons.");
+        var parent = string.IsNullOrWhiteSpace(request.Parent) ? null : request.Parent.Trim();
+        if (parent is not null)
+        {
+            // One level only: a workspace goes under a top-level one, never under itself, and a workspace that has others under it cannot go under one.
+            if (parent == selfId)
+                throw Invalid("parent", "A workspace cannot be under itself.");
+            var holder = await repository.GetAsync(Meta, parent, ct) ?? throw Invalid("parent", "Choose a workspace that exists.");
+            if (holder.GetValueOrDefault("parent_workspace") is string { Length: > 0 })
+                throw Invalid("parent", "Workspaces go one level deep: choose a workspace that is not itself under another.");
+            if (selfId is not null && await repository.CountAsync(Meta, new ListQuery { Filters = [new("parent_workspace", FilterOp.Eq, selfId)] }, ct) > 0)
+                throw Invalid("parent", "This workspace has others under it, so it cannot go under another.");
+        }
 
         var roles = (request.Roles ?? []).Select(r => r?.Trim() ?? string.Empty).Where(r => r.Length > 0).Distinct(StringComparer.Ordinal).ToList();
         var errors = new List<FieldError>();
@@ -282,19 +301,21 @@ public sealed class WorkspaceService(
 
         if (errors.Count > 0)
             throw new DocumentValidationException(errors);
-        return (title, roles, cleaned);
+        return (title, roles, cleaned, icon, parent);
     }
 
     public async Task<WorkspaceDetail> CreateAsync(WorkspaceRequest request, IUserContext user, CancellationToken ct = default)
     {
         RequireManager(user);
-        var (title, roles, blocks) = await ValidateAsync(request, ct);
+        var (title, roles, blocks, icon, parent) = await ValidateAsync(request, null, ct);
         if (await repository.CountAsync(Meta, new ListQuery(), ct) >= MaxWorkspaces)
             throw Invalid("title", $"At most {MaxWorkspaces} workspaces.");
 
         var row = HistoryRecorder.Standard(user.User, history.Now());
         row["title"] = title;
         row["sequence"] = (long)request.Sequence;
+        row["icon"] = icon;
+        row["parent_workspace"] = parent;
         row["roles"] = string.Join('\n', roles);
         row["blocks"] = JsonSerializer.Serialize(blocks, Json);
         await repository.InsertAsync(Meta, row, null, ct);
@@ -305,11 +326,11 @@ public sealed class WorkspaceService(
     {
         RequireManager(user);
         var existing = await repository.GetAsync(Meta, id, ct) ?? throw new NotFoundException("Workspace not found.");
-        var (title, roles, blocks) = await ValidateAsync(request, ct);
+        var (title, roles, blocks, icon, parent) = await ValidateAsync(request, id, ct);
         var stored = (DateTime)existing["modified"]!;
         var changes = new Dictionary<string, object?>
         {
-            ["title"] = title, ["sequence"] = (long)request.Sequence, ["roles"] = string.Join('\n', roles), ["blocks"] = JsonSerializer.Serialize(blocks, Json),
+            ["title"] = title, ["sequence"] = (long)request.Sequence, ["icon"] = icon, ["parent_workspace"] = parent, ["roles"] = string.Join('\n', roles), ["blocks"] = JsonSerializer.Serialize(blocks, Json),
             ["modified"] = history.Now() > stored ? history.Now() : stored.AddTicks(10), ["modified_by"] = user.User,
         };
         await repository.UpdateAsync(Meta, id, changes, null, null, ct);
@@ -321,5 +342,8 @@ public sealed class WorkspaceService(
         RequireManager(user);
         if (!await repository.DeleteAsync(Meta, id, null, ct))
             throw new NotFoundException("Workspace not found.");
+        // The ones that were under it become top-level rather than disappearing from the sidebar.
+        foreach (var child in await repository.ListAsync(Meta, new ListQuery { Filters = [new("parent_workspace", FilterOp.Eq, id)], Fields = ["name"], Limit = 200 }, ct))
+            await repository.UpdateAsync(Meta, (string)child["name"]!, new Dictionary<string, object?> { ["parent_workspace"] = null }, null, null, ct);
     }
 }

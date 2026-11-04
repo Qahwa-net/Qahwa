@@ -91,6 +91,12 @@ public sealed class IncomingMailService(
             row["message_id"] = messageId;
             row["in_reply_to"] = Clean(mail.InReplyTo, 250, keepLines: false) is { Length: > 0 } reply ? reply : null;
             row["received_at"] = mail.Date.Kind == DateTimeKind.Utc ? mail.Date : mail.Date.ToUniversalTime();
+            if (await ConversationService.FindReferenceAsync(registry, repository, row["subject"] as string, ct) is { } about)
+            {
+                row["reference_doctype"] = about.DocType;
+                row["reference_name"] = about.Name;
+            }
+
             await repository.InsertAsync(meta, row, null, ct);
             kept++;
         }

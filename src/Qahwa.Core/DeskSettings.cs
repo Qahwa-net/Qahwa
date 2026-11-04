@@ -5,7 +5,9 @@ using Qahwa.Abstractions;
 
 namespace Qahwa.Core;
 
-public sealed record DeskLink(string Id, string Label, string Path, string Group, bool DefaultVisible = true);
+/// <param name="Icon">For a workspace: the icon its maker chose.</param>
+/// <param name="Parent">For a workspace under another: the id of the parent's link, so the sidebar can list it beneath.</param>
+public sealed record DeskLink(string Id, string Label, string Path, string Group, bool DefaultVisible = true, string? Icon = null, string? Parent = null);
 public sealed record DeskWorkspace(string Id, string Title);
 public sealed record DeskLayout
 {
@@ -48,19 +50,22 @@ public sealed class DeskSettingsService(IMetaRegistry registry, IDocumentReposit
     private async Task<List<DeskLink>> LinksAsync(IUserContext user, CancellationToken ct)
     {
         var manager = permissions.IsAdministrator(user) || user.Roles.Contains("System Manager", StringComparer.Ordinal);
-        var links = new List<DeskLink> { new("page:home", "Home", "/", "My work"), new("page:dashboards", "Dashboards", "/dashboards", "My work"), new("page:reports", "Reports", "/reports", "My work"), new("page:script-reports", "Script Reports", "/script-reports", "My work"), new("page:auto-repeat", "Auto Repeat", "/auto-repeat", "My work"), new("page:account", "My account", "/account", "My work", false) };
+        var links = new List<DeskLink> { new("page:home", "Home", "/", "My work"), new("page:dashboards", "Dashboards", "/dashboards", "My work"), new("page:reports", "Reports", "/reports", "My work"), new("page:script-reports", "Script Reports", "/script-reports", "My work"), new("page:auto-repeat", "Auto Repeat", "/auto-repeat", "My work"), new("page:energy-points", "Energy Points", "/energy-points", "My work"), new("page:account", "My account", "/account", "My work", false) };
         if (manager)
         {
-            foreach (var (path, label) in new (string, string)[] { ("designer", "DocType Designer"), ("customize", "Customize Form"), ("permissions", "Role Permissions"), ("workflows", "Workflow Builder"), ("webhooks", "Webhooks"), ("emailed-reports", "Emailed Reports"), ("bundle", "Export & Import"), ("workspaces", "Workspaces"), ("brand", "Brand"), ("print-formats", "Print Formats"), ("notification-rules", "Notification Rules"), ("assignment-rules", "Assignment Rules"), ("naming", "Naming Series") })
+            foreach (var (path, label) in new (string, string)[] { ("designer", "DocType Designer"), ("customize", "Customize Form"), ("permissions", "Role Permissions"), ("workflows", "Workflow Builder"), ("webhooks", "Webhooks"), ("emailed-reports", "Emailed Reports"), ("bundle", "Export & Import"), ("workspaces", "Workspaces"), ("brand", "Brand"), ("print-formats", "Print Formats"), ("notification-rules", "Notification Rules"), ("assignment-rules", "Assignment Rules"), ("naming", "Naming Series"), ("scheduler", "Scheduled Jobs") })
                 links.Add(new("page:" + path, label, "/" + path, "Tools"));
             if (permissions.IsAdministrator(user)) links.Add(new("page:backup", "Backup & Restore", "/backup", "Tools"));
         }
         var metas = await documents.ListMetasAsync(user, ct);
         foreach (var meta in metas.Where(m => m.Name != DocTypeName))
         {
-            var group = manager && meta.Name is "Email Account" or "Scheduled Job Log" or "Error Log" or "Deleted Document" ? "Tools" : meta.Module ?? "Other";
+            var group = manager && meta.Name is "Email Account" or "Scheduled Job Log" or "Error Log" or "Deleted Document" or "DocType Layout" or "Energy Point Rule" or "Web Page" ? "Tools" : meta.Module ?? "Other";
             links.Add(new("doctype:" + meta.Name, meta.Name, "/app/" + Uri.EscapeDataString(meta.Name), group));
         }
+        // The workspaces made for this person are entries of the sidebar too (Frappe's left-hand workspace list), each opening its own page.
+        foreach (var space in await workspaces.MineAsync(user, ct))
+            links.Add(new("workspace:" + space.Id, space.Title, "/workspace/" + Uri.EscapeDataString(space.Id), "Workspaces", true, space.Icon, space.Parent is null ? null : "workspace:" + space.Parent));
         foreach (var dashboard in await dashboards.ListAsync(user, ct)) links.Add(new("dashboard:" + dashboard.Id, dashboard.Title, "/dashboards/" + Uri.EscapeDataString(dashboard.Id), "Dashboards", false));
         foreach (var report in await reports.ListAsync(user, ct))
             if (metas.Any(m => m.Name == report.DocType)) links.Add(new("report:" + report.Id, report.Title, "/reports/" + Uri.EscapeDataString(report.Id), "Reports", false));

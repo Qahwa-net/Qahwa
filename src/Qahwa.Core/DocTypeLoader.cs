@@ -286,6 +286,10 @@ public static partial class DocTypeLoader
             add("isChildTable", "A child table cannot be single, a tree, or renamable.");
         if (meta.IsChildTable && meta.Fields.Any(f => f.Type == FieldType.Password))
             add("fields", "A child table cannot have a Password field; keep the secret on the parent document.");
+        if (meta.IsVirtual && (meta.IsChildTable || meta.IsSingle || meta.IsTree || meta.IsSubmittable || meta.AllowRename))
+            add("isVirtual", "A virtual DocType is read-only and has no table: it cannot be a child table, single, a tree, submittable or renamable.");
+        if (meta.IsVirtual && meta.Fields.Any(f => f.Type is FieldType.Table or FieldType.Password or FieldType.Attach or FieldType.AttachImage))
+            add("fields", "A virtual DocType cannot have Table, Password or file fields: its data comes from outside.");
         if (meta.IsSingle && meta.IsTree)
             add("isSingle", "A DocType cannot be both single and a tree.");
         if (meta.IsSingle && meta.AllowRename)

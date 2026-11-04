@@ -33,7 +33,8 @@ public sealed partial class DocumentService(
     IRealtimePublisher? realtime = null,
     ViewLogService? viewLog = null,
     AccessLogService? accessLog = null,
-    Lazy<WorkflowLinkService>? workflowLinks = null)
+    Lazy<WorkflowLinkService>? workflowLinks = null,
+    Lazy<EnergyPointService>? energyPoints = null)
 {
     private readonly DocumentLogic _logic = new(registry, repository, permissions, clock);
 
@@ -91,14 +92,15 @@ public sealed partial class DocumentService(
     /// <summary>What the user may do with this DocType in general (owner-only rules count as allowed).</summary>
     public EffectivePermissions GetPermissions(DocTypeMeta meta, IUserContext user) => new(
         permissions.Evaluate(meta, user, PermAction.Read) != AccessLevel.None,
-        permissions.Evaluate(meta, user, PermAction.Write) != AccessLevel.None,
-        permissions.Evaluate(meta, user, PermAction.Create) != AccessLevel.None && !meta.IsChildTable,
-        permissions.Evaluate(meta, user, PermAction.Delete) != AccessLevel.None,
+        // Documents that live outside the database cannot be changed, whatever the roles say: the Desk then offers nothing to change.
+        !meta.IsVirtual && permissions.Evaluate(meta, user, PermAction.Write) != AccessLevel.None,
+        !meta.IsVirtual && permissions.Evaluate(meta, user, PermAction.Create) != AccessLevel.None && !meta.IsChildTable,
+        !meta.IsVirtual && permissions.Evaluate(meta, user, PermAction.Delete) != AccessLevel.None,
         meta.IsSubmittable && permissions.Evaluate(meta, user, PermAction.Submit) != AccessLevel.None,
         meta.IsSubmittable && permissions.Evaluate(meta, user, PermAction.Cancel) != AccessLevel.None,
         permissions.Evaluate(meta, user, PermAction.Export) != AccessLevel.None,
         permissions.Evaluate(meta, user, PermAction.Report) != AccessLevel.None,
-        permissions.Allows(meta, user, PermFlag.Import), permissions.Allows(meta, user, PermFlag.Share),
+        !meta.IsVirtual && permissions.Allows(meta, user, PermFlag.Import), permissions.Allows(meta, user, PermFlag.Share),
         permissions.Allows(meta, user, PermFlag.Print), permissions.Allows(meta, user, PermFlag.Email), permissions.Allows(meta, user, PermFlag.Amend));
 
     public async Task<Dictionary<string, object?>> InsertAsync(
@@ -141,6 +143,12 @@ public sealed partial class DocumentService(
             RoleNetworkService.Validate(values, errors);
         if (meta.Name == MilestoneService.DocTypeName)
             MilestoneService.Validate(registry, values, errors);
+        if (meta.Name == DocTypeLayoutService.DocTypeName)
+            DocTypeLayoutService.Validate(registry, values, errors);
+        if (meta.Name == EnergyPointService.RuleDocType)
+            EnergyPointService.Validate(registry, values, errors);
+        if (meta.Name == WebPageService.DocTypeName)
+            WebPageService.Validate(values, errors);
         var context = _logic.Context(meta, values, tables, null, user, isNew: true, await _logic.LinkedAsync(meta, values, user, ReadLinkedAsync, ct));
         await ValidateAsync(meta, values, values.Keys, errors, string.Empty, context, fieldAccess, ct);
         foreach (var table in tables)
@@ -352,6 +360,10 @@ public sealed partial class DocumentService(
             await notificationRules.Value.AfterSaveAsync(meta, name, isNew, before, latest, user, ct);
         if (webhooks is not null && AssignmentRuleManager.Applies(meta) && await LoadAsync(meta, name, ct) is { } hooked)
             await webhooks.Value.AfterSaveAsync(meta, name, isNew, before, hooked, ct);
+        if (energyPoints is not null && meta.Name == EnergyPointService.RuleDocType)
+            energyPoints.Value.Invalidate();
+        if (energyPoints is not null && AssignmentRuleManager.Applies(meta) && await LoadAsync(meta, name, ct) is { } rewarded)
+            await energyPoints.Value.AfterSaveAsync(meta, name, isNew, before, rewarded, user, ct);
         if (documentActions is not null && meta.Name == DocumentActionEngine.DocTypeName)
             documentActions.Value.Invalidate();
         if (documentActions is not null && AssignmentRuleManager.Applies(meta) && await LoadAsync(meta, name, ct) is { } acted)
@@ -533,6 +545,12 @@ public sealed partial class DocumentService(
             RoleNetworkService.Validate(merged, errors);
         if (meta.Name == MilestoneService.DocTypeName)
             MilestoneService.Validate(registry, merged, errors);
+        if (meta.Name == DocTypeLayoutService.DocTypeName)
+            DocTypeLayoutService.Validate(registry, merged, errors);
+        if (meta.Name == EnergyPointService.RuleDocType)
+            EnergyPointService.Validate(registry, merged, errors);
+        if (meta.Name == WebPageService.DocTypeName)
+            WebPageService.Validate(merged, errors);
         foreach (var key in changed)
             changes[key] = merged[key]; // calculated, fetched and script-set values are saved too
 
@@ -858,13 +876,22 @@ public sealed partial class DocumentService(
             access.Writable.Order().ToList());
     }
 
+    /// <summary>The form as this person's DocType Layout shows it (fields hidden for them); nothing changes when no layout fits.</summary>
+    private async Task<MetaView> WithLayoutAsync(MetaView view, IUserContext user, CancellationToken ct)
+    {
+        if (!registry.TryGet(DocTypeLayoutService.DocTypeName, out var layoutMeta))
+            return view;
+        var layouts = await repository.ListAsync(layoutMeta, new ListQuery { Filters = [new("document_type", FilterOp.Eq, view.Meta.Name)], Limit = 50 }, ct);
+        return layouts.Count == 0 ? view : view with { Meta = DocTypeLayoutService.Apply(view.Meta, layouts, user) };
+    }
+
     /// <summary>Like <see cref="GetMetaView"/>, but a person with no role access can still open a DocType through documents shared with them.</summary>
     public async Task<MetaView> GetMetaViewAsync(string doctype, IUserContext user, CancellationToken ct = default)
     {
         var meta = RequireTopLevel(registry.Get(doctype));
         await EnsureModuleAsync(meta, user, ct);
         if (permissions.Evaluate(meta, user, PermAction.Read) != AccessLevel.None || shares is null)
-            return GetMetaView(doctype, user);
+            return await WithLayoutAsync(GetMetaView(doctype, user), user, ct);
 
         var grants = await shares.ForUserAsync(meta.Name, user, ct);
         if (grants.Count == 0)

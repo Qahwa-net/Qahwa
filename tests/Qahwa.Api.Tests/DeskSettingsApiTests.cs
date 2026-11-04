@@ -69,4 +69,35 @@ public sealed class DeskSettingsApiTests : IAsyncDisposable
         Assert.DoesNotContain(noRole.Links, l => l.Id == "doctype:Desk Note");
         Assert.Empty(noRole.Layout.Pinned); Assert.Empty(noRole.Layout.HomeShortcuts);
     }
+
+    [Fact]
+    public async Task Workspaces_made_for_a_person_are_entries_of_their_sidebar_and_can_be_folded()
+    {
+        Assert.Equal(HttpStatusCode.Created, (await Admin.PostAsJsonAsync("/api/workspaces", new { title = "Operations", blocks = new[] { new { type = "Heading", text = "Daily" } } })).StatusCode);
+
+        var state = await State(Admin);
+
+        var link = Assert.Single(state.Links, l => l.Group == "Workspaces");
+        Assert.Equal("Operations", link.Label);
+        Assert.StartsWith("/workspace/", link.Path);
+        // The group can be folded and saved like any other (the server only accepts groups it knows).
+        var layout = new DeskLayout { CollapsedGroups = ["Workspaces"] };
+        Assert.Equal(HttpStatusCode.OK, (await Admin.PutAsJsonAsync("/api/desk-settings", new DeskSaveRequest(layout, state.Modified))).StatusCode);
+        Assert.Equal(["Workspaces"], (await State(Admin)).Layout.CollapsedGroups);
+    }
+
+    [Fact]
+    public async Task A_workspace_under_another_carries_its_icon_and_parent_in_the_desk_links()
+    {
+        var parent = await Admin.PostAsJsonAsync("/api/workspaces", new { title = "Sales", icon = "chart", blocks = Array.Empty<object>() });
+        var parentId = (await parent.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>()).GetProperty("data").GetProperty("info").GetProperty("id").GetString();
+        Assert.Equal(HttpStatusCode.Created, (await Admin.PostAsJsonAsync("/api/workspaces", new { title = "Leads", icon = "users", parent = parentId, blocks = Array.Empty<object>() })).StatusCode);
+
+        var links = (await State(Admin)).Links.Where(l => l.Group == "Workspaces").ToList();
+
+        Assert.Equal("chart", links.Single(l => l.Label == "Sales").Icon);
+        var leads = links.Single(l => l.Label == "Leads");
+        Assert.Equal(("users", "workspace:" + parentId), (leads.Icon, leads.Parent));
+        Assert.Equal(HttpStatusCode.BadRequest, (await Admin.PostAsJsonAsync("/api/workspaces", new { title = "Deep", parent = leads.Id.Replace("workspace:", ""), blocks = Array.Empty<object>() })).StatusCode);
+    }
 }

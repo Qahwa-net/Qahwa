@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError, api } from '../api/client.ts'
 import type { WorkspaceBlock, WorkspaceDetail } from '../api/types.ts'
 import { ChipPicker } from '../controls/ChipPicker.tsx'
-import { Icon, IconButton } from '../controls/Icon.tsx'
+import { ICON_NAMES, Icon, IconButton, isIconName } from '../controls/Icon.tsx'
 import { ConfirmDialog } from '../controls/Modal.tsx'
 import { useToast } from '../controls/Toast.tsx'
 import { PAGES, moveBlock, newBlock, newShortcut, toRequest } from '../lib/workspaces.ts'
@@ -56,6 +56,11 @@ function Body({ initial, onDone }: { initial: WorkspaceDetail | null; onDone: ()
   const [title, setTitle] = useState(initial?.info.title ?? '')
   const [sequence, setSequence] = useState(initial?.info.sequence ?? 0)
   const [roles, setRoles] = useState<string[]>(initial?.info.roles ?? [])
+  const [icon, setIcon] = useState(initial?.info.icon ?? '')
+  const [parent, setParent] = useState(initial?.info.parent ?? '')
+  const others = useQuery({ queryKey: ['workspaces', 'list'], queryFn: api.workspaces.list, retry: false })
+  // Only a top-level workspace can hold others (one level deep), and never itself.
+  const parents = (others.data ?? []).filter((w) => !w.parent && w.id !== initial?.info.id)
   const [blocks, setBlocks] = useState<WorkspaceBlock[]>(() => structuredClone(initial?.blocks ?? []))
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [banner, setBanner] = useState<string | null>(null)
@@ -63,7 +68,7 @@ function Body({ initial, onDone }: { initial: WorkspaceDetail | null; onDone: ()
 
   const save = useMutation({
     mutationFn: () => {
-      const body = toRequest({ title, sequence, roles, blocks })
+      const body = toRequest({ title, sequence, roles, blocks, icon, parent })
       return initial ? api.workspaces.update(initial.info.id, body) : api.workspaces.create(body)
     },
     onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ['workspaces'] }); toast('Workspace saved'); onDone() },
@@ -92,6 +97,24 @@ function Body({ initial, onDone }: { initial: WorkspaceDetail | null; onDone: ()
           <label htmlFor="ws-seq">Position</label>
           <input id="ws-seq" type="number" min={0} max={10000} value={sequence} onChange={(e) => setSequence(Number(e.target.value) || 0)} />
           <small className="muted">Smaller numbers come first.</small>
+        </div>
+        <div className="field">
+          <label htmlFor="ws-icon">Icon</label>
+          <select id="ws-icon" value={icon} onChange={(e) => setIcon(e.target.value)}>
+            <option value="">None</option>
+            {ICON_NAMES.map((n) => <option key={n} value={n}>{n}</option>)}
+          </select>
+          {icon && isIconName(icon) && <small className="muted"><Icon name={icon} size={15} /> shown beside the title in the sidebar</small>}
+          {errors.icon && <small className="error-text" role="alert">{errors.icon}</small>}
+        </div>
+        <div className="field">
+          <label htmlFor="ws-parent">Listed under</label>
+          <select id="ws-parent" value={parent} onChange={(e) => setParent(e.target.value)}>
+            <option value="">Nothing: a workspace of its own</option>
+            {parents.map((w) => <option key={w.id} value={w.id}>{w.title}</option>)}
+          </select>
+          <small className="muted">In the sidebar it appears beneath that workspace. One level only.</small>
+          {errors.parent && <small className="error-text" role="alert">{errors.parent}</small>}
         </div>
         <div className="field full">
           <label>Shown to people with these roles <span className="muted">(none = everyone)</span></label>
