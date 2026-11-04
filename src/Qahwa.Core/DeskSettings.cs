@@ -5,7 +5,9 @@ using Qahwa.Abstractions;
 
 namespace Qahwa.Core;
 
-public sealed record DeskLink(string Id, string Label, string Path, string Group, bool DefaultVisible = true);
+/// <param name="Icon">For a workspace: the icon its maker chose.</param>
+/// <param name="Parent">For a workspace under another: the id of the parent's link, so the sidebar can list it beneath.</param>
+public sealed record DeskLink(string Id, string Label, string Path, string Group, bool DefaultVisible = true, string? Icon = null, string? Parent = null);
 public sealed record DeskWorkspace(string Id, string Title);
 public sealed record DeskLayout
 {
@@ -63,7 +65,7 @@ public sealed class DeskSettingsService(IMetaRegistry registry, IDocumentReposit
         }
         // The workspaces made for this person are entries of the sidebar too (Frappe's left-hand workspace list), each opening its own page.
         foreach (var space in await workspaces.MineAsync(user, ct))
-            links.Add(new("workspace:" + space.Id, space.Title, "/workspace/" + Uri.EscapeDataString(space.Id), "Workspaces"));
+            links.Add(new("workspace:" + space.Id, space.Title, "/workspace/" + Uri.EscapeDataString(space.Id), "Workspaces", true, space.Icon, space.Parent is null ? null : "workspace:" + space.Parent));
         foreach (var dashboard in await dashboards.ListAsync(user, ct)) links.Add(new("dashboard:" + dashboard.Id, dashboard.Title, "/dashboards/" + Uri.EscapeDataString(dashboard.Id), "Dashboards", false));
         foreach (var report in await reports.ListAsync(user, ct))
             if (metas.Any(m => m.Name == report.DocType)) links.Add(new("report:" + report.Id, report.Title, "/reports/" + Uri.EscapeDataString(report.Id), "Reports", false));

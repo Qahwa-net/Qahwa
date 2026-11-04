@@ -481,9 +481,9 @@ export const api = {
     mine: async () => (await request<{ data: WorkspaceView[] }>('GET', '/api/workspaces/mine')).data,
     list: async () => (await request<{ data: WorkspaceInfo[] }>('GET', '/api/workspaces')).data,
     get: async (id: string) => (await request<{ data: WorkspaceDetail }>('GET', `/api/workspaces/${encodeURIComponent(id)}`)).data,
-    create: async (body: { title: string; sequence: number; roles: string[]; blocks: WorkspaceBlock[] }) =>
+    create: async (body: { title: string; sequence: number; roles: string[]; blocks: WorkspaceBlock[]; icon?: string; parent?: string }) =>
       (await request<{ data: WorkspaceDetail }>('POST', '/api/workspaces', body)).data,
-    update: async (id: string, body: { title: string; sequence: number; roles: string[]; blocks: WorkspaceBlock[] }) =>
+    update: async (id: string, body: { title: string; sequence: number; roles: string[]; blocks: WorkspaceBlock[]; icon?: string; parent?: string }) =>
       (await request<{ data: WorkspaceDetail }>('PUT', `/api/workspaces/${encodeURIComponent(id)}`, body)).data,
     remove: async (id: string) => { await request<unknown>('DELETE', `/api/workspaces/${encodeURIComponent(id)}`) },
   },

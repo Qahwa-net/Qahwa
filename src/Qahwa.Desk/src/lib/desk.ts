@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { api } from '../api/client.ts'
 import { useAuth } from '../auth.tsx'
 
-export interface DeskLink { id: string; label: string; path: string; group: string; defaultVisible: boolean }
+export interface DeskLink { id: string; label: string; path: string; group: string; defaultVisible: boolean; icon?: string | null; parent?: string | null }
 export interface DeskWorkspace { id: string; title: string }
 export interface DeskLayout { pinned: string[]; hidden: string[]; order: string[]; groupOrder: string[]; collapsedGroups: string[]; homeShortcuts: string[]; defaultWorkspace: string | null }
 export interface DeskState { layout: DeskLayout; personal: boolean; defaultRole: string | null; modified: string | null; links: DeskLink[]; workspaces: DeskWorkspace[] }
@@ -89,4 +89,17 @@ export function withLinkMoved(layout: DeskLayout, group: string, groupLinks: str
   if (moved === groupLinks) return layout
   if (group === 'Favorites') return { ...layout, pinned: moved }
   return { ...layout, order: [...moved, ...layout.order.filter(id => !moved.includes(id))] }
+}
+
+export interface LinkNode { link: DeskLink; children: DeskLink[] }
+
+/**
+ * The links of one group as a tree one level deep: a link that names a parent in the same group is listed beneath it; one whose parent is
+ * not there (hidden, or not for this person) stands on its own. The order of the links is kept.
+ */
+export function nestLinks(links: DeskLink[]): LinkNode[] {
+  const ids = new Set(links.map(l => l.id))
+  const nested = (l: DeskLink) => Boolean(l.parent && ids.has(l.parent) && l.parent !== l.id)
+  const roots = links.filter(l => !nested(l))
+  return roots.map(link => ({ link, children: links.filter(l => nested(l) && l.parent === link.id) }))
 }

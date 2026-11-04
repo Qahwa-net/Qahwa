@@ -5,6 +5,8 @@
   "fields": [
     { "name": "title", "type": "Data", "label": "Title", "required": true, "inListView": true },
     { "name": "sequence", "type": "Int", "label": "Position", "inListView": true },
+    { "name": "icon", "type": "Data", "label": "Icon" },
+    { "name": "parent_workspace", "type": "Data", "label": "Under workspace", "indexed": true },
     { "name": "roles", "type": "Text", "label": "Roles" },
     { "name": "blocks", "type": "LongText", "label": "Blocks" }
   ],

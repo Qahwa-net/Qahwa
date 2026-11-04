@@ -85,4 +85,19 @@ public sealed class DeskSettingsApiTests : IAsyncDisposable
         Assert.Equal(HttpStatusCode.OK, (await Admin.PutAsJsonAsync("/api/desk-settings", new DeskSaveRequest(layout, state.Modified))).StatusCode);
         Assert.Equal(["Workspaces"], (await State(Admin)).Layout.CollapsedGroups);
     }
+
+    [Fact]
+    public async Task A_workspace_under_another_carries_its_icon_and_parent_in_the_desk_links()
+    {
+        var parent = await Admin.PostAsJsonAsync("/api/workspaces", new { title = "Sales", icon = "chart", blocks = Array.Empty<object>() });
+        var parentId = (await parent.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>()).GetProperty("data").GetProperty("info").GetProperty("id").GetString();
+        Assert.Equal(HttpStatusCode.Created, (await Admin.PostAsJsonAsync("/api/workspaces", new { title = "Leads", icon = "users", parent = parentId, blocks = Array.Empty<object>() })).StatusCode);
+
+        var links = (await State(Admin)).Links.Where(l => l.Group == "Workspaces").ToList();
+
+        Assert.Equal("chart", links.Single(l => l.Label == "Sales").Icon);
+        var leads = links.Single(l => l.Label == "Leads");
+        Assert.Equal(("users", "workspace:" + parentId), (leads.Icon, leads.Parent));
+        Assert.Equal(HttpStatusCode.BadRequest, (await Admin.PostAsJsonAsync("/api/workspaces", new { title = "Deep", parent = leads.Id.Replace("workspace:", ""), blocks = Array.Empty<object>() })).StatusCode);
+    }
 }

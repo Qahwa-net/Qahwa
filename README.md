@@ -60,6 +60,8 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **S3 file storage**: attachments in any S3-compatible bucket, signed with SigV4 and no SDK ([ADR-145](docs/adr/145-s3-file-storage.md))
 - **Passkeys**: sign in with a fingerprint, face or device PIN (WebAuthn, ES256 and RS256, no library; [ADR-150](docs/adr/150-passkeys.md))
 - **Frappe-style sidebar**: every group folds (Tools, Core and long groups start folded), workspaces are sidebar entries with pages of their own, each module has a page, and the home page shows modules instead of every DocType ([ADR-154](docs/adr/154-frappe-style-sidebar-and-module-pages.md))
+- **Workspace icons and nesting**: each workspace can have an icon and sit under another one level deep, shown indented in the sidebar ([ADR-156](docs/adr/156-workspace-icons-and-nesting.md))
+- **Scheduled Jobs page**: every scheduler job with what it does, its last run and the day's counts ([ADR-155](docs/adr/155-scheduled-jobs-page.md))
 - **Email threads on documents**: mail sent from a document carries a reference, replies that keep it show on the document's form ([ADR-153](docs/adr/153-email-threads-on-documents.md))
 - **Azure Blob file storage**: attachments in an Azure Blob Storage container, Shared Key signed with no SDK ([ADR-149](docs/adr/149-azure-blob-file-storage.md))
 - **Qahwa CRM-lite**: leads, opportunities, lead conversion and a pipeline report, as an app a site turns on (`apps/Qahwa.Crm`, [ADR-146](docs/adr/146-crm-app.md))

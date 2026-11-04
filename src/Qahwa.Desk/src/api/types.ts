@@ -810,6 +810,8 @@ export interface WorkspaceInfo {
   sequence: number
   roles: string[]
   blocks: number
+  icon?: string | null
+  parent?: string | null
 }
 
 export interface WorkspaceDetail {
@@ -829,6 +831,8 @@ export interface WorkspaceView {
   id: string
   title: string
   blocks: WorkspaceBlockView[]
+  icon?: string | null
+  parent?: string | null
 }
 
 export interface ImportColumn {

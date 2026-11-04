@@ -1,8 +1,8 @@
 import { useState, type DragEvent } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
-import { Icon } from '../controls/Icon.tsx'
+import { Icon, isIconName } from '../controls/Icon.tsx'
 import { useI18n } from '../i18n.tsx'
-import { groupFolded, NOT_A_MODULE, sidebarGroups, withGroupMoved, withLinkMoved, type DeskLayout, type DeskState } from '../lib/desk.ts'
+import { groupFolded, nestLinks, NOT_A_MODULE, sidebarGroups, withGroupMoved, withLinkMoved, type DeskLayout, type DeskState } from '../lib/desk.ts'
 
 const GROUP = 'application/x-qahwa-group'
 const LINK = 'application/x-qahwa-link'
@@ -34,6 +34,24 @@ export function DeskNavigation({ state, layout, busy, unfolded, onFold, onLayout
     setOver(key)
   }
 
+  const label = (link: { label: string; icon?: string | null }) =>
+    <>{link.icon && isIconName(link.icon) && <span className="nav-icon"><Icon name={link.icon} size={15} /></span>}{t(link.label)}</>
+  // The drag handlers of one link (the same for a link and for a link under another): a link moves only inside its own group.
+  const dragProps = (group: string, ids: string[], id: string) => ({
+    onDragStart: (e: DragEvent) => { e.stopPropagation(); e.dataTransfer.setData(LINK, JSON.stringify({ group, id })); e.dataTransfer.effectAllowed = 'move' },
+    onDragEnd: () => setOver(null),
+    onDragOver: (e: DragEvent) => { if (e.dataTransfer.types.includes(LINK)) { e.stopPropagation(); allow(e, LINK, `l:${id}`) } },
+    onDrop: (e: DragEvent) => {
+      setOver(null)
+      const raw = e.dataTransfer.getData(LINK)
+      if (!raw) return
+      e.stopPropagation()
+      e.preventDefault()
+      const dragged = JSON.parse(raw) as { group: string; id: string }
+      if (dragged.group === group) onLayout(withLinkMoved(layout, group, ids, dragged.id, id)) // only inside the same group
+    },
+  })
+
   return <>{groups.map(([group, links]) => {
     const holdsCurrentPage = links.some(link => link.path.split('?')[0] === pathname) || pathname === `/module/${encodeURIComponent(group)}`
     const folded = groupFolded(group, links.length, layout, unfolded, holdsCurrentPage)
@@ -51,21 +69,13 @@ export function DeskNavigation({ state, layout, busy, unfolded, onFold, onLayout
         </button>
         {!NOT_A_MODULE.has(group) && <Link className="desk-module-link" to={`/module/${encodeURIComponent(group)}`} aria-label={`${t(group)} page`} title={`${t(group)} page`}><Icon name="map" size={14} /></Link>}
       </h2>
-      {!folded && <ul>{links.map(link => (
-        <li key={link.id} className={over === `l:${link.id}` ? 'drop-target' : undefined} draggable={!busy}
-          onDragStart={e => { e.stopPropagation(); e.dataTransfer.setData(LINK, JSON.stringify({ group, id: link.id })); e.dataTransfer.effectAllowed = 'move' }}
-          onDragEnd={() => setOver(null)}
-          onDragOver={e => { if (e.dataTransfer.types.includes(LINK)) { e.stopPropagation(); allow(e, LINK, `l:${link.id}`) } }}
-          onDrop={e => {
-            setOver(null)
-            const raw = e.dataTransfer.getData(LINK)
-            if (!raw) return
-            e.stopPropagation()
-            e.preventDefault()
-            const dragged = JSON.parse(raw) as { group: string; id: string }
-            if (dragged.group === group) onLayout(withLinkMoved(layout, group, ids, dragged.id, link.id)) // only inside the same group
-          }}>
-          <NavLink to={link.path} end={link.path === '/'}>{t(link.label)}</NavLink>
+      {!folded && <ul>{nestLinks(links).map(({ link, children }) => (
+        <li key={link.id} className={`${over === `l:${link.id}` ? 'drop-target' : ''}`} draggable={!busy} {...dragProps(group, ids, link.id)}>
+          <NavLink to={link.path} end={link.path === '/'}>{label(link)}</NavLink>
+          {children.length > 0 && <ul className="desk-nav-children">{children.map(child => (
+            <li key={child.id} className={over === `l:${child.id}` ? 'drop-target' : undefined} draggable={!busy} {...dragProps(group, ids, child.id)}>
+              <NavLink to={child.path}>{label(child)}</NavLink>
+            </li>))}</ul>}
         </li>))}</ul>}
     </section>
   })}</>

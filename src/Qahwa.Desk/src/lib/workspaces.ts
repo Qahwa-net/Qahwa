@@ -29,9 +29,11 @@ export function moveBlock<T>(list: T[], index: number, by: -1 | 1): T[] {
 }
 
 /** What to send: each block keeps only what its type uses, and shortcuts without a target are dropped. */
-export function toRequest(draft: { title: string; sequence: number; roles: string[]; blocks: WorkspaceBlock[] }) {
+export function toRequest(draft: { title: string; sequence: number; roles: string[]; blocks: WorkspaceBlock[]; icon?: string; parent?: string }) {
   return {
     title: draft.title.trim(),
+    icon: draft.icon ?? '',
+    parent: draft.parent ?? '',
     sequence: Math.max(0, Math.round(draft.sequence)),
     roles: draft.roles,
     blocks: draft.blocks.map((b): WorkspaceBlock => {

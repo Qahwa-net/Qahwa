@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { emptyDesk, groupFolded, groupRank, moveBefore, moveId, ordered, sidebarGroups, withGroupMoved, withLinkMoved, type DeskLink } from './desk.ts'
+import { emptyDesk, groupFolded, groupRank, moveBefore, moveId, nestLinks, ordered, sidebarGroups, withGroupMoved, withLinkMoved, type DeskLink } from './desk.ts'
 const links: DeskLink[] = [
   { id: 'home', label: 'Home', path: '/', group: 'My work', defaultVisible: true },
   { id: 'a', label: 'A', path: '/app/A', group: 'Sales', defaultVisible: true },
@@ -69,6 +69,17 @@ describe('Dragging in the sidebar', () => {
     expect(withLinkMoved(layout, 'Sales', ['a', 'b', 'c'], 'c', 'a').order).toEqual(['c', 'a', 'b', 'z', 'y'])
     expect(withLinkMoved(layout, 'Favorites', ['p1', 'p2'], 'p2', 'p1').pinned).toEqual(['p2', 'p1'])
     expect(withLinkMoved(layout, 'Sales', ['a', 'b'], 'a', 'a')).toBe(layout)
+  })
+})
+
+describe('Workspaces under workspaces', () => {
+  const l = (id: string, parent?: string): DeskLink => ({ id, label: id, path: `/w/${id}`, group: 'Workspaces', defaultVisible: true, parent })
+  it('lists a child beneath its parent and keeps the order', () => {
+    const tree = nestLinks([l('a'), l('b'), l('a1', 'a'), l('a2', 'a'), l('c')])
+    expect(tree.map(n => [n.link.id, n.children.map(c => c.id)])).toEqual([['a', ['a1', 'a2']], ['b', []], ['c', []]])
+  })
+  it('stands a child on its own when its parent is not there, and ignores a link that names itself', () => {
+    expect(nestLinks([l('x', 'missing'), l('y', 'y')]).map(n => n.link.id)).toEqual(['x', 'y'])
   })
 })
 
