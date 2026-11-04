@@ -33,7 +33,8 @@ public sealed partial class DocumentService(
     IRealtimePublisher? realtime = null,
     ViewLogService? viewLog = null,
     AccessLogService? accessLog = null,
-    Lazy<WorkflowLinkService>? workflowLinks = null)
+    Lazy<WorkflowLinkService>? workflowLinks = null,
+    Lazy<EnergyPointService>? energyPoints = null)
 {
     private readonly DocumentLogic _logic = new(registry, repository, permissions, clock);
 
@@ -144,6 +145,8 @@ public sealed partial class DocumentService(
             MilestoneService.Validate(registry, values, errors);
         if (meta.Name == DocTypeLayoutService.DocTypeName)
             DocTypeLayoutService.Validate(registry, values, errors);
+        if (meta.Name == EnergyPointService.RuleDocType)
+            EnergyPointService.Validate(registry, values, errors);
         var context = _logic.Context(meta, values, tables, null, user, isNew: true, await _logic.LinkedAsync(meta, values, user, ReadLinkedAsync, ct));
         await ValidateAsync(meta, values, values.Keys, errors, string.Empty, context, fieldAccess, ct);
         foreach (var table in tables)
@@ -355,6 +358,10 @@ public sealed partial class DocumentService(
             await notificationRules.Value.AfterSaveAsync(meta, name, isNew, before, latest, user, ct);
         if (webhooks is not null && AssignmentRuleManager.Applies(meta) && await LoadAsync(meta, name, ct) is { } hooked)
             await webhooks.Value.AfterSaveAsync(meta, name, isNew, before, hooked, ct);
+        if (energyPoints is not null && meta.Name == EnergyPointService.RuleDocType)
+            energyPoints.Value.Invalidate();
+        if (energyPoints is not null && AssignmentRuleManager.Applies(meta) && await LoadAsync(meta, name, ct) is { } rewarded)
+            await energyPoints.Value.AfterSaveAsync(meta, name, isNew, before, rewarded, user, ct);
         if (documentActions is not null && meta.Name == DocumentActionEngine.DocTypeName)
             documentActions.Value.Invalidate();
         if (documentActions is not null && AssignmentRuleManager.Applies(meta) && await LoadAsync(meta, name, ct) is { } acted)
@@ -538,6 +545,8 @@ public sealed partial class DocumentService(
             MilestoneService.Validate(registry, merged, errors);
         if (meta.Name == DocTypeLayoutService.DocTypeName)
             DocTypeLayoutService.Validate(registry, merged, errors);
+        if (meta.Name == EnergyPointService.RuleDocType)
+            EnergyPointService.Validate(registry, merged, errors);
         foreach (var key in changed)
             changes[key] = merged[key]; // calculated, fetched and script-set values are saved too
 

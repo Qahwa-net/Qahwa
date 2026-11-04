@@ -124,6 +124,7 @@ public static class QahwaEndpoints
         app.MapQahwaReminders();
         app.MapQahwaConversation();
         app.MapQahwaScheduler();
+        app.MapQahwaEnergyPoints();
         app.MapQahwaPreparedReports();
         app.MapQahwaNotificationRules();
         app.MapQahwaEmail();

@@ -50,7 +50,7 @@ public sealed class DeskSettingsService(IMetaRegistry registry, IDocumentReposit
     private async Task<List<DeskLink>> LinksAsync(IUserContext user, CancellationToken ct)
     {
         var manager = permissions.IsAdministrator(user) || user.Roles.Contains("System Manager", StringComparer.Ordinal);
-        var links = new List<DeskLink> { new("page:home", "Home", "/", "My work"), new("page:dashboards", "Dashboards", "/dashboards", "My work"), new("page:reports", "Reports", "/reports", "My work"), new("page:script-reports", "Script Reports", "/script-reports", "My work"), new("page:auto-repeat", "Auto Repeat", "/auto-repeat", "My work"), new("page:account", "My account", "/account", "My work", false) };
+        var links = new List<DeskLink> { new("page:home", "Home", "/", "My work"), new("page:dashboards", "Dashboards", "/dashboards", "My work"), new("page:reports", "Reports", "/reports", "My work"), new("page:script-reports", "Script Reports", "/script-reports", "My work"), new("page:auto-repeat", "Auto Repeat", "/auto-repeat", "My work"), new("page:energy-points", "Energy Points", "/energy-points", "My work"), new("page:account", "My account", "/account", "My work", false) };
         if (manager)
         {
             foreach (var (path, label) in new (string, string)[] { ("designer", "DocType Designer"), ("customize", "Customize Form"), ("permissions", "Role Permissions"), ("workflows", "Workflow Builder"), ("webhooks", "Webhooks"), ("emailed-reports", "Emailed Reports"), ("bundle", "Export & Import"), ("workspaces", "Workspaces"), ("brand", "Brand"), ("print-formats", "Print Formats"), ("notification-rules", "Notification Rules"), ("assignment-rules", "Assignment Rules"), ("naming", "Naming Series"), ("scheduler", "Scheduled Jobs") })
@@ -60,7 +60,7 @@ public sealed class DeskSettingsService(IMetaRegistry registry, IDocumentReposit
         var metas = await documents.ListMetasAsync(user, ct);
         foreach (var meta in metas.Where(m => m.Name != DocTypeName))
         {
-            var group = manager && meta.Name is "Email Account" or "Scheduled Job Log" or "Error Log" or "Deleted Document" or "DocType Layout" ? "Tools" : meta.Module ?? "Other";
+            var group = manager && meta.Name is "Email Account" or "Scheduled Job Log" or "Error Log" or "Deleted Document" or "DocType Layout" or "Energy Point Rule" ? "Tools" : meta.Module ?? "Other";
             links.Add(new("doctype:" + meta.Name, meta.Name, "/app/" + Uri.EscapeDataString(meta.Name), group));
         }
         // The workspaces made for this person are entries of the sidebar too (Frappe's left-hand workspace list), each opening its own page.

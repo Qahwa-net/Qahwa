@@ -609,7 +609,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Webhooks (outgoing, conditions, signed) | done: events, conditions, signing, retries, SSRF-safe; custom headers, a test button and resending failed deliveries done (ADR-124) | ✅ | L10 |
 | Auto Email Report | done: scheduled plain-text emails of a saved report, run as a chosen user (ADR-071) | ✅ | L9 |
 | Document Naming Rule | done: rules with priority and conditions, naming by expression (ADR-073) | ✅ | L6 |
-| Energy Points and gamification | | 🔽 | later |
+| Energy Points and gamification | done (ADR-159): rules on document events, a log, a leaderboard and a page; badges and points for comments not yet | ✅ (v1) | later |
 
 ### A4. Permissions and security
 

@@ -60,6 +60,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **S3 file storage**: attachments in any S3-compatible bucket, signed with SigV4 and no SDK ([ADR-145](docs/adr/145-s3-file-storage.md))
 - **Passkeys**: sign in with a fingerprint, face or device PIN (WebAuthn, ES256 and RS256, no library; [ADR-150](docs/adr/150-passkeys.md))
 - **Frappe-style sidebar**: every group folds (Tools, Core and long groups start folded), workspaces are sidebar entries with pages of their own, each module has a page, and the home page shows modules instead of every DocType ([ADR-154](docs/adr/154-frappe-style-sidebar-and-module-pages.md))
+- **Energy points**: rules that reward work done in the system, a log, a leaderboard of names and a page ([ADR-159](docs/adr/159-energy-points.md))
 - **Virtual DocTypes**: read-only DocTypes whose documents come from outside the database (a JSON file is built in; other sources plug in), usable in lists, filters, exports and reports ([ADR-158](docs/adr/158-virtual-doctypes.md))
 - **DocType Layout**: a simpler form for some roles, with chosen fields hidden (display only, never permissions) ([ADR-157](docs/adr/157-doctype-layout.md))
 - **Workspace icons and nesting**: each workspace can have an icon and sit under another one level deep, shown indented in the sidebar ([ADR-156](docs/adr/156-workspace-icons-and-nesting.md))

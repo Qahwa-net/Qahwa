@@ -1,0 +1,22 @@
+{
+  "name": "Energy Point Rule",
+  "module": "Core",
+  "autoname": "field:rule_name",
+  "titleField": "rule_name",
+  "trackChanges": false,
+  "fields": [
+    { "name": "rule_name", "type": "Data", "label": "Name", "required": true, "unique": true, "inListView": true },
+    { "name": "enabled", "type": "Check", "label": "Enabled", "default": "1", "inListView": true },
+    { "name": "reference_doctype", "type": "Link", "options": "DocType", "label": "When this DocType changes", "required": true, "indexed": true, "inListView": true },
+    { "name": "event", "type": "Select", "label": "Event", "options": "New\nUpdate\nValueChange\nSubmit\nCancel", "default": "New", "required": true, "inListView": true },
+    { "name": "watch_field", "type": "Data", "label": "For ValueChange: the field to watch" },
+    { "name": "condition", "type": "Text", "label": "Only when (condition, e.g. status == 'Closed')" },
+    { "name": "points", "type": "Int", "label": "Points", "required": true, "inListView": true, "description": "From -100 to 100, not zero. Negative points take points away." },
+    { "name": "user_field", "type": "Data", "label": "Who gets the points (field of the document)", "default": "owner", "description": "A field holding a user: owner (who made it), modified_by (who last changed it), or a Link field to User." },
+    { "name": "once_per_document", "type": "Check", "label": "Once for each document", "default": "1" },
+    { "name": "max_per_day", "type": "Int", "label": "Most times a day for one person (0 = no limit)", "default": "10" }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "write": true, "create": true, "delete": true }
+  ]
+}

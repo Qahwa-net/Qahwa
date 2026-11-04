@@ -101,6 +101,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 97. [Prepared reports: big reports built in the background](97-prepared-reports.md)
 98. [CRM: leads and opportunities](98-crm.md)
 99. [Scheduled jobs](99-scheduled-jobs.md)
+100. [Energy points](100-energy-points.md)
 
 **Words used**
 

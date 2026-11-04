@@ -9,6 +9,7 @@ import { SitesPage } from './pages/SitesPage.tsx'
 import { ModulePage } from './pages/ModulePage.tsx'
 import { WorkspacePage } from './pages/WorkspacePage.tsx'
 import { SchedulerPage } from './pages/SchedulerPage.tsx'
+import { EnergyPointsPage } from './pages/EnergyPointsPage.tsx'
 import { BrandPage } from './pages/BrandPage.tsx'
 import { BundlePage } from './pages/Bundle.tsx'
 import { WebhooksPage } from './pages/Webhooks.tsx'
@@ -77,6 +78,7 @@ export function App() {
           <Route path="backup" element={<BackupPage />} />
           <Route path="sites" element={<SitesPage />} />
           <Route path="scheduler" element={<SchedulerPage />} />
+          <Route path="energy-points" element={<EnergyPointsPage />} />
           <Route path="module/:name" element={<ModulePage />} />
           <Route path="workspace/:id" element={<WorkspacePage />} />
           <Route path="brand" element={<BrandPage />} />

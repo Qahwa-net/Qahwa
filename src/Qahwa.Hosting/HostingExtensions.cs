@@ -211,6 +211,8 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<AppInstaller>();
         services.TryAddSingleton<AppJobRunner>();
         services.TryAddSingleton<BackgroundJobService>();
+        services.TryAddSingleton<EnergyPointService>();
+        services.TryAddSingleton(sp => new Lazy<EnergyPointService>(() => sp.GetRequiredService<EnergyPointService>()));
         services.TryAddSingleton<DocumentActionEngine>();
         services.TryAddSingleton(sp => new Lazy<DocumentActionEngine>(() => sp.GetRequiredService<DocumentActionEngine>()));
         services.TryAddSingleton<ClientScriptService>();

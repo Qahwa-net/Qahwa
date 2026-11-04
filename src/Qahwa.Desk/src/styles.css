@@ -937,3 +937,6 @@ kbd { font: .75rem ui-monospace, Consolas, monospace; padding: .05rem .35rem; bo
 .sidebar a.active .nav-icon { color: inherit; }
 .sidebar ul.desk-nav-children { margin: 0; }
 .sidebar ul.desk-nav-children a { padding-inline-start: 2.1rem; font-size: .93em; }
+
+.leaderboard li.you { font-weight: 600; }
+.plain-list .neg { color: var(--danger, #b3261e); }
