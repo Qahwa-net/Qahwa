@@ -158,7 +158,8 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<SecurityPolicyService>();
         services.TryAddSingleton<AuthService>();
         services.TryAddSingleton<SqlBuilder>();
-        services.TryAddSingleton<IDocumentRepository, DocumentRepository>();
+        // The real store, with virtual DocTypes (documents supplied by an IVirtualSource) answered from their sources.
+        services.TryAddSingleton<IDocumentRepository>(sp => new VirtualAwareRepository(ActivatorUtilities.CreateInstance<DocumentRepository>(sp), sp.GetServices<IVirtualSource>()));
         services.TryAddSingleton<IAuthStore, AuthStore>();
         services.TryAddSingleton<ITotpStore, TotpStore>();
         services.TryAddSingleton<ISessionStore, SessionStore>();

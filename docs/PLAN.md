@@ -561,7 +561,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Child tables (Table field, parent/child) | created in the designer, saved atomically with the parent | ✅ | L2 |
 | Single DocTypes (settings stored as one document) | done (ADR-011) | ✅ (v1) | L6 |
 | Tree DocTypes (nested set, parent/child hierarchy) | done: parent/child with tree views (ADR-011) | ✅ (v1) | L6 |
-| Virtual DocTypes (data from outside the database) | | 🔽 | L12 |
+| Virtual DocTypes (data from outside the database) | done (ADR-158): read-only, no table, documents from an `IVirtualSource`; a JSON-file source is built in. Writes through a source not yet | ✅ (v1) | L12 |
 | Submittable DocTypes (draft, submitted, cancelled, amend) | done: draft, submitted, cancelled (ADR-009) | ✅ (v1) | L6 |
 | Naming: hash, field, prompt, series | | ✅ | done |
 | Naming: format with date/field parts (`INV-{YYYY}-.####`), expression, naming rules, series manager | done: series, date and field parts, prompt, expression, rule tables, series manager (ADR-011, ADR-063, ADR-073) | ✅ | L6 |
@@ -680,7 +680,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Filter operators: `not like`, `not in`, `between`, timespans, dynamic values (`__user`) | done (ADR-060) | ✅ (v1) | L7 |
 | `/api/method` (whitelisted server functions), `get_count`, `get_value`, `set_value`, `get_list`, `rename_doc` | done (ADR-062) | ✅ (v1) | L7 |
 | API versioning, OpenAPI documentation | done: OpenAPI 3 per caller; URL versioning `/api/v1/` with a version header (ADR-097) | ✅ | L12 |
-| Webhooks, incoming API via server script | outgoing webhooks done (L10); incoming API via scripts not yet (L11) | 🔽 | L10, L11 |
+| Webhooks, incoming API via server script | outgoing webhooks done (L10); incoming API via server scripts done (ADR-108: an API script is called at `/api/script-method/<name>`, as the caller) | ✅ (v1) | L10, L11 |
 | Realtime updates (socket events, document updates), SignalR | done with Server-Sent Events instead of SignalR: live bell and live form updates (ADR-070); database backplane for several servers (ADR-086) | ✅ | L8 |
 | Payment gateways (Stripe, PayPal, Razorpay), SMS gateways, Google Calendar/Contacts/Drive, Dropbox, S3 backups, Slack, push notifications | S3-compatible (ADR-145) and Azure Blob (ADR-149) attachment storage done, Google Cloud Storage only through its S3 interoperability mode (documented, untested); the rest open | 🔽 (S3 and Azure files ✅) | L12 |
 | Event streaming / data sync between sites | | 🔽 | later |

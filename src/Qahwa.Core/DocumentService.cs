@@ -91,14 +91,15 @@ public sealed partial class DocumentService(
     /// <summary>What the user may do with this DocType in general (owner-only rules count as allowed).</summary>
     public EffectivePermissions GetPermissions(DocTypeMeta meta, IUserContext user) => new(
         permissions.Evaluate(meta, user, PermAction.Read) != AccessLevel.None,
-        permissions.Evaluate(meta, user, PermAction.Write) != AccessLevel.None,
-        permissions.Evaluate(meta, user, PermAction.Create) != AccessLevel.None && !meta.IsChildTable,
-        permissions.Evaluate(meta, user, PermAction.Delete) != AccessLevel.None,
+        // Documents that live outside the database cannot be changed, whatever the roles say: the Desk then offers nothing to change.
+        !meta.IsVirtual && permissions.Evaluate(meta, user, PermAction.Write) != AccessLevel.None,
+        !meta.IsVirtual && permissions.Evaluate(meta, user, PermAction.Create) != AccessLevel.None && !meta.IsChildTable,
+        !meta.IsVirtual && permissions.Evaluate(meta, user, PermAction.Delete) != AccessLevel.None,
         meta.IsSubmittable && permissions.Evaluate(meta, user, PermAction.Submit) != AccessLevel.None,
         meta.IsSubmittable && permissions.Evaluate(meta, user, PermAction.Cancel) != AccessLevel.None,
         permissions.Evaluate(meta, user, PermAction.Export) != AccessLevel.None,
         permissions.Evaluate(meta, user, PermAction.Report) != AccessLevel.None,
-        permissions.Allows(meta, user, PermFlag.Import), permissions.Allows(meta, user, PermFlag.Share),
+        !meta.IsVirtual && permissions.Allows(meta, user, PermFlag.Import), permissions.Allows(meta, user, PermFlag.Share),
         permissions.Allows(meta, user, PermFlag.Print), permissions.Allows(meta, user, PermFlag.Email), permissions.Allows(meta, user, PermFlag.Amend));
 
     public async Task<Dictionary<string, object?>> InsertAsync(
