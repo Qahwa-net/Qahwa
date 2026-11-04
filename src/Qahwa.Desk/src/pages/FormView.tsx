@@ -17,8 +17,6 @@ import { RepeatDialog } from './RepeatDialog.tsx'
 import { ReminderDialog } from './ReminderDialog.tsx'
 import { EmailDialog } from './EmailDialog.tsx'
 import { PrintDialog } from './PrintDialog.tsx'
-import { FollowButton } from './FollowButton.tsx'
-import { LikeButton } from './LikeButton.tsx'
 import { RenameDialog } from './RenamePanel.tsx'
 import { ShareDialog } from './SharePanel.tsx'
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -476,8 +474,6 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
           {!isNew && doc && user?.roles.includes('Administrator') && meta.name === 'Patch Log' && <IconButton icon="repeat" label="Run this patch again" disabled={dirty || doc.status === 'Running'} onClick={() => api.patches.run(doc.name, doc.status === 'Done').then(() => { toast('The patch ran'); void queryClient.invalidateQueries({ queryKey: ['doc', meta.name, doc.name] }) }, () => toast('The patch could not be run (see its problem text)'))} />}
           {!isNew && doc && doc.status === 'Failed' && user?.roles.some(r => r === 'Administrator' || r === 'System Manager') && meta.name === 'Webhook Delivery' && <IconButton icon="repeat" label="Send again" disabled={dirty} onClick={() => api.webhooks.retryDelivery(doc.name).then(() => { toast('Queued to be sent again'); void queryClient.invalidateQueries({ queryKey: ['doc', meta.name, doc.name] }) }, () => toast('Could not queue it again'))} />}
           {!isNew && user?.roles.some(r => r === 'Administrator' || r === 'System Manager') && meta.name === 'Email Account' && <TestIncomingEmailAction disabled={dirty} />}
-          {!isNew && doc && meta.module !== 'Core' && !meta.isSingle && <LikeButton doctype={meta.name} name={doc.name} />}
-          {!isNew && doc && <FollowButton doctype={meta.name} name={doc.name} />}
           {!isNew && meta.name === 'Deleted Document' && perms.delete && <IconButton icon="undo" label="Restore" tone="primary" disabled={restore.isPending} onClick={() => restore.mutate()} />}
           <ActionMenu items={[
             ...(!isNew && !meta.isSingle && meta.allowCopy !== false && perms.create && doc ? [{ label: 'Duplicate', icon: 'copy' as const, onSelect: () => navigate(`${base}/new?copy=${encodeURIComponent(doc.name)}`) }] : []),
@@ -623,7 +619,7 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
       {doc && !isNew && meta.module !== 'Core' && <ConversationPanel doctype={meta.name} name={doc.name} />}
       {doc && <ActivityPanel meta={meta} childMetas={childMetas} name={doc.name} />}
       </div>
-      {doc && <DocRail doctype={meta.name} doc={doc} trackViews={meta.trackViews} canAssign={perms.write && docstatus !== 2 && !meta.isSingle} canShare={perms.write && !meta.isSingle && docstatus !== 2}
+      {doc && <DocRail doctype={meta.name} doc={doc} trackViews={meta.trackViews} canLike={meta.module !== 'Core' && !meta.isSingle} canAssign={perms.write && docstatus !== 2 && !meta.isSingle} canShare={perms.write && !meta.isSingle && docstatus !== 2}
         onAssign={() => setAssigning(true)} onShare={() => setSharing(true)} />}
       </div>
     </>
