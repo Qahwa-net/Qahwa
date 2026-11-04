@@ -1,6 +1,7 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react'
 
 const PATHS = {
+  home: <><path d="m3 11 9-8 9 8" /><path d="M5 10v10h5v-6h4v6h5V10" /></>,
   filePdf: <><path d="M14 2H5v20h14V7zM14 2v5h5M8 12h8M8 16h6" /></>,
   minus: <path d="M5 12h14" />,
   arrowRight: <path d="m12 5 7 7-7 7M5 12h14" />,

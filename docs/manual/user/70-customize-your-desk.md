@@ -21,3 +21,4 @@ Shared workspace headings, sections and dashboard tiles remain managed in **Tool
 - **Modules** have a page of their own: click the small map icon beside a module's title to see its description and all its DocTypes as cards. The home page shows one card per module.
 - On a document, **assign** and **share** are the cards beside it (use the plus buttons there); the top bar no longer repeats them.
 - **Drag to arrange:** drag a group's title above another group, or a link above another link in the same group, and the order is saved. *Customize Desk* has buttons for the same, which also work from the keyboard and on a phone.
+- The entries under **My work** have small icons, and a workspace shows the icon its maker chose, so you can find them without reading every name.
