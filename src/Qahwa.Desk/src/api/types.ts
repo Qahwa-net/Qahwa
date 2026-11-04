@@ -1158,3 +1158,7 @@ export interface ConversationItem {
   at: string
   status: string | null
 }
+
+export interface JobLogEntry { id: string; job: string; status: string; message: string | null; durationMs: number; at: string }
+export interface ScheduledJobInfo { job: string; description: string; pace: string; last: JobLogEntry | null; succeeded24h: number; failed24h: number }
+export interface SchedulerOverview { enabled: boolean; intervalSeconds: number; jobs: ScheduledJobInfo[]; recent: JobLogEntry[] }

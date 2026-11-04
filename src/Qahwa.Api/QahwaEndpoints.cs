@@ -123,6 +123,7 @@ public static class QahwaEndpoints
         app.MapQahwaAutoRepeat();
         app.MapQahwaReminders();
         app.MapQahwaConversation();
+        app.MapQahwaScheduler();
         app.MapQahwaPreparedReports();
         app.MapQahwaNotificationRules();
         app.MapQahwaEmail();
