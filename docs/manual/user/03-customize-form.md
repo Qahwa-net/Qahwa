@@ -18,3 +18,8 @@
 - Only an **Administrator** can customise the framework's own DocTypes (User, Role ...). System Managers can customise app DocTypes.
 - DocTypes you made yourself are changed in the DocType Designer, and child tables cannot be customised yet.
 - If two people customise the same DocType, the second save is refused; reload and try again.
+
+## A simpler form for some roles (DocType Layout)
+Open **Tools → DocType Layout** (System Managers) and add a layout: choose the **DocType**, the **roles** it is for (one per line; leave empty for everyone) and the **fields to hide** (one field name per line, as written in the Designer). People with one of those roles then see the form without those fields. If several layouts fit someone, the one with the smallest **Position** is used; untick **Enabled** to switch one off.
+
+A layout only changes what is shown. It does not take anything away: permissions and validation stay as they are, so a **required** field cannot be hidden (the layout will not save). Hidden fields are still saved if they are sent, for example by an import or the API.

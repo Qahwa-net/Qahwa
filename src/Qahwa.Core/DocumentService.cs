@@ -141,6 +141,8 @@ public sealed partial class DocumentService(
             RoleNetworkService.Validate(values, errors);
         if (meta.Name == MilestoneService.DocTypeName)
             MilestoneService.Validate(registry, values, errors);
+        if (meta.Name == DocTypeLayoutService.DocTypeName)
+            DocTypeLayoutService.Validate(registry, values, errors);
         var context = _logic.Context(meta, values, tables, null, user, isNew: true, await _logic.LinkedAsync(meta, values, user, ReadLinkedAsync, ct));
         await ValidateAsync(meta, values, values.Keys, errors, string.Empty, context, fieldAccess, ct);
         foreach (var table in tables)
@@ -533,6 +535,8 @@ public sealed partial class DocumentService(
             RoleNetworkService.Validate(merged, errors);
         if (meta.Name == MilestoneService.DocTypeName)
             MilestoneService.Validate(registry, merged, errors);
+        if (meta.Name == DocTypeLayoutService.DocTypeName)
+            DocTypeLayoutService.Validate(registry, merged, errors);
         foreach (var key in changed)
             changes[key] = merged[key]; // calculated, fetched and script-set values are saved too
 
@@ -858,13 +862,22 @@ public sealed partial class DocumentService(
             access.Writable.Order().ToList());
     }
 
+    /// <summary>The form as this person's DocType Layout shows it (fields hidden for them); nothing changes when no layout fits.</summary>
+    private async Task<MetaView> WithLayoutAsync(MetaView view, IUserContext user, CancellationToken ct)
+    {
+        if (!registry.TryGet(DocTypeLayoutService.DocTypeName, out var layoutMeta))
+            return view;
+        var layouts = await repository.ListAsync(layoutMeta, new ListQuery { Filters = [new("document_type", FilterOp.Eq, view.Meta.Name)], Limit = 50 }, ct);
+        return layouts.Count == 0 ? view : view with { Meta = DocTypeLayoutService.Apply(view.Meta, layouts, user) };
+    }
+
     /// <summary>Like <see cref="GetMetaView"/>, but a person with no role access can still open a DocType through documents shared with them.</summary>
     public async Task<MetaView> GetMetaViewAsync(string doctype, IUserContext user, CancellationToken ct = default)
     {
         var meta = RequireTopLevel(registry.Get(doctype));
         await EnsureModuleAsync(meta, user, ct);
         if (permissions.Evaluate(meta, user, PermAction.Read) != AccessLevel.None || shares is null)
-            return GetMetaView(doctype, user);
+            return await WithLayoutAsync(GetMetaView(doctype, user), user, ct);
 
         var grants = await shares.ForUserAsync(meta.Name, user, ct);
         if (grants.Count == 0)

@@ -570,7 +570,7 @@ Status: ✅ done · 🟡 partial · ⬜ planned · 🔽 later/optional. "Step" r
 | Document options: title field, sort field/order, search fields, image field, quick entry, allow rename, allow import, allow copy, editable grid, max attachments, default view | title field, allow rename, allow import (permission flag), quick entry (ADR-091), default sort, allow copy, max attachments, search fields, default view and image field (ADR-105) done; child tables are edited in an inline grid (TableControl) | ✅ | L1, L3 |
 | Customize Form (adjust standard DocTypes) | done (ADR-013) | ✅ (v1) | L3 |
 | Custom Field, Property Setter | done: stored as data, survive upgrades (ADR-013) | ✅ (v1) | L3 |
-| DocType Layout (alternative form layouts per role) | | 🔽 | L3 |
+| DocType Layout (alternative form layouts per role) | done (ADR-157): hide fields on the form for some roles; reordering fields not yet | ✅ (v1) | L3 |
 | Module Definition, Module Profile | group DocTypes on the home page with label, order and hide flag (ADR-099); restrict access to modules with Module Profiles (ADR-081) | ✅ | L5 |
 
 ### A2. Document lifecycle and logic
