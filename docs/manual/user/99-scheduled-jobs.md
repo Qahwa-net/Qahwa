@@ -8,4 +8,4 @@
 - The latest log lines are listed below; the whole history (30 days) is in **Scheduled Job Log**.
 - If a red notice says the scheduler is turned off on this server, nothing runs there until your administrator turns it back on (`Qahwa:Scheduler:Enabled`).
 
-You cannot run a job by hand from this page yet.
+**Run now**, at the end of a row, runs that job straight away (for example to send the email queue without waiting). It is safe to do while the scheduler is running, and the run is written to the log as "Run by hand".

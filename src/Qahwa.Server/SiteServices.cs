@@ -46,6 +46,7 @@ public static class QahwaSiteServices
         }
 
         services.AddQahwaApi();
+        services.AddSingleton<SchedulerService>(); // one per site; the hosting registers it to run, and the Scheduled Jobs page asks it to run a step by hand
         if (siteName is not null)
             services.AddDataProtection().SetApplicationName("qahwa:site:" + siteName); // a token made for one site means nothing at another
 

@@ -21,7 +21,7 @@ builder.Services.AddSingleton<ISiteDatabases, SiteDatabases>();
 builder.Services.AddSingleton<SiteManager>();
 if (mainSiteServes)
 {
-    builder.Services.AddHostedService<SchedulerService>();
+    builder.Services.AddHostedService(sp => sp.GetRequiredService<SchedulerService>());
     builder.Services.AddHostedService<RealtimeBackplaneService>();
 }
 
@@ -55,6 +55,7 @@ app.UseQahwa();
 app.MapGet("/api/health", () => Results.Ok(new { status = "ok", framework = "Qahwa" }));
 app.MapQahwaApi();
 app.MapSiteManager();
+app.MapSchedulerRun();
 
 // Unknown API paths get the JSON error envelope; every other unknown path is a Desk route handled by the SPA.
 app.MapFallback(async context =>
