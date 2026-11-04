@@ -100,4 +100,14 @@ public sealed class DeskSettingsApiTests : IAsyncDisposable
         Assert.Equal(("users", "workspace:" + parentId), (leads.Icon, leads.Parent));
         Assert.Equal(HttpStatusCode.BadRequest, (await Admin.PostAsJsonAsync("/api/workspaces", new { title = "Deep", parent = leads.Id.Replace("workspace:", ""), blocks = Array.Empty<object>() })).StatusCode);
     }
+
+    [Fact]
+    public async Task The_built_in_my_work_entries_carry_icons_for_the_sidebar()
+    {
+        var links = (await State(Admin)).Links.Where(l => l.Group == "My work").ToDictionary(l => l.Id, l => l.Icon);
+
+        Assert.Equal("home", links["page:home"]);
+        Assert.Equal("chart", links["page:dashboards"]);
+        Assert.All(new[] { "page:home", "page:dashboards", "page:reports", "page:script-reports", "page:auto-repeat" }, id => Assert.NotNull(links[id]));
+    }
 }

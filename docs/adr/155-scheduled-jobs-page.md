@@ -12,4 +12,5 @@ The scheduler runs seventeen steps and logs what they did, but the only way to s
 
 ## Consequences
 - Tested: the overview lists every known job, keeps the newest row as "last", counts the day, adds app jobs and shows jobs with nothing yet; the endpoint is for System Managers only. Seen in the running app against the dev database (the real log rows showed).
-- Not yet: running a job on demand from the page (the steps are closures inside the scheduler, not separately callable), pausing a job, per-job pace settings.
+- **Run now** (added later): each step is a named function in the scheduler, and `POST /api/scheduler/{job}/run` (System Managers, never an API key) runs one immediately, whether or not it is due. Every step is already safe to run alongside the scheduler's own run on this or another server. The run is logged even when nothing was due (the log line starts with "Run by hand") and recorded in the Access Log. A test keeps the page's list of jobs equal to the scheduler's steps.
+- Not yet: pausing a job, per-job pace settings.

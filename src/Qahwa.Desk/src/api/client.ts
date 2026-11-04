@@ -624,6 +624,7 @@ export const api = {
   },
 
   scheduler: async (): Promise<SchedulerOverview> => (await request<{ data: SchedulerOverview }>('GET', '/api/scheduler')).data,
+  runJob: async (job: string) => (await request<{ data: { job: string; message: string } }>('POST', `/api/scheduler/${encodeURIComponent(job)}/run`)).data,
 
   publicPages: {
     index: async () => (await request<{ data: PublicPageLink[] }>('GET', '/api/public/pages')).data,

@@ -193,7 +193,7 @@ public sealed class SiteHost : IHostedService, IAsyncDisposable
     private async Task StartSchedulersAsync(RunningSite site, CancellationToken ct)
     {
         var list = _schedulers[site.Name] = [];
-        var scheduler = ActivatorUtilities.CreateInstance<SchedulerService>(site.Provider);
+        var scheduler = site.Provider.GetRequiredService<SchedulerService>();
         list.Add(scheduler);
         await scheduler.StartAsync(ct);
         var backplane = ActivatorUtilities.CreateInstance<RealtimeBackplaneService>(site.Provider);

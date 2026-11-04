@@ -945,3 +945,16 @@ kbd { font: .75rem ui-monospace, Consolas, monospace; padding: .05rem .35rem; bo
 .public-page { max-inline-size: 46rem; margin: 2rem auto; padding: 0 1rem; }
 .public-page-body { overflow-wrap: anywhere; }
 .public-page h2 a { text-decoration: none; }
+
+/* Form header: Menu dropdown and breadcrumb (Frappe style) */
+.action-menu { position: relative; }
+.action-menu > .btn { display: inline-flex; align-items: center; gap: .3rem; }
+.action-menu-list { position: absolute; inset-inline-end: 0; inset-block-start: calc(100% + .25rem); z-index: 30; min-inline-size: 11rem; margin: 0; padding: .3rem; list-style: none; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 8px 24px rgb(0 0 0 / .25); }
+.action-menu-list button, .action-menu-list a { display: flex; align-items: center; gap: .6rem; inline-size: 100%; padding: .45rem .6rem; border: 0; border-radius: 6px; background: transparent; color: var(--text); font: inherit; text-align: start; cursor: pointer; }
+.action-menu-list a { text-decoration: none; }
+.action-menu-list button:hover:not(:disabled), .action-menu-list button:focus-visible, .action-menu-list a:hover, .action-menu-list a:focus-visible { background: var(--surface-2); outline: none; }
+.action-menu-list button.danger { color: var(--danger, #e5736a); }
+.action-menu-list button:disabled { opacity: .5; cursor: not-allowed; }
+.doc-kicker.breadcrumb { text-transform: none; letter-spacing: 0; font-size: .8rem; }
+.doc-kicker.breadcrumb a { color: inherit; text-decoration: none; }
+.doc-kicker.breadcrumb a:hover { text-decoration: underline; }

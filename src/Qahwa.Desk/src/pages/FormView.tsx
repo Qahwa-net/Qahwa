@@ -11,6 +11,7 @@ import { ConfirmDialog } from '../controls/Modal.tsx'
 import { ActivityPanel } from './ActivityPanel.tsx'
 import { MilestoneStrip } from './MilestoneStrip.tsx'
 import { ConversationPanel } from './ConversationPanel.tsx'
+import { ActionMenu } from '../controls/ActionMenu.tsx'
 import { AssignDialog } from './AssignPanel.tsx'
 import { RepeatDialog } from './RepeatDialog.tsx'
 import { ReminderDialog } from './ReminderDialog.tsx'
@@ -459,7 +460,11 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
             <Link to={base} className="icon-btn" aria-label={`Back to ${meta.name} list`} data-tip={`Back to ${meta.name}`}><Icon name="arrowLeft" /></Link>
           )}
           <div className="doc-heading">
-            <p className="doc-kicker">{meta.name}</p>
+            <nav className="doc-kicker breadcrumb" aria-label="Breadcrumb">
+              <Link to="/">Home</Link>{meta.module && meta.module !== 'Core' && <> <span aria-hidden="true">›</span> <Link to={`/module/${encodeURIComponent(meta.module)}`}>{meta.module}</Link></>}
+              {!meta.isSingle && <> <span aria-hidden="true">›</span> <Link to={base}>{meta.name}</Link></>}
+              {meta.isSingle && <> <span aria-hidden="true">›</span> <span>{meta.name}</span></>}
+            </nav>
             <h1>{title}</h1>
           </div>
           {!isNew && meta.isSubmittable && <span className={`badge status-${docstatus}`}>{['Draft', 'Submitted', 'Cancelled'][docstatus]}</span>}
@@ -473,14 +478,16 @@ function FormBody({ meta, perms, childMetas, writableLevels, doc, template }: {
           {!isNew && user?.roles.some(r => r === 'Administrator' || r === 'System Manager') && meta.name === 'Email Account' && <TestIncomingEmailAction disabled={dirty} />}
           {!isNew && doc && meta.module !== 'Core' && !meta.isSingle && <LikeButton doctype={meta.name} name={doc.name} />}
           {!isNew && doc && <FollowButton doctype={meta.name} name={doc.name} />}
-          {!isNew && !meta.isSingle && meta.allowCopy !== false && perms.create && doc && <IconButton icon="copy" label="Duplicate" onClick={() => navigate(`${base}/new?copy=${encodeURIComponent(doc.name)}`)} />}
-          {!isNew && perms.read && perms.print !== false && <IconButton icon="printer" label="Print" onClick={() => setPrinting(true)} />}
-          {!isNew && !meta.isSingle && perms.write && perms.email !== false && docstatus !== 2 && <IconButton icon="mail" label="Email" onClick={() => setEmailing(true)} />}
- {!isNew && !meta.isSingle && meta.module !== 'Core' && perms.read && <IconButton icon="bell" label="Remind me" onClick={() => setReminding(true)} />}
-          {!isNew && !meta.isSingle && perms.create && meta.module !== 'Core' && meta.autoname !== 'prompt' && <IconButton icon="repeat" label="Repeat" onClick={() => setRepeating(true)} />}
-          {!isNew && meta.allowRename && perms.write && docstatus !== 1 && <IconButton icon="pencil" label="Rename" onClick={() => setRenaming(true)} />}
           {!isNew && meta.name === 'Deleted Document' && perms.delete && <IconButton icon="undo" label="Restore" tone="primary" disabled={restore.isPending} onClick={() => restore.mutate()} />}
-          {!isNew && !meta.isSingle && perms.delete && docstatus !== 1 && <IconButton icon="trash" label="Delete" tone="danger" disabled={remove.isPending} onClick={() => setConfirm('delete')} />}
+          <ActionMenu items={[
+            ...(!isNew && !meta.isSingle && meta.allowCopy !== false && perms.create && doc ? [{ label: 'Duplicate', icon: 'copy' as const, onSelect: () => navigate(`${base}/new?copy=${encodeURIComponent(doc.name)}`) }] : []),
+            ...(!isNew && perms.read && perms.print !== false ? [{ label: 'Print', icon: 'printer' as const, onSelect: () => setPrinting(true) }] : []),
+            ...(!isNew && !meta.isSingle && perms.write && perms.email !== false && docstatus !== 2 ? [{ label: 'Email', icon: 'mail' as const, onSelect: () => setEmailing(true) }] : []),
+            ...(!isNew && !meta.isSingle && meta.module !== 'Core' && perms.read ? [{ label: 'Remind me', icon: 'bell' as const, onSelect: () => setReminding(true) }] : []),
+            ...(!isNew && !meta.isSingle && perms.create && meta.module !== 'Core' && meta.autoname !== 'prompt' ? [{ label: 'Repeat', icon: 'repeat' as const, onSelect: () => setRepeating(true) }] : []),
+            ...(!isNew && meta.allowRename && perms.write && docstatus !== 1 ? [{ label: 'Rename', icon: 'pencil' as const, onSelect: () => setRenaming(true) }] : []),
+            ...(!isNew && !meta.isSingle && perms.delete && docstatus !== 1 ? [{ label: 'Delete', icon: 'trash' as const, tone: 'danger' as const, disabled: remove.isPending, onSelect: () => setConfirm('delete') }] : []),
+          ]} />
           {!isNew && !flow && docstatus === 0 && meta.isSubmittable && perms.submit && (
             <IconButton icon="checkCircle" label={dirty ? 'Save your changes before submitting' : 'Submit'} tone="primary" disabled={dirty || transition.isPending} onClick={() => setConfirm('submit')} />
           )}

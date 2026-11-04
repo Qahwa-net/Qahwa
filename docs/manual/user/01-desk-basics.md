@@ -47,3 +47,9 @@ The Desk works on phones and is ready for right-to-left languages.
 
 ## Duplicating a document
 Open a document and press **Duplicate** (the two squares) to start a new one from it. The new form is filled in with the same values, except fields that must be unique, passwords and the system fields; table rows are copied too. Change what you need and press **Save**: nothing exists until then.
+
+## The form's header
+Above a document's title is a **breadcrumb** (*Home › Selling › Customer*): click any part to go there. On the right, **Menu** opens the everyday actions: **Duplicate**, **Print**, **Email**, **Remind me**, **Repeat**, **Rename** and **Delete** (only the ones you may use are listed). Next to it are Like and Follow, the workflow buttons, and **Save**. Use the arrow keys to move in the menu, **Esc** to close it.
+
+## The list's header
+The list has the same **breadcrumb**. **New {DocType}** (the brown button) makes a document. **Menu** holds **Report**, **Import** and the **Export** choices (CSV, CSV with the rows of tables, Excel); the little icons beside it switch how the list is shown (columns, group by, board, calendar...).
