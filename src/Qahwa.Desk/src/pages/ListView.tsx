@@ -212,12 +212,14 @@ export function ListView() {
         <span className="spacer" />
         <IconButton icon="group" label="Group by" aria-expanded={groupOpen} pressed={groupOpen} onClick={() => setGroupOpen(!groupOpen)} />
         <IconButton icon="columns" label="Columns" aria-expanded={columnsOpen} pressed={columnsOpen} onClick={() => setColumnsOpen(!columnsOpen)} />
-        {meta.isTree && <Link className="icon-btn" aria-label="Tree view" data-tip="Tree view" to={`${base}/tree`}><Icon name="tree" /></Link>}
-        {meta.fields.some((f) => f.type === "Select" && f.options && !f.hidden) && !meta.isSingle && <Link className="icon-btn" aria-label="Board" data-tip="Board" to={`${base}/board`}><Icon name="board" /></Link>}
-        {meta.fields.some((f) => (f.type === "Date" || f.type === "Datetime") && !f.hidden) && !meta.isSingle && <Link className="icon-btn" aria-label="Calendar" data-tip="Calendar" to={`${base}/calendar`}><Icon name="calendar" /></Link>}
-        {meta.fields.filter((f) => (f.type === "Date" || f.type === "Datetime") && !f.hidden).length >= 2 && !meta.isSingle && <Link className="icon-btn" aria-label="Timeline" data-tip="Timeline" to={`${base}/timeline`}><Icon name="timeline" /></Link>}
-        {meta.fields.some((f) => f.type === "AttachImage" && !f.hidden) && !meta.isSingle && <Link className="icon-btn" aria-label="Gallery" data-tip="Gallery" to={`${base}/gallery`}><Icon name="gallery" /></Link>}
-        {meta.fields.some((f) => f.type === "Geolocation" && !f.hidden) && !meta.isSingle && <Link className="icon-btn" aria-label="Map" data-tip="Map" to={`${base}/map`}><Icon name="map" /></Link>}
+        <ActionMenu label="View" items={[
+          ...(meta.isTree ? [{ label: 'Tree', icon: 'tree' as const, onSelect: () => navigate(`${base}/tree`) }] : []),
+          ...(meta.fields.some((f) => f.type === 'Select' && f.options && !f.hidden) && !meta.isSingle ? [{ label: 'Board', icon: 'board' as const, onSelect: () => navigate(`${base}/board`) }] : []),
+          ...(meta.fields.some((f) => (f.type === 'Date' || f.type === 'Datetime') && !f.hidden) && !meta.isSingle ? [{ label: 'Calendar', icon: 'calendar' as const, onSelect: () => navigate(`${base}/calendar`) }] : []),
+          ...(meta.fields.filter((f) => (f.type === 'Date' || f.type === 'Datetime') && !f.hidden).length >= 2 && !meta.isSingle ? [{ label: 'Timeline', icon: 'timeline' as const, onSelect: () => navigate(`${base}/timeline`) }] : []),
+          ...(meta.fields.some((f) => f.type === 'AttachImage' && !f.hidden) && !meta.isSingle ? [{ label: 'Gallery', icon: 'gallery' as const, onSelect: () => navigate(`${base}/gallery`) }] : []),
+          ...(meta.fields.some((f) => f.type === 'Geolocation' && !f.hidden) && !meta.isSingle ? [{ label: 'Map', icon: 'map' as const, onSelect: () => navigate(`${base}/map`) }] : []),
+        ]} />
         {listScripts.buttons.map((b) => <IconButton key={b.id} icon="play" label={b.label} onClick={() => listScripts.runButton(b.id)} />)}
         <ActionMenu items={[
           ...(perms?.report ? [{ label: 'Report', icon: 'chart' as const, onSelect: () => setReporting(!reporting) }] : []),
