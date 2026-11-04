@@ -62,6 +62,11 @@ export function Shell() {
     onSuccess: next => queryClient.setQueriesData<DeskState>({ queryKey: ['desk-settings'] }, old => old ? next : old),
     onError: () => { toast('Could not save sidebar state. Reload and try again.'); void queryClient.invalidateQueries({ queryKey: ['desk-settings'] }) },
   })
+  const arrange = useMutation({
+    mutationFn: (layout: DeskLayout) => api.desk.save(layout, desk.data!.modified),
+    onSuccess: next => queryClient.setQueriesData<DeskState>({ queryKey: ['desk-settings'] }, old => old ? next : old),
+    onError: () => { toast('Could not save the new order. Reload and try again.'); void queryClient.invalidateQueries({ queryKey: ['desk-settings'] }) },
+  })
   const fold = (groups: string[], folded: boolean) => {
     const next = new Set(unfolded)
     for (const g of groups) { if (folded) next.delete(g); else next.add(g) }
@@ -136,7 +141,7 @@ export function Shell() {
             <button type="button" className="link-btn" disabled={foldGroups.isPending} onClick={() => fold(sidebarGroups(desk.data!.links, desk.data!.layout).map(([g]) => g), true)}>{t('Collapse all')}</button>
           </span>}
         </div>
-        {desk.data ? <DeskNavigation state={desk.data} layout={deskPreview ?? desk.data.layout} busy={foldGroups.isPending || editingDesk} unfolded={unfolded} onFold={(group, folded) => fold([group], folded)} /> : <>
+        {desk.data ? <DeskNavigation state={desk.data} layout={deskPreview ?? desk.data.layout} busy={foldGroups.isPending || arrange.isPending || editingDesk} unfolded={unfolded} onFold={(group, folded) => fold([group], folded)} onLayout={next => { if (next !== desk.data!.layout) arrange.mutate(next) }} /> : <>
         {metas.isPending && <p className="muted pad">Loading…</p>}
         {metas.isError && <p className="muted pad">Could not load DocTypes.</p>}
         {metas.data?.length === 0 && <p className="muted pad">You do not have access to any DocType yet.</p>}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { emptyDesk, groupFolded, groupRank, moveId, ordered, sidebarGroups, type DeskLink } from './desk.ts'
+import { emptyDesk, groupFolded, groupRank, moveBefore, moveId, ordered, sidebarGroups, withGroupMoved, withLinkMoved, type DeskLink } from './desk.ts'
 const links: DeskLink[] = [
   { id: 'home', label: 'Home', path: '/', group: 'My work', defaultVisible: true },
   { id: 'a', label: 'A', path: '/app/A', group: 'Sales', defaultVisible: true },
@@ -47,6 +47,28 @@ describe('Default sidebar arrangement', () => {
     const layout = { ...emptyDesk(), collapsedGroups: ['Sales', 'Core'] }
     expect(groupFolded('Sales', 2, layout, new Set(['Sales']), true)).toBe(true)
     expect(groupFolded('Core', 70, layout, new Set(['Core']), true)).toBe(true)
+  })
+})
+
+describe('Dragging in the sidebar', () => {
+  it('moves an item before another, to the end, and ignores nonsense', () => {
+    expect(moveBefore(['a', 'b', 'c'], 'c', 'a')).toEqual(['c', 'a', 'b'])
+    expect(moveBefore(['a', 'b', 'c'], 'a', null)).toEqual(['b', 'c', 'a'])
+    const same = ['a', 'b']
+    expect(moveBefore(same, 'a', 'a')).toBe(same)
+    expect(moveBefore(same, 'x', 'a')).toBe(same)
+    expect(moveBefore(same, 'a', 'x')).toBe(same)
+  })
+  it('writes the whole group order when a group is dragged', () => {
+    const layout = emptyDesk()
+    expect(withGroupMoved(layout, ['My work', 'Sales', 'Tools'], 'Tools', 'Sales').groupOrder).toEqual(['My work', 'Tools', 'Sales'])
+    expect(withGroupMoved(layout, ['My work', 'Sales'], 'Sales', 'Sales')).toBe(layout)
+  })
+  it('keeps what is saved for other groups when a link is dragged, and orders favorites by their pins', () => {
+    const layout = { ...emptyDesk(), order: ['z', 'y'], pinned: ['p1', 'p2'] }
+    expect(withLinkMoved(layout, 'Sales', ['a', 'b', 'c'], 'c', 'a').order).toEqual(['c', 'a', 'b', 'z', 'y'])
+    expect(withLinkMoved(layout, 'Favorites', ['p1', 'p2'], 'p2', 'p1').pinned).toEqual(['p2', 'p1'])
+    expect(withLinkMoved(layout, 'Sales', ['a', 'b'], 'a', 'a')).toBe(layout)
   })
 })
 

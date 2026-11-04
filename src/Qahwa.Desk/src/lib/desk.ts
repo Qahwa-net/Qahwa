@@ -64,3 +64,29 @@ export function readUnfolded(): Set<string> {
 export function saveUnfolded(groups: ReadonlySet<string>): void {
   try { localStorage.setItem('qahwa.sidebar.unfolded', JSON.stringify([...groups])) } catch { /* private mode: the choice lasts until reload */ }
 }
+
+/** The list with <paramref name="id"/> taken out and put just before <paramref name="target"/> (or at the end when the target is null). */
+export function moveBefore(ids: string[], id: string, target: string | null): string[] {
+  if (id === target || !ids.includes(id)) return ids
+  const rest = ids.filter(x => x !== id)
+  const at = target === null ? rest.length : rest.indexOf(target)
+  if (at < 0) return ids
+  return [...rest.slice(0, at), id, ...rest.slice(at)]
+}
+
+/** The layout after a group was dragged before another: every visible group is written down, so the new order is complete. */
+export function withGroupMoved(layout: DeskLayout, visible: string[], group: string, before: string | null): DeskLayout {
+  const groupOrder = moveBefore(visible, group, before)
+  return groupOrder === visible ? layout : { ...layout, groupOrder }
+}
+
+/**
+ * The layout after a link was dragged before another in the same group. Favorites are ordered by the pins; other links by the saved order,
+ * where only the order inside the group matters, so the group's links go first and everything saved for other groups stays as it was.
+ */
+export function withLinkMoved(layout: DeskLayout, group: string, groupLinks: string[], link: string, before: string | null): DeskLayout {
+  const moved = moveBefore(groupLinks, link, before)
+  if (moved === groupLinks) return layout
+  if (group === 'Favorites') return { ...layout, pinned: moved }
+  return { ...layout, order: [...moved, ...layout.order.filter(id => !moved.includes(id))] }
+}
