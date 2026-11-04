@@ -13,4 +13,5 @@ A document's header held up to ten icon buttons in a row (like, follow, duplicat
 
 ## Consequences
 - Tested: the menu draws nothing without actions, opens, runs and closes, moves with the keys and wraps, closes on Escape with focus returned and on an outside click. Seen in the running app: the breadcrumb and a menu of Duplicate, Print, Email, Remind me, Repeat and Delete beside Save.
-- Not yet: the same menu in the list header (Import, Export, Customize), and moving Like and Follow into the page's sidebar.
+- **The list header follows the same pattern:** a breadcrumb (*Home › Module*), the view switches (group by, columns, tree, board, calendar and so on) as before, a **Menu** with *Report*, *Import* and the exports (CSV, CSV with table rows, Excel; the exports are download links), and a primary **New {DocType}** button in place of the plus icon. The menu items appear under the same conditions as the icons they replace. Seen in the running app on the Customer list.
+- Not yet: moving Like and Follow into the page's sidebar, and a menu for the list's own view switches.

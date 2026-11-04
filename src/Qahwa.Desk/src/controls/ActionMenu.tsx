@@ -4,7 +4,10 @@ import { Icon, type IconName } from './Icon.tsx'
 export interface MenuItem {
   label: string
   icon?: IconName
-  onSelect: () => void
+  /** An action to run; or leave it out and give a link to follow (a download). */
+  onSelect?: () => void
+  /** A link the browser follows, for downloads: shown as a menu item that is an anchor. */
+  href?: string
   tone?: 'default' | 'danger'
   disabled?: boolean
 }
@@ -49,10 +52,16 @@ export function ActionMenu({ items, label = 'Menu' }: { items: MenuItem[]; label
         <ul id={id} className="action-menu-list" role="menu" aria-label={label}>
           {items.map((item) => (
             <li key={item.label} role="none">
-              <button type="button" role="menuitem" className={item.tone === 'danger' ? 'danger' : undefined} disabled={item.disabled}
-                onClick={() => { setOpen(false); item.onSelect() }}>
-                {item.icon && <Icon name={item.icon} size={16} />}<span>{item.label}</span>
-              </button>
+              {item.href ? (
+                <a role="menuitem" href={item.href} download onClick={() => setOpen(false)}>
+                  {item.icon && <Icon name={item.icon} size={16} />}<span>{item.label}</span>
+                </a>
+              ) : (
+                <button type="button" role="menuitem" className={item.tone === 'danger' ? 'danger' : undefined} disabled={item.disabled}
+                  onClick={() => { setOpen(false); item.onSelect?.() }}>
+                  {item.icon && <Icon name={item.icon} size={16} />}<span>{item.label}</span>
+                </button>
+              )}
             </li>
           ))}
         </ul>

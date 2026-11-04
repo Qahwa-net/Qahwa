@@ -65,4 +65,15 @@ describe('ActionMenu', () => {
     act(() => { document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true })) })
     expect(choices()).toHaveLength(0)
   })
+
+  it('shows a download as a link and closes after it is followed', () => {
+    render([{ label: 'Export CSV', href: '/api/resource/Customer/export' }])
+    act(() => button().click())
+    const link = container.querySelector<HTMLAnchorElement>('a[role="menuitem"]')!
+    expect(link.getAttribute('href')).toBe('/api/resource/Customer/export')
+    expect(link.hasAttribute('download')).toBe(true)
+    link.addEventListener('click', e => e.preventDefault())
+    act(() => link.click())
+    expect(choices()).toHaveLength(0)
+  })
 })

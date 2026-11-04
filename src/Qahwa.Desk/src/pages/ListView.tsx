@@ -12,6 +12,7 @@ import { GroupBySidebar } from '../controls/GroupBySidebar.tsx'
 import { RowStatus } from '../controls/StatusPill.tsx'
 import { SavedFilters } from '../controls/SavedFilters.tsx'
 import { ReportPanel } from './ReportPanel.tsx'
+import { ActionMenu } from '../controls/ActionMenu.tsx'
 import { ImportDialog } from './ImportDialog.tsx'
 import { STANDARD_FIELDS, formatCell, hasColumn, labelOf } from '../lib/fields.ts'
 import { useI18n } from '../i18n.tsx'
@@ -202,7 +203,12 @@ export function ListView() {
   return (
     <>
       <div className="page-head">
-        <h1>{doctype}</h1>
+        <div>
+          <nav className="breadcrumb" aria-label="Breadcrumb">
+            <Link to="/">Home</Link>{meta.module && meta.module !== 'Core' && <> <span aria-hidden="true">›</span> <Link to={`/module/${encodeURIComponent(meta.module)}`}>{meta.module}</Link></>}
+          </nav>
+          <h1>{doctype}</h1>
+        </div>
         <span className="spacer" />
         <IconButton icon="group" label="Group by" aria-expanded={groupOpen} pressed={groupOpen} onClick={() => setGroupOpen(!groupOpen)} />
         <IconButton icon="columns" label="Columns" aria-expanded={columnsOpen} pressed={columnsOpen} onClick={() => setColumnsOpen(!columnsOpen)} />
@@ -213,12 +219,14 @@ export function ListView() {
         {meta.fields.some((f) => f.type === "AttachImage" && !f.hidden) && !meta.isSingle && <Link className="icon-btn" aria-label="Gallery" data-tip="Gallery" to={`${base}/gallery`}><Icon name="gallery" /></Link>}
         {meta.fields.some((f) => f.type === "Geolocation" && !f.hidden) && !meta.isSingle && <Link className="icon-btn" aria-label="Map" data-tip="Map" to={`${base}/map`}><Icon name="map" /></Link>}
         {listScripts.buttons.map((b) => <IconButton key={b.id} icon="play" label={b.label} onClick={() => listScripts.runButton(b.id)} />)}
-        {perms?.report && <IconButton icon="chart" label="Report" aria-expanded={reporting} pressed={reporting} onClick={() => setReporting(!reporting)} />}
-        {perms?.export && <a className="icon-btn" aria-label="Export CSV" data-tip="Export CSV" href={api.exportUrl(doctype, effectiveFilters)} download><Icon name="fileCsv" /></a>}
-        {perms?.export && meta.fields.some((f) => f.type === 'Table') && <a className="icon-btn" aria-label="Export CSV with table rows" data-tip="Export CSV with table rows" href={api.exportUrl(doctype, effectiveFilters, 'csv', true)} download><Icon name="fileCsv" /></a>}
-        {perms?.export && <a className="icon-btn" aria-label="Export Excel" data-tip="Export Excel" href={api.exportUrl(doctype, effectiveFilters, 'xlsx')} download><Icon name="fileExcel" /></a>}
-        {perms?.create && perms?.import !== false && !meta.isSingle && <IconButton icon="upload" label="Import" onClick={() => setImporting(true)} />}
-        {perms?.create && <Link className="icon-btn primary" aria-label={`New ${doctype}`} data-tip={`New ${doctype}`} to={`${base}/new`}><Icon name="plus" /></Link>}
+        <ActionMenu items={[
+          ...(perms?.report ? [{ label: 'Report', icon: 'chart' as const, onSelect: () => setReporting(!reporting) }] : []),
+          ...(perms?.create && perms?.import !== false && !meta.isSingle ? [{ label: 'Import', icon: 'upload' as const, onSelect: () => setImporting(true) }] : []),
+          ...(perms?.export ? [{ label: 'Export CSV', icon: 'fileCsv' as const, href: api.exportUrl(doctype, effectiveFilters) }] : []),
+          ...(perms?.export && meta.fields.some((f) => f.type === 'Table') ? [{ label: 'Export CSV with table rows', icon: 'fileCsv' as const, href: api.exportUrl(doctype, effectiveFilters, 'csv', true) }] : []),
+          ...(perms?.export ? [{ label: 'Export Excel', icon: 'fileExcel' as const, href: api.exportUrl(doctype, effectiveFilters, 'xlsx') }] : []),
+        ]} />
+        {perms?.create && <Link className="btn primary" to={`${base}/new`}><Icon name="plus" /> <span className="btn-label">New {doctype}</span></Link>}
       </div>
 
       {importing && <ImportDialog doctype={doctype} canUpdate={Boolean(perms?.write)} onClose={() => setImporting(false)} />}
