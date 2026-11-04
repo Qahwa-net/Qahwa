@@ -39,6 +39,7 @@ import { GalleryView, GanttView, MapView } from './pages/MoreViews.tsx'
 import { CalendarView } from './pages/CalendarView.tsx'
 import { TreeView } from './pages/TreeView.tsx'
 import { PublicFormPage } from './pages/PublicFormPage.tsx'
+import { PublicPageView, PublicPagesIndex } from './pages/PublicPages.tsx'
 import { ForgotPasswordPage, ResetPasswordPage } from './pages/PasswordResetPages.tsx'
 import { ConfirmSignUpPage, SignUpPage } from './pages/SignUpPages.tsx'
 import { LoginPage } from './pages/LoginPage.tsx'
@@ -65,6 +66,8 @@ export function App() {
         <Route path="/sign-up" element={<SignUpPage />} />
         <Route path="/sign-up/confirm" element={<ConfirmSignUpPage />} />
         <Route path="/forms/:route" element={<PublicFormPage />} />
+        <Route path="/pages" element={<PublicPagesIndex />} />
+        <Route path="/pages/:route" element={<PublicPageView />} />
         <Route element={<RequireAuth />}>
           <Route index element={<HomePage />} />
           <Route path="account" element={<AccountPage />} />

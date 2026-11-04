@@ -1,0 +1,19 @@
+{
+  "name": "Web Page",
+  "module": "Core",
+  "autoname": "field:route",
+  "titleField": "title",
+  "trackChanges": true,
+  "fields": [
+    { "name": "route", "type": "Data", "label": "Address (letters, digits and dashes): /pages/<address>", "required": true, "inListView": true },
+    { "name": "title", "type": "Data", "label": "Title", "required": true, "inListView": true },
+    { "name": "published", "type": "Check", "label": "Published (open to anyone)", "inListView": true },
+    { "name": "show_in_list", "type": "Check", "label": "Listed on the pages index (/pages)", "default": "1" },
+    { "name": "summary", "type": "Text", "label": "Summary (shown in the index)" },
+    { "name": "published_on", "type": "Date", "label": "Date shown", "description": "Pages in the index are shown newest first. Leave empty for the day it was first published." },
+    { "name": "content", "type": "TextEditor", "label": "Content" }
+  ],
+  "permissions": [
+    { "role": "System Manager", "read": true, "write": true, "create": true, "delete": true }
+  ]
+}

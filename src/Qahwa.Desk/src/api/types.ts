@@ -1170,3 +1170,6 @@ export interface SchedulerOverview { enabled: boolean; intervalSeconds: number; 
 export interface EnergyPointEntry { reason: string; points: number; docType: string | null; name: string | null; at: string }
 export interface EnergyPointSummary { total: number; thisWeek: number; thisMonth: number; recent: EnergyPointEntry[] }
 export interface LeaderboardEntry { fullName: string; points: number; you: boolean }
+
+export interface PublicPage { route: string; title: string; html: string; summary: string | null; publishedOn: string | null }
+export interface PublicPageLink { route: string; title: string; summary: string | null; publishedOn: string | null }

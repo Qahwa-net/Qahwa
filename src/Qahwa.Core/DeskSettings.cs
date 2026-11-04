@@ -60,7 +60,7 @@ public sealed class DeskSettingsService(IMetaRegistry registry, IDocumentReposit
         var metas = await documents.ListMetasAsync(user, ct);
         foreach (var meta in metas.Where(m => m.Name != DocTypeName))
         {
-            var group = manager && meta.Name is "Email Account" or "Scheduled Job Log" or "Error Log" or "Deleted Document" or "DocType Layout" or "Energy Point Rule" ? "Tools" : meta.Module ?? "Other";
+            var group = manager && meta.Name is "Email Account" or "Scheduled Job Log" or "Error Log" or "Deleted Document" or "DocType Layout" or "Energy Point Rule" or "Web Page" ? "Tools" : meta.Module ?? "Other";
             links.Add(new("doctype:" + meta.Name, meta.Name, "/app/" + Uri.EscapeDataString(meta.Name), group));
         }
         // The workspaces made for this person are entries of the sidebar too (Frappe's left-hand workspace list), each opening its own page.

@@ -147,6 +147,8 @@ public sealed partial class DocumentService(
             DocTypeLayoutService.Validate(registry, values, errors);
         if (meta.Name == EnergyPointService.RuleDocType)
             EnergyPointService.Validate(registry, values, errors);
+        if (meta.Name == WebPageService.DocTypeName)
+            WebPageService.Validate(values, errors);
         var context = _logic.Context(meta, values, tables, null, user, isNew: true, await _logic.LinkedAsync(meta, values, user, ReadLinkedAsync, ct));
         await ValidateAsync(meta, values, values.Keys, errors, string.Empty, context, fieldAccess, ct);
         foreach (var table in tables)
@@ -547,6 +549,8 @@ public sealed partial class DocumentService(
             DocTypeLayoutService.Validate(registry, merged, errors);
         if (meta.Name == EnergyPointService.RuleDocType)
             EnergyPointService.Validate(registry, merged, errors);
+        if (meta.Name == WebPageService.DocTypeName)
+            WebPageService.Validate(merged, errors);
         foreach (var key in changed)
             changes[key] = merged[key]; // calculated, fetched and script-set values are saved too
 

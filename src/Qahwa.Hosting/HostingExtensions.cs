@@ -220,6 +220,7 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton<ServerScriptEngine>();
         services.TryAddSingleton(sp => new Lazy<ServerScriptEngine>(() => sp.GetRequiredService<ServerScriptEngine>()));
         services.TryAddSingleton<WebFormService>();
+        services.TryAddSingleton<WebPageService>();
         services.TryAddSingleton<CustomDocTypeLoader>();
         services.TryAddSingleton<QahwaMigrator>();
         return services;

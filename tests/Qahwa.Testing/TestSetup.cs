@@ -128,6 +128,7 @@ public sealed class TestEngine
         DataImport = new DataImportService(Registry, Documents, Permissions);
         DocumentActions = new DocumentActionEngine(Registry, Repository, Documents, Clock);
         EnergyPoints = new EnergyPointService(Registry, Repository, Documents, Clock);
+        WebPages = new WebPageService(Registry, Repository);
         ServerScripts = new ServerScriptEngine(Registry, Repository, new ScriptSandbox(Documents, Clock), Clock);
         ErrorLog = new ErrorLogService(Documents, new HitCounter(Clock));
         AppCatalog = new AppCatalog([]);
@@ -274,6 +275,7 @@ public sealed class TestEngine
     public ErrorLogService ErrorLog { get; }
     public DocumentActionEngine DocumentActions { get; }
     public EnergyPointService EnergyPoints { get; }
+    public WebPageService WebPages { get; }
     public ServerScriptEngine ServerScripts { get; }
     public WebFormService WebForms { get; }
     public DataImportService DataImport { get; }

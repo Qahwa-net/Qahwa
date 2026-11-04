@@ -139,6 +139,7 @@ public static class QahwaEndpoints
         app.MapQahwaBundle();
         app.MapQahwaTranslations();
         app.MapQahwaWebForms();
+        app.MapQahwaWebPages();
         app.MapQahwaOpenApi();
         app.MapQahwaSettings();
         app.MapQahwaBackup();

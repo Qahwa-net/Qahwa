@@ -940,3 +940,8 @@ kbd { font: .75rem ui-monospace, Consolas, monospace; padding: .05rem .35rem; bo
 
 .leaderboard li.you { font-weight: 600; }
 .plain-list .neg { color: var(--danger, #b3261e); }
+
+/* Public pages (no sign-in) */
+.public-page { max-inline-size: 46rem; margin: 2rem auto; padding: 0 1rem; }
+.public-page-body { overflow-wrap: anywhere; }
+.public-page h2 a { text-decoration: none; }
