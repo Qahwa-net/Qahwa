@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Qahwa.Core\Qahwa.Core.csproj" />
+  </ItemGroup>
+
+  <!-- The DocType files travel with the app: the host finds them next to the assembly. -->
+  <ItemGroup>
+    <Content Include="DocTypes\**\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- The example Server and Client Scripts travel with the app so the tests can run them. -->
+  <ItemGroup>
+    <Content Include="Scripts\**\*.js" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

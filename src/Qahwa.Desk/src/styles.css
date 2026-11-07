@@ -958,3 +958,9 @@ kbd { font: .75rem ui-monospace, Consolas, monospace; padding: .05rem .35rem; bo
 .doc-kicker.breadcrumb { text-transform: none; letter-spacing: 0; font-size: .8rem; }
 .doc-kicker.breadcrumb a { color: inherit; text-decoration: none; }
 .doc-kicker.breadcrumb a:hover { text-decoration: underline; }
+
+.rail-reactions { display: flex; gap: .4rem; align-items: center; }
+
+/* Developer Hub (ADR-162) */
+.hub-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
+.hub-list li > a { font-weight: 600; }

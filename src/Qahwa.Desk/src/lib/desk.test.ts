@@ -33,10 +33,12 @@ describe('Default sidebar arrangement', () => {
   it('puts my work first, then workspaces, then business modules, then tools, and the system last', () => {
     expect(sidebarGroups(more, emptyDesk()).map(([g]) => g)).toEqual(['My work', 'Workspaces', 'Accounting', 'Sales', 'Tools', 'Core'])
     expect(['My work', 'Workspaces', 'Anything', 'Tools', 'Core'].map(groupRank)).toEqual([0, 1, 50, 98, 99])
+    expect(groupRank('Settings')).toBe(2) // right after the workspaces, ahead of the modules
   })
   it('starts Tools, Core and long groups folded, unless unfolded here or holding the current page', () => {
     const layout = emptyDesk()
     expect(groupFolded('Tools', 3, layout, new Set(), false)).toBe(true)
+    expect(groupFolded('Settings', 8, layout, new Set(), false)).toBe(false) // the configuration pages are open, not hidden away
     expect(groupFolded('Core', 3, layout, new Set(), false)).toBe(true)
     expect(groupFolded('Sales', 13, layout, new Set(), false)).toBe(true)
     expect(groupFolded('Sales', 12, layout, new Set(), false)).toBe(false)

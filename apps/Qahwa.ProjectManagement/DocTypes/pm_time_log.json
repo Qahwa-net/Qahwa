@@ -1,0 +1,24 @@
+{
+  "$schema": "../../../docs/schema/doctype.schema.json",
+  "name": "Pm Time Log",
+  "module": "Project Management",
+  "autoname": "TLOG-.#####",
+  "titleField": "task",
+  "sortField": "log_date",
+  "sortDescending": true,
+  "fields": [
+    { "name": "task", "type": "Link", "options": "Pm Task", "label": "Task", "required": true, "inListView": true },
+    { "name": "project", "type": "Link", "options": "Pm Project", "label": "Project", "readOnly": true, "fetchFrom": "task.project", "inListView": true, "inStandardFilter": true },
+    { "name": "user", "type": "Link", "options": "User", "label": "Person", "inListView": true, "inStandardFilter": true },
+    { "name": "log_date", "type": "Date", "label": "Date", "required": true, "default": "=today()", "inListView": true },
+    { "name": "hours", "type": "Float", "label": "Hours", "required": true, "inListView": true },
+    { "name": "note", "type": "Data", "label": "What was done" }
+  ],
+  "validations": [
+    { "expression": "hours > 0 && hours <= 24", "message": "Hours are more than 0 and at most 24.", "field": "hours" }
+  ],
+  "permissions": [
+    { "role": "Project User", "read": true, "write": true, "create": true, "delete": true, "export": true },
+    { "role": "Project Manager", "read": true, "write": true, "create": true, "delete": true, "export": true, "report": true }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "$schema": "../../../docs/schema/doctype.schema.json",
+  "name": "Pm Project",
+  "module": "Project Management",
+  "autoname": "PRJ-.#####",
+  "titleField": "project_name",
+  "defaultView": "board",
+  "searchFields": ["project_name", "manager"],
+  "fields": [
+    { "name": "project_name", "type": "Data", "label": "Project", "required": true, "inListView": true },
+    { "name": "status", "type": "Select", "label": "Status", "options": "Planning\nActive\nOn Hold\nCompleted\nCancelled", "default": "Planning", "inListView": true, "inStandardFilter": true },
+    { "name": "manager", "type": "Link", "options": "User", "label": "Project manager", "inListView": true, "inStandardFilter": true },
+    { "name": "start_date", "type": "Date", "label": "Start date" },
+    { "name": "end_date", "type": "Date", "label": "End date", "inListView": true },
+    { "name": "budget_hours", "type": "Float", "label": "Budget (hours)", "nonNegative": true },
+    { "name": "logged_hours", "type": "Float", "label": "Logged (hours)", "readOnly": true, "noCopy": true },
+    { "name": "percent_complete", "type": "Percent", "label": "Complete (%)", "precision": 0, "readOnly": true, "noCopy": true, "inListView": true },
+    { "name": "description", "type": "TextEditor", "label": "Description" },
+    { "name": "tasks_section", "type": "SectionBreak", "label": "Tasks" },
+    { "name": "task_overview", "type": "Text", "label": "Tasks in this project", "readOnly": true, "noCopy": true, "description": "Kept up to date by the example Server Script (Scripts/task_overview.server.js)." }
+  ],
+  "statusField": "status",
+  "indicators": [
+    { "value": "Planning", "color": "blue" }, { "value": "Active", "color": "green" }, { "value": "On Hold", "color": "orange" },
+    { "value": "Completed", "color": "purple" }, { "value": "Cancelled", "color": "gray" }
+  ],
+  "validations": [
+    { "expression": "end_date == null || start_date == null || end_date >= start_date", "message": "The end date cannot be before the start date.", "field": "end_date" }
+  ],
+  "permissions": [
+    { "role": "Project User", "read": true, "write": true, "export": true },
+    { "role": "Project Manager", "read": true, "write": true, "create": true, "delete": true, "export": true, "report": true }
+  ]
+}

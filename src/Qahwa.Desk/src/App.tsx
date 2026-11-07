@@ -1,3 +1,4 @@
+import { DeveloperHubPage } from './pages/DeveloperHub.tsx'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth.tsx'
 import { Shell } from './shell/Shell.tsx'
@@ -71,6 +72,7 @@ export function App() {
         <Route element={<RequireAuth />}>
           <Route index element={<HomePage />} />
           <Route path="account" element={<AccountPage />} />
+          <Route path="developer" element={<DeveloperHubPage />} />
           <Route path="designer" element={<DesignerList />} />
           <Route path="designer/new" element={<DesignerEditor />} />
           <Route path="designer/:name" element={<DesignerEditor />} />

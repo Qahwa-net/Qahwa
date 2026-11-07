@@ -80,7 +80,10 @@ app.MapFallback(async context =>
 
 var autoMigrate = app.Configuration.GetValue<bool>("Qahwa:AutoMigrate");
 if (mainSiteServes)
+{
     await SiteStartup.RunAsync(app.Services, app.Logger, autoMigrate);
+    await SiteStartup.BootstrapAdminAsync(app.Services, app.Configuration, app.Logger);
+}
 await app.Services.GetRequiredService<SiteHost>().PrepareAsync(app.Services.GetRequiredService<ILoggerFactory>(), autoMigrate);
 
 app.Run();

@@ -23,7 +23,7 @@ public sealed record ScriptInput(DocTypeMeta Meta, string Event, bool IsNew, IRe
 /// <c>qahwa</c> object. It is stopped after a number of statements, a time, an amount of memory and a depth of calls, and everything it
 /// reads or writes goes through the same permission checks as the person who made the change.
 /// </summary>
-public sealed class ScriptSandbox(DocumentService documents, TimeProvider clock)
+public sealed class ScriptSandbox(DocumentService documents, TimeProvider clock, Lazy<EmailService>? emails = null)
 {
     public const int MaxSourceLength = 20_000;
     public const int MaxStatements = 100_000;
@@ -31,6 +31,7 @@ public sealed class ScriptSandbox(DocumentService documents, TimeProvider clock)
     public const int MaxRecursion = 100;
     public const int MaxReads = 20;
     public const int MaxWrites = 5;
+    public const int MaxEmails = 20;
     public const int MaxLogLines = 50;
     public const int MaxLogLength = 500;
     public const int MaxResultBytes = 200_000;
@@ -90,6 +91,7 @@ public sealed class ScriptSandbox(DocumentService documents, TimeProvider clock)
         var log = new List<string>();
         var reads = 0;
         var writes = 0;
+        var emailsQueued = 0;
         var engine = new Engine(o =>
         {
             o.Strict();
@@ -191,6 +193,20 @@ public sealed class ScriptSandbox(DocumentService documents, TimeProvider clock)
         {
             Write();
             Wait(documents.UpdateAsync(Text(a, 0, "the DocType"), Text(a, 1, "the document name"), Values_(a, 2), input.User, ct));
+            return JsValue.Undefined;
+        }));
+        // qahwa.email(to, subject, message, doctype?, name?): queues an email to a person with an account here (ADR-164). It is a write.
+        api.Set("email", new ClrFunction(engine, "email", (_, a) =>
+        {
+            if (!input.AllowWrites)
+                throw Fail("This script may not send email.");
+            if (++emailsQueued > MaxEmails)
+                throw Fail($"A script may send at most {MaxEmails} emails per run.");
+            if (emails is null)
+                throw Fail("Email is not available here.");
+            string Str(int i) => a.Length > i && a[i].IsString() ? a[i].AsString() : string.Empty;
+            var (doctype, name) = a.Length > 4 && a[3].IsString() && a[4].IsString() ? (a[3].AsString(), a[4].AsString()) : (null, null);
+            emails.Value.SendFromScriptAsync(Str(0), Str(1), Str(2), doctype, name, input.User, ct).GetAwaiter().GetResult();
             return JsValue.Undefined;
         }));
         engine.SetValue("qahwa", api);

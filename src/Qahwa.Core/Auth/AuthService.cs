@@ -209,6 +209,10 @@ public sealed class AuthService(
         await SetPasswordAsync(key, newPassword, ct);
     }
 
+    /// <summary>True when an account exists for the email (enabled or not).</summary>
+    public async Task<bool> UserExistsAsync(string email, CancellationToken ct = default) =>
+        Normalize(email) is { } key && await GetUserAsync(key, ct) is not null;
+
     /// <summary>Creates (or re-enables) a user, sets the password and grants the roles. Used to bootstrap the first admin.</summary>
     public async Task EnsureUserAsync(
         string email,

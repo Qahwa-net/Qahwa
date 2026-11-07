@@ -6,13 +6,17 @@ import { AssignmentRow, assignmentsKey } from './AssignPanel.tsx'
 import { sharesKey } from './SharePanel.tsx'
 import { Attachments } from './Attachments.tsx'
 import { TagsPanel } from './TagsPanel.tsx'
+import { FollowButton } from './FollowButton.tsx'
+import { LikeButton } from './LikeButton.tsx'
 
 const when = (value: unknown) => (value ? new Date(String(value)).toLocaleString() : '')
 
 /** The side of a saved document: who it is assigned to, who it is shared with, and its details. */
-export function DocRail({ doctype, doc, canAssign, canShare, trackViews = false, onAssign, onShare }: {
+export function DocRail({ doctype, doc, canAssign, canShare, canLike = false, trackViews = false, onAssign, onShare }: {
   doctype: string
   trackViews?: boolean
+  /** Whether people can like this kind of document (not system DocTypes or settings pages). */
+  canLike?: boolean
   doc: Doc
   canAssign: boolean
   canShare: boolean
@@ -26,6 +30,14 @@ export function DocRail({ doctype, doc, canAssign, canShare, trackViews = false,
 
   return (
     <aside className="doc-rail" aria-label="Document sidebar">
+      <section className="rail-card" aria-label="Likes and followers">
+        <header><h3>Reactions</h3></header>
+        <div className="rail-reactions">
+          {canLike && <LikeButton doctype={doctype} name={doc.name} />}
+          <FollowButton doctype={doctype} name={doc.name} />
+        </div>
+      </section>
+
       {(canAssign || open.length > 0) && !assignments.isError && (
         <section className="rail-card" aria-label="Assigned to">
           <header>

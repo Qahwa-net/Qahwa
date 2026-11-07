@@ -1,0 +1,14 @@
+**/bin/
+**/obj/
+**/node_modules/
+**/.vs/
+.git/
+.github/
+sites/
+**/TestResults/
+**/coverage/
+src/Qahwa.Server/wwwroot/
+src/Qahwa.Server/data/
+e2e/
+benchmarks/
+docs/site/

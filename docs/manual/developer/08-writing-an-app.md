@@ -2,6 +2,8 @@
 
 An **app** is a .NET class library with an `IQahwaApp` class. It can bring DocTypes (JSON files), hooks on documents, server functions, scheduled jobs, fixtures and patches. Several apps can be installed together, and on a server with several sites each site records the apps it has.
 
+For a walk-through from nothing to an app on the Apps screen (template, registration, Docker, versions, removal) read [Building and installing an app](11-building-and-installing-apps.md).
+
 ## Start from the template
 
 The repository has a `dotnet new` template that makes a working app, with a DocType, a hook, a server function and a test project:
@@ -167,6 +169,9 @@ var loaded = new SalesInvoice(await documents.GetAsync(SalesInvoice.DocType, (st
 ```
 
 The class only wraps the dictionary; see [ADR-136](../../adr/136-typed-documents.md) for the type mapping and limits.
+
+## A walk-through: Project Management
+`apps/Qahwa.ProjectManagement` is the example of [Building an app from scratch](12-building-an-app-from-scratch.md): three DocTypes, roll-up hooks, a function, a script report and 13 tests, explained step by step ([ADR-163](../../adr/163-project-management-app.md)).
 
 ## A complete example: Qahwa CRM
 `apps/Qahwa.Crm` is a small real app built the same way: two DocTypes (`Crm Lead`, `Crm Opportunity`) as JSON files, a before-save hook per DocType, a server function (`qahwa_crm.convert_lead`) that works through the person's permissions, a script report, and fixtures for its two roles. `apps/Qahwa.Crm.Tests` shows how to test an app: load its DocTypes into the `TestEngine`, add the app to `engine.AppCatalog`, and call `engine.Documents`, `engine.Methods` and `engine.ScriptReports` as test users. The reference server offers it per site with `Qahwa:Apps:Crm = true` ([ADR-146](../../adr/146-crm-app.md)).

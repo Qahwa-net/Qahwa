@@ -1,15 +1,51 @@
-# Local development database. The credentials are for local use only.
+# One command runs Qahwa with its database:
+#
+#     docker compose up --build
+#
+# then open http://localhost:8080 and sign in with the administrator below (change both values first for anything but a trial).
+# Only the database:  docker compose up -d postgres   (for `dotnet run` development, see docs/manual/developer/01-getting-started.md)
+#
+# Settings can be put in a .env file next to this one, for example QAHWA_PORT=9000 or QAHWA_ADMIN_PASSWORD=...
 services:
   postgres:
     image: postgres:17
+    restart: unless-stopped
     environment:
       POSTGRES_USER: qahwa
-      POSTGRES_PASSWORD: qahwa_dev_only
+      POSTGRES_PASSWORD: ${QAHWA_DB_PASSWORD:-qahwa_dev_only}
       POSTGRES_DB: qahwa
     ports:
-      - "5432:5432"
+      - "127.0.0.1:${QAHWA_DB_PORT:-5432}:5432"   # for tools on this machine only
     volumes:
       - qahwa-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U qahwa -d qahwa"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  app:
+    build: .
+    image: qahwa:latest
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ConnectionStrings__Default: "Host=postgres;Port=5432;Database=qahwa;Username=qahwa;Password=${QAHWA_DB_PASSWORD:-qahwa_dev_only}"
+      # The first administrator, made once when the account does not exist yet (ADR-162). Later password changes are kept.
+      Qahwa__Bootstrap__AdminEmail: ${QAHWA_ADMIN_EMAIL:-admin@example.com}
+      Qahwa__Bootstrap__AdminPassword: ${QAHWA_ADMIN_PASSWORD:-ChangeMe-Qahwa-2026}
+      Qahwa__Bootstrap__AdminName: Administrator
+      # Apps built into the server are switched on per site. Project Management is the worked example of the developer guide.
+      Qahwa__Apps__ProjectManagement: "${QAHWA_APP_PROJECT_MANAGEMENT:-true}"
+      # Plain http is fine on one machine. Behind https (a proxy or load balancer) remove this line.
+      Qahwa__Auth__AllowHttp: "true"
+    ports:
+      - "${QAHWA_PORT:-8080}:8080"
+    volumes:
+      - qahwa-data:/app/data   # uploaded files; back it up with the database
 
 volumes:
   qahwa-pgdata:
+  qahwa-data:

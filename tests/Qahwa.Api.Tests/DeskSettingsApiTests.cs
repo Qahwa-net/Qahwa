@@ -38,6 +38,18 @@ public sealed class DeskSettingsApiTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task The_configuration_pages_have_a_settings_group_for_system_managers_only()
+    {
+        var manager = (await State(factory.ClientFor("sam@example.com", "System Manager"))).Links;
+        foreach (var id in new[] { "doctype:Email Account", "doctype:Email Template", "doctype:Email Queue", "page:brand", "page:naming", "page:workspaces", "page:permissions" })
+            Assert.Equal("Settings", manager.Single(l => l.Id == id).Group);
+        Assert.Equal("Tools", manager.Single(l => l.Id == "page:designer").Group); // the other tools stay together
+
+        var employee = (await State(factory.ClientFor("ann@example.com", "Employee"))).Links;
+        Assert.DoesNotContain(employee, l => l.Group == "Settings");
+    }
+
+    [Fact]
     public async Task Role_defaults_apply_until_personalized_and_reset_restores_inheritance()
     {
         Assert.Equal(HttpStatusCode.Created, (await Admin.PostAsJsonAsync("/api/resource/Role", new { role_name = "Employee" })).StatusCode);

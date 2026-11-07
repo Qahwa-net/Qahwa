@@ -6,6 +6,8 @@ export interface PaletteItem {
   label: string
   hint?: string
   to: string
+  /** Other words that find it ("smtp" finds Email Account), matched after the label. */
+  keywords?: string
 }
 
 export interface SearchResponse {
@@ -17,19 +19,37 @@ export const MIN_SERVER_QUERY = 2
 
 const appPath = (doctype: string, name?: string) => `/app/${encodeURIComponent(doctype)}${name === undefined ? '' : `/${encodeURIComponent(name)}`}`
 
+const KEYWORDS: Record<string, string> = {
+  'Email Account': 'smtp imap mail mailbox settings send outgoing incoming gmail office365',
+  'Email Template': 'mail message text',
+  'Email Queue': 'mail outbox sent failed',
+  'Developer Hub': 'tools api developer',
+  'Scheduled Jobs': 'cron background job scheduler',
+  'Brand': 'logo colour color theme',
+  'Backup & Restore': 'dump export database',
+  'Apps': 'install uninstall app',
+  'Sites': 'domain tenant multi site',
+  'User': 'people account password login',
+  'Role': 'permission access',
+  'Server Script': 'javascript code rule',
+  'Client Script': 'javascript form browser',
+}
+
 /** The pages that are not DocTypes. Tools are only offered to the people who may use them (the server decides again). */
 export function pageItems(canDesign: boolean, isAdministrator: boolean): PaletteItem[] {
-  const pages: [string, string][] = [['Home', '/'], ['Dashboards', '/dashboards'], ['Reports', '/reports'], ['Auto Repeat', '/auto-repeat'], ['My account', '/account']]
+  const pages: [string, string][] = [['Home', '/'], ['Dashboards', '/dashboards'], ['Reports', '/reports'], ['Script Reports', '/script-reports'], ['Auto Repeat', '/auto-repeat'], ['Energy Points', '/energy-points'], ['My account', '/account']]
   if (canDesign) {
     pages.push(
       ['DocType Designer', '/designer'], ['Customize Form', '/customize'], ['Role Permissions', '/permissions'], ['Workflow Builder', '/workflows'],
       ['Webhooks', '/webhooks'], ['Export & Import', '/bundle'], ['Workspaces', '/workspaces'], ['Brand', '/brand'], ['Print Formats', '/print-formats'],
       ['Notification Rules', '/notification-rules'], ['Assignment Rules', '/assignment-rules'], ['Naming Series', '/naming'],
+      ['Developer Hub', '/developer'], ['Scheduled Jobs', '/scheduler'], ['Emailed Reports', '/emailed-reports'], ['Apps', '/apps'], ['Sites', '/sites'],
+      ['Slow requests', '/slow-requests'], ['OAuth Clients', '/oauth-clients'],
     )
     if (isAdministrator) pages.push(['Backup & Restore', '/backup'])
   }
 
-  return pages.map(([label, to]) => ({ id: `page:${to}`, kind: 'page', label, hint: 'Page', to }))
+  return pages.map(([label, to]) => ({ id: `page:${to}`, kind: 'page', label, hint: 'Page', to, keywords: KEYWORDS[label] }))
 }
 
 /** How well a label matches what was typed: 0 starts with it, 1 has a word that does, 2 contains it, null no match. Case and accents do not matter. */
@@ -50,13 +70,19 @@ export function score(label: string, typed: string): number | null {
 export function paletteItems(typed: string, metas: MetaSummary[], pages: PaletteItem[], found: SearchResponse | null): PaletteItem[] {
   const wantsNew = /^new\s+/i.test(typed)
   const text = typed.replace(/^(new|open|go to)\s+/i, '')
-  const ranked = <T extends { label: string }>(items: T[]): T[] =>
-    items.map((item, i) => ({ item, s: score(item.label, text), i })).filter((x) => x.s !== null).sort((a, b) => a.s! - b.s! || a.i - b.i).map((x) => x.item)
+  // A label match beats a keyword match ("smtp" finds Email Account, but after the things actually called smtp).
+  const rank = (item: { label: string; keywords?: string }): number | null =>
+    score(item.label, text) ?? (item.keywords && text.trim() !== '' && score(item.keywords, text) !== null ? 3 : null)
+  const ranked = <T extends { label: string; keywords?: string }>(items: T[]): T[] =>
+    items.map((item, i) => ({ item, s: rank(item), i })).filter((x) => x.s !== null).sort((a, b) => a.s! - b.s! || a.i - b.i).map((x) => x.item)
+  const doctypeItem = (m: MetaSummary): PaletteItem => ({ id: `doctype:${m.name}`, kind: 'doctype', label: m.name, hint: m.module ?? 'List', to: appPath(m.name), keywords: KEYWORDS[m.name] })
 
   const out: PaletteItem[] = []
   if (!wantsNew) {
     out.push(...ranked(pages).slice(0, 5))
-    out.push(...ranked(metas.filter((m) => m.module !== 'Core').map<PaletteItem>((m) => ({ id: `doctype:${m.name}`, kind: 'doctype', label: m.name, hint: m.module ?? 'List', to: appPath(m.name) }))).slice(0, 6))
+    out.push(...ranked(metas.filter((m) => m.module !== 'Core').map(doctypeItem)).slice(0, 6))
+    // The framework's own DocTypes (User, Email Account, Error Log...) come after yours, and only once a couple of letters are typed.
+    if (text.trim().length >= 2) out.push(...ranked(metas.filter((m) => m.module === 'Core').map(doctypeItem)).slice(0, 6))
   }
 
   for (const d of found?.doctypes ?? []) {
