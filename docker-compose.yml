@@ -37,6 +37,8 @@ services:
       Qahwa__Bootstrap__AdminEmail: ${QAHWA_ADMIN_EMAIL:-admin@example.com}
       Qahwa__Bootstrap__AdminPassword: ${QAHWA_ADMIN_PASSWORD:-ChangeMe-Qahwa-2026}
       Qahwa__Bootstrap__AdminName: Administrator
+      # Apps built into the server are switched on per site. Project Management is the worked example of the developer guide.
+      Qahwa__Apps__ProjectManagement: "${QAHWA_APP_PROJECT_MANAGEMENT:-true}"
       # Plain http is fine on one machine. Behind https (a proxy or load balancer) remove this line.
       Qahwa__Auth__AllowHttp: "true"
     ports:

@@ -1,5 +1,7 @@
 # Building and installing an app: step by step
 
+For a longer example built from an empty folder (a Project Management app, with its tests), read [Building an app from scratch](12-building-an-app-from-scratch.md).
+
 This chapter takes you from nothing to an app that shows on the **Apps** screen of a running Qahwa. [Writing an app](08-writing-an-app.md) is the reference for everything an app can contain; this is the walk-through.
 
 ## What an app is, and what the Apps screen does

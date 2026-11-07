@@ -1,0 +1,31 @@
+{
+  "$schema": "../../../docs/schema/doctype.schema.json",
+  "name": "Pm Task",
+  "module": "Project Management",
+  "autoname": "TASK-.#####",
+  "titleField": "subject",
+  "defaultView": "board",
+  "sortField": "due_date",
+  "sortDescending": false,
+  "searchFields": ["subject", "project", "assigned_to"],
+  "fields": [
+    { "name": "subject", "type": "Data", "label": "Task", "required": true, "inListView": true },
+    { "name": "project", "type": "Link", "options": "Pm Project", "label": "Project", "required": true, "inListView": true, "inStandardFilter": true },
+    { "name": "status", "type": "Select", "label": "Status", "options": "Open\nIn Progress\nReview\nDone", "default": "Open", "inListView": true, "inStandardFilter": true },
+    { "name": "priority", "type": "Select", "label": "Priority", "options": "Low\nMedium\nHigh\nUrgent", "default": "Medium", "inListView": true, "inStandardFilter": true },
+    { "name": "assigned_to", "type": "Link", "options": "User", "label": "Assigned to", "inListView": true, "inStandardFilter": true },
+    { "name": "due_date", "type": "Date", "label": "Due date", "inListView": true },
+    { "name": "estimated_hours", "type": "Float", "label": "Estimate (hours)", "nonNegative": true },
+    { "name": "logged_hours", "type": "Float", "label": "Logged (hours)", "readOnly": true, "noCopy": true },
+    { "name": "completed_on", "type": "Date", "label": "Completed on", "readOnly": true, "noCopy": true, "dependsOn": "status == 'Done'" },
+    { "name": "description", "type": "TextEditor", "label": "Description" }
+  ],
+  "statusField": "status",
+  "indicators": [
+    { "value": "Open", "color": "blue" }, { "value": "In Progress", "color": "orange" }, { "value": "Review", "color": "purple" }, { "value": "Done", "color": "green" }
+  ],
+  "permissions": [
+    { "role": "Project User", "read": true, "write": true, "create": true, "export": true },
+    { "role": "Project Manager", "read": true, "write": true, "create": true, "delete": true, "export": true, "report": true }
+  ]
+}

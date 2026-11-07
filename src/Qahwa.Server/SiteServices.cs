@@ -67,9 +67,11 @@ public static class QahwaSiteServices
         // Virtual DocTypes backed by a JSON file: Qahwa:VirtualDocTypes:<DocType> = path (relative to the server's folder).
         foreach (var feed in config.GetSection("Qahwa:VirtualDocTypes").GetChildren().Where(c => !string.IsNullOrWhiteSpace(c.Value)))
             services.AddSingleton<IVirtualSource>(new JsonFileVirtualSource(feed.Key, Path.GetFullPath(feed.Value!, env.ContentRootPath)));
-        // Apps shipped with Qahwa are off until a site's own settings turn them on (Qahwa:Apps:Crm = true).
+        // Apps shipped with Qahwa are off until a site's own settings turn them on (Qahwa:Apps:Crm = true, Qahwa:Apps:ProjectManagement = true).
         if (config.GetValue<bool>("Qahwa:Apps:Crm"))
             services.AddQahwaApp<Qahwa.Crm.CrmApp>();
+        if (config.GetValue<bool>("Qahwa:Apps:ProjectManagement"))
+            services.AddQahwaApp<Qahwa.ProjectManagement.ProjectManagementApp>();
         services.Configure<SsoOptions>(config.GetSection("Qahwa:Auth:Sso"));
         services.Configure<SignUpOptions>(config.GetSection("Qahwa:Auth:SignUp"));
         services.Configure<LdapOptions>(config.GetSection("Qahwa:Auth:Ldap"));
