@@ -106,6 +106,7 @@ For people who use the Desk (the web app) and for administrators who set it up. 
 102. [Developer Hub and API examples](102-developer-hub.md)
 103. [Project Management](103-project-management.md)
 104. [Scripts for Project Management](104-pm-scripts.md)
+105. [Set up email](105-set-up-email.md)
 
 **Words used**
 

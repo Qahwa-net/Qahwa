@@ -47,6 +47,9 @@ public sealed class DeskSettingsService(IMetaRegistry registry, IDocumentReposit
     }
     private Task<Dictionary<string, object?>?> Find(string scope, string target, CancellationToken ct) => repository.GetAsync(Meta, Key(scope, target), ct);
 
+    /// <summary>The configuration pages a System Manager looks for first: they get a sidebar group of their own (ADR-165) instead of sitting among the 20 tools.</summary>
+    private static readonly HashSet<string> SettingsPages = new(StringComparer.Ordinal) { "brand", "naming", "workspaces", "permissions" };
+
     private async Task<List<DeskLink>> LinksAsync(IUserContext user, CancellationToken ct)
     {
         var manager = permissions.IsAdministrator(user) || user.Roles.Contains("System Manager", StringComparer.Ordinal);
@@ -54,13 +57,13 @@ public sealed class DeskSettingsService(IMetaRegistry registry, IDocumentReposit
         if (manager)
         {
             foreach (var (path, label) in new (string, string)[] { ("developer", "Developer Hub"), ("designer", "DocType Designer"), ("customize", "Customize Form"), ("permissions", "Role Permissions"), ("workflows", "Workflow Builder"), ("webhooks", "Webhooks"), ("emailed-reports", "Emailed Reports"), ("bundle", "Export & Import"), ("workspaces", "Workspaces"), ("brand", "Brand"), ("print-formats", "Print Formats"), ("notification-rules", "Notification Rules"), ("assignment-rules", "Assignment Rules"), ("naming", "Naming Series"), ("scheduler", "Scheduled Jobs") })
-                links.Add(new("page:" + path, label, "/" + path, "Tools"));
-            if (permissions.IsAdministrator(user)) links.Add(new("page:backup", "Backup & Restore", "/backup", "Tools"));
+                links.Add(new("page:" + path, label, "/" + path, SettingsPages.Contains(path) ? "Settings" : "Tools"));
+            if (permissions.IsAdministrator(user)) links.Add(new("page:backup", "Backup & Restore", "/backup", "Settings"));
         }
         var metas = await documents.ListMetasAsync(user, ct);
         foreach (var meta in metas.Where(m => m.Name != DocTypeName))
         {
-            var group = manager && meta.Name is "Email Account" or "Scheduled Job Log" or "Error Log" or "Deleted Document" or "DocType Layout" or "Energy Point Rule" or "Web Page" ? "Tools" : meta.Module ?? "Other";
+            var group = manager && meta.Name is "Email Account" or "Email Template" or "Email Queue" ? "Settings" : manager && meta.Name is "Scheduled Job Log" or "Error Log" or "Deleted Document" or "DocType Layout" or "Energy Point Rule" or "Web Page" ? "Tools" : meta.Module ?? "Other";
             links.Add(new("doctype:" + meta.Name, meta.Name, "/app/" + Uri.EscapeDataString(meta.Name), group));
         }
         // The workspaces made for this person are entries of the sidebar too (Frappe's left-hand workspace list), each opening its own page.

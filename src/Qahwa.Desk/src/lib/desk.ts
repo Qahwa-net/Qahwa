@@ -35,10 +35,10 @@ export function sidebarGroups(links: DeskLink[], layout: DeskLayout): [string, D
 
 /** Where a group sits when the person has not arranged the sidebar: their own work, then workspaces, then the business modules, then the tools, and the system's own DocTypes last. */
 export const groupRank = (group: string): number =>
-  group === 'My work' ? 0 : group === 'Workspaces' ? 1 : group === 'Tools' ? 98 : group === 'Core' ? 99 : 50
+  group === 'My work' ? 0 : group === 'Workspaces' ? 1 : group === 'Settings' ? 2 : group === 'Tools' ? 98 : group === 'Core' ? 99 : 50
 
 /** Groups that are not business modules: they have no module page of their own. */
-export const NOT_A_MODULE = new Set(['Favorites', 'My work', 'Workspaces', 'Tools', 'Dashboards', 'Reports', 'Saved views'])
+export const NOT_A_MODULE = new Set(['Favorites', 'My work', 'Workspaces', 'Settings', 'Tools', 'Dashboards', 'Reports', 'Saved views'])
 
 /** Long groups start folded so the sidebar is short; the group holding the page being viewed always opens. */
 export const FOLDED_BY_DEFAULT_OVER = 12

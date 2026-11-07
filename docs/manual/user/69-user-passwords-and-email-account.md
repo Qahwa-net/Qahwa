@@ -4,7 +4,7 @@ System Managers and Administrators can open **User**, choose a user, then use th
 
 Reset emails work for enabled users, including newly created users who have not chosen a password. Links expire after one hour, cannot be reused after the password changes, and are bound to the user record's creation. Requests are limited to three links per user per hour. Disabled users cannot use reset links.
 
-Open **Tools → Email Account**:
+Open **Settings → Email Account** (or press Ctrl+K and type `email`; the step-by-step guide with provider settings is [Set up email](105-set-up-email.md)):
 
 1. Enter the sender email address, SMTP server, port, username and password/app password.
 2. Enable outgoing email. For STARTTLS use port 587 and enable **Use STARTTLS**. Port 465 implicit TLS is not supported by this transport.

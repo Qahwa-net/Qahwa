@@ -21,6 +21,7 @@ export const HUB: HubGroup[] = [
   ] },
   { title: 'Connect other systems', tools: [
     { title: 'Webhooks', to: '/webhooks', about: 'Call another system when a document is saved, with a signed request.', keywords: 'integration http' },
+    { title: 'Email Account (SMTP and IMAP)', to: '/app/Email%20Account', about: 'The outgoing mail server and the mailbox to read, with a test email. Also Email Template and Email Queue.', keywords: 'smtp imap mail email settings gmail office365 send' },
     { title: 'OAuth Clients', to: '/oauth-clients', about: 'Let another application sign in on behalf of your users.', keywords: 'sso token' },
     { title: 'API reference (OpenAPI)', to: '/api/openapi.json', about: 'Every call this site offers, as JSON for Postman or a code generator. Keys are made in My account.', keywords: 'rest swagger api key' },
   ] },

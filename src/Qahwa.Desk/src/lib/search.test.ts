@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { pageItems, paletteItems, score, type SearchResponse } from './search.ts'
 
-const metas = [{ name: 'Customer', module: 'Selling' }, { name: 'Sales Order', module: 'Selling' }, { name: 'Role', module: 'Core' }]
+const metas = [{ name: 'Customer', module: 'Selling' }, { name: 'Sales Order', module: 'Selling' }, { name: 'Role', module: 'Core' }, { name: 'Email Account', module: 'Core' }]
 const pages = pageItems(false, false)
 
 describe('palette matching', () => {
@@ -14,12 +14,23 @@ describe('palette matching', () => {
     expect(score('Customer', '')).toBe(2)
   })
 
-  it('shows pages and DocTypes at once, best matches first, without system DocTypes', () => {
+  it('shows pages and DocTypes at once, best matches first, system DocTypes only after two letters', () => {
     const items = paletteItems('o', metas, pages, null)
 
     expect(items.map((i) => i.label)).not.toContain('Role')
     expect(items[0]!.kind).toBe('page')
     expect(items.find((i) => i.label === 'Sales Order')?.to).toBe('/app/Sales%20Order')
+  })
+
+  it('finds the framework DocTypes by name or by a related word, after your own', () => {
+    const labels = (typed: string, p = pages) => paletteItems(typed, metas, p, null).map((i) => i.label)
+    expect(labels('email')).toContain('Email Account')
+    expect(labels('smtp')).toEqual(['Email Account'])        // a keyword, not part of the name
+    expect(labels('em').indexOf('Email Account')).toBeGreaterThan(-1)
+    expect(labels('cust')[0]).toBe('Customer')                 // yours first
+    const admin = pageItems(true, true)
+    expect(labels('cron', admin)).toContain('Scheduled Jobs')
+    expect(labels('developer', admin)).toContain('Developer Hub')
   })
 
   it('adds the creatable DocTypes and the documents the server found', () => {
