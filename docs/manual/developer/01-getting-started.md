@@ -8,6 +8,8 @@
 
 ## Run the app
 
+**Quickest:** `docker compose up --build` builds everything and runs the app and PostgreSQL together at http://localhost:8080 (see [Docker and deployment](09-docker-and-deployment.md)). The steps below are for working on the code.
+
 ```bash
 docker compose up -d postgres            # PostgreSQL 17, user qahwa, database qahwa
 cd src/Qahwa.Desk && npm install && npm run build && cd ../..   # the server serves the built Desk
@@ -27,6 +29,8 @@ Settings (`appsettings.json`, section `Qahwa`):
 |---|---|
 | `DocTypePaths` | Folders of DocType JSON files (an app's definitions) loaded at start |
 | `AutoMigrate` | Run the schema sync at start |
+| `Bootstrap:AdminEmail`, `AdminPassword`, `AdminName` | Make this administrator at start if the account does not exist (ADR-162); used by the Docker setup |
+| `Auth:AllowHttp` | Let the sign-in cookie travel over plain http (trials on one machine only; ADR-162) |
 | `Qahwa:Email:Host`, `Port`, `UseSsl`, `User`, `Password`, `From` | Outgoing mail. Without a `Host` messages are only logged. Keep the password in user secrets or environment variables |
 | `Qahwa:Webhooks:AllowInsecure` | Development only: allow http and local addresses for webhooks. Never in production |
 | `Qahwa:Files:Path`, `MaxMegabytes`, `Provider`, `S3:*` | Where attachments are stored (default `data/files` next to the server; back it up; or `Provider = s3` with `S3:ServiceUrl`, `Bucket`, `Region`, `AccessKey`, `SecretKey`, `Prefix`, `PathStyle`, see ADR-145; or `Provider = azure` with `Azure:Account`, `Key`, `Container`, `Prefix`, `ServiceUrl`, see ADR-149) and the largest file (1 to 100, default 25) |

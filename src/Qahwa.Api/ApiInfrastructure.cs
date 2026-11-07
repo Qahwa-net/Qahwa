@@ -168,7 +168,7 @@ public static class ApiServiceCollectionExtensions
                 cookie.Cookie.Name = "qahwa.sid";
                 cookie.Cookie.HttpOnly = true;
                 cookie.Cookie.SameSite = SameSiteMode.Lax;
-                cookie.Cookie.SecurePolicy = env.IsDevelopment() ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
+                cookie.Cookie.SecurePolicy = env.IsDevelopment() || auth.Value.AllowHttp ? CookieSecurePolicy.SameAsRequest : CookieSecurePolicy.Always;
                 cookie.ExpireTimeSpan = TimeSpan.FromHours(auth.Value.SessionHours);
                 cookie.SlidingExpiration = true;
                 cookie.Events.OnRedirectToLogin = ctx => { ctx.Response.StatusCode = StatusCodes.Status401Unauthorized; return Task.CompletedTask; };

@@ -13,6 +13,8 @@ Qahwa is a low-code, metadata-driven framework for .NET: describe a DocType (a k
 | Control who can see and do what | [Permissions and access](manual/developer/05-permissions-and-access.md) |
 | Use single, tree, submittable DocTypes, rename, export, profiles, customisation | [Features reference](manual/developer/06-features-reference.md) |
 | Add code, tests and docs the way the project expects | [Extending and conventions](manual/developer/07-extending-and-conventions.md) |
+| Run it with one command in Docker, deploy it | [Docker and deployment](manual/developer/09-docker-and-deployment.md) |
+| Fix a problem | [Troubleshooting](manual/developer/10-troubleshooting.md) |
 | Use the Desk day to day | [User guide](manual/user/README.md) |
 | Write conditions, formulas and rules | [The expression language](expressions.md) |
 | Know why something is the way it is | [Architecture decisions](adr) |

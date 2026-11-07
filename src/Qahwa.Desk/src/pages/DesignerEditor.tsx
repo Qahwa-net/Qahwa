@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { apiExamples } from '../lib/apiSnippets.ts'
 import { keepPreviousData, useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ApiError, api } from '../api/client.ts'
@@ -63,7 +64,7 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
   const initial = useMemo(() => (detail ? fromDetail(detail) : emptyDraft()), [detail])
   const [draft, setDraft] = useState<Draft>(initial)
   const [open, setOpen] = useState<string | null>(null)
-  const [tab, setTab] = useState<'preview' | 'changes' | 'json'>('preview')
+  const [tab, setTab] = useState<'preview' | 'changes' | 'api' | 'json'>('preview')
   const [picker, setPicker] = useState(false)
   const [attempted, setAttempted] = useState(false)
   const [banner, setBanner] = useState<string | null>(null)
@@ -472,9 +473,9 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
 
         <aside className="designer-side">
           <div className="tabs" role="tablist">
-            {(['preview', 'changes', 'json'] as const).map((t) => (
+            {(['preview', 'changes', 'api', 'json'] as const).map((t) => (
               <button key={t} role="tab" aria-selected={tab === t} className={tab === t ? 'active' : ''} onClick={() => setTab(t)}>
-                {t === 'preview' ? 'Form preview' : t === 'changes' ? `Changes${blocking ? ' ⚠' : ''}` : 'JSON'}
+                {t === 'preview' ? 'Form preview' : t === 'changes' ? `Changes${blocking ? ' ⚠' : ''}` : t === 'api' ? 'API' : 'JSON'}
               </button>
             ))}
           </div>
@@ -503,6 +504,19 @@ function EditorBody({ detail, types }: { detail: DesignerDetail | null; types: F
                   <ul>{(preview.data?.errors ?? []).map((e, i) => <li key={i} className="error-text">{e.message}</li>)}</ul>
                 </>
               )}
+            </div>
+          )}
+          {tab === 'api' && (
+            <div className="card">
+              <p className="muted">Calls for this DocType. Make a key in Account, then API keys, and put it in <code>QAHWA_KEY</code>. The full list is at <a href="/api/openapi.json" target="_blank" rel="noreferrer">/api/openapi.json</a>.</p>
+              {draft.isNew && <p className="banner info">Save the DocType first: these calls work once it exists.</p>}
+              {apiExamples(definition, window.location.origin).map((e) => (
+                <div key={e.title}>
+                  <h3>{e.title}</h3>
+                  <pre className="sql">{e.curl}</pre>
+                  <button className="btn small" onClick={() => void navigator.clipboard?.writeText(e.curl)}>Copy</button>
+                </div>
+              ))}
             </div>
           )}
           {tab === 'json' && (

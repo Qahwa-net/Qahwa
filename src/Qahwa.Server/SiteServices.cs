@@ -83,6 +83,31 @@ public static class QahwaSiteServices
 /// <summary>What happens when a site starts: its schema, its loaded definitions and its pending patches.</summary>
 public static class SiteStartup
 {
+    /// <summary>
+    /// Makes the first administrator from <c>Qahwa:Bootstrap:AdminEmail</c> and <c>AdminPassword</c> (ADR-162), so a fresh container has a login. It only
+    /// acts when that account does not exist yet: a password changed later is never put back by a restart.
+    /// </summary>
+    public static async Task BootstrapAdminAsync(IServiceProvider sp, IConfiguration config, ILogger logger)
+    {
+        var email = config["Qahwa:Bootstrap:AdminEmail"];
+        var password = config["Qahwa:Bootstrap:AdminPassword"];
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrEmpty(password))
+            return;
+
+        var auth = sp.GetRequiredService<AuthService>();
+        if (await auth.UserExistsAsync(email))
+            return;
+        try
+        {
+            await auth.EnsureUserAsync(email, config["Qahwa:Bootstrap:AdminName"] is { Length: > 0 } name ? name : "Administrator", password, ["Administrator", "System Manager"]);
+            logger.LogInformation("Administrator {Email} was created from Qahwa:Bootstrap.", AuthService.Normalize(email));
+        }
+        catch (DocumentValidationException ex)
+        {
+            logger.LogError("Qahwa:Bootstrap could not create the administrator: {Errors}", string.Join("; ", ex.Errors.Select(e => $"{e.Field}: {e.Message}")));
+        }
+    }
+
     /// <summary>Brings one site's database and in-memory definitions up to date. A problem stops the server: carrying on half-migrated is worse.</summary>
     public static async Task RunAsync(IServiceProvider sp, ILogger logger, bool autoMigrate)
     {

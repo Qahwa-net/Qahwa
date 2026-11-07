@@ -61,6 +61,7 @@ Documentation: [developer manual and user guide](docs/README.md) · [roadmap and
 - **Passkeys**: sign in with a fingerprint, face or device PIN (WebAuthn, ES256 and RS256, no library; [ADR-150](docs/adr/150-passkeys.md))
 - **Frappe-style sidebar**: every group folds (Tools, Core and long groups start folded), workspaces are sidebar entries with pages of their own, each module has a page, and the home page shows modules instead of every DocType ([ADR-154](docs/adr/154-frappe-style-sidebar-and-module-pages.md))
 - **Form header like Frappe's**: a breadcrumb and a Menu with the everyday actions, instead of a row of icons ([ADR-161](docs/adr/161-form-menu-and-breadcrumbs.md))
+- **Docker, one command**: `docker compose up --build` runs the app and PostgreSQL, with the first administrator made from settings; **Developer Hub** and an **API** tab in the DocType Designer ([ADR-162](docs/adr/162-docker-and-developer-hub.md))
 - **Web pages**: published pages anyone can read without signing in, with an index, cleaned HTML and drafts that look like nothing ([ADR-160](docs/adr/160-web-pages.md))
 - **Energy points**: rules that reward work done in the system, a log, a leaderboard of names and a page ([ADR-159](docs/adr/159-energy-points.md))
 - **Virtual DocTypes**: read-only DocTypes whose documents come from outside the database (a JSON file is built in; other sources plug in), usable in lists, filters, exports and reports ([ADR-158](docs/adr/158-virtual-doctypes.md))
@@ -172,7 +173,15 @@ Not yet (see the [plan](docs/PLAN.md)): a page builder, virtual DocTypes, a site
 
 ## Try it
 
-Requires the .NET 10 SDK and Docker.
+**With Docker only (one command):**
+
+```bash
+docker compose up --build
+```
+
+Then open http://localhost:8080 and sign in as `admin@example.com` with `ChangeMe-Qahwa-2026`. This builds the image, starts PostgreSQL and the app, and keeps the data in volumes ([Docker and deployment](docs/manual/developer/09-docker-and-deployment.md)).
+
+**For working on the code** (needs the .NET 10 SDK and Docker):
 
 ```bash
 docker compose up -d postgres

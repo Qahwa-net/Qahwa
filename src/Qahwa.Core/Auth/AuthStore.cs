@@ -4,6 +4,9 @@ public sealed class AuthOptions
 {
     public int MinPasswordLength { get; set; } = 10;
 
+    /// <summary>Lets the sign-in cookie travel over plain http (ADR-162). Only for a trial on one machine: anywhere else serve https and leave it off.</summary>
+    public bool AllowHttp { get; set; }
+
     /// <summary>Failed logins before the account is locked.</summary>
     public int MaxFailedAttempts { get; set; } = 5;
 
