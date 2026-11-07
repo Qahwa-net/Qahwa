@@ -2,6 +2,8 @@
 
 An **app** is a .NET class library with an `IQahwaApp` class. It can bring DocTypes (JSON files), hooks on documents, server functions, scheduled jobs, fixtures and patches. Several apps can be installed together, and on a server with several sites each site records the apps it has.
 
+For a walk-through from nothing to an app on the Apps screen (template, registration, Docker, versions, removal) read [Building and installing an app](11-building-and-installing-apps.md).
+
 ## Start from the template
 
 The repository has a `dotnet new` template that makes a working app, with a DocType, a hook, a server function and a test project:

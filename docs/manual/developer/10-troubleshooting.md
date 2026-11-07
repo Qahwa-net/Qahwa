@@ -22,6 +22,7 @@
 | `validation_error` | `details` names each field; child table rows are `items[0].qty` |
 | `conflict` on save | Someone else saved first: reload, or send the `modified` value you read |
 | Saving a DocType says a change is blocked | The **Changes** tab of the Designer explains: for example a type change that would lose data. Make a new field instead |
+| My app is not on the Apps screen | It must be built into the server: a project reference in `Qahwa.Server.csproj` and `AddQahwaApp<...>()` in `SiteServices.cs`, then rebuild and restart. See [Building and installing an app](11-building-and-installing-apps.md#checklist-when-it-does-not-show-up) |
 | A scheduled job did not run | **Scheduled Jobs** shows the last run and any error; *Run now* runs it once. Is `Qahwa:Scheduler:Enabled` on? |
 | Email is not arriving | Without `Qahwa:Email:Host` messages are only logged. With it, check the log for the mail server's answer |
 | A list is slow | **Slow requests** shows the address and the number of database statements; hundreds of statements usually means a link title lookup per row or a report over unindexed fields (tick *Index* on the field) |
