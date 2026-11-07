@@ -24,6 +24,7 @@ Open **Server Script** and create one:
 | `qahwa.list("Order", { fields: ["name","total"], filters: [["customer","=",doc.customer]], limit: 20 })` | a list of documents |
 | `qahwa.insert("ToDo", { description: "Call " + doc.customer })` | create a document (After events only) |
 | `qahwa.update("Order", "SO-0001", { status: "Closed" })` | change a document (After events only) |
+| `qahwa.email("ann@example.com", "Subject", "Message", "Order", "SO-0001")` | queue an email to a person who has an account here; the last two (a document you may read) are optional. After events, API and Scheduled scripts only; at most 20 a run |
 
 Examples:
 
@@ -38,6 +39,9 @@ if (owed > 5000) qahwa.error("This customer owes " + owed + ". Ask finance first
 // After Save on Ticket: make a follow-up task
 if (isNew && doc.priority === "High") qahwa.insert("ToDo", { description: "Call about " + doc.name });
 ```
+
+## Can a script read the database?
+Yes, documents: `qahwa.get` and `qahwa.list` read them **as the person who saved**, so a script only ever sees what that person may open. There is no SQL and no access to anything else. For more, with worked examples (a task list on a project, a reminder email, an API of your own), see [Server and client scripts](../developer/13-server-and-client-scripts.md).
 
 ## Rules to know
 - A script **acts as the person who saved**: it can only read and write what they may. A script cannot reach files, the network or the server.

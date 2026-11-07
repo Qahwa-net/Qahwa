@@ -30,6 +30,9 @@ A task has a subject, its project, a **status** (Open, In Progress, Review, Done
 ## Time logs
 Open **Pm Time Log** and add an entry: the task, the date (today by default), the **hours** (more than 0, at most 24) and what was done. It belongs to you. The task's and the project's **Logged (hours)** update straight away, and again if you change or delete the entry.
 
+## Tasks box, reminders and form hints
+The optional example scripts add a **Tasks** section to each project listing its tasks with their status, person and due date, banners on the project and task forms (progress and budget; overdue), a **Mark as done** button on tasks, and a daily email to the person of each task that is due today. See [Scripts for Project Management](104-pm-scripts.md).
+
 ## Seeing where things stand
 - **Script Reports → Project status**: one row per project with its status, manager, end date, number of tasks, how many are overdue, percent complete, the budget and the hours logged. You see the projects you may read.
 - Developers and other systems can ask for one project's summary (`project_management.summary`: tasks by status, overdue count, progress, hours) through the API; see [Building an app from scratch](../developer/12-building-an-app-from-scratch.md), which uses this app as its example.

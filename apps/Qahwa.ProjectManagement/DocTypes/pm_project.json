@@ -15,7 +15,9 @@
     { "name": "budget_hours", "type": "Float", "label": "Budget (hours)", "nonNegative": true },
     { "name": "logged_hours", "type": "Float", "label": "Logged (hours)", "readOnly": true, "noCopy": true },
     { "name": "percent_complete", "type": "Percent", "label": "Complete (%)", "precision": 0, "readOnly": true, "noCopy": true, "inListView": true },
-    { "name": "description", "type": "TextEditor", "label": "Description" }
+    { "name": "description", "type": "TextEditor", "label": "Description" },
+    { "name": "tasks_section", "type": "SectionBreak", "label": "Tasks" },
+    { "name": "task_overview", "type": "Text", "label": "Tasks in this project", "readOnly": true, "noCopy": true, "description": "Kept up to date by the example Server Script (Scripts/task_overview.server.js)." }
   ],
   "statusField": "status",
   "indicators": [

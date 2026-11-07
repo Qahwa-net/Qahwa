@@ -141,6 +141,34 @@ public sealed class EmailService(
         return await FillAsync(template, meta, name, doc, user.User, ct);
     }
 
+    private async Task RequireDailyRoomAsync(string person, int count, CancellationToken ct)
+    {
+        var today = await repository.CountAsync(Queue, new ListQuery
+        {
+            Filters = [new("owner", FilterOp.Eq, person), new("creation", FilterOp.Ge, history.Now().Date)],
+        }, ct);
+        if (today + count > DailyLimit)
+            throw Invalid(string.Empty, $"You can send at most {DailyLimit} emails a day.");
+    }
+
+    /// <summary>
+    /// An email from a server script (ADR-164): to one person who has an enabled account here (a script cannot write to strangers), about a
+    /// document the acting person may read when one is named, and counted in the acting person's daily limit.
+    /// </summary>
+    public async Task SendFromScriptAsync(string to, string subject, string message, string? doctype, string? name, IUserContext user, CancellationToken ct = default)
+    {
+        var account = AuthKey(to);
+        var person = account is null ? null : await repository.GetAsync(registry.Get("User"), account, ct);
+        if (person is null || person["enabled"] is not true)
+            throw Invalid("to", "A script can only email people who have an account here.");
+        if (doctype is not null && name is not null)
+            await LoadAsync(doctype, name, user, ct); // reading it must be allowed to the person the script acts as
+        await RequireDailyRoomAsync(user.User, 1, ct);
+        await EnqueueAsync([account!], subject, message, doctype, name, user.User, ct, limit: 1);
+    }
+
+    private static string? AuthKey(string? address) => ValidAddress(address?.Trim()) ? address!.Trim().ToLowerInvariant() : null;
+
     /// <summary>Emails about a document, from the person using it. Needs write access; at most <see cref="DailyLimit"/> a day per person.</summary>
     public async Task<int> SendFromDocumentAsync(string doctype, string name, EmailRequest request, IUserContext user, CancellationToken ct = default)
     {
@@ -159,13 +187,7 @@ public sealed class EmailService(
         }
 
         var recipients = request.To ?? [];
-        var startOfDay = history.Now().Date;
-        var today = await repository.CountAsync(Queue, new ListQuery
-        {
-            Filters = [new("owner", FilterOp.Eq, user.User), new("creation", FilterOp.Ge, startOfDay)],
-        }, ct);
-        if (today + Math.Max(recipients.Count, 1) > DailyLimit)
-            throw Invalid(string.Empty, $"You can send at most {DailyLimit} emails a day.");
+        await RequireDailyRoomAsync(user.User, Math.Max(recipients.Count, 1), ct);
 
         var count = await EnqueueAsync(recipients, subject ?? string.Empty, message ?? string.Empty, doctype, name, user.User, ct, thread: true);
         if (history.InfoNote(doctype, name, $"Emailed {string.Join(", ", recipients.Select(a => a.Trim()).Distinct(StringComparer.OrdinalIgnoreCase))}", user.User, history.Now()) is { } note)

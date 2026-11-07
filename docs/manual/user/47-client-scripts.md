@@ -22,6 +22,8 @@ qahwa.ui.form.on('Order', {
 });
 ```
 
+A client script can only see the form it runs on. It **cannot read other documents or the database**: to show information from other documents on a form, have a Server Script write it into a read-only field. See [Server and client scripts](../developer/13-server-and-client-scripts.md) for examples.
+
 ## Events
 | name | when |
 |---|---|

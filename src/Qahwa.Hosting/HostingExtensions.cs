@@ -92,6 +92,7 @@ public static class HostingServiceCollectionExtensions
         services.TryAddSingleton(sp => new Lazy<WorkflowLinkService>(() => sp.GetRequiredService<WorkflowLinkService>()));
         services.TryAddSingleton<IAssignmentRuleStore, AssignmentRuleStore>();
         services.TryAddSingleton<EmailService>();
+        services.TryAddSingleton(sp => new Lazy<EmailService>(() => sp.GetRequiredService<EmailService>()));
         services.TryAddSingleton<DashboardService>();
         services.TryAddSingleton<PrintService>();
         services.TryAddSingleton<WorkspaceService>();

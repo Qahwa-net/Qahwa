@@ -310,6 +310,7 @@ At the start the site records the app (**Installed App**), creates the three tab
 | Each person sees only the projects they belong to | `app.HasPermission(...)` and `app.PermissionQuery(...)` ([ADR-074](../../adr/074-app-permission-hooks.md)), for example filter tasks by `assigned_to` or project membership. They can only take access away |
 | Remind people of overdue tasks | `app.Schedule("overdue_reminders", TimeSpan.FromHours(6), async (services, ct) => …)`; it must be safe to run twice |
 | Show the number of my open tasks in the Desk header | `app.Boot(...)` |
+| Small rules without a build (a tasks box, a due-date email, a form hint) | [Server and client scripts](13-server-and-client-scripts.md) use this app as their example |
 | Fill a new field for existing tasks after an update | An `IPatch` in `Patches`, named with a date prefix; it runs once per site |
 | Use another app's DocTypes | `Dependencies => ["other_app"]` |
 | A Done column that needs approval | A [workflow](06-features-reference.md) on `Pm Task`, no code |

@@ -506,6 +506,10 @@ The role map (ADR-113) was tried with a real OpenID Connect provider over HTTP, 
 ## Virtual DocTypes ([ADR-158](../../adr/158-virtual-doctypes.md))
 `Qahwa.Core/Virtual.cs`: `IVirtualSource`, `VirtualQuery` (`Apply`, `Count` over in-memory rows), `VirtualAwareRepository` (wraps `IDocumentRepository`; registered in `HostingServiceCollectionExtensions.AddQahwa` around `DocumentRepository`). `DocTypeMeta.IsVirtual` (`isVirtual`), checked in `DocTypeLoader`; `SchemaSync.PlanAsync` returns an empty plan for it; `DocumentService.GetPermissions` reports it read-only. `Qahwa.Server/JsonFileVirtualSource.cs`, registered from `Qahwa:VirtualDocTypes:<DocType>` in `SiteServices`. To add a source: implement `IVirtualSource` and `services.AddSingleton<IVirtualSource, YourSource>()` (a host, or an app through its own registration). Tests: `VirtualDocTypeTests` (a fake source over `VirtualQuery`; a `TestEngine` takes the wrapped store in its constructor), `PostgresVirtualDocTypeTests`.
 
+## Server script email and script examples ([ADR-164](../../adr/164-script-email.md))
+
+`qahwa.email` in `ScriptSandbox` (limit `MaxEmails` = 20 a run, an After/API/Scheduled event only) calls `EmailService.SendFromScriptAsync` (recipient must be an enabled User; a named document must be readable; counts in the 50 a day). Examples: `apps/Qahwa.ProjectManagement/Scripts/*.js`; guide: [Server and client scripts](13-server-and-client-scripts.md). Tests: `ScriptEmailTests`, `ProjectManagementScriptTests`, `exampleClientScripts.test.ts`.
+
 ## Project Management app ([ADR-163](../../adr/163-project-management-app.md))
 
 `apps/Qahwa.ProjectManagement` (`ProjectManagementApp`, DocTypes `pm_project.json`, `pm_task.json`, `pm_time_log.json`), registered in `SiteServices` when `Qahwa:Apps:ProjectManagement` is true. Walk-through: [Building an app from scratch](12-building-an-app-from-scratch.md). Tests: `ProjectManagementAppTests` (13).

@@ -15,4 +15,9 @@
     <Content Include="DocTypes\**\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <!-- The example Server and Client Scripts travel with the app so the tests can run them. -->
+  <ItemGroup>
+    <Content Include="Scripts\**\*.js" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

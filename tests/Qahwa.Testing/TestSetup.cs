@@ -129,7 +129,7 @@ public sealed class TestEngine
         DocumentActions = new DocumentActionEngine(Registry, Repository, Documents, Clock);
         EnergyPoints = new EnergyPointService(Registry, Repository, Documents, Clock);
         WebPages = new WebPageService(Registry, Repository);
-        ServerScripts = new ServerScriptEngine(Registry, Repository, new ScriptSandbox(Documents, Clock), Clock);
+        ServerScripts = new ServerScriptEngine(Registry, Repository, new ScriptSandbox(Documents, Clock, new Lazy<EmailService>(() => Email!)), Clock);
         ErrorLog = new ErrorLogService(Documents, new HitCounter(Clock));
         AppCatalog = new AppCatalog([]);
         var lazyDocs = new Lazy<DocumentService>(() => Documents);
